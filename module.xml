@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+  <Document name="git-source-control.ZPM">
+    <Module>
+      <Name>git-source-control</Name>
+      <Version>1.0.0</Version>
+      <Description>Server-side source control extension for use of Git on InterSystems platforms</Description>
+      <Keywords>git source control studio vscode</Keywords>
+      <Packaging>module</Packaging>
+      <Resource Name="SourceControl.Git.PKG" />
+      <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/" />
+      <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
+    </Module>
+  </Document>
+</Export>

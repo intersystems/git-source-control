@@ -1,3 +1,2 @@
-SourceControl.Git.Extension.cls
-SourceControl.Git.Utils.cls
-UnitTest.SourceControl.Git.AddRemove.cls
+SourceControl.Git.pkg
+UnitTest.SourceControl.Git.pkg

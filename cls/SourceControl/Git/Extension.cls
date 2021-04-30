@@ -8,9 +8,12 @@ XData Menu
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
 <MenuItem Name="%Cache-Git-Settings" />
-<MenuItem Name="%Settings" />
 <MenuItem Name="%CreateRepo" Save = "001"/>
 <MenuItem Name="%Clone" Save = "001"/>
+<MenuItem Separator="true"/>
+<MenuItem Name="%GitWebUI" Save = "111" />
+<!--
+<MenuItem Name="%Settings" />
 <MenuItem Name="%Commit" Save = "001"/>
 <MenuItem Separator="true"/>
 <MenuItem Name="%Pull" Save = "001"/>
@@ -27,6 +30,7 @@ XData Menu
 <MenuItem Separator="true"/>
 <MenuItem Name="%StashSave" Save = "001"/>
 <MenuItem Name="%StashPop" Save = "001"/>
+-->
 <MenuItem Separator="true"/>
 <MenuItem Name="%Export" Save = "001" />
 <MenuItem Name="%ExportForce" Save = "001" />
@@ -38,8 +42,10 @@ XData Menu
 <Menu Name="%SourceMenuContext" Type="1">
 <MenuItem Name="%AddToSC"/>
 <MenuItem Name="%RemoveFromSC"/>
+<!--
 <MenuItem Name="%Diff" Save = "001"/>
 <MenuItem Name="%Blame" Save = "001"/>
+-->
 </Menu>
 </MenuBase>
 }
@@ -73,7 +79,9 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 		quit $$$OK
 	}
 	if ##class(Utils).IsNamespaceInGit() {
-		if name = "%Export" {
+		if name = "%GitWebUI" {
+			set DisplayName = "Launch Git UI"
+		} elseif name = "%Export" {
 			set DisplayName = "Export All"
 		} elseif name="%ExportForce" {
 			set DisplayName = "Export All Force"
@@ -81,12 +89,12 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Import All"
 		} elseif name = "%ImportForce" {
 			set DisplayName = "Import All Force"
-		}elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
+		} elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
 			set DisplayName = "Check for modifications"
-		}elseif name = "%OpenRepoFolder" {
+		} elseif name = "%OpenRepoFolder" {
+			// TODO: Only display if running locally
 			set DisplayName = "Open Repo Folder"
-		}
-		elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
+		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",
 			                             :$Extract(name, 2, *))

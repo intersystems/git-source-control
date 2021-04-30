@@ -1,0 +1,82 @@
+<script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>
+	set pagePath = $Piece(%request.CgiEnvs("REQUEST_URI"),..#CSPURL,2,*)
+    set namespace = $Piece(pagePath,"/",2)
+    set resource = $Piece(pagePath,"/",3,*)
+    set %base = $Piece(%request.CgiEnvs("REQUEST_URI"),..#CSPURL,1)_..#CSPURL_"/"_namespace_"/"
+
+    new $NAMESPACE
+    set $NAMESPACE = namespace
+    do ##class(SourceControl.Git.WebUIDriver).RunInBackground()
+
+	// The request object that will fetch and return the page
+	set request = ##class(%Net.HttpRequest).%New()
+	set request.Server = "localhost"
+	set request.Port = 8000
+	
+	// Copy headers from %request to request
+	#dim %request As %CSP.Request
+	#dim %response As %CSP.Response
+	set request.ContentType = %request.ContentType
+	
+    // Weird way of handling URL-encoded form parameters - just copy to entity body rather than
+    // parroting through %Net.HttpRequest which double-encodes and forces an "=" for no value
+	if $ZConvert(%request.ContentType,"U") [ $ZConvert("application/x-www-form-urlencoded","U") {
+		set key = ""
+		for {
+			set key = $Order(%request.Data(key))
+			quit:key=""
+			set value = %request.Get(key)
+            do request.EntityBody.Write(key)
+            if (value '= "") {
+                do request.EntityBody.WriteLine("="_value)
+            }
+		}
+	}
+	
+    if (resource = "") {
+		$$$ThrowOnError(request.Get("/"))
+	} else {
+        kill %base // Don't want this for static files other than the root.
+		set fullPage = "http://"_..#HOST_":"_..#PORT_"/"_resource
+		$$$ThrowOnError(request.Send(%request.Method,resource))
+	}
+	
+	// We'll share this data with OnPage
+    set %data = request.HttpResponse.Data
+	
+	set %response.Status = request.HttpResponse.StatusCode
+	set %response.ContentType = request.HttpResponse.ContentType
+	
+	set headerName = ""
+	for {
+		set headerName = request.HttpResponse.GetNextHeader(headerName)
+		if (headerName = "") {
+			quit
+		}
+		set value = request.HttpResponse.GetHeader(headerName)
+		if ($ZConvert(headerName,"U") = "SET-COOKIE") {
+			do %response.SetCookie($Piece(value,"="),$Piece($Piece(value,"=",2),";"),,$Piece($Piece(value,"Path=",2),";"),,,value["HttpOnly")
+		} elseif ($ZConvert(headerName,"U") = "LOCATION") && $Data(%base)#2 {
+			do %response.SetHeader(headerName,%base_value)
+		} elseif ($ZConvert(headerName,"U") = "CONTENT-ENCODING") {
+			// SKIP: we won't send gzipped output still gzipped
+		} else {
+			do %response.SetHeader(headerName,value)
+		}
+	}
+
+    do ##class(%CSP.StreamServer).FileClassify($Piece(resource,"/",*),,,.charset)
+    if ($Get(charset) = "") {
+        set %response.NoCharSetConvert = 1
+    }
+
+	quit 1
+</script><server>
+    if (%response.ContentType [ "html") && $Data(%base)#2 {
+        &html<<base href="#(..EscapeHTML(%base))#">>
+        do %data.OutputToDevice()
+    } else {
+        do %data.OutputToDevice()
+    }
+    quit 1
+</server>

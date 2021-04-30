@@ -9,6 +9,7 @@
       <Packaging>module</Packaging>
       <Resource Name="SourceControl.Git.PKG" />
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/" />
+      <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/" />
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
     </Module>
   </Document>

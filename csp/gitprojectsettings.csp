@@ -8,12 +8,12 @@
 </STYLE>
 <body>
 <server>
+ new $namespace
  set namespace = %request.Data("NSpace",1)
- set oldNS=$znspace
- znspace namespace
+ set $namespace = namespace
  if $Data(%request.Data("gitsettings",1)) {
      kill settings
-     for param="gitBinPath","defaultTemp","namespaceTemp","groupByFolder" {
+     for param="gitBinPath","defaultTemp","namespaceTemp","groupByFolder","gitUserName","gitUserEmail" {
          set settings(param) = $Get(%request.Data(param,1))
      } 
      do ##class(SourceControl.Git.Utils).UpdateSettings(.settings)
@@ -22,31 +22,27 @@
  set defaultTemp = ##class(SourceControl.Git.Utils).DefaultTemp()
  set namespaceTemp = ##class(SourceControl.Git.Utils).TempFolder()
  set groupByFolder = ##class(SourceControl.Git.Utils).GroupByFolder()
- znspace oldNS
+ set gitUserName = ##class(SourceControl.Git.Utils).GitUserName()
+ set gitUserEmail = ##class(SourceControl.Git.Utils).GitUserEmail()
  set:defaultTemp="" defaultTemp =  "c:\temp\"
- 
 </server>
 <form method='post'>
 <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
 <input type="hidden" name="gitsettings" value="1" />
 <h1>Settings</h1>
 <table>
-<csp:if condition='$system.Version.GetOS()="Windows"'>
+<tr><th colspan="2">Settings for namespace #(..EscapeHTML(namespace))#</th></tr>
 <tr>
-<td>Path to tortoisegitproc.exe<br/>(e.g. c:\tortoisegit\bin\tortoisegitproc.exe)</td><td><input type="text" name="gitBinPath" size=40 value='#(..EscapeHTML(gitBinPath))#'/></td>
+<td>Path to git.exe<br/>(e.g. C:\Program Files\Git\bin\git.exe)</td><td><input type="text" name="gitBinPath" size=40 value='#(..EscapeHTML(gitBinPath))#'/></td>
 </tr>
-
 <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).GitBinExists()=0)'>
 <tr><td colspan='2' align=center class='error'>
-file does not found
+File not found
 </td></tr>
 </csp:if>
-
-</csp:if>
+</tr>
 <tr>
 <td>Default path to temp folder<br/>(e.g. c:\temp)</td><td><input type="text" name="defaultTemp" size=40 value='#(..EscapeHTML(defaultTemp))#'/></td>
-</tr>
-<tr><th colspan="2">Settings for this namespace only</th>
 </tr>
 <tr>
 <td>Temp folder for this namespace<br/>(e.g. c:\someproj\)</td><td><input type="text" name="namespaceTemp" size=40 value='#(..EscapeHTML(namespaceTemp))#'/></td>
@@ -56,11 +52,15 @@ file does not found
 <td>Group all items by folders</td><td><input type="checkbox" name="groupByFolder" size=40 #($case(groupByFolder,1:"checked",:""))#/></td>
 </tr>
 -->
+<tr><th colspan="2">Settings for user '#(..EscapeHTML($Username))#'</th></tr>
+<tr><td colspan="2"><em>Git settings - if empty, will default to repository/global settings</em></td></tr>
+<tr><td>Git Committer Name:</td><td><input type="text" name="gitUserName" size=40 value="#(..EscapeHTML(gitUserName))#" /></td></tr>
+<tr><td>Git Committer Email:</td><td><input type="text" name="gitUserEmail" size=40 value="#(..EscapeHTML(gitUserEmail))#" /></td></tr>
 </table>
-<input type='submit' value = 'Save!'/>
+<input type='submit' value = 'Save'/>
 </form>
 <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
-    <em>Click cross in the upper-right corner to close the settings window.</em>
+    <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
 </csp:if>
 </body>
 </html>

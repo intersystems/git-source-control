@@ -69,6 +69,16 @@ ClassMethod GitBinPath() As %String
     quit $case($Extract(binPath),"""":binPath,:""""_binPath_"""")
 }
 
+ClassMethod GitUserName() As %String
+{
+    Quit $Get(@..#Storage@("settings","user",$username,"gitUserName"))
+}
+
+ClassMethod GitUserEmail() As %String
+{
+    Quit $Get(@..#Storage@("settings","user",$username,"gitUserEmail"))
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..DefaultTemp() = "") ||  (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -98,6 +108,8 @@ ClassMethod UpdateSettings(ByRef settings) As %Status
     
     set @..#Storage@("settings","namespaceTemp") = ..AddSlash(settings("namespaceTemp"))
     set @..#Storage@("settings","groupByFolder") = $case(settings("groupByFolder"), "":"", :1)
+    set @..#Storage@("settings","user",$username,"gitUserName") = settings("gitUserName")
+    set @..#Storage@("settings","user",$username,"gitUserEmail") = settings("gitUserEmail")
     
     quit $$$OK
 }

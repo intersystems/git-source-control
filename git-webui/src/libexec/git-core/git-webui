@@ -1,0 +1,338 @@
+#!/usr/bin/env python
+
+# Copyright 2015 Eric ALBER
+#
+# Licensed under the Apache License, Version 2.0 (the "License")
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import codecs
+import datetime
+import os
+import platform
+import posixpath
+import shlex
+import socket
+import subprocess
+import sys
+import webbrowser
+
+if sys.version > '3':
+    from http.server import SimpleHTTPRequestHandler, HTTPServer
+    from urllib.parse import unquote, urlparse
+else:
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
+    from BaseHTTPServer import HTTPServer
+    from urllib import unquote
+    from urlparse import urlparse
+
+
+
+
+IS_WINDOWS = platform.system() == "Windows"
+
+allowed_hosts =  ["127.0.0.1", "localhost"]
+
+
+
+
+class WebUiHttpServer(HTTPServer):
+    def __init__(self, server_address, RequestHandlerClass, bind_and_activate = True):
+        if not isinstance(server_address, tuple) or len(server_address) < 2:
+            raise TypeError("server_address must be a tuple (address,port)")
+        host = server_address[0]
+        port = server_address[1]
+        if host is None or host == "":
+            HTTPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
+        else:
+            address_info = socket.getaddrinfo(host, port, 0, 0, socket.IPPROTO_TCP)[0]
+            self.address_family = address_info[0]
+            HTTPServer.__init__(self, address_info[4], RequestHandlerClass, bind_and_activate)
+
+
+
+
+class WebUiRequestHandler(SimpleHTTPRequestHandler):
+
+    WEB_ROOT = None
+    REPO_ROOT = None
+
+    @classmethod
+    def initialize(cls, repo_root):
+        web_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
+        web_root = os.path.join(web_root, "share", "git-webui", "webui")
+        WebUiRequestHandler.WEB_ROOT = web_root
+        WebUiRequestHandler.REPO_ROOT = repo_root
+
+
+    def translate_path(self, path):
+        if self.is_git_request():
+            return path
+
+        # abandon query parameters
+        path = path.split('?',1)[0]
+        path = path.split('#',1)[0]
+        # Don't forget explicit trailing slash when normalizing. Issue17324
+        trailing_slash = True if path.rstrip().endswith('/') else False
+        path = posixpath.normpath(unquote(path))
+        words = path.split('/')
+        words = filter(None, words)
+        path = WebUiRequestHandler.WEB_ROOT
+        for word in words:
+            drive, word = os.path.splitdrive(word)
+            head, word = os.path.split(word)
+            if word in (os.curdir, os.pardir): continue
+            path = os.path.join(path, word)
+        if trailing_slash:
+            path += '/'
+        return path
+
+
+    def do_GET(self):
+        if self.path.startswith("/git/cat-file/"):
+            obj = self.path[14:]
+            self.process(["git", "-c", "color.ui=false", "cat-file", "-p", obj], b"", True, False)
+        elif self.path == "/dirname":
+            wc = os.path.split(WebUiRequestHandler.REPO_ROOT)[1]
+            self.send_text(200, codecs.encode(wc, "utf-8"))
+        elif self.path == "/hostname":
+            self.send_text(200, codecs.encode(socket.gethostname(), "utf-8"))
+        elif self.path == "/viewonly":
+            vo = "1" if self.is_view_only() else "0"
+            self.send_text(200, codecs.encode(vo, "utf-8"))
+        elif self.is_git_request():
+            self.process_http_backend()
+        else:
+            SimpleHTTPRequestHandler.do_GET(self)
+
+
+    def do_POST(self):
+        if self.path == "/git":
+            content_length = int(self.headers["Content-Length"])
+            content = self.rfile.read(content_length)
+            # Convention : First line = git arguments, rest = git process stdin
+            i = content.find(b'\n')
+            if i != -1:
+                args = content[:i]
+                stdin = content[i + 1:]
+            else:
+                args = content
+                stdin = b""
+            if sys.version > '3':
+                args = codecs.decode(args, "utf-8")
+            cmd = shlex.split("git -c color.ui=true " + args)
+            action = cmd[3]
+            if not self.is_view_only() or args in ["branch", "branch --remotes", "tag"] or action in ["show", "status", "log", "ls-tree"]:
+                self.process(cmd, stdin, True, True)
+            else:
+                self.send_error(403)
+        elif self.is_git_request():
+            self.process_http_backend()
+        else:
+            SimpleHTTPRequestHandler.do_POST(self)
+
+
+    def is_view_only(self):
+        host = self.headers.get("Host", "").split(":")[0]
+        return host not in allowed_hosts
+
+
+    def process_http_backend(self):
+        parsed_path = urlparse(self.path)
+
+        env = {}
+        env["GIT_PROJECT_ROOT"] = WebUiRequestHandler.REPO_ROOT + "/.git"
+        env["GIT_HTTP_EXPORT_ALL"] = ""
+        env["REQUEST_METHOD"] = self.command
+        env["REMOTE_ADDR"] = self.client_address[0]
+        env["PATH_INFO"] = parsed_path.path
+        env["QUERY_STRING"] = parsed_path.query
+        if 'Content-Type' in self.headers:
+            env['CONTENT_TYPE'] = self.headers['Content-Type']
+        if 'Content-Length' in self.headers:
+            contentLength = self.headers['Content-Length']
+            env['CONTENT_LENGTH'] = contentLength
+            inputData = self.rfile.read(int(contentLength))
+        else:
+            env['CONTENT_LENGTH'] = '0'
+            inputData = b""
+
+        self.wfile.write(b"HTTP/1.0 200 OK\r\n")
+        self.wfile.flush()
+        self.process(['git', "-c", "color.ui=false", 'http-backend'], inputData, False, False, env)
+
+
+    def is_git_request(self):
+        return self.headers.get("User-Agent", "").startswith("git/")
+
+
+    def process(self, cmd, stdin, add_headers, add_footers, env = None):
+        if add_headers:
+            self.send_response(200)
+            self.end_headers()
+        # Convention : send first all git output, then stderr.
+        # Finially we add footers: a blank line followed by key / value pairs as in HTTP headers
+        if IS_WINDOWS:
+            # On windows we cannot pipe the process output directly to the socket.
+            git = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout = subprocess.PIPE, stderr = subprocess.PIPE, cwd = WebUiRequestHandler.REPO_ROOT, env = env)
+            git.stdin.write(stdin)
+            git.stdin.close()
+            bufferlen = 64 * 1024
+            while True:
+                data = git.stdout.read(bufferlen)
+                self.wfile.write(data)
+                if len(data) < bufferlen:
+                    break
+            stderr = git.stderr.read()
+            git.wait()
+        else:
+            git = subprocess.Popen(cmd, stdin = subprocess.PIPE, stdout = self.wfile, stderr = subprocess.PIPE, cwd = WebUiRequestHandler.REPO_ROOT, env = env)
+            stdout, stderr = git.communicate(stdin)
+        if add_footers:
+            self.wfile.write(stderr)
+            self.wfile.write(b"\r\n")
+            self.wfile.write(codecs.encode("\r\nGit-Stderr-Length: " + str(len(stderr)), "utf-8"))
+            self.wfile.write(codecs.encode("\r\nGit-Return-Code: " + str(git.returncode), "utf-8"))
+        elif git.returncode != 0:
+            print(stderr)
+
+
+    def send_text(self, http_status, text):
+        self.send_response(http_status)
+        self.send_header("Content-Type", "text/plain")
+        self.send_header("Content-Length", len(text))
+        self.end_headers()
+        self.wfile.write(text)
+
+
+
+
+def auto_update():
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))))
+    dot_git = os.path.join(repo_root, ".git")
+    if not os.path.exists(dot_git):
+        return
+    fetch_head = os.path.join(dot_git, "FETCH_HEAD")
+    if not os.path.exists(fetch_head):
+        needs_update = True
+    else:
+        fetch_head_mtime = os.stat(fetch_head).st_mtime
+        needs_update = datetime.datetime.now() - datetime.datetime.fromtimestamp(fetch_head_mtime) > datetime.timedelta(14)
+    if needs_update:
+        # Check if update is allowed
+        allow_autoupdate = read_config_boolean("autoupdate")
+        if not allow_autoupdate:
+            return
+
+        print("Checking for update...")
+        # Update the repository
+        subprocess.call(["git", "-c", "color.ui=false", "pull"], cwd = repo_root)
+        # Replace the current process with the updated one
+        os.execl(sys.executable, os.path.split(sys.executable)[1], *sys.argv)
+
+
+
+
+def read_config_string(name, default=None):
+    git = subprocess.Popen(["git", "-c", "color.ui=false", "config", "--get", "webui.{}".format(name)], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    out =  codecs.decode(git.communicate()[0], "utf-8")
+    if git.returncode != 0:
+        # The key doesn't exist
+        return default
+    return out.strip()
+
+
+
+
+def read_config_boolean(name, default=False):
+    r = read_config_string(name)
+    if r == None:
+        return bool(default)
+    return str(r).lower() == "true"
+
+
+
+
+def get_setting_string(args, name, default=None):
+    if vars(args)[name] is not None:
+        return vars(args)[name]
+    return read_config_string(name, default)
+
+
+
+
+def get_setting_boolean(args, name, default=False):
+    if vars(args)[name] is not None:
+        return vars(args)[name]
+    return read_config_boolean(name, default)
+
+
+
+
+if __name__ == '__main__':
+    auto_update()
+    parser = argparse.ArgumentParser(description = "Simple HTTP server for git webui")
+    parser.add_argument("--port", type = int, help = "server port")
+    parser.add_argument("--repo-root", help = "repository root path. By default goes up a dir until a '.git' directory is found")
+    parser.add_argument("--allow-hosts", help = "what other host(s) are allowed to have write access")
+    parser.add_argument("--no-browser", dest = "nobrowser", action = 'store_const', const = True, help = "do not start web browser")
+    parser.add_argument("--host", help = "the host webui listens on (default is all)")
+
+    args = parser.parse_args()
+
+    if args.repo_root is None:
+        args.repo_root = os.path.abspath(os.getcwd())
+        while '.git' not in os.listdir(args.repo_root):
+            new_root = os.path.dirname(args.repo_root)
+            if new_root == args.repo_root:
+                args.repo_root = None
+                break
+            else:
+                args.repo_root = new_root
+
+    writeaccess = read_config_string("writeaccess")
+    if writeaccess is not None:
+        allowed_hosts = writeaccess.split(',') if writeaccess else []
+    if args.allow_hosts is not None:
+        allowed_hosts += args.allow_hosts.split(',')
+
+    if args.repo_root is None or '.git' not in os.listdir(args.repo_root):
+        sys.stderr.write("No git repository found\n")
+        sys.exit(1)
+    WebUiRequestHandler.initialize(args.repo_root)
+
+    args.port = get_setting_string(args, 'port', None)
+    port = int(args.port) if args.port is not None else 8000
+    host = get_setting_string(args, 'host', "")
+    httpd = None
+    while httpd is None:
+        try:
+            httpd = WebUiHttpServer((host, port), WebUiRequestHandler)
+        except socket.error as e:
+            if args.port is not None:
+                sys.stderr.write("Port {} is already in use, try another one\n".format(port))
+                sys.exit(2)
+            else:
+                sys.stderr.write("Port {} is already in use, trying another one\n".format(port))
+                port += 1
+
+    url = "http://{}:{}".format(host if host else "localhost", port)
+    print("Serving at {}".format(url))
+    nobrowser = get_setting_boolean(args, "nobrowser")
+    if not nobrowser:
+        webbrowser.open(url)
+
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        httpd.server_close()
+        sys.exit(0)

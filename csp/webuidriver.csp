@@ -8,6 +8,11 @@
     set $NAMESPACE = namespace
     do ##class(SourceControl.Git.WebUIDriver).RunInBackground()
 
+	do ##class(SourceControl.Git.WebUIDriver).HandleRequest("/"_resource, .handled, .%data)
+	if handled {
+		quit 1
+	}
+
 	// The request object that will fetch and return the page
 	set request = ##class(%Net.HttpRequest).%New()
 	set request.Server = "localhost"

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 if [ "$OS" = "Windows_NT" ]; then
     # We are on windows, check if Python is installed
     python -V > /dev/null 2>&1
@@ -34,13 +36,12 @@ fi
 
 cd $HOME
 rm -rf .git-webui > /dev/null 2>&1
-echo "Cloning git-webui repository"
-git clone --depth 1 https://github.com/timleavitt/git-webui.git .git-webui
-echo "Enabling auto update"
-git config --global --replace-all webui.autoupdate true
+echo "Disabling auto update"
+git config --global --replace-all webui.autoupdate false
 echo "Installing 'webui' alias"
+cp -r $SCRIPT_DIR/../release $HOME/.git-webui
 if [ "$OS" = "Windows_NT" ]; then
-    git config --global --replace-all alias.webui "!${PYTHON} $HOME/.git-webui/release/libexec/git-core/git-webui"
+    git config --global --replace-all alias.webui "!${PYTHON} $HOME/.git-webui/libexec/git-core/git-webui"
 else
-    git config --global --replace-all alias.webui !$HOME/.git-webui/release/libexec/git-core/git-webui
+    git config --global --replace-all alias.webui !$HOME/.git-webui/libexec/git-core/git-webui
 fi

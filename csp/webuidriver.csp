@@ -1,8 +1,9 @@
 <script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>
-	set pagePath = $Piece(%request.CgiEnvs("REQUEST_URI"),..#CSPURL,2,*)
+	set url = $Piece($Get(%request.CgiEnvs("REQUEST_URI"),$Get(%request.CgiEnvs("HTTP_URL"))),"?")
+	set pagePath = $Piece(url,..#CSPURL,2,*)
     set namespace = $Piece(pagePath,"/",2)
     set resource = $Piece(pagePath,"/",3,*)
-    set %base = $Piece(%request.CgiEnvs("REQUEST_URI"),..#CSPURL,1)_..#CSPURL_"/"_namespace_"/"
+    set %base = $Piece(url,..#CSPURL,1)_..#CSPURL_"/"_namespace_"/"
 
     new $NAMESPACE
     set $NAMESPACE = namespace
@@ -78,7 +79,7 @@
 	quit 1
 </script><server>
     if (%response.ContentType [ "html") && $Data(%base)#2 {
-        &html<<base href="#(..EscapeHTML(%base))#">>
+        &html<<base href="#(..EscapeHTML(%base))#"/>>
         do %data.OutputToDevice()
     } else {
         do %data.OutputToDevice()

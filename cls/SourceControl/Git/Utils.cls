@@ -1,4 +1,4 @@
-Include (%occStatus, %occErrors)
+Include (%occStatus, %occErrors, SourceControl.Git)
 
 Class SourceControl.Git.Utils [ Abstract, ProcedureBlock ]
 {
@@ -250,65 +250,7 @@ ClassMethod NormalizeFolder(folder As %String) As %String
 
 ClassMethod ExternalName(InternalName As %String) As %String
 {
-    set name = $Translate(InternalName, "/", ..#Slash)
-
-    // lower case for extensions
-    #dim extension As %String = $ZConvert($Piece(name,".",$Length(name,".")),"L")
-    #dim baseName As %String = $piece(name,".",1,$length(name,".")-1)
-    #dim groupByFolder As %Boolean = ..GroupByFolder()
-
-	if (extension = "zpm") {
-		// No-op for now to avoid breaking set of module root
-		quit ""
-	} elseif extension = "cls" {
-        set name = $Translate( baseName, ".", ..#Slash) _ "." _ extension
-    } elseif groupByFolder {
-	    // If groupByFolder = 1 then we put inc, mac, int in corresponding folder, not in root.
-		// For example project.include.inc will be placed in project\include.inc.xml
-        set sep = $Case(extension, "dfi" : "-", : ".")
-	    set name = $Translate(baseName, sep, ..#Slash) _ "." _ extension
-    } else {
-        set name = baseName _ "." _ extension
-    }
-    
-    if $Extract(name, 1) = ..#Slash {
-        set $Extract(name, 1) = ""
-    }
-    if $Piece(name, ..#Slash, 1) = "csp" {
-        set $Piece(name, ..#Slash, 1, 2) = "csp"
-    }
-
-    set mappingsNode = ..MappingsNode()
-    set mappings = $Data(@mappingsNode, rootFolder)
-    
-    if mappings#10 = 1 { // value in root
-	    set rootFolder = ..NormalizeFolder(rootFolder)
-    }
-    
-    if mappings >= 10 { //values in leaves
-   	    set type = ..Type(InternalName)
-   	    
-		set mapped = 0
-		
-		if (type '= "csp") {
-			for i=$Length(baseName,".")-1:-1:1 {
-				set package = $Piece(baseName,".",1,i)
-				if $Data(@mappingsNode@(type,package), folder)#2 {
-					set mapped = 1
-				    set folder = ..NormalizeFolder(folder)
-				    quit
-				}
-			}
-		}
-   	    
-	    if 'mapped && $Data(@mappingsNode@(type), folder)#2 {
-		    set folder = ..NormalizeFolder(folder)
-	    }
-    }
-    
-    set name = $Get(rootFolder) _ $Get(folder) _ name
-    
-    quit $Translate(name," *?%","____")
+	Quit ..Name(InternalName)
 }
 
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
@@ -594,7 +536,7 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 
 ClassMethod FullExternalName(InternalName As %String) As %String [ CodeMode = expression ]
 {
-..TempFolder()_..ExternalName(InternalName)
+##class(%File).NormalizeFilename(..TempFolder()_..ExternalName(InternalName))
 }
 
 ClassMethod NormalizeInternalName(name As %String) As %String
@@ -604,8 +546,12 @@ ClassMethod NormalizeInternalName(name As %String) As %String
 	//This happens if right-click in Workspace -> Namespace
 	//If right-click in Workspace -> Project then everything passes ok
 	//let's fix this
+	if (name = "") {
+		quit ""
+	}
+	
 	if $Extract(name) '= "/" {
-		quit name
+		quit $Piece(name,".",1,*-1)_"."_$ZConvert($Piece(name,".",*),"U")
 	}
 	
 	set type = ..Type(name)
@@ -1020,6 +966,209 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
     }
     kill rs
     quit 'fileCount
+}
+
+ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...)
+{
+    set newArgs($i(newArgs)) = "-C"
+    set newArgs($i(newArgs)) = ..TempFolder()
+    set newArgs($i(newArgs)) = command
+    set newArgs($i(newArgs)) = "-z"
+    for i=1:1:$g(args) 
+    {
+        set newArgs($i(newArgs)) = args(i)
+    }
+    do $zf(-100,"/STDOUT=""out.log"" /STDERR=""err.log""","git",newArgs...)
+    set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename("out.log"))
+    set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename("err.log"))
+}
+
+ClassMethod GitStatus(ByRef files)
+{
+	do ..RunGitCommand("status", .errStream, .outStream)
+	/*
+	get in one line the $c(0)separated filenames with operations
+	*/
+	set lines = outStream.ReadLine()
+	set list = $ListFromString(lines, $c(0))
+	set pointer = 0
+	while $ListNext(list, pointer, item) {
+		set operation = $Extract(item, 1, 2)
+		set externalName = $Extract(item, 4, *)
+		set internalName = ..NameToInternalName(externalName)
+		if (internalName '= "") {
+			set files(internalName) = $lb(operation, externalName)
+		}
+	}
+	
+	
+	
+	///files(<internal name>)=$lb(<status>,<external name>)
+}
+
+/*
+    files(<internal name>)=$lb(status, external name)
+    Internal name: e.g. SourceControl.Git.Utils.CLS
+    External name e.g. cls/SourceControl/Git/Utils.cls
+    ExternalName(InternalName): returns full path on disk to document with internal-to-database name InternalName 
+    (e.g., SourceControl.Git.Utils.CLS)
+	Name(InternalName): returns Unix-style slash path relative to repo root cooresponding to internal name 
+	(e.g., cls/SourceControl/Git/Utils.cls)
+	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
+	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
+*/
+ClassMethod Name(InternalName As %String) As %String
+{
+	Set InternalName=##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
+	Set usertype=$system.CLS.IsMthd("%Library.RoutineMgr","UserType")
+		
+	// For an abstract document, use the GetOther() method to try to determine its "real" class
+	If usertype,##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+		// Check for a real abstract document subclass (or GetOther() may not work)
+		If $classmethod(docclass,"%IsA","%Studio.AbstractDocument") {
+			// Grab the actual name
+			Set actualName = $classmethod(docclass,"GetOther",InternalName)
+			// The actualName is only valid if we get a single .cls as a result
+			If actualName'[",",$ZCVT($P(actualName,".",$L(actualName,".")),"U")="CLS" {
+				// We use what GetOther() gives us, thus Demo.Loan.FindRateProcess.bpl becomes Demo.Loan.FindRateProcess.cls
+				Set InternalName = actualName
+			}
+		}
+	}	
+	
+	If $$CheckProtect^%qccServer(InternalName) Quit ""
+	Set nam=$p(InternalName,".",1,*-1),ext=$p(InternalName,".",*),ext=$zcvt(ext,"u")
+	If nam=""||(ext="") Quit ""
+	// Any CSP items should be matched against the "/CSP/" mapping in ^Sources
+	If InternalName["/" {
+		Set filename=$$GetFilename^%apiCSP(InternalName)
+		//Find if this csp file is located within the ^Sources tree, and return appropriate value
+		If $$$isWINDOWS {
+			If $zcvt($extract(filename,1,$length($$$SourceRoot)),"l")=$zcvt($$$SourceRoot,"l") Quit $extract(filename,$length($$$SourceRoot)+1,*)
+		} Else {
+			If $extract(filename,1,$length($$$SourceRoot))=$$$SourceRoot Quit $extract(filename,$length($$$SourceRoot)+1,*)
+		}
+		//Do not support manipulating files in the /itemsetsourcelink* csp app which are not inside of the namespace's ^Sources tree
+		If InternalName["itemsetsourcelink" {
+			Write !,"To control files in the /itemsetsourcelink* web app, they must be in this tree: "_$$$SourceRoot_" ("_InternalName_" is located at "_filename_")"
+			Quit ""
+		}
+		// Any CSP items should be matched against the "/CSP/" mapping if the file is not stored in the ^Sources tree
+		Set ext="/CSP/"	
+	}
+	If ext="PRJ",nam["Default_" Quit ""
+	If ext="CLS",$$$defClassKeyGet(nam,$$$cCLASSgeneratedby)'="" Quit ""
+	Set default=0
+	Set p=$order($$$SourceMapping(ext,nam)) For  Set p=$order($$$SourceMapping(ext,p),-1) Quit:p=""  If $extract(nam,1,$length(p))=p,$data(^Sources(ext,p),found) Quit
+	If $data(found)=0,$data($$$SourceMapping(ext,"*"),found),'$$$GetSourceMapping(ext,"*","NoFolders") Set default=1
+	If $data(found)=0 Quit ""
+	If InternalName["/" {
+		// If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
+		Set InternalName=$extract(InternalName,$length(p)+2,*)
+		Quit $translate(found_$translate(InternalName,"%","_"),"\","/")
+	}
+	If (ext="DFI") {
+		// expected format is <folderName>-<itemName>.<itemType>.DFI; will map to an external file named <folderName>/<itemName>.<itemType>.xml 
+		// replace the first '-' with '/' to translate Item Folder into subfolder on disk and leave the other dashes as dashes; converts spaces to '_'
+		Quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")	
+	}
+	If ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
+		Set nam=$translate(nam,"%")
+		If '$$$GetSourceMapping(ext,"*","NoFolders") Set nam=$translate(nam,".","/")
+		#; If match ends in '`' character use UDL/CLS format rather than XML format
+		RETURN $translate(found_nam_".cls","\","/")
+	}
+	Quit $translate($g(found)_$tr(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
+}
+
+ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) As %String
+{
+	Set InternalName=""
+	If ($ZCVT(Name,"U")'[$ZCVT($$$SourceRoot,"U")) {
+		Set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
+	}
+	If (##class(%File).Exists(Name)) {
+		New %SourceControl //don't trigger source hooks with this test load to get the Name
+		Set sc=$system.OBJ.Load(Name,"-d",,.outName,1)
+		If ($data(outName)=1) || ($data(outName) = 11 && ($Order(outName(""),-1) = $Order(outName("")))) {
+			//only set if a single Name was returned ... ignore multi-item files
+			Set InternalName=outName
+		}
+	}
+	If (InternalName="") {
+		If ($ZCVT(Name,"U")'[$ZCVT($$$SourceRoot,"U")) {
+			Quit ""	; file is not in ^Sources so translation cannot occur
+		}
+		Set name=$extract(Name,$length($$$SourceRoot)+1,*)
+		Set name=$replace(name,"\","/")	; standardize slash direction
+		If (name["/") {
+			//file is in a subdirectory under the ^Sources root
+			Set nam=$piece(name,"/",2,$length(name,"/")),extDir=$piece(name,"/")_"/"
+			If nam="" Quit ""
+		
+			Set queryary=$query($$$SourceMapping(""),-1,dir), subscript=$qsubscript(queryary,1)
+			While (queryary'="")&&(subscript'=0) {
+				If (dir["/")&&(dir=extDir) {
+					Set ext=subscript
+					Quit
+				}
+				Set queryary=$query(@queryary,-1,dir)
+				If (queryary="") {
+					Quit
+				}
+				Set subscript=$qsubscript(queryary,1)
+			}
+		} Else {
+			//there is no leading directory to remove 
+			Set nam=name	
+		}
+
+		If ($get(ext)="/CSP/") {
+			//loop through to find if any subscripts of /CSP/ match
+			Set cspapp = $order($$$SourceMapping("/CSP/",""),-1,subdir)
+			If (cspapp'="*"){
+				Do {
+					If $extract(name,1,$length(subdir))=subdir {
+						Set InternalName=cspapp_$replace(name,subdir,"/")
+						Quit
+					}
+					Set cspapp = $order($$$SourceMapping("/CSP/",cspapp),-1,subdir)
+				} While cspapp'="*"
+			}
+			If InternalName="" {
+				//Internal Name is just the remainder after the subdirectory was removed and the leading "/" is added back
+				Set InternalName="/"_nam
+			}
+			If ($length(InternalName,"/")=2) {
+				//this was a file dropped directly under /cspapp/ so treat it as a non-mapped file
+				Set InternalName = ""
+			}
+		}
+		Set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
+		If (InternalName="")&&('$data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
+			//no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
+			//so treat it as a non-mapped file
+			Kill ext			 	
+		}
+		If $data(ext)=0 {
+			Quit ""
+		}
+		If (InternalName="") {
+			//take our best guess based on the document extension mapped to that subdirectory
+			Set nam=$piece(nam,".",1,$length(nam,".")-1)
+			Set nam=$translate(nam,"_/","%.")
+			Set InternalName=nam_"."_ext
+			If (ext="CLS") {	; special handling for possible collissions between % and non-% classes of the same name
+				Set alternateInternalName="%"_InternalName
+				Set primaryExists=##class(%RoutineMgr).Exists(InternalName), alternateExists=##class(%RoutineMgr).Exists(alternateInternalName)
+				If ('primaryExists)&&(alternateExists) { Set InternalName=alternateInternalName }	; it must have been a %-class as one by that name exists
+				If (primaryExists)&&(alternateExists) { Quit "" }	;indeterminate as the class exists in % and non-% form in the DB
+			}
+		}
+	}
+	If ((IgnorePercent)&&($extract(InternalName)="%")) { Set InternalName = "" }	; don't return a result for % items if instructed to ignore them
+	If ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))) { Set InternalName = "" }	; only return item names which exist in the DB
+	Quit ..NormalizeInternalName(InternalName)
 }
 
 }

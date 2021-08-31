@@ -1,4 +1,4 @@
-class SourceControl.Git.WebUIDriver
+Class SourceControl.Git.WebUIDriver
 {
 
 ClassMethod RunInBackground() As %Status
@@ -35,15 +35,19 @@ ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, O
 ClassMethod UserInfo() As %SystemBase
 {
     quit {
-        "name": (##class(SourceControl.Git.Extension).GitUserName()),
-        "email": (##class(SourceControl.Git.Extension).GitUserEmail())
+        "name": (##class(SourceControl.Git.Utils).GitUserName()),
+        "email": (##class(SourceControl.Git.Utils).GitUserEmail())
     }
 }
 
 ClassMethod Uncommitted() As %SystemBase
 {
     // Stub
-    quit {}
+    do ##class(SourceControl.Git.Utils).RunGitCommand("C:\Users\aadewuyi\Documents\GitHub\git-source-control","status",.err,.out, "--name-only")
+    quit {
+       ///"output": (out.ReadLine())
+    }
 }
 
 }
+

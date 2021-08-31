@@ -220,6 +220,8 @@ Method ExternalName(InternalName As %String) As %String
 Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
 	Quit ##super(InternalName,.IsInSourceControl,.Editable,.IsCheckedOut,.UserCheckedOut)
+	//do ##class(SourceControl.Git.Utils).GitStatus(.files)
+	
 	/*
 	Set Editable=1,IsCheckedOut=1,UserCheckedOut=""
 	Set filename=..ExternalName(InternalName)

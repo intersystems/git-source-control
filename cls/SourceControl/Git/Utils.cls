@@ -1000,22 +1000,13 @@ ClassMethod GitStatus(ByRef files)
 			set files(internalName) = $lb(operation, externalName)
 		}
 	}
-	
-	
-	
-	///files(<internal name>)=$lb(<status>,<external name>)
 }
 
 /*
-    files(<internal name>)=$lb(status, external name)
     Internal name: e.g. SourceControl.Git.Utils.CLS
     External name e.g. cls/SourceControl/Git/Utils.cls
-    ExternalName(InternalName): returns full path on disk to document with internal-to-database name InternalName 
-    (e.g., SourceControl.Git.Utils.CLS)
 	Name(InternalName): returns Unix-style slash path relative to repo root cooresponding to internal name 
 	(e.g., cls/SourceControl/Git/Utils.cls)
-	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
-	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
 */
 ClassMethod Name(InternalName As %String) As %String
 {
@@ -1081,6 +1072,10 @@ ClassMethod Name(InternalName As %String) As %String
 	Quit $translate($g(found)_$tr(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
 }
 
+/*
+	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
+	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
+*/
 ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) As %String
 {
 	Set InternalName=""

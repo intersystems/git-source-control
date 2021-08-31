@@ -11,6 +11,7 @@
 
 	do ##class(SourceControl.Git.WebUIDriver).HandleRequest("/"_resource, .handled, .%data)
 	if handled {
+		kill %base
 		quit 1
 	}
 

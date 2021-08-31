@@ -1722,6 +1722,20 @@ function MainUi() {
         self.mainView.appendChild(element);
     }
 
+    //api to to display username and email at top of page
+    //format needs to be edited
+    $.get("api/userinfo", function (data) {
+        var body = $("body")[0];
+        var obj = JSON.parse(data)
+        body.innerHTML += "User: " + obj.name + " Email: " + obj.email;
+    });
+
+    /*$.get("api/uncommitted", function (data) {
+        var body = $("body")[0];
+        var obj = JSON.parse(data)
+        body.innerHTML += " list of uncommitted files should go here";
+    });*/
+
     $.get("dirname", function (data) {
         webui.repo = data;
         var title = $("title")[0];

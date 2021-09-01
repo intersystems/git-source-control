@@ -986,9 +986,6 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 ClassMethod GitStatus(ByRef files)
 {
 	do ..RunGitCommand("status", .errStream, .outStream)
-	/*
-	get in one line the $c(0)separated filenames with operations
-	*/
 	set lines = outStream.ReadLine()
 	set list = $ListFromString(lines, $c(0))
 	set pointer = 0

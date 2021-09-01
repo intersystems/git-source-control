@@ -178,8 +178,13 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 {
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
 	if ##class(Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
+		set filename = ##class(Utils).FullExternalName(InternalName)
 		$$$QuitOnError(##class(Utils).RemoveRoutineTSH(InternalName))
-		quit ##class(Utils).ExportItem(InternalName)
+		$$$QuitOnError(##class(Utils).ExportItem(InternalName))
+		if '##class(%Studio.SourceControl.Change).IsUncommitted(filename) {
+			$$$QuitOnError(##class(%Studio.SourceControl.Change).SetUncommitted(filename, "edit", InternalName, $Username, "", 1, "", "", 0))
+		}
+		quit $$$OK
 	} else {
 		quit $$$OK
 	}
@@ -211,7 +216,7 @@ Method OnAfterDelete(InternalName As %String) As %Status
 /// the routine/class/csp item. This is often a filename to write the file out to.
 Method ExternalName(InternalName As %String) As %String
 {
-	Quit ##class(Utils).ExternalName(InternalName)
+	Quit ##class(Utils).Name(InternalName)
 }
 
 /// Check the status of the given item
@@ -219,67 +224,41 @@ Method ExternalName(InternalName As %String) As %String
 /// Check if another user has committed any changes to the item and return the status
 Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
-	Quit ##super(InternalName,.IsInSourceControl,.Editable,.IsCheckedOut,.UserCheckedOut)
-	//do ##class(SourceControl.Git.Utils).GitStatus(.files)
-	
-	/*
-	Set Editable=1,IsCheckedOut=1,UserCheckedOut=""
-	Set filename=..ExternalName(InternalName)
-	Set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
-	If filename="" Quit $$$OK
-	#; If the file does not exist then it must be a new item so it is editable.
-	If '$$$FileExists(filename) {
-		Set IsCheckedOut=0
-	} ElseIf ..ReadOnly(filename) {
-		Set Editable=0,IsCheckedOut=0
-	}
-
-
-	Set haschange=$system.CLS.IsMthd("%Studio.SourceControl.Change","IsUncommitted")
-	#; If it is a CSP file stored in the Perforce root, then the IsInSourceControl might be set improperly and it needs to be confirmed
-	If (IsInSourceControl)&&(IsCheckedOut)&&(filename=$$GetFilename^%apiCSP(InternalName)) {
-		#; If it is truely IsInSourceControl&&IsCheckedOut then it will be in the uncommitted queue; if not, then correct the flags
-		If haschange,'##class(%Studio.SourceControl.Change).IsUncommitted(filename) Set IsInSourceControl=0,IsCheckedOut=0
-	}
-	
-	#; Kill any outdated user edit information, but not deletes or reverts since they may be pending commit from a Disconnected instance
-	If haschange,('IsCheckedOut)&&(##class(%Studio.SourceControl.Change).IsUncommitted(filename)) {
-		If ('$listfind($listbuild("revert","delete"),##class(%Studio.SourceControl.Change).OpenUncommitted(filename).Action)) Set sc=##class(%Studio.SourceControl.Change).RemoveUncommitted(filename,0,0,0)
-	}
-
-	#; Ensure that it isn't locked for editing by someone else
-	Set sc=$$$OK
-	If haschange,##class(%Studio.SourceControl.Change).IsUncommitted(filename) {
-		Set sc=##class(%Studio.SourceControl.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
-		If ('sc) {
-			Write !,$SYSTEM.Status.GetErrorText(sc)
-			Write !,"Removing from uncommitted queue..."
-			Set sc=..UndoCheckout(InternalName)
+	#; Quit ##super(InternalName,.IsInSourceControl,.Editable,.IsCheckedOut,.UserCheckedOut)
+		Set Editable=1,IsCheckedOut=1,UserCheckedOut=""
+		Set filename=##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+		Set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
+		If filename="" Quit $$$OK
+		If InternalName="" Quit $$$OK
+		#; If the file does not exist then it must be a new item so it is editable.
+		If '$$$FileExists(filename) {
 			Set IsCheckedOut=0
-		} ElseIf $D(tAction)&&(UncommittedUser'=$USERNAME)&&..IsSharedDevInstance() {
-			Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
-			Write !,msg
-			Set Editable=0
-			Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
-			Set UserCheckedOut=UncommittedUser
 		}
-	}
-	#; Ensure that the namespace isn't under Source Control Lock
-	If ..Locked() {
-		Set Editable=0
-		Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
-	}
-	#; Ensure that this isn't a mapped item if Lock Mapped is enabled
-	If ($get(^SYS("SourceControl","Misc","LockMapped"))) {
-		If (..IsMapped(InternalName)) {		; only required until minimum supported version is 2013.1, then replace with %RoutineMgr:IsMapped()
-			Set msg="NOTICE: "_InternalName_" is mapped from another database and will be treated as Readonly"
-			Write !,msg
-			Set Editable=0
-			Set IsInSourceControl=0		; set this to 0 to prevent user from being prompted to Check Out file
+		do ##class(Utils).GitStatus(.files)
+		if $Get(files(InternalName)) '= "" {
+			///it's in source control, checked out, and should be locked to editing by other users
+			///find out who has it edited
+			set IsCheckedOut=1
+			Set sc=##class(%Studio.SourceControl.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
+			If $$$ISOK(sc) && ($D(tAction)&&(UncommittedUser'=$USERNAME)) {
+				Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
+				Write !,msg
+				Set Editable=0
+				Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
+				Set UserCheckedOut=UncommittedUser
+			} 
 		}
-	}
-	Quit sc
-	*/
+		// If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
+		else { 
+			set Editable=1, IsCheckedOut=0, UserCheckedOut=""
+			if ##class(%Studio.SourceControl.Change).IsUncommitted(filename){
+				#; Remove the item from the list of uncommitted changes; 
+				Set sc=##class(%Studio.SourceControl.Change).RemoveUncommitted(filename,1,1)
+				If $$$ISERR(sc) Write "Error removing uncommitted file "_filename_" - "_$System.OBJ.DisplayError(sc)
+			}
+		}
+		
+		Quit $$$OK
 }
 
 }

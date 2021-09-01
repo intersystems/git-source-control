@@ -253,7 +253,7 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 			set Editable=1, IsCheckedOut=0, UserCheckedOut=""
 			if ##class(%Studio.SourceControl.Change).IsUncommitted(filename){
 				#; Remove the item from the list of uncommitted changes; 
-				Set sc=##class(%Studio.SourceControl.Change).RemoveUncommitted(filename,1,0,1,"")
+				Set sc=##class(%Studio.SourceControl.Change).RemoveUncommitted(filename,1,1)
 				If $$$ISERR(sc) Write "Error removing uncommitted file "_filename_" - "_$System.OBJ.DisplayError(sc)
 			}
 		}

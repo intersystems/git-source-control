@@ -181,8 +181,8 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 		set filename = ##class(Utils).FullExternalName(InternalName)
 		$$$QuitOnError(##class(Utils).RemoveRoutineTSH(InternalName))
 		$$$QuitOnError(##class(Utils).ExportItem(InternalName))
-		if '##class(%Studio.SourceControl.Change).IsUncommitted(filename) {
-			$$$QuitOnError(##class(%Studio.SourceControl.Change).SetUncommitted(filename, "edit", InternalName, $Username, "", 1, "", "", 0))
+		if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+			$$$QuitOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $Username, "", 1, "", "", 0))
 		}
 		quit $$$OK
 	} else {
@@ -239,7 +239,7 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 			///it's in source control, checked out, and should be locked to editing by other users
 			///find out who has it edited
 			set IsCheckedOut=1
-			Set sc=##class(%Studio.SourceControl.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
+			Set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
 			If $$$ISOK(sc) && ($D(tAction)&&(UncommittedUser'=$USERNAME)) {
 				Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
 				Write !,msg
@@ -251,9 +251,9 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 		// If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
 		else { 
 			set Editable=1, IsCheckedOut=0, UserCheckedOut=""
-			if ##class(%Studio.SourceControl.Change).IsUncommitted(filename){
+			if ##class(SourceControl.Git.Change).IsUncommitted(filename){
 				#; Remove the item from the list of uncommitted changes; 
-				Set sc=##class(%Studio.SourceControl.Change).RemoveUncommitted(filename,1,1)
+				Set sc=##class(SourceControl.Git.Change).RemoveUncommitted(filename,1,1)
 				If $$$ISERR(sc) Write "Error removing uncommitted file "_filename_" - "_$System.OBJ.DisplayError(sc)
 			}
 		}

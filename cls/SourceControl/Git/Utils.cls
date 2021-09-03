@@ -974,6 +974,7 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
     set newArgs($i(newArgs)) = ..TempFolder()
     set newArgs($i(newArgs)) = command
     set newArgs($i(newArgs)) = "-z"
+    set newArgs($i(newArgs)) = "-uall"
     for i=1:1:$g(args) 
     {
         set newArgs($i(newArgs)) = args(i)
@@ -987,12 +988,15 @@ ClassMethod GitStatus(ByRef files)
 {
 	do ..RunGitCommand("status", .errStream, .outStream)
 	set lines = outStream.ReadLine()
+	do outStream.OutputToDevice()
 	set list = $ListFromString(lines, $c(0))
 	set pointer = 0
 	while $ListNext(list, pointer, item) {
 		set operation = $Extract(item, 1, 2)
 		set externalName = $Extract(item, 4, *)
+		///w externalName_" "
 		set internalName = ..NameToInternalName(externalName)
+		///write internalName, !
 		if (internalName '= "") {
 			set files(internalName) = $lb(operation, externalName)
 		}
@@ -1089,6 +1093,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 	}
 	If (InternalName="") {
 		If ($ZCVT(Name,"U")'[$ZCVT($$$SourceRoot,"U")) {
+			w !, Name
 			Quit ""	; file is not in ^Sources so translation cannot occur
 		}
 		Set name=$extract(Name,$length($$$SourceRoot)+1,*)

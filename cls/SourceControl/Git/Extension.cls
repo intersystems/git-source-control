@@ -38,6 +38,7 @@ XData Menu
 <MenuItem Name="%ImportForce" Save = "001" />
 <MenuItem Separator="true"/>
 <MenuItem Name="%OpenRepoFolder" Save = "001" />
+<MenuItem Name="%Revert" Save = "001" />
 </Menu>
 <Menu Name="%SourceMenuContext" Type="1">
 <MenuItem Name="%AddToSC"/>
@@ -94,6 +95,9 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 		} elseif name = "%OpenRepoFolder" {
 			// TODO: Only display if running locally
 			set DisplayName = "Open Repo Folder"
+		} elseif name = "%Revert" {
+			// TODO: Only display if running locally
+			set DisplayName = "Revert Changes"
 		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",

@@ -191,7 +191,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         }elseif (menuItemName = "%OpenRepoFolder") {
 	        set Action = 3
 	        set Target = ..TempFolder()
-    	}elseif ..IsMenuGitCommand(menuItemName) {
+    	}elseif (menuItemName = "%Revert") {
+	    	quit ..Revert(InternalName)
+	    	set Reload = 1
+	    }
+    	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
                 #dim command As %String = $ZConvert($Extract(menuItemName, 2, *), "L")
                 set ec = $$$OK
@@ -225,6 +229,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     }
     //w Target,!
     quit ec
+}
+
+ClassMethod Revert(InternalName As %String)
+{
+	set filename = ..FullExternalName(InternalName)
+	set ec=##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1)
+	set ec=##class(SourceControl.Git.Change).RefreshUncommitted(0,1)
+	quit ec
 }
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
@@ -973,8 +985,6 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
     set newArgs($i(newArgs)) = "-C"
     set newArgs($i(newArgs)) = ..TempFolder()
     set newArgs($i(newArgs)) = command
-    set newArgs($i(newArgs)) = "-z"
-    set newArgs($i(newArgs)) = "-uall"
     for i=1:1:$g(args) 
     {
         set newArgs($i(newArgs)) = args(i)
@@ -986,9 +996,8 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 
 ClassMethod GitStatus(ByRef files)
 {
-	do ..RunGitCommand("status", .errStream, .outStream)
+	do ..RunGitCommand("status", .errStream, .outStream, "-z", "-uall")
 	set lines = outStream.ReadLine()
-	do outStream.OutputToDevice()
 	set list = $ListFromString(lines, $c(0))
 	set pointer = 0
 	while $ListNext(list, pointer, item) {

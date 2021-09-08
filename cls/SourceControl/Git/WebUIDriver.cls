@@ -43,7 +43,7 @@ ClassMethod UserInfo() As %SystemBase
 ClassMethod Uncommitted() As %SystemBase
 {
     // Stub
-    do ##class(SourceControl.Git.Utils).RunGitCommand("C:\Users\aadewuyi\Documents\GitHub\git-source-control","status",.err,.out, "--name-only")
+    do ##class(Utils).GitStatus(.files)
     quit {
        ///"output": (out.ReadLine())
     }

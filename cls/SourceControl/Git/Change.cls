@@ -62,5 +62,23 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 	}
 }
 
+/// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
+ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
+{
+	Set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
+	If $$$ISERR(sc) Quit sc
+	Set filename="", filename=$ORDER(tFileList(filename),1,action)
+	While (filename'="") {
+		Set examine=$Select(action="add":1,action="edit":1,IncludeRevert&&(action="revert"):1,1:0)
+		If 'examine Set filename=$ORDER(tFileList(filename),1,action) continue
+		If ('##class(%File).Exists(filename)) {
+			Set sc=..RemoveUncommitted(filename,Display,0,0)	
+			If $$$ISERR(sc) s filename="" continue
+		}
+		Set filename=$ORDER(tFileList(filename),1,action)
+	}
+	Quit sc
+}
+
 }
 

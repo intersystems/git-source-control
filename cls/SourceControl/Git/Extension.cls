@@ -97,8 +97,11 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Open Repo Folder"
 		} elseif name = "%Revert" {
 			// TODO: Only display if user has file uncommitted
-			if (##class(Utils).IsUncommitted(InternalName)) {
+			if (##class(Change).IsUncommitted(##class(Utils).Name(InternalName))) {
 				set DisplayName = "Revert Changes"
+			}
+			else {
+				set DisplayName = "Do not click"	
 			}
 			//set DisplayName = "Revert Changes"
 		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {

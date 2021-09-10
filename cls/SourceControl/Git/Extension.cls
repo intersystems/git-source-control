@@ -63,7 +63,7 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 	quit ec
 }
 
-Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String) As %Status
+Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
 	if name = "%Cache-Git-Settings" {
 		// We always show Settings
@@ -96,8 +96,11 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			// TODO: Only display if running locally
 			set DisplayName = "Open Repo Folder"
 		} elseif name = "%Revert" {
-			// TODO: Only display if running locally
-			set DisplayName = "Revert Changes"
+			// TODO: Only display if user has file uncommitted
+			if (##class(Utils).IsUncommitted(InternalName)) {
+				set DisplayName = "Revert Changes"
+			}
+			//set DisplayName = "Revert Changes"
 		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",
@@ -156,7 +159,7 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 	#dim ec As %Status = $$$OK
 
 	if menu = "%SourceMenu" {
-		set ec = ..OnSourceMenuItem(name, .Enabled, .DisplayName)
+		set ec = ..OnSourceMenuItem(name, .Enabled, .DisplayName, InternalName)
 	}elseif menu = "%SourceMenuContext" {
 		set ec = ..OnSourceMenuContextItem(InternalName, name, .Enabled, .DisplayName)
 	}

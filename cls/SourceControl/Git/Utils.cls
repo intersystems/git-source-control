@@ -192,8 +192,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	        set Action = 3
 	        set Target = ..TempFolder()
     	}elseif (menuItemName = "%Revert") {
+	    	set Reload =1
 	    	quit ..Revert(InternalName)
-	    	set Reload = 1
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
@@ -231,12 +231,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     quit ec
 }
 
-ClassMethod Revert(InternalName As %String)
+ClassMethod Revert(InternalName As %String) As %Status
 {
 	set filename = ..FullExternalName(InternalName)
-	set ec=##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1)
-	set ec=##class(SourceControl.Git.Change).RefreshUncommitted(0,1)
-	quit ec
+	do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
+	$$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
+	$$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
+	$$$QuitOnError(..ImportItem(InternalName))
+	quit $$$OK
 }
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
@@ -1102,7 +1104,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 	}
 	If (InternalName="") {
 		If ($ZCVT(Name,"U")'[$ZCVT($$$SourceRoot,"U")) {
-			w !, Name
+			//w !, Name
 			Quit ""	; file is not in ^Sources so translation cannot occur
 		}
 		Set name=$extract(Name,$length($$$SourceRoot)+1,*)

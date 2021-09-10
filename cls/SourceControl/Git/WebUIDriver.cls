@@ -30,7 +30,6 @@ ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, O
             do responseJSON.%ToJSON(%data)
         }
     }
-    //asdfgyguksdavjbds
 }
 
 ClassMethod UserInfo() As %SystemBase
@@ -45,8 +44,11 @@ ClassMethod Uncommitted() As %SystemBase
 {
     // Stub
     do ##class(Utils).GitStatus(.files)
+    set output = ""
+    set iter = files.%GetIterator()
+    while iter.%GetNext(.key, .value) { set output = output_value_" " }
     quit {
-       ///"output": (out.ReadLine())
+       "output": (output)
     }
 }
 

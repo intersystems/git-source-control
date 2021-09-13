@@ -97,11 +97,12 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Open Repo Folder"
 		} elseif name = "%Revert" {
 			// TODO: Only display if user has file uncommitted
-			if (##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) {
-				set DisplayName = "Revert Changes"
-			}
-			else {
-				set DisplayName = "Revert Changes 2"	
+			set DisplayName = "Revert Changes"
+			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+			w "Usercheckedout:"_userCheckedOut_"fin"
+			zw userCheckedOut
+			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ((userCheckedOut '= "") && ($username '= userCheckedOut)) {
+				set Enabled = 0
 			}
 		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",

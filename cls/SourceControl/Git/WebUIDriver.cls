@@ -11,6 +11,8 @@ ClassMethod RunInBackground() As %Status
     quit $$$OK
 }
 
+// asdfasd
+
 ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
     #dim %response As %CSP.Response
@@ -45,11 +47,18 @@ ClassMethod Uncommitted() As %SystemBase
     // Stub
     do ##class(Utils).GitStatus(.files)
     set output = ""
-    set iter = files.%GetIterator()
-    while iter.%GetNext(.key, .value) { set output = output_value_" " }
-    quit {
-       "output": (output)
+    Set key = ""
+
+    Set array = []
+    Set key = ""
+    For {
+        Set key = $Order(files(key),1,fileData)
+        Quit:key=""
+        // TODO: Check that current user has files(key) uncommitted and only %Push if they do
+
+        Do array.%Push($ListGet(fileData,2))
     }
+    quit array
 }
 
 }

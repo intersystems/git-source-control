@@ -192,8 +192,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	        set Action = 3
 	        set Target = ..TempFolder()
     	}elseif (menuItemName = "%Revert") {
-	    	set Reload =1
+	    	set Reload = 1
 	    	quit ..Revert(InternalName)
+	    }elseif (menuItemName = "%Commit") {
+	    	quit ..Commit(InternalName)
+	    	quit $$$OK
+	    }elseif (menuItemName = "%Push") {
+	    	set Reload = 1
+	    	quit $$$OK
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
@@ -238,6 +244,13 @@ ClassMethod Revert(InternalName As %String) As %Status
 	$$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
 	$$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
 	$$$QuitOnError(..ImportItem(InternalName))
+	quit $$$OK
+}
+
+ClassMethod Commit(InternalName As %String) As %Status
+{
+	set filename = ..FullExternalName(InternalName)
+	do ..RunGitCommand("commit", .errStream, .outStream, "-m", "example commit message", filename)
 	quit $$$OK
 }
 

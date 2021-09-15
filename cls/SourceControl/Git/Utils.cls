@@ -196,7 +196,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	quit ..Revert(InternalName)
 	    }elseif (menuItemName = "%Commit") {
 	    	set Target = "Please enter a commit message"
-	    	set Msg = "enter commit message here..."
 	    	set Action = 7
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
@@ -239,6 +238,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     quit ec
 }
 
+ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
+{
+    quit $$$OK
+}
+
 ClassMethod Revert(InternalName As %String) As %Status
 {
 	set filename = ..FullExternalName(InternalName)
@@ -252,6 +256,8 @@ ClassMethod Revert(InternalName As %String) As %Status
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
 {
 	set filename = ..FullExternalName(InternalName)
+	set user = """"_..GitUserName()_" <"_..GitUserEmail()_">"""
+	do ..RunGitCommand("commit", .errStream, .outStream, "--author=", user)
 	do ..RunGitCommand("commit", .errStream, .outStream, "-m", Message, filename)
 	quit $$$OK
 }
@@ -260,11 +266,6 @@ ClassMethod Push() As %Status
 {
 	do ..RunGitCommand("push", .errStream, .outStream)
 	quit $$$OK
-}
-
-ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
-{
-    quit $$$OK
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]

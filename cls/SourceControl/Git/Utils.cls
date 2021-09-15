@@ -196,7 +196,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	quit ..Revert(InternalName)
 	    }elseif (menuItemName = "%Commit") {
 	    	quit ..Commit(InternalName)
-	    	quit $$$OK
 	    }elseif (menuItemName = "%Push") {
 	    	set Reload = 1
 	    	quit $$$OK

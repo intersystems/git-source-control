@@ -106,7 +106,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			}
 		} elseif name = "%Commit" {
 			// TODO: Only display if running locally
-			set Enabled = 0
+			set Enabled = 1
 			set DisplayName = "Commit Changes"
 		}elseif name = "%Push" {
 			// TODO: Only display if running locally

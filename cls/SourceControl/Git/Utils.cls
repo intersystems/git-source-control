@@ -199,8 +199,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	set Action = 7
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
-	    	set Action = 3
-	        set Target = ..TempFolder()
+	    	quit ..Push()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
@@ -266,7 +265,9 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 
 ClassMethod Push() As %Status
 {
-	do ..RunGitCommand("push", .errStream, .outStream)
+	do ..RunGitCommand("config", .errStream, .outStream, "user.name", username)
+	do ..RunGitCommand("config", .errStream, .outStream, "user.email", email)
+	do ..RunGitCommand("push", .errStream, .outStream, "origin", "main")
 	quit $$$OK
 }
 

@@ -39,6 +39,8 @@ XData Menu
 <MenuItem Separator="true"/>
 <MenuItem Name="%OpenRepoFolder" Save = "001" />
 <MenuItem Name="%Revert" Save = "001" />
+<MenuItem Name="%Commit" Save = "001" />
+<MenuItem Name="%Push" Save = "001"/>
 </Menu>
 <Menu Name="%SourceMenuContext" Type="1">
 <MenuItem Name="%AddToSC"/>
@@ -99,12 +101,18 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			// TODO: Only display if user has file uncommitted
 			set DisplayName = "Revert Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			w "Usercheckedout:"_userCheckedOut_"fin"
-			zw userCheckedOut
 			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ((userCheckedOut '= "") && ($username '= userCheckedOut)) {
 				set Enabled = 0
 			}
-		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
+		} elseif name = "%Commit" {
+			// TODO: Only display if running locally
+			set Enabled = 0
+			set DisplayName = "Commit Changes"
+		}elseif name = "%Push" {
+			// TODO: Only display if running locally
+			set Enabled = 0
+			set DisplayName = "Push Changes"
+		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",
 			                             :$Extract(name, 2, *))

@@ -197,8 +197,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    }elseif (menuItemName = "%Commit") {
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
-	    	set Reload = 1
-	    	quit $$$OK
+	    	quit ..Push()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
@@ -250,6 +249,12 @@ ClassMethod Commit(InternalName As %String) As %Status
 {
 	set filename = ..FullExternalName(InternalName)
 	do ..RunGitCommand("commit", .errStream, .outStream, "-m", "example commit message", filename)
+	quit $$$OK
+}
+
+ClassMethod Push() As %Status
+{
+	do ..RunGitCommand("push", .errStream, .outStream)
 	quit $$$OK
 }
 

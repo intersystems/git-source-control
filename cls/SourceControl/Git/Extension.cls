@@ -111,6 +111,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
+			//nfx
 		}elseif name = "%Push" {
 			// TODO: Only display if running locally
 			set Enabled = 0

@@ -197,7 +197,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    }elseif (menuItemName = "%Commit") {
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
-	    	quit ..Push()
+	    	set Action = 3
+	        set Target = ..TempFolder()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3

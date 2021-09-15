@@ -113,7 +113,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			}
 		}elseif name = "%Push" {
 			// TODO: Only display if running locally
-			set Enabled = 0
+			set Enabled = 1
 			set DisplayName = "Push Changes"
 		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",

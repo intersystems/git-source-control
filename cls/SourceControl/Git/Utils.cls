@@ -258,7 +258,7 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 	set filename = ..FullExternalName(InternalName)
 	set user = """"_..GitUserName()_" <"_..GitUserEmail()_">"""
 	w user
-	do ..RunGitCommand("commit", .errStream, .outStream, "--author=", user)
+	do ..RunGitCommand("commit", .errStream, .outStream, "--author", "=", user)
 	do ..RunGitCommand("commit", .errStream, .outStream, "-m", Message, filename)
 	quit $$$OK
 }

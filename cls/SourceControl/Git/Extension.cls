@@ -101,19 +101,19 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			// TODO: Only display if user has file uncommitted
 			set DisplayName = "Revert Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ((userCheckedOut '= "") && ($username '= userCheckedOut)) {
+			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
 		} elseif name = "%Commit" {
 			// TODO: Only display if running locally
 			set DisplayName = "Commit Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ((userCheckedOut '= "") && ($username '= userCheckedOut)) {
+			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
 		}elseif name = "%Push" {
 			// TODO: Only display if running locally
-			set Enabled = 1
+			set Enabled = 0
 			set DisplayName = "Push Changes"
 		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
@@ -261,12 +261,12 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 			///find out who has it edited
 			set IsCheckedOut=1
 			Set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
+			Set UserCheckedOut=UncommittedUser
 			If $$$ISOK(sc) && ($D(tAction)&&(UncommittedUser'=$USERNAME)) {
 				Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
 				Write !,msg
 				Set Editable=0
 				Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
-				Set UserCheckedOut=UncommittedUser
 			} 
 		}
 		// If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user

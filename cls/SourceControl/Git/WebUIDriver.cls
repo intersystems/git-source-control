@@ -54,7 +54,7 @@ ClassMethod Uncommitted() As %SystemBase
     For {
         Set key = $Order(files(key),1,fileData)
         Quit:key=""
-        // TODO: Check that current user has files(key) uncommitted and only %Push if they do
+        // Check that current user has files(key) uncommitted and only %Push if they do
         Set filename = ##class(Utils).FullExternalName(key)
         Set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
 			If $$$ISOK(sc) && ($D(tAction)&&(UncommittedUser=$USERNAME)) {

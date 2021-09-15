@@ -106,8 +106,11 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			}
 		} elseif name = "%Commit" {
 			// TODO: Only display if running locally
-			set Enabled = 1
 			set DisplayName = "Commit Changes"
+			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ((userCheckedOut '= "") && ($username '= userCheckedOut)) {
+				set Enabled = 0
+			}
 		}elseif name = "%Push" {
 			// TODO: Only display if running locally
 			set Enabled = 0

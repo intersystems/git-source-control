@@ -195,6 +195,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	set Reload = 1
 	    	quit ..Revert(InternalName)
 	    }elseif (menuItemName = "%Commit") {
+	    	set Target = "Please enter a commit message"
+	    	set Msg = "enter commit message here..."
+	    	set Action = 7
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
 	    	set Action = 3
@@ -246,10 +249,10 @@ ClassMethod Revert(InternalName As %String) As %Status
 	quit $$$OK
 }
 
-ClassMethod Commit(InternalName As %String) As %Status
+ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
 {
 	set filename = ..FullExternalName(InternalName)
-	do ..RunGitCommand("commit", .errStream, .outStream, "-m", "example commit message", filename)
+	do ..RunGitCommand("commit", .errStream, .outStream, "-m", Message, filename)
 	quit $$$OK
 }
 

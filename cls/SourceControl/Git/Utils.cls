@@ -256,9 +256,10 @@ ClassMethod Revert(InternalName As %String) As %Status
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
 {
 	set filename = ..FullExternalName(InternalName)
-	set user = """"_..GitUserName()_" <"_..GitUserEmail()_">"""
-	w user
-	do ..RunGitCommand("commit", .errStream, .outStream, "--author", "=", user)
+	set username = """"_..GitUserName()_""""
+	set email = """"_..GitUserEmail()_""""
+	do ..RunGitCommand("config", .errStream, .outStream, "user.name", username)
+	do ..RunGitCommand("config", .errStream, .outStream, "user.email", email)
 	do ..RunGitCommand("commit", .errStream, .outStream, "-m", Message, filename)
 	quit $$$OK
 }

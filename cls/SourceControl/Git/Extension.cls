@@ -36,9 +36,9 @@ XData Menu
 <MenuItem Name="%ExportForce" Save = "001" />
 <MenuItem Name="%Import" Save = "001" />
 <MenuItem Name="%ImportForce" Save = "001" />
+<MenuItem Name="%Revert" Save = "001" />
 <MenuItem Separator="true"/>
 <MenuItem Name="%OpenRepoFolder" Save = "001" />
-<MenuItem Name="%Revert" Save = "001" />
 <MenuItem Name="%Commit" Save = "001" />
 <MenuItem Name="%Push" Save = "001"/>
 </Menu>

@@ -276,7 +276,7 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 		else { 
 			set Editable=1, IsCheckedOut=0, UserCheckedOut=""
 			if ##class(SourceControl.Git.Change).IsUncommitted(filename){
-				#; Remove the item from the list of uncommitted changes; 
+				#; Remove the item from the list of uncommitted changes;
 				Set sc=##class(SourceControl.Git.Change).RemoveUncommitted(filename,1,1)
 				If $$$ISERR(sc) Write "Error removing uncommitted file "_filename_" - "_$System.OBJ.DisplayError(sc)
 			}

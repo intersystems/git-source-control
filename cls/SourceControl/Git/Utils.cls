@@ -200,6 +200,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
 	    	quit ..Push()
+            set Action = 3
+	        set Target = ..TempFolder()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
@@ -1018,9 +1020,12 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
     {
         set newArgs($i(newArgs)) = args(i)
     }
-    do $zf(-100,"/STDOUT=""out.log"" /STDERR=""err.log""","git",newArgs...)
-    set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename("out.log"))
-    set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename("err.log"))
+    //trying to fix issue where different git commands write to same file
+    set outLog = """"_command_"out.log"""
+    set errLog = """"_command_"err.log"""
+    do $zf(-100,"/STDOUT="_outLog_" /STDERR="_errLog,"git",newArgs...)
+    set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(outLog))
+    set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(errLog))
 }
 
 ClassMethod GitStatus(ByRef files)

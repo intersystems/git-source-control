@@ -262,12 +262,14 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 			///find out who has it edited
 			set IsCheckedOut=1
 			Set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
-			Set UserCheckedOut=UncommittedUser
-			If $$$ISOK(sc) && ($D(tAction)&&(UncommittedUser'=$USERNAME)) {
-				Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
-				Write !,msg
-				Set Editable=0
-				Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
+			If $$$ISOK(sc) {
+				if ($D(tAction)&&(UncommittedUser'=$USERNAME)){
+					Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
+					Write !,msg
+					Set Editable=0
+					Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
+				}
+				Set UserCheckedOut=UncommittedUser
 			} 
 		}
 		// If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user

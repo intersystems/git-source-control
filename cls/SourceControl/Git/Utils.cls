@@ -1,5 +1,5 @@
 Include (%occStatus, %occErrors, SourceControl.Git)
-//this is here to test git fetch
+
 Class SourceControl.Git.Utils [ Abstract, ProcedureBlock ]
 {
 
@@ -148,6 +148,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     		($system.Version.GetOS()="Windows") {
         write !!,"===Path to tortoisegitproc.exe not found: "_..GitBinPath()_"!===",!
     }
+    // this is here to test git fetch
     
     if (menuName = "%SourceMenu") {
         if (menuItemName = "%Cache-Git-Settings") {

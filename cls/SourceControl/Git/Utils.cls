@@ -1021,11 +1021,14 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
         set newArgs($i(newArgs)) = args(i)
     }
     //trying to fix issue where different git commands write to same file
+    //this is a dummy line to test push function
     set outLog = """"_command_"out.log"""
     set errLog = """"_command_"err.log"""
+    set outLog1 = command_"out.log"
+    set errLog1 = command_"err.log"
     do $zf(-100,"/STDOUT="_outLog_" /STDERR="_errLog,"git",newArgs...)
-    set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(outLog))
-    set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(errLog))
+    set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(outLog1))
+    set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(errLog1))
 }
 
 ClassMethod GitStatus(ByRef files)

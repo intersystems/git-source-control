@@ -199,9 +199,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	set Action = 7
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
-	    	quit ..Push()
-            set Action = 3
-	        set Target = ..TempFolder()
+	    	//quit ..Push(), Studio still crashes when calling rungitcommand with push as command
+	    	quit $$$OK
+	    }elseif (menuItemName = "%Fetch") {
+            //TODO: Implement fetch git command
+            quit $$$OK
+	    }elseif (menuItemName = "%Pull") {
+		    //TODO: Implement pull git command
+            quit $$$OK
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3

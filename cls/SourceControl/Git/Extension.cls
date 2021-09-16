@@ -41,6 +41,8 @@ XData Menu
 <MenuItem Name="%OpenRepoFolder" Save = "001" />
 <MenuItem Name="%Commit" Save = "001" />
 <MenuItem Name="%Push" Save = "001"/>
+<MenuItem Name="%Fetch" Save = "001"/>
+<MenuItem Name="%Pull" Save = "001"/>
 </Menu>
 <Menu Name="%SourceMenuContext" Type="1">
 <MenuItem Name="%AddToSC"/>
@@ -98,24 +100,28 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			// TODO: Only display if running locally
 			set DisplayName = "Open Repo Folder"
 		} elseif name = "%Revert" {
-			// TODO: Only display if user has file uncommitted
 			set DisplayName = "Revert Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
 		} elseif name = "%Commit" {
-			// TODO: Only display if running locally
 			set DisplayName = "Commit Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
-			//nfx
 		}elseif name = "%Push" {
-			// TODO: Only display if running locally
-			set Enabled = 1
-			set DisplayName = "Push Changes"
+			// TODO: Only display if there are no files checked out by other users
+			set Enabled = 0
+			set DisplayName = "Push"
+		}elseif name = "%Fetch" {
+			set Enabled = 0
+			set DisplayName = "Fetch"
+		}elseif name = "%Pull" {
+			// TODO: Only display if there are no files checked out by other users
+			set Enabled = 0
+			set DisplayName = "Pull"
 		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",

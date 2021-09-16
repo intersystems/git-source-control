@@ -273,11 +273,19 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 
 ClassMethod Push() As %Status
 {
-	set username = """"_..GitUserName()_""""
-	set email = """"_..GitUserEmail()_""""
-	do ..RunGitCommand("config", .errStream, .outStream, "user.name", username)
-	do ..RunGitCommand("config", .errStream, .outStream, "user.email", email)
 	do ..RunGitCommand("push", .errStream, .outStream, "origin", "main")
+	quit $$$OK
+}
+
+ClassMethod Fetch() As %Status
+{
+	do ..RunGitCommand("fetch", .errStream, .outStream)
+	//do ..RunGitCommand("fetch", .errStream, .outStream)
+	quit $$$OK
+}
+
+ClassMethod Pull() As %Status
+{
 	quit $$$OK
 }
 

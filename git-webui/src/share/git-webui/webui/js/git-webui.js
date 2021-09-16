@@ -1730,11 +1730,11 @@ function MainUi() {
         body.innerHTML += "User: " + obj.name + " Email: " + obj.email;
     });
 
-    /*$.get("api/uncommitted", function (data) {
+    $.get("api/uncommitted", function (data) {
         var body = $("body")[0];
         var obj = JSON.parse(data)
-        body.innerHTML += " list of uncommitted files should go here";
-    });*/
+        body.innerHTML += data;
+    });
 
     $.get("dirname", function (data) {
         webui.repo = data;

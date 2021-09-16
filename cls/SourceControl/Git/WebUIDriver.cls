@@ -11,7 +11,7 @@ ClassMethod RunInBackground() As %Status
     quit $$$OK
 }
 
-// asdfasd
+// this is to test git fetch
 
 ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {

@@ -62,6 +62,7 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 	}
 }
 
+//this is also to test fetch
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
 ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
 {

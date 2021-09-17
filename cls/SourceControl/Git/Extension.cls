@@ -116,7 +116,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set Enabled = 0
 			set DisplayName = "Push"
 		}elseif name = "%Fetch" {
-			set Enabled = 0
+			set Enabled = 1
 			set DisplayName = "Fetch"
 		}elseif name = "%Pull" {
 			// TODO: Only display if there are no files checked out by other users

@@ -204,7 +204,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	quit $$$OK
 	    }elseif (menuItemName = "%Fetch") {
             //TODO: Implement fetch git command
-            quit $$$OK
+            $$$QuitOnError(..Fetch(.diffFiles))
+            set pointer = 0
+            while $ListNext(diffFiles, pointer, item){
+	        	w item
+	        }
 	    }elseif (menuItemName = "%Pull") {
 		    //TODO: Implement pull git command
             quit $$$OK
@@ -273,20 +277,53 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 
 ClassMethod Push() As %Status
 {
-	do ..RunGitCommand("push", .errStream, .outStream, "origin", "main")
+	do ..RunGitCommand("push", .errStream, .outStream)
 	quit $$$OK
 }
 
-ClassMethod Fetch() As %Status
+ClassMethod Fetch(ByRef diffFiles) As %Status
 {
 	do ..RunGitCommand("fetch", .errStream, .outStream)
-	//do ..RunGitCommand("fetch", .errStream, .outStream)
+	//git diff ..origin --name-only
+	kill errStream, outStream
+	do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
+	set diffFiles = ""
+    while (outStream.AtEnd = 0) {
+        set diffFiles = diffFiles_$lb(outStream.ReadLine())
+    }
 	quit $$$OK
 }
 
 ClassMethod Pull() As %Status
 {
 	quit $$$OK
+}
+
+ClassMethod ConfigureGitAuthentication(Username As %String, Password As %String)
+{
+	//git config credential.helper store
+	//write !,"git config --system credential.helper manager"
+	//git config credential.helper '!f() { printf "%s\n" "username=$USER" "password=$PASS"; };f'
+	do ..RunGitCommand("config", .errStream, .outStream, "--global", "credential.helper", "store")
+	do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
+	/*
+	write !,"git config --global credential.modalPrompt false"
+	do ..RunGitCommand("config", .errStream, .outStream, "--global","credential.modalPrompt", "false")
+	do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
+	*/
+	/*
+	set file = ##class(%Stream.FileCharacter).%New()
+	do file.WriteLine(Username)
+	do file.WriteLine(Password)
+	$$$ThrowOnError(file.%Save())
+	set file.RemoveOnClose = 1
+	*/
+	write !,"git fetch"
+	do ..RunGitCommand("fetch", .errStream, .outStream)
+	do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]
@@ -1027,7 +1064,12 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
 
 ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...)
 {
-    set newArgs($i(newArgs)) = "-C"
+    do ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
+}
+
+ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...)
+{
+	set newArgs($i(newArgs)) = "-C"
     set newArgs($i(newArgs)) = ..TempFolder()
     set newArgs($i(newArgs)) = command
     for i=1:1:$g(args) 
@@ -1040,7 +1082,7 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
     set errLog = """"_command_"err.log"""
     set outLog1 = command_"out.log"
     set errLog1 = command_"err.log"
-    do $zf(-100,"/STDOUT="_outLog_" /STDERR="_errLog,"git",newArgs...)
+    do $zf(-100,"/STDOUT="_outLog_" /STDERR="_errLog_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(outLog1))
     set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(errLog1))
 }

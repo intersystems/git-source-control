@@ -290,6 +290,7 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 	do ..RunGitCommand("fetch", .errStream, .outStream)
 	w !, "git fetch"
 	//git diff ..origin --name-only
+	//another test for push
 	kill errStream, outStream
 	do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
 	set diffFiles = ""

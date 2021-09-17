@@ -113,7 +113,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			}
 		}elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users
-			set Enabled = 0
+			set Enabled = 1
 			set DisplayName = "Push"
 		}elseif name = "%Fetch" {
 			set Enabled = 1

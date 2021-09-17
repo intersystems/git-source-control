@@ -200,8 +200,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	set Action = 7
 	    	quit ..Commit(InternalName)
 	    }elseif (menuItemName = "%Push") {
-	    	//quit ..Push(), Studio still crashes when calling rungitcommand with push as command
-	    	quit $$$OK
+	    	quit ..Push()
+	    	//, Studio still crashes when calling rungitcommand with push as command
+	    	//quit $$$OK
 	    }elseif (menuItemName = "%Fetch") {
             //TODO: Implement fetch git command
             $$$QuitOnError(..Fetch(.diffFiles))
@@ -278,12 +279,16 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 ClassMethod Push() As %Status
 {
 	do ..RunGitCommand("push", .errStream, .outStream)
+	w "git push"
+	do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
 	quit $$$OK
 }
 
 ClassMethod Fetch(ByRef diffFiles) As %Status
 {
 	do ..RunGitCommand("fetch", .errStream, .outStream)
+	w !, "git fetch"
 	//git diff ..origin --name-only
 	kill errStream, outStream
 	do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")

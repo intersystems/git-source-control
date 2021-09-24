@@ -8,6 +8,7 @@
       <Keywords>git source control studio vscode</Keywords>
       <Packaging>module</Packaging>
       <Resource Name="SourceControl.Git.PKG" />
+      <Resource Name="SourceControl.Git.INC" />
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/" />
       <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/" />
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />

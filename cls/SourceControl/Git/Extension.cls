@@ -204,18 +204,22 @@ Method OnBeforeLoad(InternalName As %String) As %Status
 /// Also, lock the file after export IF there are any changes to it
 Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NULLOREF}) As %Status
 {
-	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
-	if ##class(Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
-		set filename = ##class(Utils).FullExternalName(InternalName)
-		$$$QuitOnError(##class(Utils).RemoveRoutineTSH(InternalName))
-		$$$QuitOnError(##class(Utils).ExportItem(InternalName))
-		if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-			$$$QuitOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $Username, "", 1, "", "", 0))
+	set sc = $$$OK
+	try {
+		set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+		if ##class(Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
+			set filename = ##class(Utils).FullExternalName(InternalName)
+			$$$ThrowOnError(##class(Utils).RemoveRoutineTSH(InternalName))
+			$$$ThrowOnError(##class(Utils).ExportItem(InternalName))
+			if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+				$$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $Username, "", 1, "", "", 0))
+			}
 		}
-		quit $$$OK
-	} else {
-		quit $$$OK
+	} catch e {
+		do e.Log()
+		set sc = e.AsStatus()
 	}
+	quit sc
 }
 
 /// Called after the compile of the item is done.

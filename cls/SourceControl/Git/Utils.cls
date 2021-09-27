@@ -1082,15 +1082,14 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     {
         set newArgs($i(newArgs)) = args(i)
     }
-    //trying to fix issue where different git commands write to same file
-    //this is a dummy line to test push function
-    set outLog = """"_command_"out.log"""
-    set errLog = """"_command_"err.log"""
-    set outLog1 = command_"out.log"
-    set errLog1 = command_"err.log"
-    do $zf(-100,"/STDOUT="_outLog_" /STDERR="_errLog_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
-    set outStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(outLog1))
-    set errStream = ##class(%Stream.FileCharacter).%OpenId(##class(%File).NormalizeFilename(errLog1))
+    set outLog = ##class(%Library.File).TempFilename()
+    set errLog = ##class(%Library.File).TempFilename()
+    do $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
+    set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
+    for stream=errStream,outStream {
+        set stream.RemoveOnClose = 1
+    }
 }
 
 ClassMethod GitStatus(ByRef files)

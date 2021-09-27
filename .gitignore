@@ -1,5 +1,4 @@
-
-.vscode/settings.json
-.vscode/git-source-control.code-workspace
+.vscode/
 testcode.txt
-.vscode/sample-workspace.code-workspace
+.gitattributes
+*.code-workspace

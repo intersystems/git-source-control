@@ -7,11 +7,19 @@
       <Description>Server-side source control extension for use of Git on InterSystems platforms</Description>
       <Keywords>git source control studio vscode</Keywords>
       <Packaging>module</Packaging>
+
+      <!-- Extension source (classes/include) -->
       <Resource Name="SourceControl.Git.PKG" />
       <Resource Name="SourceControl.Git.INC" />
-      <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/" />
-      <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/" />
+
+      <!-- Unit tests -->
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
+
+      <!-- Pages for the Git menu in Studio/VSCode - moved to /isc/studio/usertemplates -->
+      <!-- Can't call the folder git-source-control because this causes errors in CSP compliation! -->
+      <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
+      <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />
+      <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
     </Module>
   </Document>
 </Export>

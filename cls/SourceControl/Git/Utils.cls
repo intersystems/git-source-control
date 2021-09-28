@@ -153,7 +153,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     if (menuName = "%SourceMenu") {
         if (menuItemName = "%Cache-Git-Settings") {
             set Action = 2
-            set Target = "/isc/studio/usertemplates/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
+            set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
         }elseif (menuItemName = "%CreateRepo") {
             if ##class(%File).CreateDirectoryChain(..TempFolder()) {
                 // cleanup items info
@@ -166,7 +166,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             }
         } elseif (menuItemName = "%GitWebUI") {
             set Action = 2
-            set Target = "/isc/studio/usertemplates/webuidriver.csp/"_$namespace
+            set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace
         }elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
             write "==export start==",!
             set ec = ..ExportAll($case(menuItemName="%ExportForce",1:$$$Force,:0))

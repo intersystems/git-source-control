@@ -7,82 +7,45 @@
 
     new $NAMESPACE
     set $NAMESPACE = namespace
-    do ##class(SourceControl.Git.WebUIDriver).RunInBackground()
 
+	// Serve static content when appropriate.
+	// index.html
+	if (url = %base) || (url = $Extract(%base,1,*-1)) {
+		do %request.Set("FILE","/isc/studio/usertemplates/gitsourcecontrol/index.html")
+		set %stream = 1
+		quit 1
+	}
+	// other static resources
+    if $Match(url,"^(.*/img/.*|.*\.(js|map|html|css|woff|woff2))$") {
+		do %request.Set("FILE","/isc/studio/usertemplates/gitsourcecontrol/"_$Piece(url,%base,2,*))
+		kill %base
+		set %stream = 1
+		do ##class(%CSP.StreamServer).FileClassify(url,.type,,.charset)
+		set %response.ContentType = type
+		if ($Get(charset) = "") {
+			set %response.NoCharSetConvert = 1
+		}
+		quit 1
+    }
+
+	// Handles HTTP requests to /api/ (everything new) plus things previously sent to the Python backend
 	do ##class(SourceControl.Git.WebUIDriver).HandleRequest("/"_resource, .handled, .%data)
 	if handled {
 		kill %base
-		quit 1	
+		quit 1
 	}
 
-	// The request object that will fetch and return the page
-	set request = ##class(%Net.HttpRequest).%New()
-	set request.Server = "localhost"
-	set request.Port = 8000
-	
-	// Copy headers from %request to request
-	#dim %request As %CSP.Request
-	#dim %response As %CSP.Response
-	set request.ContentType = %request.ContentType
-	
-    // Weird way of handling URL-encoded form parameters - just copy to entity body rather than
-    // parroting through %Net.HttpRequest which double-encodes and forces an "=" for no value
-	if $ZConvert(%request.ContentType,"U") [ $ZConvert("application/x-www-form-urlencoded","U") {
-		set key = ""
-		for {
-			set key = $Order(%request.Data(key))
-			quit:key=""
-			set value = %request.Get(key)
-            do request.EntityBody.Write(key)
-            if (value '= "") {
-                do request.EntityBody.WriteLine("="_value)
-            }
-		}
-	}
-	
-    if (resource = "") {
-		$$$ThrowOnError(request.Get("/"))
-	} else {
-        kill %base // Don't want this for static files other than the root.
-		set fullPage = "http://"_..#HOST_":"_..#PORT_"/"_resource
-		$$$ThrowOnError(request.Send(%request.Method,resource))
-	}
-	
-	// We'll share this data with OnPage
-    set %data = request.HttpResponse.Data
-	
-	set %response.Status = request.HttpResponse.StatusCode
-	set %response.ContentType = request.HttpResponse.ContentType
-	
-	set headerName = ""
-	for {
-		set headerName = request.HttpResponse.GetNextHeader(headerName)
-		if (headerName = "") {
-			quit
-		}
-		set value = request.HttpResponse.GetHeader(headerName)
-		if ($ZConvert(headerName,"U") = "SET-COOKIE") {
-			do %response.SetCookie($Piece(value,"="),$Piece($Piece(value,"=",2),";"),,$Piece($Piece(value,"Path=",2),";"),,,value["HttpOnly")
-		} elseif ($ZConvert(headerName,"U") = "LOCATION") && $Data(%base)#2 {
-			do %response.SetHeader(headerName,%base_value)
-		} elseif ($ZConvert(headerName,"U") = "CONTENT-ENCODING") {
-			// SKIP: we won't send gzipped output still gzipped
-		} else {
-			do %response.SetHeader(headerName,value)
-		}
-	}
-
-    do ##class(%CSP.StreamServer).FileClassify($Piece(resource,"/",*),,,.charset)
-    if ($Get(charset) = "") {
-        set %response.NoCharSetConvert = 1
-    }
+	set %data = ##class(%Stream.TmpCharacter).%New()
+	do %data.WriteLine("<h1>Bad Request.</h1>")
 
 	quit 1
 </script><server>
-    if (%response.ContentType [ "html") && $Data(%base)#2 {
+	if $data(%base)#2 { 
         &html<<base href="#(..EscapeHTML(%base))#"/>>
-        do %data.OutputToDevice()
-    } else {
+	}
+	if $get(%stream) {
+		Quit ##class(%CSP.StreamServer).Page()
+	} else {
         do %data.OutputToDevice()
     }
     quit 1

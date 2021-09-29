@@ -150,7 +150,7 @@ webui.TabBox = function(buttons) {
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li><a href="#">' + item[0] + '</a></li>');
+        var li = $('<li><a href="#" onclick="return false;">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
@@ -306,9 +306,6 @@ webui.SideBarView = function(mainView) {
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-remote">' +
-                                    '<h4>Remote access</h4>' +
-                                '</section>' +
                                 '<section id="sidebar-local-branches">' +
                                     '<h4>Local Branches</h4>' +
                                 '</section>' +
@@ -331,13 +328,6 @@ webui.SideBarView = function(mainView) {
             self.mainView.workspaceView.update("stage");
         });
     }
-
-    var remoteElement = $("#sidebar-remote h4", self.element);
-    remoteElement.click(function (event) {
-        $("*", self.element).removeClass("active");
-        $(remoteElement).addClass("active");
-        self.mainView.remoteView.update();
-    });
 
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
@@ -1105,7 +1095,7 @@ webui.TreeView = function(commitView) {
             var last = i == self.stack.length - 1;
             var name = self.stack[i].name;
             if (!last) {
-                name = '<a href="#">' + name + '</a>';
+                name = '<a href="#" onclick="return false;">' + name + '</a>';
             }
             var li = $('<li>' + name + '</li>');
             li.appendTo(breadcrumb);
@@ -1134,7 +1124,7 @@ webui.TreeView = function(commitView) {
             var blobs = [];
             var trees = [];
             if (parentTreeRef) {
-                var elt =   $('<a href="#" class="list-group-item">' +
+                var elt =   $('<a href="#" onclick="return false;" class="list-group-item">' +
                                 '<span class="tree-item-tree">..</span> ' +
                                 '<span></span> ' +
                                 '<span></span> ' +
@@ -1148,7 +1138,7 @@ webui.TreeView = function(commitView) {
             webui.splitLines(data).forEach(function(line) {
                 var entry = new Entry(line);
                 var size = entry.formatedSize()
-                var elt =   $('<a href="#" class="list-group-item">' +
+                var elt =   $('<a href="#" onclick="return false;" class="list-group-item">' +
                                 '<span>' + entry.name + '</span> ' +
                                 '<span>' + size[0] + '</span>&nbsp;' +
                                 '<span>' + size[1] + '</span>' +
@@ -1191,7 +1181,7 @@ webui.TreeView = function(commitView) {
         self.createBreadcrumb();
         $(self.element.lastElementChild).remove();
         $(  '<div id="tree-view-blob-content">' +
-                '<iframe src="/git/cat-file/' + self.stack[self.stack.length - 1].object + '"></iframe>' +
+                '<iframe src="git/cat-file/' + self.stack[self.stack.length - 1].object + '"></iframe>' +
             '</div>').appendTo(self.element);
     }
 
@@ -1684,32 +1674,6 @@ webui.CommitMessageView = function(workspaceView) {
     $(".commit-message-commit", self.element).click(self.onCommit);
 };
 
-webui.RemoteView = function(mainView) {
-
-    var self = this;
-
-    self.show = function() {
-        mainView.switchTo(self.element);
-    };
-
-    self.update = function() {
-        self.show();
-    };
-
-    self.element = $(   '<div class="jumbotron">' +
-                            '<h1>Remote access</h1>' +
-                            '<p>Git webui allows other people to clone and pull from your repository.</p>' +
-                            '<div class="git-access">' +
-                                '<p>Other people can clone your repository:</p>' +
-                                '<pre class="git-clone"></pre>' +
-                                '<p>Or to pull from your repository:</p>' +
-                                '<pre class="git-pull"></pre>' +
-                            '</div>' +
-                        '</div>')[0];
-    $(".git-clone", self.element).text("git clone http://" + webui.hostname + ":" + document.location.port + "/ " + webui.repo);
-    $(".git-pull", self.element).text("git pull http://" + webui.hostname + ":" + document.location.port + "/");
-};
-
 /*
  *  == Initialization =========================================================
  */
@@ -1756,7 +1720,6 @@ function MainUi() {
                 globalContainer.appendChild(self.mainView);
 
                 self.historyView = new webui.HistoryView(self);
-                self.remoteView = new webui.RemoteView(self);
                 if (!webui.viewonly) {
                     self.workspaceView = new webui.WorkspaceView(self);
                 }

@@ -114,14 +114,6 @@ ClassMethod UpdateSettings(ByRef settings) As %Status
     quit $$$OK
 }
 
-ClassMethod GitCommand(commandName As %String, itemName As %String = "") As %String [ CodeMode = expression ]
-{
-..GitBinPath()_" /command:"_commandName_
-               " /path:"""_..TempFolder()_
-               $case(itemName,"":"",:..ExternalName(itemName))_""""_
-               $case(commandName,"clone":" /exactpath:"_..TempFolder(),:"")
-}
-
 ClassMethod IsMenuGitCommand(menuItemName As %String) As %Boolean [ CodeMode = expression ]
 {
 $Find(..#GitMenuItems, ","_menuItemName_",") > 0
@@ -146,14 +138,13 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     
     if ..GitBinExists() = 0 && (menuItemName'="%Cache-Git-Settings") && 
     		($system.Version.GetOS()="Windows") {
-        write !!,"===Path to tortoisegitproc.exe not found: "_..GitBinPath()_"!===",!
+        write !!,"===Path to git.exe not found: "_..GitBinPath()_"!===",!
     }
-    // this is here to test git fetch
     
     if (menuName = "%SourceMenu") {
         if (menuItemName = "%Cache-Git-Settings") {
             set Action = 2
-            set Target = "/isc/studio/usertemplates/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
+            set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
         }elseif (menuItemName = "%CreateRepo") {
             if ##class(%File).CreateDirectoryChain(..TempFolder()) {
                 // cleanup items info
@@ -166,7 +157,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             }
         } elseif (menuItemName = "%GitWebUI") {
             set Action = 2
-            set Target = "/isc/studio/usertemplates/webuidriver.csp/"_$namespace
+            set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace
         }elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
             write "==export start==",!
             set ec = ..ExportAll($case(menuItemName="%ExportForce",1:$$$Force,:0))
@@ -208,8 +199,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             $$$QuitOnError(..Fetch(.diffFiles))
             set pointer = 0
             while $ListNext(diffFiles, pointer, item){
-	        	w item
+	        	write !,item
 	        }
+            write !
 	    }elseif (menuItemName = "%Pull") {
 		    //TODO: Implement pull git command
             quit $$$OK
@@ -252,6 +244,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
+    #dim menuName As %String = $Piece(Name,",")
+    #dim menuItemName As %String = $Piece(Name,",",2)
+    if (menuItemName = "%Revert") || (menuItemName [ "%Import") {
+        set Reload = 1
+    }
     quit $$$OK
 }
 
@@ -1068,12 +1065,12 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
     quit 'fileCount
 }
 
-ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...)
+ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...) As %Integer
 {
-    do ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
+    quit ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
 }
 
-ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...)
+ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
 	set newArgs($i(newArgs)) = "-C"
     set newArgs($i(newArgs)) = ..TempFolder()
@@ -1084,12 +1081,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
-    do $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
+    quit returnCode
 }
 
 ClassMethod GitStatus(ByRef files)

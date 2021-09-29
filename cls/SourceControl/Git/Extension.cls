@@ -44,7 +44,7 @@ XData Menu
 <MenuItem Name="%Fetch" Save = "001"/>
 <MenuItem Name="%Pull" Save = "001"/>
 </Menu>
-<Menu Name="%SourceMenuContext" Type="1">
+<Menu Name="%SourceContext" Type="1">
 <MenuItem Name="%AddToSC"/>
 <MenuItem Name="%RemoveFromSC"/>
 <!--
@@ -59,11 +59,23 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 {
 	#dim ec As %Status = $$$OK
 	#dim menu As %Status = $Piece(Name, ",", 1)
-	if menu '= "%SourceMenu", menu'="%SourceMenuContext" {
+	if menu '= "%SourceMenu", menu'="%SourceContext" {
 		quit $$$OK
 	}
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
 	set ec = ##class(Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
+	quit ec
+}
+
+Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
+{
+	#dim ec As %Status = $$$OK
+	#dim menu As %Status = $Piece(Name, ",", 1)
+	if menu '= "%SourceMenu", menu'="%SourceContext" {
+		quit $$$OK
+	}
+	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+	set ec = ##class(Utils).AfterUserAction(Type, Name, InternalName, .Answer, .Msg, .Reload)
 	quit ec
 }
 
@@ -171,7 +183,7 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 {
 	#dim menu As %String= $Piece(MenuName,",")
 	#dim name As %String = $Piece(MenuName,",",2)
-	if menu = "%SourceMenuContext", name = "" {
+	if menu = "%SourceContext", name = "" {
 		set DisplayName = "Git"
 	}
 	if menu = "%SourceMenu", name = "" {
@@ -181,7 +193,7 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 
 	if menu = "%SourceMenu" {
 		set ec = ..OnSourceMenuItem(name, .Enabled, .DisplayName, InternalName)
-	}elseif menu = "%SourceMenuContext" {
+	}elseif menu = "%SourceContext" {
 		set ec = ..OnSourceMenuContextItem(InternalName, name, .Enabled, .DisplayName)
 	}
 	Quit ec

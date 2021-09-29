@@ -21,7 +21,7 @@ module.exports = function(grunt) {
                 },
                 expand: true,
                 cwd: 'src',
-                src: ['libexec/**', 'share/**', '!**/less', '!**/*.less'],
+                src: ['share/**', '!**/less', '!**/*.less'],
                 dest: 'dist',
             },
             release: {
@@ -48,15 +48,9 @@ module.exports = function(grunt) {
             },
         },
 
-        shell: {
-            serve: {
-                command: './dist/libexec/git-core/git-webui'
-            },
-        },
-
         watch: {
             scripts: {
-                files: ['src/libexec/**/*', 'src/share/**/*.js', 'src/share/**/*.html'],
+                files: ['src/share/**/*.js', 'src/share/**/*.html'],
                 tasks: 'copy:git_webui'
             },
             css: {
@@ -71,11 +65,9 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-less');
     grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-shell');
     grunt.loadNpmTasks('grunt-contrib-watch');
 
     grunt.registerTask('copytodist', ['copy:jquery', 'copy:bootstrap', 'copy:git_webui']);
     grunt.registerTask('default', ['copytodist', 'less']);
-    grunt.registerTask('serve', ['default', 'shell:serve']);
     grunt.registerTask('release', ['default', 'copy:release']);
 };

@@ -114,14 +114,6 @@ ClassMethod UpdateSettings(ByRef settings) As %Status
     quit $$$OK
 }
 
-ClassMethod GitCommand(commandName As %String, itemName As %String = "") As %String [ CodeMode = expression ]
-{
-..GitBinPath()_" /command:"_commandName_
-               " /path:"""_..TempFolder()_
-               $case(itemName,"":"",:..ExternalName(itemName))_""""_
-               $case(commandName,"clone":" /exactpath:"_..TempFolder(),:"")
-}
-
 ClassMethod IsMenuGitCommand(menuItemName As %String) As %Boolean [ CodeMode = expression ]
 {
 $Find(..#GitMenuItems, ","_menuItemName_",") > 0

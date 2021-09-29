@@ -1,18 +1,6 @@
 Class SourceControl.Git.WebUIDriver
 {
 
-ClassMethod RunInBackground() As %Status
-{
-    set arg($i(arg)) = "webui"
-    set arg($i(arg)) = "--repo-root"
-    set arg($i(arg)) = ##class(SourceControl.Git.Utils).TempFolder()
-    set arg($i(arg)) = "--no-browser"
-    do $zf(-100,"/ASYNC /LOGCMD /SHELL","git",arg...)
-    quit $$$OK
-}
-
-// this is to test git fetch
-
 ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
     kill %data

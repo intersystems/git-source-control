@@ -133,6 +133,7 @@ ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, O
                         set gitArgs(gitArgs) = gitArgs(gitArgs)_" "_$Extract(arg,1,*-argEndsQuotedString)
                     } elseif (arg '= "") {
                         set gitArgs($i(gitArgs)) = $Extract(arg,1+argStartsQuotedString,*-argEndsQuotedString)
+                        set inQuotedString = argStartsQuotedString && 'argEndsQuotedString
                     }
                 }
 

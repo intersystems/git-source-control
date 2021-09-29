@@ -99,7 +99,6 @@ ClassMethod HandleRequest(pagePath As %String, Output handled As %Boolean = 0, O
                         else:
                             self.send_error(403)
                 */
-                merge ^mtemptsl($i(^mtemptsl)) = %request.Data
                 set reference = "%request.Data"
                 for {
                     set reference = $query(@reference)

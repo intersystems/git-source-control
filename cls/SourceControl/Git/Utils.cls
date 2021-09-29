@@ -138,9 +138,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     
     if ..GitBinExists() = 0 && (menuItemName'="%Cache-Git-Settings") && 
     		($system.Version.GetOS()="Windows") {
-        write !!,"===Path to tortoisegitproc.exe not found: "_..GitBinPath()_"!===",!
+        write !!,"===Path to git.exe not found: "_..GitBinPath()_"!===",!
     }
-    // this is here to test git fetch
     
     if (menuName = "%SourceMenu") {
         if (menuItemName = "%Cache-Git-Settings") {
@@ -200,8 +199,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             $$$QuitOnError(..Fetch(.diffFiles))
             set pointer = 0
             while $ListNext(diffFiles, pointer, item){
-	        	w item
+	        	write !,item
 	        }
+            write !
 	    }elseif (menuItemName = "%Pull") {
 		    //TODO: Implement pull git command
             quit $$$OK
@@ -244,6 +244,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
+    #dim menuName As %String = $Piece(Name,",")
+    #dim menuItemName As %String = $Piece(Name,",",2)
+    if (menuItemName = "%Revert") || (menuItemName [ "%Import") {
+        set Reload = 1
+    }
     quit $$$OK
 }
 

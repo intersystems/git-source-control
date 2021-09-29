@@ -41,4 +41,4 @@
 
 ## During Development
 
-> :warning: Whenever any code in the `SourceControl` package is updated outside of the server (e.g. after every `git pull`), you _have_ to run `zpm "load <absolute path to git-source-control> -verbose"`. Otherwise the changes won't be reflected on the server.
+:warning: Whenever any code in the `SourceControl` package is updated outside of the server (e.g. after every `git pull`), you _have_ to run `zpm "load <absolute path to git-source-control> -verbose"`. Otherwise the changes won't be reflected on the server.

@@ -1068,12 +1068,12 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
     quit 'fileCount
 }
 
-ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...)
+ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...) As %Integer
 {
-    do ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
+    quit ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
 }
 
-ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...)
+ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
 	set newArgs($i(newArgs)) = "-C"
     set newArgs($i(newArgs)) = ..TempFolder()
@@ -1084,12 +1084,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
-    do $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
+    quit returnCode
 }
 
 ClassMethod GitStatus(ByRef files)

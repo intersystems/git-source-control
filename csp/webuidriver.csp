@@ -43,9 +43,9 @@
 	if $data(%base)#2 { 
         &html<<base href="#(..EscapeHTML(%base))#"/>>
 	}
-	if $get(%stream) {
+	if $Get(%stream) {
 		Quit ##class(%CSP.StreamServer).Page()
-	} else {
+	} elseif $IsObject($Get(%data)) {
         do %data.OutputToDevice()
     }
     quit 1

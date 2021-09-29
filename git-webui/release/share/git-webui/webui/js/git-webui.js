@@ -150,7 +150,7 @@ webui.TabBox = function(buttons) {
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li><a href="#">' + item[0] + '</a></li>');
+        var li = $('<li><a href="#" onclick="return false;">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
@@ -1105,7 +1105,7 @@ webui.TreeView = function(commitView) {
             var last = i == self.stack.length - 1;
             var name = self.stack[i].name;
             if (!last) {
-                name = '<a href="#">' + name + '</a>';
+                name = '<a href="#" onclick="return false;">' + name + '</a>';
             }
             var li = $('<li>' + name + '</li>');
             li.appendTo(breadcrumb);
@@ -1134,7 +1134,7 @@ webui.TreeView = function(commitView) {
             var blobs = [];
             var trees = [];
             if (parentTreeRef) {
-                var elt =   $('<a href="#" class="list-group-item">' +
+                var elt =   $('<a href="#" onclick="return false;" class="list-group-item">' +
                                 '<span class="tree-item-tree">..</span> ' +
                                 '<span></span> ' +
                                 '<span></span> ' +
@@ -1148,7 +1148,7 @@ webui.TreeView = function(commitView) {
             webui.splitLines(data).forEach(function(line) {
                 var entry = new Entry(line);
                 var size = entry.formatedSize()
-                var elt =   $('<a href="#" class="list-group-item">' +
+                var elt =   $('<a href="#" onclick="return false;" class="list-group-item">' +
                                 '<span>' + entry.name + '</span> ' +
                                 '<span>' + size[0] + '</span>&nbsp;' +
                                 '<span>' + size[1] + '</span>' +
@@ -1191,7 +1191,7 @@ webui.TreeView = function(commitView) {
         self.createBreadcrumb();
         $(self.element.lastElementChild).remove();
         $(  '<div id="tree-view-blob-content">' +
-                '<iframe src="/git/cat-file/' + self.stack[self.stack.length - 1].object + '"></iframe>' +
+                '<iframe src="git/cat-file/' + self.stack[self.stack.length - 1].object + '"></iframe>' +
             '</div>').appendTo(self.element);
     }
 

@@ -306,9 +306,6 @@ webui.SideBarView = function(mainView) {
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-remote">' +
-                                    '<h4>Remote access</h4>' +
-                                '</section>' +
                                 '<section id="sidebar-local-branches">' +
                                     '<h4>Local Branches</h4>' +
                                 '</section>' +
@@ -331,13 +328,6 @@ webui.SideBarView = function(mainView) {
             self.mainView.workspaceView.update("stage");
         });
     }
-
-    var remoteElement = $("#sidebar-remote h4", self.element);
-    remoteElement.click(function (event) {
-        $("*", self.element).removeClass("active");
-        $(remoteElement).addClass("active");
-        self.mainView.remoteView.update();
-    });
 
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
@@ -1684,32 +1674,6 @@ webui.CommitMessageView = function(workspaceView) {
     $(".commit-message-commit", self.element).click(self.onCommit);
 };
 
-webui.RemoteView = function(mainView) {
-
-    var self = this;
-
-    self.show = function() {
-        mainView.switchTo(self.element);
-    };
-
-    self.update = function() {
-        self.show();
-    };
-
-    self.element = $(   '<div class="jumbotron">' +
-                            '<h1>Remote access</h1>' +
-                            '<p>Git webui allows other people to clone and pull from your repository.</p>' +
-                            '<div class="git-access">' +
-                                '<p>Other people can clone your repository:</p>' +
-                                '<pre class="git-clone"></pre>' +
-                                '<p>Or to pull from your repository:</p>' +
-                                '<pre class="git-pull"></pre>' +
-                            '</div>' +
-                        '</div>')[0];
-    $(".git-clone", self.element).text("git clone http://" + webui.hostname + ":" + document.location.port + "/ " + webui.repo);
-    $(".git-pull", self.element).text("git pull http://" + webui.hostname + ":" + document.location.port + "/");
-};
-
 /*
  *  == Initialization =========================================================
  */
@@ -1756,7 +1720,6 @@ function MainUi() {
                 globalContainer.appendChild(self.mainView);
 
                 self.historyView = new webui.HistoryView(self);
-                self.remoteView = new webui.RemoteView(self);
                 if (!webui.viewonly) {
                     self.workspaceView = new webui.WorkspaceView(self);
                 }

@@ -7,6 +7,16 @@
 
     new $NAMESPACE
     set $NAMESPACE = namespace
+	
+	try {
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
 
 	// Serve static content when appropriate.
 	// index.html
@@ -20,7 +30,7 @@
 		do %request.Set("FILE","/isc/studio/usertemplates/gitsourcecontrol/"_$Piece(url,%base,2,*))
 		kill %base
 		set %stream = 1
-		do ##class(%CSP.StreamServer).FileClassify(url,.type,,.charset)
+		do ##class(%CSP.StreamServer).FileClassify($Piece(url,".",*),.type,,.charset)
 		set %response.ContentType = type
 		if ($Get(charset) = "") {
 			set %response.NoCharSetConvert = 1

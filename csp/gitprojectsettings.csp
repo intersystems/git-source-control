@@ -1,12 +1,18 @@
 <html>
 <head>
-<title>Cache-Git Settings</title></head>
+<title>Cache-Git Settings</title>
+<link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+<link rel="stylesheet" type="text/css" href="css/git-webui.css" />
+</head>
 <STYLE type='text/css'>
 .error {
     color: red;
 }
 </STYLE>
 <body>
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/git-webui.js"></script>
 <server>
  new $namespace
  set namespace = %request.Data("NSpace",1)
@@ -26,41 +32,76 @@
  set gitUserEmail = ##class(SourceControl.Git.Utils).GitUserEmail()
  set:defaultTemp="" defaultTemp =  "c:\temp\"
 </server>
-<form method='post'>
-<input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
-<input type="hidden" name="gitsettings" value="1" />
-<h1>Settings</h1>
-<table>
-<tr><th colspan="2">Settings for namespace #(..EscapeHTML(namespace))#</th></tr>
-<tr>
-<td>Path to git.exe<br/>(e.g. C:\Program Files\Git\bin\git.exe)</td><td><input type="text" name="gitBinPath" size=40 value='#(..EscapeHTML(gitBinPath))#'/></td>
-</tr>
-<csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).GitBinExists()=0)'>
-<tr><td colspan='2' align=center class='error'>
-File not found
-</td></tr>
-</csp:if>
-</tr>
-<tr>
-<td>Default path to temp folder<br/>(e.g. c:\temp)</td><td><input type="text" name="defaultTemp" size=40 value='#(..EscapeHTML(defaultTemp))#'/></td>
-</tr>
-<tr>
-<td>Temp folder for this namespace<br/>(e.g. c:\someproj\)</td><td><input type="text" name="namespaceTemp" size=40 value='#(..EscapeHTML(namespaceTemp))#'/></td>
-</tr>
-<!--
-<tr>
-<td>Group all items by folders</td><td><input type="checkbox" name="groupByFolder" size=40 #($case(groupByFolder,1:"checked",:""))#/></td>
-</tr>
--->
-<tr><th colspan="2">Settings for user '#(..EscapeHTML($Username))#'</th></tr>
-<tr><td colspan="2"><em>Git settings - if empty, will default to repository/global settings</em></td></tr>
-<tr><td>Git Committer Name:</td><td><input type="text" name="gitUserName" size=40 value="#(..EscapeHTML(gitUserName))#" /></td></tr>
-<tr><td>Git Committer Email:</td><td><input type="text" name="gitUserEmail" size=40 value="#(..EscapeHTML(gitUserEmail))#" /></td></tr>
-</table>
-<input type='submit' value = 'Save'/>
-</form>
-<csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
-    <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
-</csp:if>
+<div class = 'container-fluid'>
+    <form method='post'>
+        <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
+        <input type="hidden" name="gitsettings" value="1" />
+        <h1>Git Project Settings</h1>
+        <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3>
+
+        <div class="form-group row">
+            <label for="gitBinPath" class="col-sm-4 col-form-label">Path to git.exe <br> (e.g. C:\Program Files\Git\bin\git.exe)</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control" id="gitBinPath" name="gitBinPath" value='#(..EscapeHTML(gitBinPath))#' placeholder="(e.g. C:\Program Files\Git\bin\git.exe)">
+                <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).GitBinExists()=0)'>
+                    <p class="text-danger">File not found</p>
+                </csp:if>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="defaultTemp" class="col-sm-4 col-form-label">Default path to temp folder <br> (e.g. c:\temp)</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control" id="defaultTemp" name="defaultTemp" value='#(..EscapeHTML(defaultTemp))#'/>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="namespaceTemp" class="col-sm-4 col-form-label">Temp folder for this namespace<br/>(e.g. c:\someproj\)</label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(namespaceTemp))#'/>
+            </div>
+        </div>
+
+        <!--
+        <div class="form-group row">
+            <label for="groupByFolder" class="col-sm-4 col-form-label">Group all items by folders</label>
+            <div class="col-sm-8">
+                <input type="checkbox" class="form-control" id="groupByFolder" name="groupByFolder" size=40 #($case(groupByFolder,1:"checked",:""))#/>
+            </div>
+        </div>
+        -->
+
+        <h3>Settings for user '#(..EscapeHTML($Username))#'</h3>
+        <em>Git settings - if empty, will default to repository/global settings</em>
+        <br/><br/><br/>
+
+        <div class="form-group row">
+            <label for="gitUserName" class="col-sm-4 col-form-label">Git Committer Name </label>
+            <div class="col-sm-8">
+                <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(gitUserName))#'/>
+            </div>
+        </div>
+
+        <div class="form-group row">
+            <label for="gitUserEmail" class="col-sm-4 col-form-label">Git Committer Email </label>
+            <div class="col-sm-8">
+                <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(gitUserEmail))#'/>
+            </div>
+        </div>
+
+        <br/><br/>
+
+        <div class="form-group row">
+            <div class="col-sm-12 text-center">
+                <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
+            </div>
+        </div>
+        
+    </form>
+    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
+        <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
+    </csp:if>
+</div>
 </body>
 </html>

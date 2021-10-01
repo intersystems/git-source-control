@@ -1,18 +1,19 @@
+<!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cache-Git Settings</title>
 <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
 <link rel="stylesheet" type="text/css" href="css/git-webui.css" />
-</head>
 <STYLE type='text/css'>
 .error {
     color: red;
 }
 </STYLE>
+</head>
 <body>
-<script src="js/jquery.min.js"></script>
-<script src="js/bootstrap.min.js"></script>
-<script src="js/git-webui.js"></script>
 <server>
  new $namespace
  set namespace = %request.Data("NSpace",1)
@@ -104,5 +105,8 @@
         <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
     </csp:if>
 </div>
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script src="js/git-webui.js"></script>
 </body>
 </html>

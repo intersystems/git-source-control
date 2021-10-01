@@ -189,7 +189,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    }elseif (menuItemName = "%Commit") {
 	    	set Target = "Please enter a commit message"
 	    	set Action = 7
-	    	quit ..Commit(InternalName)
+	    	quit $$$OK
 	    }elseif (menuItemName = "%Push") {
 	    	quit ..Push()
 	    	//, Studio still crashes when calling rungitcommand with push as command
@@ -249,6 +249,12 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     if (menuItemName = "%Revert") || (menuItemName [ "%Import") {
         set Reload = 1
     }
+    if (menuItemName = "%Commit") {
+	    if (Answer = 1) {
+		    do ..Commit(InternalName, Msg)
+		    set Reload = 1
+	    }
+    }
     quit $$$OK
 }
 
@@ -265,11 +271,16 @@ ClassMethod Revert(InternalName As %String) As %Status
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
 {
 	set filename = ..FullExternalName(InternalName)
-	set username = """"_..GitUserName()_""""
-	set email = """"_..GitUserEmail()_""""
-	do ..RunGitCommand("config", .errStream, .outStream, "user.name", username)
-	do ..RunGitCommand("config", .errStream, .outStream, "user.email", email)
-	do ..RunGitCommand("commit", .errStream, .outStream, "-m", Message, filename)
+	set username = ..GitUserName()
+	set email = ..GitUserEmail()
+	set author = username_" <"_email_">"
+	do ..RunGitWithArgs(.errStream, .outStream,
+		"-c", "user.name="_username, "-c", "user.email="_email,
+		"commit", "--author", author, "-m", Message, filename)
+	write !
+	do outStream.OutputToDevice()
+	write !
+	do errStream.OutputToDevice()
 	quit $$$OK
 }
 
@@ -1063,6 +1074,15 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
     }
     kill rs
     quit 'fileCount
+}
+
+ClassMethod RunGitWithArgs(Output errStream, Output outStream, args...) As %Integer
+{
+	set command = args(1)
+	for i=2:1:$get(args) {
+		set newArgs($i(newArgs)) = args(i)
+	}
+	quit ..RunGitCommand(command,.errStream,.outStream,newArgs...)
 }
 
 ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...) As %Integer

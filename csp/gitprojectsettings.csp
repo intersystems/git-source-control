@@ -32,7 +32,8 @@
  set gitUserEmail = ##class(SourceControl.Git.Utils).GitUserEmail()
  set:defaultTemp="" defaultTemp =  "c:\temp\"
 </server>
-<div class = 'container-fluid'>
+<div class = 'container'>
+    <div class="col-sm-1"></div>
     <form method='post'>
         <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />

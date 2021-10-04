@@ -9,3 +9,7 @@ Created this file. Updated `RunGitCommanWithInput()` to pass user information us
 ### Test 2
 
 Deleted global user settings from `.gitconfig`
+
+### Test 3
+
+Properly update project settings.

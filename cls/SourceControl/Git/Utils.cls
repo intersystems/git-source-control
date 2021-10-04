@@ -1110,6 +1110,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     {
         set newArgs($i(newArgs)) = args(i)
     }
+
+    zwrite newArgs
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
     set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)

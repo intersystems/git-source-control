@@ -13,3 +13,7 @@ Deleted global user settings from `.gitconfig`
 ### Test 3
 
 Properly update project settings.
+
+### Test 4
+
+Set global user settings again. 

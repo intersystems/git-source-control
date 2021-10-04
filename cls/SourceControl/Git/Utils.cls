@@ -284,7 +284,9 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 
 ClassMethod Push() As %Status
 {
-	do ..RunGitCommand("push", .errStream, .outStream)
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
+    set branchName = outstream.Read(outstream.Size)
+	do ..RunGitWithArgs(.errStream, .outStream, "push", "origin", branchName)
 	w "git push"
 	do errStream.OutputToDevice()
 	do outStream.OutputToDevice()
@@ -1102,6 +1104,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set newArgs($i(newArgs)) = "user.email="_email
 
     set newArgs($i(newArgs)) = command
+
+    zwrite args
 
     for i=1:1:$g(args) 
     {

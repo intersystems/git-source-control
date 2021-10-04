@@ -285,7 +285,7 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 ClassMethod Push() As %Status
 {
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
-    set branchName = outstream.Read(outstream.Size)
+    set branchName = $ZSTRIP(outstream.Read(outstream.Size), "W")
 	do ..RunGitWithArgs(.errStream, .outStream, "push", "origin", branchName)
 	w "git push"
 	do errStream.OutputToDevice()

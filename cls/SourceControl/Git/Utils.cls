@@ -274,9 +274,7 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 	set username = ..GitUserName()
 	set email = ..GitUserEmail()
 	set author = username_" <"_email_">"
-	do ..RunGitWithArgs(.errStream, .outStream,
-		"-c", "user.name="_username, "-c", "user.email="_email,
-		"commit", "--author", author, "-m", Message, filename)
+	do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
 	write !
 	do outStream.OutputToDevice()
 	write !
@@ -1094,7 +1092,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 {
 	set newArgs($i(newArgs)) = "-C"
     set newArgs($i(newArgs)) = ..TempFolder()
+
+    set username = ..GitUserName()
+	set email = ..GitUserEmail()
+	set author = username_" <"_email_">"
+
+    set newArgs($i(newArgs)) = "-c"
+    set newArgs($i(newArgs)) = "user.name="_username
+    set newArgs($i(newArgs)) = "-c"
+    set newArgs($i(newArgs)) = "user.email="_email
+
     set newArgs($i(newArgs)) = command
+
     for i=1:1:$g(args) 
     {
         set newArgs($i(newArgs)) = args(i)
@@ -1294,4 +1303,3 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 }
 
 }
-

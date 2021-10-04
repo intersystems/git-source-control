@@ -17,3 +17,8 @@ Properly update project settings.
 ### Test 4
 
 Set global user settings again. 
+
+## Results
+
+1. Every git command is now run with the user configured in the project settings i.e. it is based on `$username`.
+2. This supercedes any global or repository level user setting. 

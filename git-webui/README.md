@@ -169,4 +169,4 @@ cp -rf release/* /usr
 
 ## License
 
-This software is licensed under the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) license
+This software is licensed under the [Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) license.

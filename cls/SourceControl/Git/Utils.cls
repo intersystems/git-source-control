@@ -1116,11 +1116,15 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
+    if (inFile = ""){
+        set inFile = ##class(%Library.File).TempFilename()
+    }
+
     zwrite newArgs
 
-    set returnCode = $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_" /STDIN="_$$$QUOTE(inFile),"git",newArgs...)
     
-    write "Returned after external commands"
+    write "Returned after external command"
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)

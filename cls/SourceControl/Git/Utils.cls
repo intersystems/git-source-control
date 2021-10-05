@@ -308,6 +308,13 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 
 ClassMethod Pull() As %Status
 {
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
+    set branchName = outstream.ReadLine(outstream.Size)
+    zwrite branchName
+	do ..RunGitWithArgs(.errStream, .outStream, "pull", "origin", branchName)
+	w "git pull"
+	do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
 	quit $$$OK
 }
 

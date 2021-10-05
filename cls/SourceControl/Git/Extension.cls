@@ -132,7 +132,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Fetch"
 		}elseif name = "%Pull" {
 			// TODO: Only display if there are no files checked out by other users
-			set Enabled = 0
+			set Enabled = 1
 			set DisplayName = "Pull"
 		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
@@ -308,4 +308,3 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 }
 
 }
-

@@ -1115,7 +1115,6 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         if ($DATA(args(i))) {
             set newArgs($i(newArgs)) = args(i)
         }
-        
     }
     
     set outLog = ##class(%Library.File).TempFilename()

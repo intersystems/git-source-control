@@ -282,12 +282,12 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 	quit $$$OK
 }
 
-ClassMethod Push() As %Status
+ClassMethod Push(remote = "origin") As %Status
 {
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
     zwrite branchName
-	do ..RunGitWithArgs(.errStream, .outStream, "push", "origin", branchName)
+	do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
 	w "git push"
 	do errStream.OutputToDevice()
 	do outStream.OutputToDevice()

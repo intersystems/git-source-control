@@ -1118,7 +1118,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     zwrite newArgs
 
-    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set returnCode = $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
     
     write "Returned after external commands"
 

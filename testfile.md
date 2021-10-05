@@ -9,3 +9,7 @@ Find name of current branch and hardcode origin.
 ### Test 2
 
 Push works from IRIS terminal, but Studio crashes. zwrite args to see where exactly it crashes in Studio.
+
+### Test 3
+
+/SHELL parameter

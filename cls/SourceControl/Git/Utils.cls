@@ -79,6 +79,11 @@ ClassMethod GitUserEmail() As %String
     Quit $Get(@..#Storage@("settings","user",$username,"gitUserEmail"))
 }
 
+ClassMethod PrivateKeyFile() As %String
+{
+    Quit $Get(@..#Storage@("settings","ssh","privateKeyFile"))
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..DefaultTemp() = "") ||  (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -110,6 +115,7 @@ ClassMethod UpdateSettings(ByRef settings) As %Status
     set @..#Storage@("settings","groupByFolder") = $case(settings("groupByFolder"), "":"", :1)
     set @..#Storage@("settings","user",$username,"gitUserName") = settings("gitUserName")
     set @..#Storage@("settings","user",$username,"gitUserEmail") = settings("gitUserEmail")
+    set @..#Storage@("settings","ssh","privateKeyFile") = settings("privateKeyFile")
     
     quit $$$OK
 }
@@ -306,6 +312,8 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
     while (outStream.AtEnd = 0) {
         set diffFiles = diffFiles_$lb(outStream.ReadLine())
     }
+    do outStream.Rewind()
+    do outStream.OutputToDevice()
 	quit $$$OK
 }
 
@@ -1095,6 +1103,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 {
 	set newArgs($i(newArgs)) = "-C"
     set newArgs($i(newArgs)) = ..TempFolder()
+
+    set privateKeyFile = ..PrivateKeyFile()
+    if (privateKeyFile '= "") {
+        set newArgs($i(newArgs)) = "-c"
+        set newArgs($i(newArgs)) = "core.sshCommand=ssh -F /dev/null -i "_privateKeyFile
+    }
 
     set username = ..GitUserName()
 	set email = ..GitUserEmail()

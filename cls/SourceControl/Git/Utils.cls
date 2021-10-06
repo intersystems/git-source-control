@@ -1107,7 +1107,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set returnCode = $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1301,3 +1301,4 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 }
 
 }
+

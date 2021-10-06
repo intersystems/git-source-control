@@ -292,9 +292,7 @@ ClassMethod Push(remote As %String = "origin") As %Status
 {
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
-    zwrite branchName
 	do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
-	w "git push"
 	do errStream.OutputToDevice()
 	do outStream.OutputToDevice()
 	quit $$$OK
@@ -320,33 +318,6 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 ClassMethod Pull() As %Status
 {
 	quit $$$OK
-}
-
-ClassMethod ConfigureGitAuthentication(Username As %String, Password As %String)
-{
-	//git config credential.helper store
-	//write !,"git config --system credential.helper manager"
-	//git config credential.helper '!f() { printf "%s\n" "username=$USER" "password=$PASS"; };f'
-	do ..RunGitCommand("config", .errStream, .outStream, "--global", "credential.helper", "store")
-	do errStream.OutputToDevice()
-	do outStream.OutputToDevice()
-	/*
-	write !,"git config --global credential.modalPrompt false"
-	do ..RunGitCommand("config", .errStream, .outStream, "--global","credential.modalPrompt", "false")
-	do errStream.OutputToDevice()
-	do outStream.OutputToDevice()
-	*/
-	/*
-	set file = ##class(%Stream.FileCharacter).%New()
-	do file.WriteLine(Username)
-	do file.WriteLine(Password)
-	$$$ThrowOnError(file.%Save())
-	set file.RemoveOnClose = 1
-	*/
-	write !,"git fetch"
-	do ..RunGitCommand("fetch", .errStream, .outStream)
-	do errStream.OutputToDevice()
-	do outStream.OutputToDevice()
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]
@@ -1136,11 +1107,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    zwrite newArgs
-
     set returnCode = $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
-    
-    write "Returned after external commands"
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)

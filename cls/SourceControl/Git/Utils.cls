@@ -1106,8 +1106,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     set privateKeyFile = ..PrivateKeyFile()
     if (privateKeyFile '= "") {
+        if $$$isWINDOWS {
+            // Escape slashes
+            set privateKeyFile = $Replace(privateKeyFile,"\","\\")
+        }
         set newArgs($i(newArgs)) = "-c"
-        set newArgs($i(newArgs)) = "core.sshCommand=ssh -F /dev/null -i "_privateKeyFile
+        // StrictHostKeyChecking=accept-new for good behavior on first connection
+        set newArgs($i(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
     }
 
     set username = ..GitUserName()

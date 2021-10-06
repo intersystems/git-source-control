@@ -201,6 +201,6 @@ ClassMethod Uncommitted() As %SystemBase
     quit array
 }
 
-// test commit
-}
+// test commit 2
 
+}

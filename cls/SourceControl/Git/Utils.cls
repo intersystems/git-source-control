@@ -330,14 +330,14 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     }
     #; do outStream.OutputToDevice()
 
-    write !, "Fetch done"
+    write !, "Fetch done", !
 
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
     while (outStream.AtEnd = 0) { 
         set files($I(files)) = outStream.ReadLine()
     }
 
-    write "Diffs"
+    write "Diffs", !
     zwrite files
 
 	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
@@ -351,7 +351,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     {
         if ($DATA(files(i))) {
             set internalName = ..NameToInternalName(files(i)) 
-            write internalName
+            write internalName,!
             set ec = ..ImportItem(internalName, $$$Force)
             Do $System.OBJ.Compile(internalName)
         }

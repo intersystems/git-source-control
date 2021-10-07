@@ -317,11 +317,31 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 
 ClassMethod Pull(remote As %String = "origin") As %Status
 {
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
-    set branchName = outstream.ReadLine(outstream.Size)
-	do ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
+    set branchName = outStream.ReadLine(outStream.Size)
+
+    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
+    if ($$$ISERR(sc)){
+        quit sc
+    }
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
+
+    while (outStream.AtEnd = 0) { 
+        set files($I(files)) = outStream.ReadLine()
+    }
+	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+
 	do errStream.OutputToDevice()
 	do outStream.OutputToDevice()
+
+    if ($$$ISOK(sc)){
+        for i=1:1:$g(files) 
+        {
+            if ($DATA(files(i))) {
+                Do $System.OBJ.Compile(..NameToInternalName(files(i)))
+            }
+        }
+    }
 	quit $$$OK
 }
 

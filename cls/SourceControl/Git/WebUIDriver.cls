@@ -201,5 +201,3 @@ ClassMethod Uncommitted() As %SystemBase
     quit array
 }
 }
-
-}

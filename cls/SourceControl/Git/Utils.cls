@@ -347,19 +347,17 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     }
 	do outStream.OutputToDevice()
 
-    if ($$$ISOK(sc)){
-        for i=1:1:$g(files) 
-        {
-            if ($DATA(files(i))) {
-                set internalName = ..NameToInternalName(files(i)) 
-                write internalName
-                write "==export start==",!
-                set ec = ..ExportAll($$$Force)
-                if ec {
-                    write !,"==export done==",!
-                }
-                Do $System.OBJ.Compile(internalName)
+    for i=1:1:$g(files) 
+    {
+        if ($DATA(files(i))) {
+            set internalName = ..NameToInternalName(files(i)) 
+            write internalName
+            write "==export start==",!
+            set ec = ..ExportAll($$$Force)
+            if ec {
+                write !,"==export done==",!
             }
+            Do $System.OBJ.Compile(internalName)
         }
     }
 	quit $$$OK

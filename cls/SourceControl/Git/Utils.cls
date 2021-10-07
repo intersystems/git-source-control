@@ -210,7 +210,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             write !
 	    }elseif (menuItemName = "%Pull") {
 		    //TODO: Implement pull git command
-            quit ..Pull()
+            	quit ..Pull()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3

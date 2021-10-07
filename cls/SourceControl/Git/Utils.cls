@@ -322,16 +322,21 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 
     set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
     if ($$$ISERR(sc)){
+        do errStream.OutputToDevice()
         quit sc
     }
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
+    do outStream.OutputToDevice()
 
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
     while (outStream.AtEnd = 0) { 
         set files($I(files)) = outStream.ReadLine()
     }
-	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
 
-	do errStream.OutputToDevice()
+	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+    if ($$$ISERR(sc)){
+        do errStream.OutputToDevice()
+        quit sc
+    }
 	do outStream.OutputToDevice()
 
     if ($$$ISOK(sc)){

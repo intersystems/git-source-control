@@ -352,11 +352,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         if ($DATA(files(i))) {
             set internalName = ..NameToInternalName(files(i)) 
             write internalName
-            write "==export start==",!
-            set ec = ..ExportAll($$$Force)
-            if ec {
-                write !,"==export done==",!
-            }
+            set ec = ..ImportItem(internalName, $$$Force)
             Do $System.OBJ.Compile(internalName)
         }
     }

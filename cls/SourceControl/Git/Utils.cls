@@ -317,6 +317,8 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 
 ClassMethod Pull(remote As %String = "origin") As %Status
 {
+   
+    #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     write !, branchName
@@ -351,6 +353,11 @@ ClassMethod Pull(remote As %String = "origin") As %Status
             if ($DATA(files(i))) {
                 set internalName = ..NameToInternalName(files(i)) 
                 write internalName
+                write "==export start==",!
+                set ec = ..ExportAll($$$Force)
+                if ec {
+                    write !,"==export done==",!
+                }
                 Do $System.OBJ.Compile(internalName)
             }
         }

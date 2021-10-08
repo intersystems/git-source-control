@@ -198,10 +198,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	quit $$$OK
 	    }elseif (menuItemName = "%Push") {
 	    	quit ..Push()
-	    	//, Studio still crashes when calling rungitcommand with push as command
-	    	//quit $$$OK
 	    }elseif (menuItemName = "%Fetch") {
-            //TODO: Implement fetch git command
             $$$QuitOnError(..Fetch(.diffFiles))
             set pointer = 0
             while $ListNext(diffFiles, pointer, item){
@@ -209,8 +206,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	        }
             write !
 	    }elseif (menuItemName = "%Pull") {
-		    //TODO: Implement pull git command
-            quit $$$OK
+            quit ..Pull()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
@@ -302,8 +298,6 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 {
 	do ..RunGitCommand("fetch", .errStream, .outStream)
 	w !, "git fetch"
-	//git diff ..origin --name-only
-	//another test for push
 	kill errStream, outStream
 	do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
 	set diffFiles = ""
@@ -315,8 +309,61 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 	quit $$$OK
 }
 
-ClassMethod Pull() As %Status
+ClassMethod Pull(remote As %String = "origin") As %Status
 {
+   
+    #define Force 1
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
+    set branchName = outStream.ReadLine(outStream.Size)
+    write !, "Pulling from branch: ", branchName
+
+    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
+    if (sc=1){
+        do errStream.OutputToDevice()
+        quit sc
+    }
+
+    write !, "Fetch done"
+    write !, "Files in diff: "
+
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
+    while (outStream.AtEnd = 0) { 
+        set file = outStream.ReadLine()
+        set files($I(files)) = file
+        write !,?4, file
+    }
+
+	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+    if (sc=1){
+        do errStream.OutputToDevice()
+        do outStream.OutputToDevice()
+        quit $$$ERROR(5001, "Not compiled. Fix errors before compiling.")
+    }
+    write !
+	do outStream.OutputToDevice()
+    write !
+    
+    set nFiles = 0
+    for i=1:1:$g(files) 
+    {
+        if ($DATA(files(i))) {
+            set internalName = ..NameToInternalName(files(i)) 
+            if (internalName = "") {
+                write files(i), " was not imported into the database and will not be compiled. ", !
+            }
+            else{
+                set compilelist(internalName) = ""
+                set nFiles = nFiles + 1
+                set ec = ..ImportItem(internalName, $$$Force)
+            }
+        }
+    }
+    
+    if (nFiles = 0){
+        write "Nothing to compile.",!
+        quit $$$OK
+    }
+    Do $System.OBJ.CompileList(.compilelist, "cukb")
 	quit $$$OK
 }
 
@@ -1101,7 +1148,6 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         if ($DATA(args(i))) {
             set newArgs($i(newArgs)) = args(i)
         }
-        
     }
 
     set outLog = ##class(%Library.File).TempFilename()
@@ -1301,4 +1347,3 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 }
 
 }
-

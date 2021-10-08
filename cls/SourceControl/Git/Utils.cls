@@ -198,10 +198,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	    	quit $$$OK
 	    }elseif (menuItemName = "%Push") {
 	    	quit ..Push()
-	    	//, Studio still crashes when calling rungitcommand with push as command
-	    	//quit $$$OK
 	    }elseif (menuItemName = "%Fetch") {
-            //TODO: Implement fetch git command
             $$$QuitOnError(..Fetch(.diffFiles))
             set pointer = 0
             while $ListNext(diffFiles, pointer, item){
@@ -209,7 +206,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 	        }
             write !
 	    }elseif (menuItemName = "%Pull") {
-		    //TODO: Implement pull git command
             quit ..Pull()
 	    }
     	elseif ..IsMenuGitCommand(menuItemName) {
@@ -302,8 +298,6 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 {
 	do ..RunGitCommand("fetch", .errStream, .outStream)
 	w !, "git fetch"
-	//git diff ..origin --name-only
-	//another test for push
 	kill errStream, outStream
 	do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
 	set diffFiles = ""
@@ -330,27 +324,26 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     }
 
     write !, "Fetch done"
+    write !, "Files in diff: "
 
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
     while (outStream.AtEnd = 0) { 
-        set files($I(files)) = outStream.ReadLine()
+        set file = outStream.ReadLine()
+        set files($I(files)) = file
+        write !,?4, file
     }
-
-    write !, "Files in diff: "
-    zwrite files
-    write !
 
 	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
         do errStream.OutputToDevice()
         do outStream.OutputToDevice()
-        quit $$$ERROR(5001, "Not compiled, Fix errors before compiling")
+        quit $$$ERROR(5001, "Not compiled. Fix errors before compiling.")
     }
+    write !
 	do outStream.OutputToDevice()
     write !
     
     set nFiles = 0
-    set compilelist = -1
     for i=1:1:$g(files) 
     {
         if ($DATA(files(i))) {
@@ -365,7 +358,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
             }
         }
     }
-    #; zwrite compilelist
+    
     if (nFiles = 0){
         write "Nothing to compile.",!
         quit $$$OK

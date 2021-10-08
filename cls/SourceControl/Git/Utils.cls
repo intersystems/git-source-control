@@ -346,7 +346,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         #; quit sc
     }
 	do outStream.OutputToDevice()
-
+    set compilelist = []
     for i=1:1:$g(files) 
     {
         if ($DATA(files(i))) {
@@ -357,7 +357,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
             else{
                 set ext = $PIECE(internalName, ".", *)
                 if ((ext = "CLS") || (ext = "cls")) {
-                    set compilelist($I(compilelist)) = $PIECE(internalName,".",1,*-1)
+                    do compilelist.%Push(($PIECE(internalName,".",1,*-1)))
                 }
                 set ec = ..ImportItem(internalName, $$$Force)
                 #; write internalName, " was imported into the database and will be compiled. ", ! 
@@ -365,6 +365,10 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         }
     }
     zwrite compilelist
+    if (compilelist = []){
+        write "Nothing to compile.",!
+        quit $$$OK
+    }
     Do $System.OBJ.CompileList(compilelist, "cukb")
 	quit $$$OK
 }

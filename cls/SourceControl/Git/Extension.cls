@@ -131,7 +131,6 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set Enabled = 1
 			set DisplayName = "Fetch"
 		}elseif name = "%Pull" {
-			// TODO: Only display if there are no files checked out by other users
 			set Enabled = 1
 			set DisplayName = "Pull"
 		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {

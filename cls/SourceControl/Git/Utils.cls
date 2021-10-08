@@ -351,11 +351,20 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     {
         if ($DATA(files(i))) {
             set internalName = ..NameToInternalName(files(i)) 
-            write internalName,!
-            set ec = ..ImportItem(internalName, $$$Force)
-            Do $System.OBJ.Compile(internalName)
+            if (internalName = "") {
+                write files(i), " was not imported into the database and will not be compiled. ", !
+            }
+            else{
+                set ext = $PIECE(internalName, ".", *)
+                if ((ext = "CLS") || (ext = "cls")) {
+                    set compilelist($I(compilelist)) = $PIECE(internalName,".",1,*-1)
+                }
+                set ec = ..ImportItem(internalName, $$$Force)
+                write internalName, " was imported into the database and will be compiled. ", ! 
+            }
         }
     }
+    Do $System.OBJ.CompileList(compilelist)
 	quit $$$OK
 }
 

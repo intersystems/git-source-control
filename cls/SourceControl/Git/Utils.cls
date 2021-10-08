@@ -324,11 +324,10 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !, branchName
 
     set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
-    if ($$$ISERR(sc)){
+    if (sc=1){
         do errStream.OutputToDevice()
-        #; quit sc
+        quit sc
     }
-    #; do outStream.OutputToDevice()
 
     write !, "Fetch done", !
 
@@ -340,15 +339,16 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write "Diffs", !
     zwrite files
 
-	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
-    if ($$$ISERR(sc)){
+	set sc = ..RunGitCommandWithInput("merge",,.errStream, .outStream,)
+    if (sc=1){
         do errStream.OutputToDevice()
-        #; quit sc
+        do outStream.OutputToDevice()
+        quit sc
     }
 	do outStream.OutputToDevice()
     #; set compilelist=##class(%ListOfDataTypes).%New()
     set nFiles = 0
-    set compilelist("") = ""
+    set compilelist = -1
     for i=1:1:$g(files) 
     {
         if ($DATA(files(i))) {
@@ -359,7 +359,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
             else{
                 set ext = $PIECE(internalName, ".", *)
                 if ((ext = "CLS") || (ext = "cls")) {
-                    set compilelist($PIECE(internalName,".",1,*-1)) = ""
+                    set compilelist(internalName) = ""
                     set nFiles = nFiles + 1
                 }
                 set ec = ..ImportItem(internalName, $$$Force)
@@ -372,7 +372,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         write "Nothing to compile.",!
         quit $$$OK
     }
-    Do $System.OBJ.CompileList(compilelist, "cukb")
+    Do $System.OBJ.CompileList(.compilelist, "cukb")
 	quit $$$OK
 }
 

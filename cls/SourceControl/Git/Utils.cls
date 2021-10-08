@@ -336,8 +336,9 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         set files($I(files)) = outStream.ReadLine()
     }
 
-    write "Diffs", !
+    write "Files in diff: "
     zwrite files
+    write !
 
 	set sc = ..RunGitCommandWithInput("merge",,.errStream, .outStream,)
     if (sc=1){
@@ -367,7 +368,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
             }
         }
     }
-    zwrite compilelist
+    #; zwrite compilelist
     if (nFiles = 0){
         write "Nothing to compile.",!
         quit $$$OK

@@ -321,7 +321,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
-    write !, branchName
+    write !, "Pulling from branch: ", branchName
 
     set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
     if (sc=1){
@@ -329,14 +329,14 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         quit sc
     }
 
-    write !, "Fetch done", !
+    write !, "Fetch done"
 
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
     while (outStream.AtEnd = 0) { 
         set files($I(files)) = outStream.ReadLine()
     }
 
-    write "Files in diff: "
+    write !, "Files in diff: "
     zwrite files
     write !
 
@@ -347,7 +347,8 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         quit sc
     }
 	do outStream.OutputToDevice()
-    #; set compilelist=##class(%ListOfDataTypes).%New()
+    write !
+    
     set nFiles = 0
     set compilelist = -1
     for i=1:1:$g(files) 
@@ -358,13 +359,9 @@ ClassMethod Pull(remote As %String = "origin") As %Status
                 write files(i), " was not imported into the database and will not be compiled. ", !
             }
             else{
-                set ext = $PIECE(internalName, ".", *)
-                if ((ext = "CLS") || (ext = "cls")) {
-                    set compilelist(internalName) = ""
-                    set nFiles = nFiles + 1
-                }
+                set compilelist(internalName) = ""
+                set nFiles = nFiles + 1
                 set ec = ..ImportItem(internalName, $$$Force)
-                #; write internalName, " was imported into the database and will be compiled. ", ! 
             }
         }
     }

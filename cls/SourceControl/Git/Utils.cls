@@ -365,7 +365,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         }
     }
     zwrite compilelist
-    Do $System.OBJ.CompileList(compilelist)
+    Do $System.OBJ.CompileList(compilelist, "cukb")
 	quit $$$OK
 }
 

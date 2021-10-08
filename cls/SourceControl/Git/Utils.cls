@@ -344,7 +344,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     if (sc=1){
         do errStream.OutputToDevice()
         do outStream.OutputToDevice()
-        #; quit sc
+        quit $$$ERROR(5001, "Not compiled, Fix errors before compiling")
     }
 	do outStream.OutputToDevice()
     write !
@@ -364,9 +364,6 @@ ClassMethod Pull(remote As %String = "origin") As %Status
                 set ec = ..ImportItem(internalName, $$$Force)
             }
         }
-    }
-    if (sc = 1){
-        quit "Not compiled. Fix errors before compiling."
     }
     #; zwrite compilelist
     if (nFiles = 0){

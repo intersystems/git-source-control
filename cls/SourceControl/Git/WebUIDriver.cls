@@ -201,7 +201,11 @@ ClassMethod Uncommitted() As %SystemBase
     quit array
 }
 
+<<<<<<< HEAD
 // Test pull + compile 20
 
+=======
+// Test pull + compile 21
+>>>>>>> f2e899429f47b755db9c3d3c70e8aeaedcb13ef9
 }
 

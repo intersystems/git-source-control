@@ -340,7 +340,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     zwrite files
     write !
 
-	set sc = ..RunGitCommandWithInput("merge",,.errStream, .outStream,)
+	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
         do errStream.OutputToDevice()
         do outStream.OutputToDevice()

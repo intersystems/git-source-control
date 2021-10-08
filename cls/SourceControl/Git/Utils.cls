@@ -360,10 +360,11 @@ ClassMethod Pull(remote As %String = "origin") As %Status
                     set compilelist($I(compilelist)) = $PIECE(internalName,".",1,*-1)
                 }
                 set ec = ..ImportItem(internalName, $$$Force)
-                write internalName, " was imported into the database and will be compiled. ", ! 
+                #; write internalName, " was imported into the database and will be compiled. ", ! 
             }
         }
     }
+    zwrite compilelist
     Do $System.OBJ.CompileList(compilelist)
 	quit $$$OK
 }

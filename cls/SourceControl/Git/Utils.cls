@@ -51,6 +51,11 @@ ClassMethod MappingsNode() As %String [ CodeMode = expression ]
 $Name(@..#Storage@("settings","mappings"))
 }
 
+ClassMethod PullEventClass() As %String [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","pullEventClass"), ##class(SourceControl.Git.PullEventHandler.Default).%ClassName(1))
+}
+
 ClassMethod GitBinExists() As %Boolean
 {
 	#if $system.Version.GetOS()'="Windows" 
@@ -116,6 +121,7 @@ ClassMethod UpdateSettings(ByRef settings) As %Status
     set @..#Storage@("settings","user",$username,"gitUserName") = settings("gitUserName")
     set @..#Storage@("settings","user",$username,"gitUserEmail") = settings("gitUserEmail")
     set @..#Storage@("settings","ssh","privateKeyFile") = settings("privateKeyFile")
+    set @..#Storage@("settings","pullEventClass") = settings("pullEventClass")
     
     quit $$$OK
 }
@@ -337,33 +343,11 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     if (sc=1){
         do errStream.OutputToDevice()
         do outStream.OutputToDevice()
-        quit $$$ERROR(5001, "Not compiled. Fix errors before compiling.")
+        quit $$$ERROR(5001, "Pull event handler not called. Fix errors before compiling.")
     }
     write !
 	do outStream.OutputToDevice()
     write !
-    
-    set nFiles = 0
-    for i=1:1:$g(files) 
-    {
-        if ($DATA(files(i))) {
-            set internalName = ..NameToInternalName(files(i)) 
-            if (internalName = "") {
-                write files(i), " was not imported into the database and will not be compiled. ", !
-            }
-            else{
-                set compilelist(internalName) = ""
-                set nFiles = nFiles + 1
-                set ec = ..ImportItem(internalName, $$$Force)
-            }
-        }
-    }
-    
-    if (nFiles = 0){
-        write "Nothing to compile.",!
-        quit $$$OK
-    }
-    Do $System.OBJ.CompileList(.compilelist, "cukb")
 	quit $$$OK
 }
 
@@ -1347,3 +1331,4 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 }
 
 }
+

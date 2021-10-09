@@ -1,5 +1,6 @@
 Import SourceControl.Git
 
+/// Main source control extension class, configured namespace-wide to enable use via VSCode and Studio
 Class SourceControl.Git.Extension Extends %Studio.Extension.Base
 {
 

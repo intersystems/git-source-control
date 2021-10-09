@@ -348,7 +348,20 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !
 	do outStream.OutputToDevice()
     write !
-	quit $$$OK
+
+    set event = $classmethod(..PullEventClass(),"%New")
+    set event.LocalRoot = ..TempFolder()
+    merge event.ModifiedFiles = files
+    for i=1:1:$Get(files) {
+        if $Data(files(i))#2 {
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i)) 
+            if (internalName '= "") {
+                set event.ModifiedItems(internalName) = ""
+            }
+        }
+    }
+
+	quit event.OnPull()
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]

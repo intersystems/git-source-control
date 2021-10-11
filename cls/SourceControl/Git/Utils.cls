@@ -1310,4 +1310,3 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 }
 
 }
-

@@ -8,30 +8,10 @@ XData Menu
 {
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
-<MenuItem Name="%Cache-Git-Settings" />
-<MenuItem Name="%CreateRepo" Save = "001"/>
-<MenuItem Name="%Clone" Save = "001"/>
+<MenuItem Name="%Settings" />
+<MenuItem Name="%Init" Save = "001"/>
 <MenuItem Separator="true"/>
 <MenuItem Name="%GitWebUI" Save = "111" />
-<!--
-<MenuItem Name="%Settings" />
-<MenuItem Name="%Commit" Save = "001"/>
-<MenuItem Separator="true"/>
-<MenuItem Name="%Pull" Save = "001"/>
-<MenuItem Name="%Fetch" Save = "001"/>
-<MenuItem Name="%Switch" Save = "001"/>
-<MenuItem Name="%Merge" Save = "001"/>
-<MenuItem Name="%Push" Save = "001"/>
-<MenuItem Separator="true"/>
-<MenuItem Name="%Diff" Save = "001"/>
-<MenuItem Name="%RepoStatus" Save = "001"/>
-<MenuItem Name="%Resolve" Save = "001"/>
-<MenuItem Name="%Revert" Save = "001"/>
-<MenuItem Name="%Log" Save = "001"/>
-<MenuItem Separator="true"/>
-<MenuItem Name="%StashSave" Save = "001"/>
-<MenuItem Name="%StashPop" Save = "001"/>
--->
 <MenuItem Separator="true"/>
 <MenuItem Name="%Export" Save = "001" />
 <MenuItem Name="%ExportForce" Save = "001" />
@@ -39,19 +19,16 @@ XData Menu
 <MenuItem Name="%ImportForce" Save = "001" />
 <MenuItem Name="%Revert" Save = "001" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%OpenRepoFolder" Save = "001" />
 <MenuItem Name="%Commit" Save = "001" />
 <MenuItem Name="%Push" Save = "001"/>
 <MenuItem Name="%Fetch" Save = "001"/>
 <MenuItem Name="%Pull" Save = "001"/>
 </Menu>
 <Menu Name="%SourceContext" Type="1">
-<MenuItem Name="%AddToSC"/>
+<MenuItem Name="%AddToSC" Save = "001" />
 <MenuItem Name="%RemoveFromSC"/>
-<!--
-<MenuItem Name="%Diff" Save = "001"/>
-<MenuItem Name="%Blame" Save = "001"/>
--->
+<MenuItem Name="%Revert" Save = "001" />
+<MenuItem Name="%Commit" Save = "001" />
 </Menu>
 </MenuBase>
 }
@@ -82,16 +59,11 @@ Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %Strin
 
 Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
-	if name = "%Cache-Git-Settings" {
+	if name = "%Settings" {
 		// We always show Settings
 		set DisplayName = "Settings"
 		quit $$$OK
-	} 
-	if name = "%Settings" && ##class(Utils).GitBinExists() {
-		set DisplayName = "TortoiseGit Settings"
-		quit $$$OK
 	}
-	
 	if ##class(Utils).NeedSettings() {
 		set Enabled = -1
 		quit $$$OK
@@ -109,9 +81,6 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Import All Force"
 		} elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
 			set DisplayName = "Check for modifications"
-		} elseif name = "%OpenRepoFolder" {
-			// TODO: Only display if running locally
-			set DisplayName = "Open Repo Folder"
 		} elseif name = "%Revert" {
 			set DisplayName = "Revert Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
@@ -143,10 +112,8 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set Enabled = -1
 		}
 	} elseif ##class(Utils).GitBinExists() { 
-		if name = "%CreateRepo" {
-			set DisplayName = "Create Repo"
-		} elseif name = "%Clone" {
-			set DisplayName = "Clone"
+		if name = "%Init" {
+			set DisplayName = "Initialize"
 		} else {
 			set Enabled = -1
 		}
@@ -158,14 +125,15 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 
 Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByRef Enabled As %String, ByRef DisplayName As %String) As %Status
 {
-	set:menuItemName="%AddToSC" DisplayName = "Add to SourceControl"
-	set:menuItemName="%RemoveFromSC" DisplayName = "Remove from SourceControl"
-	
+	set:menuItemName="%AddToSC" DisplayName = "Add"
+	set:menuItemName="%RemoveFromSC" DisplayName = "Remove"
+	set:menuItemName="%Revert" DisplayName = "Discard changes to file"
+	set:menuItemName="%Commit" DisplayName = "Commit changes to file"
+
 	if (itemName = "") || '##class(Utils).IsNamespaceInGit() {
 		set Enabled = -1
 	}elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
 		set Enabled = $case(menuItemName,"%AddToSC":1,"%RemoveFromSC":1,:-1)
-	
 	}elseif ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInternalName(itemName)) {
 		set Enabled = $Case(menuItemName, "%AddToSC":-1,:1)
 	} else {

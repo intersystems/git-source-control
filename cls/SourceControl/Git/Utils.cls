@@ -12,9 +12,9 @@ Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 /// Name of the file with version controlled items
 Parameter SCListFilename = "sc-list.txt";
 
-Parameter GitMenuItems = ",%Settings,%Commit,%Pull,%Fetch,%Switch,%Merge,%Push,%Diff,%RepoStatus,%Resolve,%Revert,%Log,%StashSave,%StashPop,";
+Parameter GitMenuItems = ",%Settings,%Commit,%Pull,%Fetch,%Push,%Revert,";
 
-Parameter ImportAfterGitMenuItems = ",%Clone,%Commit,%Pull,%Fetch,%Push,%Resolve,%StashPop,";
+Parameter ImportAfterGitMenuItems = ",%Commit,%Pull,%Fetch,%Push,";
 
 Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
@@ -29,8 +29,6 @@ ClassMethod DefaultTemp() As %String [ CodeMode = expression ]
 $Get(@..InstallNamespaceStorage()@("%defaultTemp"), "c:\temp\")
 }
 
-// 8012 because this error has corresponding error message
-
 ClassMethod MakeError(msg As %String) As %Status [ CodeMode = expression, Private ]
 {
 $$$ERROR(8012,"Git",msg)
@@ -39,11 +37,6 @@ $$$ERROR(8012,"Git",msg)
 ClassMethod TempFolder() As %String [ CodeMode = expression ]
 {
 $Get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$Translate($znspace,"%")_..#Slash)
-}
-
-ClassMethod GroupByFolder() As %String [ CodeMode = expression ]
-{
-$Get(@..#Storage@("settings","groupByFolder"), 0)
 }
 
 ClassMethod MappingsNode() As %String [ CodeMode = expression ]
@@ -91,7 +84,7 @@ ClassMethod PrivateKeyFile() As %String
 
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
-(..DefaultTemp() = "") ||  (..GitBinPath() = "") ||  (..GitBinPath() = """")
+(..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")
 }
 
 ClassMethod InstallNamespace() As %String [ CodeMode = expression ]
@@ -99,31 +92,12 @@ ClassMethod InstallNamespace() As %String [ CodeMode = expression ]
 ..#InstallNamespace
 }
 
-ClassMethod AddSlash(path As %String) As %String [ Private ]
+ClassMethod AddSlash(path As %String) As %String
 {
 	if path'="" && ($Extract(path,*)'=..#Slash) {
         set path = path_..#Slash
     }
     quit path
-}
-
-ClassMethod UpdateSettings(ByRef settings) As %Status
-{
-    // we change ^STORAGE to ^["InstallNamespace"]|STORAGE, so we store path to git.exe in one place
-    set @..InstallNamespaceStorage()@("%gitBinPath") = settings("gitBinPath")
-    kill @..InstallNamespaceStorage()@("%gitBinExists")
-    
-    // let's add slash in the end
-    set @..InstallNamespaceStorage()@("%defaultTemp") = ..AddSlash(settings("defaultTemp"))
-    
-    set @..#Storage@("settings","namespaceTemp") = ..AddSlash(settings("namespaceTemp"))
-    set @..#Storage@("settings","groupByFolder") = $case(settings("groupByFolder"), "":"", :1)
-    set @..#Storage@("settings","user",$username,"gitUserName") = settings("gitUserName")
-    set @..#Storage@("settings","user",$username,"gitUserEmail") = settings("gitUserEmail")
-    set @..#Storage@("settings","ssh","privateKeyFile") = settings("privateKeyFile")
-    set @..#Storage@("settings","pullEventClass") = settings("pullEventClass")
-    
-    quit $$$OK
 }
 
 ClassMethod IsMenuGitCommand(menuItemName As %String) As %Boolean [ CodeMode = expression ]
@@ -147,6 +121,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     #dim menuName As %String = $Piece(MenuName,",")
     #dim menuItemName As %String = $Piece(MenuName,",",2)
     #dim ec As %Status = $$$OK
+
+    set ^mtemptsl($i(^mtemptsl)) = $lb(menuName,menuItemName)
     
     if ..GitBinExists() = 0 && (menuItemName'="%Cache-Git-Settings") && 
     		($system.Version.GetOS()="Windows") {
@@ -154,16 +130,16 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     }
     
     if (menuName = "%SourceMenu") {
-        if (menuItemName = "%Cache-Git-Settings") {
+        if (menuItemName = "%Settings") {
             set Action = 2
             set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
-        }elseif (menuItemName = "%CreateRepo") {
+        }elseif (menuItemName = "%Init") {
             if ##class(%File).CreateDirectoryChain(..TempFolder()) {
                 // cleanup items info
                 kill @..#Storage@("items")
                 kill @..#Storage@("TSH")
                 set Action = 3
-                set Target = ..GitCommand("repocreate")
+                set Target = ..RunGitCommand("init",.errStream,.outStream)
             } else {
                 set ec = ..MakeError("Unable to create folder "_..TempFolder())
             }
@@ -182,16 +158,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         }elseif (menuItemName = "%ImportForce") {
             set ec = ..ImportAll($$$Force)
             set Reload = 1
-        }elseif (menuItemName = "%Clone") {
-            if ##class(%File).CreateDirectoryChain(..TempFolder()) {
-                // cleanup items info
-                kill @..#Storage@("items")
-                kill @..#Storage@("TSH")
-                set Action = 3
-                set Target = ..GitCommand("clone", "")
-            } else {
-                set ec = ..MakeError("Unable to create folder "_..TempFolder())
-            }
         }elseif (menuItemName = "%OpenRepoFolder") {
 	        set Action = 3
 	        set Target = ..TempFolder()
@@ -226,7 +192,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
                 	set Target = ..GitCommand(command)
                 }
         }
-    }elseif (menuName = "%SourceMenuContext") {
+    }elseif (menuName = "%SourceContext") {
 	    
 	    if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
 	        set InternalName = "/" _ InternalName

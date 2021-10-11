@@ -3,4 +3,3 @@ ROUTINE SourceControl.Git [Type=INC]
 #def1arg SourceMapping(%arg) ^SYS("SourceControl","Git","settings","mappings",%arg)
 #def1arg GetSourceMapping(%arg) $Get($$$SourceMapping(%arg))
 
-

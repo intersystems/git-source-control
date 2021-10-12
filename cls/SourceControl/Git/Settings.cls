@@ -23,6 +23,8 @@ Property gitUserName As %String [ InitialExpression = {##class(SourceControl.Git
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()}, Required ];
 
+Property Mappings As %String [ InitialExpression = {##class(SourceControl.Git.Utils).MappingsNode()}, Required ];
+
 Method %Save() As %Status
 {
     set sysStorage = ##class(SourceControl.Git.Utils).InstallNamespaceStorage()
@@ -36,7 +38,22 @@ Method %Save() As %Status
     set @storage@("settings","user",$username,"gitUserEmail") = ..gitUserEmail
     set @storage@("settings","ssh","privateKeyFile") = ..privateKeyFile
     set @storage@("settings","pullEventClass") = ..pullEventClass
-    
+
+    set ^test($I(^test))="starting mappings"
+    set ^test($I(^test)) = ..Mappings
+    set extKey = ""
+    for {
+        set covKey = ""
+        set extKey = $ORDER(@..Mappings@(extKey))
+        quit:extKey=""
+        for {
+            set covKey = $ORDER(@..Mappings@(extKey, covKey))
+            quit:covKey=""
+            set @storage@("settings","mappings", extKey, covKey) = @..Mappings@(extKey, covKey)
+            set ^test($I(^test))=@..Mappings@(extKey, covKey)
+        }
+        set ^test($I(^test))="done with one loop"
+    }
     quit $$$OK
 }
 
@@ -69,4 +86,3 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
-

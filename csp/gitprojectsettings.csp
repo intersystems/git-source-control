@@ -5,11 +5,20 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cache-Git Settings</title>
-<link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
 <link rel="stylesheet" type="text/css" href="css/git-webui.css" />
 <STYLE type='text/css'>
 .error {
     color: red;
+}
+
+body {
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+    font-size: 1rem;
+    font-weight: 350;
+    line-height: 1.5;
+    color: #212529;
+    text-align: left;
 }
 </STYLE>
 </head>
@@ -20,23 +29,35 @@
  set $namespace = namespace
  set settings = ##class(SourceControl.Git.Settings).%New()
  if $Data(%request.Data("gitsettings",1)) {
-     for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail" {
-         set $Property(settings,param) = $Get(%request.Data(param,1))
-     }
-     do settings.%Save()
- }
+    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail","MappingsPath" {
+        if (param = "MappingsPath") {
+            set i = 1
+            while ( $Get(%request.Data(param,i)) '= "" ){
+                set @settings.Mappings@($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
+                set i = i+1
+            }
+        }
+        else {
+            set $Property(settings,param) = $Get(%request.Data(param,1))
+        }
+    }
+    do settings.%Save()
+}
 </server>
 <div class = 'container'>
-    <div class="col-sm-1"></div>
+    <div class="col-sm-1"><br/><br/></div>
+    
     <form method='post'>
         <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
+        <div class="col-sm-1"></div>
         <h1>Git Project Settings</h1>
+        <br/>
         <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3>
 
         <div class="form-group row">
-            <label for="gitBinPath" class="col-sm-4 col-form-label">Path to git.exe <br> (e.g. C:\Program Files\Git\bin\git.exe)</label>
-            <div class="col-sm-8">
+            <label for="gitBinPath" class="col-sm-3 col-form-label">Path to git.exe <br> <small><small>(e.g. C:\Program Files\Git\bin\git.exe)</small></small></label>
+            <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitBinPath" name="gitBinPath" value='#(..EscapeHTML(settings.gitBinPath))#' placeholder="(e.g. C:\Program Files\Git\bin\git.exe)">
                 <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).GitBinExists()=0)'>
                     <p class="text-danger">File not found</p>
@@ -45,22 +66,23 @@
         </div>
 
         <div class="form-group row">
-            <label for="namespaceTemp" class="col-sm-4 col-form-label">Temp folder for this namespace<br/>(e.g. c:\someproj\)</label>
-            <div class="col-sm-8">
+            <label for="namespaceTemp" class="col-sm-3 col-form-label" data-toggle="tooltip" title="(e.g. c:\someproj\)">Temp folder for this namespace<br/></label>
+            <div class="col-sm-7">
                 <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#'/>
             </div>
         </div>
 
         <div class="form-group row">
-            <label for="privateKeyFile" class="col-sm-4 col-form-label">SSH Private Key File</label>
-            <div class="col-sm-8">
+            <label for="privateKeyFile" class="col-sm-3 col-form-label">SSH Private Key File</label>
+            <div class="col-sm-7">
                 <input type="text" class="form-control" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#'/>
+                
             </div>
         </div>
 
         <div class="form-group row">
-            <label for="pullEventClass" class="col-sm-4 col-form-label">Pull Event Class</label>
-            <div class="col-sm-8">
+            <label for="pullEventClass" class="col-sm-3 col-form-label">Pull Event Class</label>
+            <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
                     <option value="SourceControl.Git.PullEventHandler.Default" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.Default":"selected",:""))#>Default</option>
                     <option value="SourceControl.Git.PullEventHandler.PackageManager" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.PackageManager":"selected",:""))#>PackageManager</option>
@@ -68,20 +90,71 @@
             </div>
         </div>
 
+        <div class="form-group row mapping-input-group">
+            <label for="MappingsPath" class="col-sm-3 col-form-label">Mappings</label>
+            <script language="cache" runat=server>
+                set extKey = ""
+                set first = 1
+                for {
+                    set covKey = ""
+                    set extKey = $ORDER(@settings.Mappings@(extKey))
+                    quit:extKey=""
+                    for {
+                        set covKey = $ORDER(@settings.Mappings@(extKey, covKey))
+                        quit:covKey=""
+
+                        if (first = 1) {
+                            set first = 0
+                        }
+                        else {
+                            write "<div class=""col-sm-3"">"
+                            write "</div>", !
+                        }
+
+                        write "<div class=""voca col-md-7"">"
+                        write "<div class = ""input-group mb-2 row col-sm-12"">"
+
+                        write "<input type=""text"" class=""form-control"" id=""MappingsExt"" name=""MappingsExt"" value="_extKey_">", !
+
+                        write "<input type=""text"" class=""form-control"" id=""MappingsCov"" name=""MappingsCov"" value="_covKey_">", !
+                        
+                        write "<input type=""text"" class=""form-control"" id=""MappingsPath"" name=""MappingsPath"" value="_@settings.Mappings@(extKey, covKey)_">", !
+
+                        set tempextKey = $ORDER(@settings.Mappings@(extKey))
+                        if ( tempextKey = "") {
+                            write "<button type=""button"" class=""btn-sm btn btn-success btn-add"" >"
+                            write "<span class=""glyphicon glyphicon-plus-sign"" aria-hidden=""true""></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp"
+                            write "</button>"
+                        }
+                        else {
+                            write "<button type=""button"" class=""btn-sm btn btn-danger btn-remove"" >"
+                            write "<span class=""glyphicon glyphicon-minus-sign"" aria-hidden=""true""></span>Remove"
+                            write "</button>"
+                        }
+
+                        write "</div>", !
+                        write "</div>", !
+                    }
+                }
+            </script>           
+        </div>
+
+
+        <br/>
         <h3>Settings for user '#(..EscapeHTML($Username))#'</h3>
         <em>Git settings - if empty, will default to repository/global settings</em>
         <br/><br/><br/>
 
         <div class="form-group row">
-            <label for="gitUserName" class="col-sm-4 col-form-label">Git Committer Name </label>
-            <div class="col-sm-8">
+            <label for="gitUserName" class="col-sm-3 col-form-label">Git Committer Name </label>
+            <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
             </div>
         </div>
 
         <div class="form-group row">
-            <label for="gitUserEmail" class="col-sm-4 col-form-label">Git Committer Email </label>
-            <div class="col-sm-8">
+            <label for="gitUserEmail" class="col-sm-3 col-form-label">Git Committer Email </label>
+            <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>
         </div>
@@ -102,5 +175,34 @@
 <script src="js/jquery.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/git-webui.js"></script>
+<script language="JavaScript">
+$(function()
+{
+    $(document).on('click', '.btn-add', function(e)
+    {
+        e.preventDefault();
+
+        var controlForm = $('.mapping-input-group'),
+            currentEntry = $(this).parents('.voca:last');
+        
+        $('<div class="col-sm-3" id="newDiv"></div>').appendTo(controlForm);
+        var newEntry = $(currentEntry.clone()).appendTo(controlForm);
+
+        console.log(controlForm,currentEntry, newEntry)
+        newEntry.find('input').val('');
+        controlForm.find('.btn-add:not(:last)')
+            .removeClass('btn-default').addClass('btn-danger')
+            .removeClass('btn-add').addClass('btn-remove')
+            
+            .html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
+    }).on('click', '.btn-remove', function(e)
+    {
+        $(this).parents('.voca:first').remove();
+
+        e.preventDefault();
+        return false;
+    });
+});
+</script>
 </body>
 </html>

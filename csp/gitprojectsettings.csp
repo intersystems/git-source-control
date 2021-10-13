@@ -30,6 +30,7 @@ body {
  set settings = ##class(SourceControl.Git.Settings).%New()
  set ^test = settings
  if $Data(%request.Data("gitsettings",1)) {
+<<<<<<< HEAD
     for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail"{
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
@@ -39,6 +40,19 @@ body {
     while ( $Get(%request.Data(param,i)) '= "" ){
         set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
         set i = i+1
+=======
+    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail","MappingsPath" {
+        if (param = "MappingsPath") {
+            set i = 1
+            while ( $Get(%request.Data(param,i)) '= "" ){
+                set @settings.Mappings@($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
+                set i = i+1
+            }
+        }
+        else {
+            set $Property(settings,param) = $Get(%request.Data(param,1))
+        }
+>>>>>>> 957e020f3795893ab3c680ab24ec3cb44909a5e3
     }
     do settings.%Save()
 }
@@ -65,16 +79,26 @@ body {
         </div>
 
         <div class="form-group row">
+<<<<<<< HEAD
             <label for="namespaceTemp" class="col-sm-3 col-form-label" data-toggle="tooltip" title="(e.g. C:\someproj\)">Temp folder for this namespace<br/></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
+=======
+            <label for="namespaceTemp" class="col-sm-3 col-form-label" data-toggle="tooltip" title="(e.g. c:\someproj\)">Temp folder for this namespace<br/></label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#'/>
+>>>>>>> 957e020f3795893ab3c680ab24ec3cb44909a5e3
             </div>
         </div>
 
         <div class="form-group row">
             <label for="privateKeyFile" class="col-sm-3 col-form-label">SSH Private Key File</label>
             <div class="col-sm-7">
+<<<<<<< HEAD
                 <input type="text" class="form-control" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
+=======
+                <input type="text" class="form-control" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#'/>
+>>>>>>> 957e020f3795893ab3c680ab24ec3cb44909a5e3
                 
             </div>
         </div>
@@ -180,18 +204,30 @@ $(function()
         e.preventDefault();
 
         var controlForm = $('.mapping-input-group'),
+<<<<<<< HEAD
             currentEntry = $(this).parent().siblings('.voca:last');
+=======
+            currentEntry = $(this).parents('.voca:last');
+>>>>>>> 957e020f3795893ab3c680ab24ec3cb44909a5e3
         
         $('<div class="col-sm-3" id="newDiv"></div>').appendTo(controlForm);
         var newEntry = $(currentEntry.clone()).appendTo(controlForm);
 
         console.log(controlForm,currentEntry, newEntry)
         newEntry.find('input').val('');
+<<<<<<< HEAD
         //controlForm.find('.btn-add:not(:last)')
             //.removeClass('btn-default').addClass('btn-danger')
             //.removeClass('btn-add').addClass('btn-remove')
             
             //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
+=======
+        controlForm.find('.btn-add:not(:last)')
+            .removeClass('btn-default').addClass('btn-danger')
+            .removeClass('btn-add').addClass('btn-remove')
+            
+            .html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
+>>>>>>> 957e020f3795893ab3c680ab24ec3cb44909a5e3
     }).on('click', '.btn-remove', function(e)
     {
         $(this).parents('.voca:first').remove();

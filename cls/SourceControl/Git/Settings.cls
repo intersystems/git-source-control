@@ -23,7 +23,13 @@ Property gitUserName As %String [ InitialExpression = {##class(SourceControl.Git
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()}, Required ];
 
-Property Mappings As %String [ InitialExpression = {##class(SourceControl.Git.Utils).MappingsNode()}, Required ];
+Property Mappings [ MultiDimensional ];
+
+Method %OnNew() As %Status
+{
+    Merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
+    quit $$$OK
+}
 
 Method %Save() As %Status
 {
@@ -39,21 +45,8 @@ Method %Save() As %Status
     set @storage@("settings","ssh","privateKeyFile") = ..privateKeyFile
     set @storage@("settings","pullEventClass") = ..pullEventClass
 
-    set ^test($I(^test))="starting mappings"
-    set ^test($I(^test)) = ..Mappings
-    set extKey = ""
-    for {
-        set covKey = ""
-        set extKey = $ORDER(@..Mappings@(extKey))
-        quit:extKey=""
-        for {
-            set covKey = $ORDER(@..Mappings@(extKey, covKey))
-            quit:covKey=""
-            set @storage@("settings","mappings", extKey, covKey) = @..Mappings@(extKey, covKey)
-            set ^test($I(^test))=@..Mappings@(extKey, covKey)
-        }
-        set ^test($I(^test))="done with one loop"
-    }
+    kill @##class(SourceControl.Git.Utils).MappingsNode()
+    merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
     quit $$$OK
 }
 

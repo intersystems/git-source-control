@@ -126,7 +126,15 @@ hr {
                         quit:covKey=""
 
                         if (first = 1) {
-                            set first = 0
+                            set first = 2
+                        }
+                        elseif (first = 2){
+                            write "<div class=""col-sm-3"">"
+                            write "<button type=""button"" class=""btn-sm btn btn-success btn-add"" >"
+                            write "<span class=""glyphicon glyphicon-plus-sign"" aria-hidden=""true""></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp"
+                            write "</button>"
+                            write "</div>", !
+                            set first=0
                         }
                         else {
                             &html<<div class="col-sm-3" id="indent-div">

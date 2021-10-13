@@ -36,6 +36,10 @@ body {
     padding-top: none;
 }
 
+hr {
+    opacity: 0.15
+}
+
 </STYLE>
 </head>
 <body>
@@ -60,13 +64,13 @@ body {
 }
 </server>
 <div class = 'container'>
-    <div class="col-sm-1"><br/><br/></div>
+    <div class="col-sm-1"><br/></div>
     
     <form method='post'>
         <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-1"></div>
-        <h1>Git Project Settings</h1>
+        <h1>Git Project Settings</h1><hr/>
         <br/>
         <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
 

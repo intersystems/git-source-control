@@ -34,9 +34,13 @@ ClassMethod MakeError(msg As %String) As %Status [ CodeMode = expression, Privat
 $$$ERROR(8012,"Git",msg)
 }
 
-ClassMethod TempFolder() As %String [ CodeMode = expression ]
+ClassMethod TempFolder() As %String
 {
-$Get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$Translate($znspace,"%")_..#Slash)
+    Set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    If context.IsInGitEnabledPackage {
+        Quit context.Package.Root
+    }
+    Quit $Get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$Translate($znspace,"%")_..#Slash)
 }
 
 ClassMethod MappingsNode() As %String [ CodeMode = expression ]
@@ -603,20 +607,26 @@ ClassMethod FindInCspFolders(InternalName As %String, ByRef sourceControlItem As
 ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem As %String) As %String
 {
     #dim isInSourceControl As %Boolean = 1
-    
+    set sourceControlItem = ""
+    set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
     if $Data(@..#Storage@("items", ..NormalizeExtension(InternalName))) {
 	    set InternalName = ..NormalizeExtension(InternalName)
     }
     
     set isInSourceControl = $Data(@..#Storage@("items", InternalName)) > 0
     if isInSourceControl {
+        // Direct reference to namespace-default project
         set sourceControlItem = InternalName
-    }else {
-        //if no direct reference maybe we have to look in packages, projects or csp-apps ?
-        //We have three groups of routines
-        //packages for classes
-        //projects for everything
-        //csp-folders for csp and static files
+    } elseif context.IsInGitEnabledPackage && (InternalName = context.InternalName) {
+        // Next thing to check is if we're in a package manager-based package
+        set isInSourceControl = 1
+        set sourceControlItem = context.ResourceReference.Name
+    } else {
+        // If no direct or package reference, look in packages, projects or csp-apps
+        // We have three groups of routines
+        // packages for classes
+        // projects for everything
+        // csp-folders for csp and static files
 
         #dim type As %String = ..Type(InternalName)
         if type = "cls" {
@@ -638,7 +648,6 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
             set isInSourceControl = ..FindInProjects(InternalName, .sourceControlItem)
         }
     }
-    //w "checking ", $G(type), " ", InternalName, "=", isInSourceControl, !
     quit isInSourceControl
 }
 
@@ -950,8 +959,6 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
             write "exporting new version of ", InternalName, " to ", filename,!
             $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             $$$QuitOnError(..UpdateRoutineTSH(InternalName, $Horolog))
-        } else {
-	        write !,InternalName, " is not newer than on-disk version, skipping export"
         }
     }
     quit $$$OK
@@ -1163,6 +1170,11 @@ ClassMethod GitStatus(ByRef files)
 ClassMethod Name(InternalName As %String) As %String
 {
 	Set InternalName=##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
+    Set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    If (context.IsInGitEnabledPackage) && (InternalName = context.InternalName) && $IsObject(context.ResourceReference) {
+        Set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
+        Quit relativePath
+    }
 	Set usertype=$system.CLS.IsMthd("%Library.RoutineMgr","UserType")
 		
 	// For an abstract document, use the GetOther() method to try to determine its "real" class

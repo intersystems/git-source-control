@@ -560,6 +560,26 @@ body {
   border-right: 0;
   white-space: nowrap;
 }
+#workspace-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.available,
+#commit-explorer-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.available,
+#workspace-view #commit-explorer-navigator-view #working-copy-view .file-list-container .list-group .list-group-item.available,
+#commit-explorer-view #commit-explorer-navigator-view #working-copy-view .file-list-container .list-group .list-group-item.available,
+#workspace-view #workspace-editor #staging-area-view .file-list-container .list-group .list-group-item.available,
+#commit-explorer-view #workspace-editor #staging-area-view .file-list-container .list-group .list-group-item.available,
+#workspace-view #commit-explorer-navigator-view #staging-area-view .file-list-container .list-group .list-group-item.available,
+#commit-explorer-view #commit-explorer-navigator-view #staging-area-view .file-list-container .list-group .list-group-item.available {
+  cursor: pointer;
+}
+#workspace-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.unavailable,
+#commit-explorer-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.unavailable,
+#workspace-view #commit-explorer-navigator-view #working-copy-view .file-list-container .list-group .list-group-item.unavailable,
+#commit-explorer-view #commit-explorer-navigator-view #working-copy-view .file-list-container .list-group .list-group-item.unavailable,
+#workspace-view #workspace-editor #staging-area-view .file-list-container .list-group .list-group-item.unavailable,
+#commit-explorer-view #workspace-editor #staging-area-view .file-list-container .list-group .list-group-item.unavailable,
+#workspace-view #commit-explorer-navigator-view #staging-area-view .file-list-container .list-group .list-group-item.unavailable,
+#commit-explorer-view #commit-explorer-navigator-view #staging-area-view .file-list-container .list-group .list-group-item.unavailable {
+  cursor: not-allowed;
+}
 #workspace-view #workspace-editor #commit-message-view,
 #commit-explorer-view #workspace-editor #commit-message-view,
 #workspace-view #commit-explorer-navigator-view #commit-message-view,

@@ -6,13 +6,25 @@ module.exports = function(grunt) {
             jquery: {
                 expand: true,
                 flatten: true,
-                src: 'bower_components/jquery/dist/jquery.min.js',
+                src: 'node_modules/jquery/dist/jquery.min.js',
                 dest: 'dist/share/git-webui/webui/js/',
             },
-            bootstrap: {
+            bootstrapjs: {
                 expand: true,
                 flatten: true,
-                src: 'bower_components/bootstrap/dist/js/bootstrap.min.js',
+                src: 'node_modules/bootstrap/dist/js/bootstrap.min.js',
+                dest: 'dist/share/git-webui/webui/js/',
+            },
+            bootstrapcss: {
+                expand: true,
+                flatten: true,
+                src: 'node_modules/bootstrap/dist/css/bootstrap.min.css',
+                dest: 'dist/share/git-webui/webui/css/',
+            },
+            popperjs: {
+                expand: true,
+                flatten: true,
+                src: 'node_modules/@popperjs/core/dist/umd/popper.min.js',
                 dest: 'dist/share/git-webui/webui/js/',
             },
             git_webui: {
@@ -36,9 +48,6 @@ module.exports = function(grunt) {
         },
 
         less: {
-            options: {
-                paths: 'bower_components/bootstrap/less',
-            },
             files: {
                 expand: true,
                 cwd: 'src',
@@ -67,7 +76,7 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-watch');
 
-    grunt.registerTask('copytodist', ['copy:jquery', 'copy:bootstrap', 'copy:git_webui']);
+    grunt.registerTask('copytodist', ['copy:jquery', 'copy:bootstrapjs', 'copy:bootstrapcss', 'copy:popperjs', 'copy:git_webui']);
     grunt.registerTask('default', ['copytodist', 'less']);
     grunt.registerTask('release', ['default', 'copy:release']);
 };

@@ -47,6 +47,10 @@ hr {
 >>>>>>> 2e4377b (Fixed UI errors + minimal look)
 }
 
+hr {
+    opacity: 0.15
+}
+
 </STYLE>
 </head>
 <body>

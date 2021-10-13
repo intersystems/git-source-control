@@ -39,7 +39,7 @@ hr {
 </STYLE>
 </head>
 <body>
-<server>
+<script language="cache" runat=server>
  new $namespace
  set namespace = %request.Data("NSpace",1)
  set $namespace = namespace
@@ -58,7 +58,7 @@ hr {
     }
     do settings.%Save()
 }
-</server>
+</script>
 <div class = 'container'>
     <div class="col-sm-1"><br/></div>
     
@@ -129,11 +129,11 @@ hr {
                             set first = 2
                         }
                         elseif (first = 2){
-                            write "<div class=""col-sm-3"">"
-                            write "<button type=""button"" class=""btn-sm btn btn-success btn-add"" >"
-                            write "<span class=""glyphicon glyphicon-plus-sign"" aria-hidden=""true""></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp"
-                            write "</button>"
-                            write "</div>", !
+                            &html<<div class="col-sm-3">
+                                <button type="button" class="btn-sm btn btn-success btn-add" >
+                                    <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp
+                                </button>
+                            </div>>
                             set first=0
                         }
                         else {

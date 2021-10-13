@@ -39,7 +39,7 @@ hr {
 </STYLE>
 </head>
 <body>
-<script language="cache" runat=server>
+<server>
  new $namespace
  set namespace = %request.Data("NSpace",1)
  set $namespace = namespace
@@ -58,7 +58,7 @@ hr {
     }
     do settings.%Save()
 }
-</script>
+</server>
 <div class = 'container'>
     <div class="col-sm-1"><br/></div>
     

@@ -49,6 +49,16 @@ ClassMethod PullEventClass() As %String [ CodeMode = expression ]
 $Get(@..#Storage@("settings","pullEventClass"), ##class(SourceControl.Git.PullEventHandler.Default).%ClassName(1))
 }
 
+/// Returns the current (or previous) value of the flag.
+ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
+{
+    set result = $Get(@..#Storage@("settings","locked"),0)
+    if $Data(newFlagValue)#2 {
+        set @..#Storage@("settings","locked") = ''newFlagValue
+    }
+    quit result
+}
+
 ClassMethod GitBinExists() As %Boolean
 {
 	#if $system.Version.GetOS()'="Windows" 
@@ -121,8 +131,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     #dim menuName As %String = $Piece(MenuName,",")
     #dim menuItemName As %String = $Piece(MenuName,",",2)
     #dim ec As %Status = $$$OK
-
-    set ^mtemptsl($i(^mtemptsl)) = $lb(menuName,menuItemName)
     
     if ..GitBinExists() = 0 && (menuItemName'="%Cache-Git-Settings") && 
     		($system.Version.GetOS()="Windows") {
@@ -133,7 +141,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         if (menuItemName = "%Settings") {
             set Action = 2
             set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
-        }elseif (menuItemName = "%Init") {
+        } elseif (menuItemName = "%Init") {
             if ##class(%File).CreateDirectoryChain(..TempFolder()) {
                 // cleanup items info
                 kill @..#Storage@("items")
@@ -146,41 +154,40 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         } elseif (menuItemName = "%GitWebUI") {
             set Action = 2
             set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace
-        }elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
+        } elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
             write "==export start==",!
             set ec = ..ExportAll($case(menuItemName="%ExportForce",1:$$$Force,:0))
             if ec {
                 write !,"==export done==",!
             }
-        }elseif (menuItemName = "%Import") {
+        } elseif (menuItemName = "%Import") {
             set ec = ..ImportAll()
             set Reload = 1
-        }elseif (menuItemName = "%ImportForce") {
+        } elseif (menuItemName = "%ImportForce") {
             set ec = ..ImportAll($$$Force)
             set Reload = 1
-        }elseif (menuItemName = "%OpenRepoFolder") {
+        } elseif (menuItemName = "%OpenRepoFolder") {
 	        set Action = 3
 	        set Target = ..TempFolder()
-    	}elseif (menuItemName = "%Revert") {
+    	} elseif (menuItemName = "%Revert") {
 	    	set Reload = 1
 	    	quit ..Revert(InternalName)
-	    }elseif (menuItemName = "%Commit") {
+	    } elseif (menuItemName = "%Commit") {
 	    	set Target = "Please enter a commit message"
 	    	set Action = 7
 	    	quit $$$OK
-	    }elseif (menuItemName = "%Push") {
+	    } elseif (menuItemName = "%Push") {
 	    	quit ..Push()
-	    }elseif (menuItemName = "%Fetch") {
+	    } elseif (menuItemName = "%Fetch") {
             $$$QuitOnError(..Fetch(.diffFiles))
             set pointer = 0
             while $ListNext(diffFiles, pointer, item){
 	        	write !,item
 	        }
             write !
-	    }elseif (menuItemName = "%Pull") {
+	    } elseif (menuItemName = "%Pull") {
             quit ..Pull()
-	    }
-    	elseif ..IsMenuGitCommand(menuItemName) {
+	    } elseif ..IsMenuGitCommand(menuItemName) {
                 set Action = 3
                 #dim command As %String = $ZConvert($Extract(menuItemName, 2, *), "L")
                 set ec = $$$OK
@@ -192,7 +199,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
                 	set Target = ..GitCommand(command)
                 }
         }
-    }elseif (menuName = "%SourceContext") {
+    } elseif (menuName = "%SourceContext") {
 	    
 	    if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
 	        set InternalName = "/" _ InternalName
@@ -200,8 +207,12 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         
         if (menuItemName = "%AddToSC") {
             set ec = ..AddToSourceControl(InternalName)
-        }elseif (menuItemName = "%RemoveFromSC") {
+        } elseif (menuItemName = "%RemoveFromSC") {
             set ec = ..RemoveFromSourceControl(InternalName)
+        } elseif (menuItemName = "%Commit") {
+	    	set Target = "Please enter a commit message"
+	    	set Action = 7
+	    	quit $$$OK
         }
         if ..IsContextMenuGitCommand(menuItemName) {
             set Action = 3
@@ -283,7 +294,6 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 
 ClassMethod Pull(remote As %String = "origin") As %Status
 {
-   
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
@@ -1307,6 +1317,14 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 	If ((IgnorePercent)&&($extract(InternalName)="%")) { Set InternalName = "" }	; don't return a result for % items if instructed to ignore them
 	If ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))) { Set InternalName = "" }	; only return item names which exist in the DB
 	Quit ..NormalizeInternalName(InternalName)
+}
+
+ClassMethod OutputConfigureMessage()
+{
+    if '..IsNamespaceInGit() {
+        write !!,"NOTE: To configure settings for git-source-control, run the following command: ",!
+        write "do ##class(SourceControl.Git.API).Configure()",!
+    }
 }
 
 }

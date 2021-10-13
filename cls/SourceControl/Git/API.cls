@@ -1,6 +1,7 @@
 Class SourceControl.Git.API
 {
 
+/// Configures settings for Git integration
 ClassMethod Configure()
 {
     set sc = $$$OK
@@ -30,6 +31,20 @@ ClassMethod Configure()
     while $TLevel > initTLevel {
         TROLLBACK 1
     }
+}
+
+/// Locks the environment to prevent changes to code other than through git pull.
+/// Returns 1 if the environment was already locked, 0 if it was previously unlocked.
+ClassMethod Lock()
+{
+    quit ##class(SourceControl.Git.Utils).Locked(1)
+}
+
+/// Unlocks the environment to allow changes through the IDE.
+/// Returns 1 if the environment was already locked, 0 if it was previously unlocked.
+ClassMethod Unlock()
+{
+    quit ##class(SourceControl.Git.Utils).Locked(0)
 }
 
 }

@@ -93,22 +93,21 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
-		}elseif name = "%Push" {
+		} elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users
 			set Enabled = 1
 			set DisplayName = "Push"
-		}elseif name = "%Fetch" {
+		} elseif name = "%Fetch" {
 			set Enabled = 1
 			set DisplayName = "Fetch"
-		}elseif name = "%Pull" {
+		} elseif name = "%Pull" {
 			set Enabled = 1
 			set DisplayName = "Pull"
-		}elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
+		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",
 			                             :$Extract(name, 2, *))
-		} 
-		else {
+		} else {
 			set Enabled = -1
 		}
 	} elseif ##class(Utils).GitBinExists() { 
@@ -132,9 +131,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 
 	if (itemName = "") || '##class(Utils).IsNamespaceInGit() {
 		set Enabled = -1
-	}elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
+	} elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
 		set Enabled = $case(menuItemName,"%AddToSC":1,"%RemoveFromSC":1,:-1)
-	}elseif ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInternalName(itemName)) {
+	} elseif ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInternalName(itemName)) {
 		set Enabled = $Case(menuItemName, "%AddToSC":-1,:1)
 	} else {
 		set Enabled = $Case(menuItemName, "%AddToSC":1,:-1)
@@ -161,10 +160,10 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 
 	if menu = "%SourceMenu" {
 		set ec = ..OnSourceMenuItem(name, .Enabled, .DisplayName, InternalName)
-	}elseif menu = "%SourceContext" {
+	} elseif menu = "%SourceContext" {
 		set ec = ..OnSourceMenuContextItem(InternalName, name, .Enabled, .DisplayName)
 	}
-	Quit ec
+	quit ec
 }
 
 /// This is called before the actual load of data to give the chance
@@ -205,7 +204,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 /// Called after the compile of the item is done.
 Method OnAfterCompile(InternalName As %String) As %Status
 {
-	Quit ..OnAfterSave(InternalName)
+	quit ..OnAfterSave(InternalName)
 }
 
 /// Returns true if this item is in source control and false otherwise.
@@ -228,7 +227,12 @@ Method OnAfterDelete(InternalName As %String) As %Status
 /// the routine/class/csp item. This is often a filename to write the file out to.
 Method ExternalName(InternalName As %String) As %String
 {
-	Quit ##class(Utils).Name(InternalName)
+	quit ##class(Utils).Name(InternalName)
+}
+
+Method IsReadOnly(InternalName As %String) As %Boolean
+{
+	quit ##class(SourceControl.Git.Utils).Locked()
 }
 
 /// Check the status of the given item
@@ -237,42 +241,41 @@ Method ExternalName(InternalName As %String) As %String
 Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
 	#; Quit ##super(InternalName,.IsInSourceControl,.Editable,.IsCheckedOut,.UserCheckedOut)
-		Set Editable=1,IsCheckedOut=1,UserCheckedOut=""
-		Set filename=##class(SourceControl.Git.Utils).FullExternalName(InternalName)
-		Set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
-		If filename="" Quit $$$OK
-		If InternalName="" Quit $$$OK
-		#; If the file does not exist then it must be a new item so it is editable.
-		If '$$$FileExists(filename) {
-			Set IsCheckedOut=0
-		}
-		do ##class(Utils).GitStatus(.files)
-		if $Get(files(InternalName)) '= "" {
-			///it's in source control, checked out, and should be locked to editing by other users
-			///find out who has it edited
-			set IsCheckedOut=1
-			Set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
-			If $$$ISOK(sc) {
-				if ($D(tAction)&&(UncommittedUser'=$USERNAME)){
-					Set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
-					Write !,msg
-					Set Editable=0
-					Set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
-				}
-				Set UserCheckedOut=UncommittedUser
-			} 
-		}
-		// If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
-		else { 
-			set Editable=1, IsCheckedOut=0, UserCheckedOut=""
-			if ##class(SourceControl.Git.Change).IsUncommitted(filename){
-				#; Remove the item from the list of uncommitted changes;
-				Set sc=##class(SourceControl.Git.Change).RemoveUncommitted(filename,1,1)
-				If $$$ISERR(sc) Write "Error removing uncommitted file "_filename_" - "_$System.OBJ.DisplayError(sc)
+	set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
+	set filename=##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+	set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
+	if filename="" Quit $$$OK
+	if InternalName="" Quit $$$OK
+	#; If the file does not exist then it must be a new item so it is editable.
+	if '$$$FileExists(filename) {
+		set IsCheckedOut=0
+	}
+	do ##class(Utils).GitStatus(.files)
+	if $Get(files(InternalName)) '= "" {
+		///it's in source control, checked out, and should be locked to editing by other users
+		///find out who has it edited
+		set IsCheckedOut=1
+		set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
+		if $$$ISOK(sc) {
+			if ($D(tAction)&&(UncommittedUser'=$USERNAME)){
+				set msg="NOTICE: "_InternalName_" is currently checked out by user '"_UncommittedUser_"', and was last updated at "_UncommittedLastUpdated
+				write !,msg
+				set Editable=0
+				set IsInSourceControl=0		;set this to 0 to prevent user from being prompted to Check Out file
 			}
+			set UserCheckedOut=UncommittedUser
+		} 
+	} else { 
+		// If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
+		set Editable=1, IsCheckedOut=0, UserCheckedOut=""
+		if ##class(SourceControl.Git.Change).IsUncommitted(filename){
+			#; Remove the item from the list of uncommitted changes;
+			set sc=##class(SourceControl.Git.Change).RemoveUncommitted(filename,1,1)
+			if $$$ISERR(sc) Write "Error removing uncommitted file "_filename_" - "_$System.OBJ.DisplayError(sc)
 		}
-		
-		Quit $$$OK
+	}
+	
+	quit $$$OK
 }
 
 }

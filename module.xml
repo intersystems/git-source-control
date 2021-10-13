@@ -20,6 +20,8 @@
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
       <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
+
+      <Invoke Class="SourceControl.Git.Utils" Method="OutputConfigureMessage" />
     </Module>
   </Document>
 </Export>

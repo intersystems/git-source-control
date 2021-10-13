@@ -23,27 +23,24 @@ body {
 </STYLE>
 </head>
 <body>
-<server>
+<script language="cache" runat=server>
  new $namespace
  set namespace = %request.Data("NSpace",1)
  set $namespace = namespace
  set settings = ##class(SourceControl.Git.Settings).%New()
  if $Data(%request.Data("gitsettings",1)) {
-    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail","MappingsPath" {
-        if (param = "MappingsPath") {
-            set i = 1
-            while ( $Get(%request.Data(param,i)) '= "" ){
-                set @settings.Mappings@($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
-                set i = i+1
-            }
-        }
-        else {
-            set $Property(settings,param) = $Get(%request.Data(param,1))
-        }
+    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail"{
+        set $Property(settings,param) = $Get(%request.Data(param,1))
+    }
+    set i = 1
+    set param = "MappingsPath"
+    while ( $Get(%request.Data(param,i)) '= "" ){
+        set @settings.Mappings@($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
+        set i = i+1
     }
     do settings.%Save()
 }
-</server>
+</script>
 <div class = 'container'>
     <div class="col-sm-1"><br/><br/></div>
     
@@ -107,33 +104,28 @@ body {
                             set first = 2
                         }
                         elseif (first = 2){
-                            write "<div class=""col-sm-3"">"
-                            write "<button type=""button"" class=""btn-sm btn btn-success btn-add"" >"
-                            write "<span class=""glyphicon glyphicon-plus-sign"" aria-hidden=""true""></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp"
-                            write "</button>"
-                            write "</div>", !
+                            &html<<div class="col-sm-3">
+                                <button type="button" class="btn-sm btn btn-success btn-add" >
+                                    <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp
+                                </button>
+                            </div>>
                             set first=0
                         }
                         else {
-                            write "<div class=""col-sm-3"">"
-                            write "</div>", !
+                            &html<<div class="col-sm-3">
+                            </div>>
                         }
 
-                        write "<div class=""voca col-md-7"">"
-                        write "<div class = ""input-group mb-2 row col-sm-12"">"
-
-                        write "<input type=""text"" class=""form-control"" id=""MappingsExt"" name=""MappingsExt"" value="_extKey_">", !
-
-                        write "<input type=""text"" class=""form-control"" id=""MappingsCov"" name=""MappingsCov"" value="_covKey_">", !
-                        
-                        write "<input type=""text"" class=""form-control"" id=""MappingsPath"" name=""MappingsPath"" value="_@settings.Mappings@(extKey, covKey)_">", !
-
-                        write "<button type=""button"" class=""btn-sm btn btn-danger btn-remove"" >"
-                        write "<span class=""glyphicon glyphicon-minus"" aria-hidden=""true""></span>Remove"
-                        write "</button>"
-
-                        write "</div>", !
-                        write "</div>", !
+                        &html<<div class="voca col-md-7">
+                            <div class = "input-group mb-2 row col-sm-12">
+                                <input type="text" class="form-control" id="MappingsExt" name="MappingsExt" value=#(extKey)#>
+                                <input type="text" class="form-control" id="MappingsCov" name="MappingsCov" value=#(covKey)#>
+                                <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(@settings.Mappings@(extKey, covKey))#>
+                                <button type="button" class="btn-sm btn btn-danger btn-remove" >
+                                    <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>Remove
+                                </button>
+                            </div>
+                        </div>>
                     }
                 }
             </script>

@@ -157,7 +157,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             }
         } elseif (menuItemName = "%GitWebUI") {
             set Action = 2
-            set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace
+            set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$ZConvert(InternalName,"O","URL")
         } elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
             write "==export start==",!
             set ec = ..ExportAll($case(menuItemName="%ExportForce",1:$$$Force,:0))

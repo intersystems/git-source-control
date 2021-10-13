@@ -104,7 +104,15 @@ body {
                         quit:covKey=""
 
                         if (first = 1) {
-                            set first = 0
+                            set first = 2
+                        }
+                        elseif (first = 2){
+                            write "<div class=""col-sm-3"">"
+                            write "<button type=""button"" class=""btn-sm btn btn-success btn-add"" >"
+                            write "<span class=""glyphicon glyphicon-plus-sign"" aria-hidden=""true""></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp"
+                            write "</button>"
+                            write "</div>", !
+                            set first=0
                         }
                         else {
                             write "<div class=""col-sm-3"">"
@@ -120,23 +128,18 @@ body {
                         
                         write "<input type=""text"" class=""form-control"" id=""MappingsPath"" name=""MappingsPath"" value="_@settings.Mappings@(extKey, covKey)_">", !
 
-                        set tempextKey = $ORDER(@settings.Mappings@(extKey))
-                        if ( tempextKey = "") {
-                            write "<button type=""button"" class=""btn-sm btn btn-success btn-add"" >"
-                            write "<span class=""glyphicon glyphicon-plus-sign"" aria-hidden=""true""></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp"
-                            write "</button>"
-                        }
-                        else {
-                            write "<button type=""button"" class=""btn-sm btn btn-danger btn-remove"" >"
-                            write "<span class=""glyphicon glyphicon-minus-sign"" aria-hidden=""true""></span>Remove"
-                            write "</button>"
-                        }
+                        write "<button type=""button"" class=""btn-sm btn btn-danger btn-remove"" >"
+                        write "<span class=""glyphicon glyphicon-minus"" aria-hidden=""true""></span>Remove"
+                        write "</button>"
 
                         write "</div>", !
                         write "</div>", !
                     }
                 }
-            </script>           
+            </script>
+            <!--<button type="button" class="btn-sm btn btn-success btn-add mx-auto d-block" >
+                <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp
+            </button>-->          
         </div>
 
 
@@ -183,18 +186,18 @@ $(function()
         e.preventDefault();
 
         var controlForm = $('.mapping-input-group'),
-            currentEntry = $(this).parents('.voca:last');
+            currentEntry = $(this).parent().siblings('.voca:last');
         
         $('<div class="col-sm-3" id="newDiv"></div>').appendTo(controlForm);
         var newEntry = $(currentEntry.clone()).appendTo(controlForm);
 
         console.log(controlForm,currentEntry, newEntry)
         newEntry.find('input').val('');
-        controlForm.find('.btn-add:not(:last)')
-            .removeClass('btn-default').addClass('btn-danger')
-            .removeClass('btn-add').addClass('btn-remove')
+        //controlForm.find('.btn-add:not(:last)')
+            //.removeClass('btn-default').addClass('btn-danger')
+            //.removeClass('btn-add').addClass('btn-remove')
             
-            .html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
+            //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
     }).on('click', '.btn-remove', function(e)
     {
         $(this).parents('.voca:first').remove();

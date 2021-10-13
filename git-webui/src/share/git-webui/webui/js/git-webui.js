@@ -1460,37 +1460,47 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         $(fileList).empty()
         var col = type == "working-copy" ? 1 : 0;
         webui.git("status --porcelain", function(data) {
-            self.filesCount = 0;
-            webui.splitLines(data).forEach(function(line) {
-                var status = line[col];
-                if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
-                    ++self.filesCount;
-                    var item = $('<a class="list-group-item">').appendTo(fileList)[0];
-                    item.status = status;
-                    line = line.substr(3);
-                    var splitted = line.split(" -> ");
-                    if (splitted.length > 1) {
-                        item.model = splitted[1];
-                    } else {
-                        item.model = line
+            $.get("api/uncommitted", function (uncommitted) {
+                var uncommittedItems = JSON.parse(uncommitted);
+                self.filesCount = 0;
+                webui.splitLines(data).forEach(function(line) {
+                    var status = line[col];
+                    if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
+                        ++self.filesCount;
+                        line = line.substr(3);
+                        var splitted = line.split(" -> ");
+                        var model;
+                        if (splitted.length > 1) {
+                            model = splitted[1];
+                        } else {
+                            model = line;
+                        }
+                        var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
+
+                        var item = $('<a class="'+cssClass+'">').appendTo(fileList)[0];
+                        item.model = model;
+                        item.status = status;
+                        item.appendChild(document.createTextNode(line));
+                        $(item).click(self.select);
+                        if (isForCurrentUser) {
+                            $(item).dblclick(self.process);
+                        }
                     }
-                    item.appendChild(document.createTextNode(line));
-                    $(item).click(self.select);
-                    $(item).dblclick(self.process);
+                });
+                if (selectedIndex !== null && selectedIndex >= fileList.childElementCount) {
+                    selectedIndex = fileList.childElementCount - 1;
+                    if (selectedIndex == -1) {
+                        selectedIndex = null;
+                    }
                 }
+                if (selectedIndex !== null) {
+                    var selectedNode = fileList.children[selectedIndex];
+                    $(selectedNode).addClass("active");
+                    self.refreshDiff(selectedNode);
+                }
+                fileListContainer.scrollTop = prevScrollTop;
             });
-            if (selectedIndex !== null && selectedIndex >= fileList.childElementCount) {
-                selectedIndex = fileList.childElementCount - 1;
-                if (selectedIndex == -1) {
-                    selectedIndex = null;
-                }
-            }
-            if (selectedIndex !== null) {
-                var selectedNode = fileList.children[selectedIndex];
-                $(selectedNode).addClass("active");
-                self.refreshDiff(selectedNode);
-            }
-            fileListContainer.scrollTop = prevScrollTop;
         });
     };
 
@@ -1549,7 +1559,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
             var child = fileList.children[i];
             var included = including == undefined || including.indexOf(child.status) != -1;
             var excluded = excluding != undefined && excluding.indexOf(child.status) != -1;
-            if ($(child).hasClass("active") && included && !excluded) {
+            if ($(child).hasClass("active") && $(child).hasClass("available") && included && !excluded) {
                 files += '"' + (child.model) + '" ';
             }
         }
@@ -1685,20 +1695,6 @@ function MainUi() {
         webui.detachChildren(self.mainView);
         self.mainView.appendChild(element);
     }
-
-    //api to to display username and email at top of page
-    //format needs to be edited
-    $.get("api/userinfo", function (data) {
-        var body = $("body")[0];
-        var obj = JSON.parse(data)
-        body.innerHTML += "User: " + obj.name + " Email: " + obj.email;
-    });
-
-    $.get("api/uncommitted", function (data) {
-        var body = $("body")[0];
-        var obj = JSON.parse(data)
-        body.innerHTML += data;
-    });
 
     $.get("dirname", function (data) {
         webui.repo = data;

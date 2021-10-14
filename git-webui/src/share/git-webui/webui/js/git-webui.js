@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Modifications Copyright (C) 2021 InterSystems Corporation
- */
-
 "use strict"
 
 var webui = webui || {};
@@ -47,9 +43,11 @@ webui.showWarning = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
     $(  '<div class="alert alert-warning alert-dismissible" role="alert">' +
-            '<button type="button" class="close" data-dismiss="alert">' +
-                '<span aria-hidden="true">&times;</span>' +
-                '<span class="sr-only">Close</span>' +
+            '<button type="button" class="btn btn-default close" data-bs-dismiss="alert">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+            '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+            '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+            '</svg>'+
             '</button>' +
             message +
         '</div>').appendTo(messageBox);
@@ -150,15 +148,17 @@ webui.TabBox = function(buttons) {
         elt.callback();
     }
 
-    self.element = $('<ul class="nav nav-pills nav-justified" role="tablist">')[0];
+    self.element = $('<ul class="nav nav-pills navbar bg-light" role="tablist">')[0];
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li><a href="#" onclick="return false;">' + item[0] + '</a></li>');
+        var li = $('<li class="col-sm-1"><a href="#" onclick="return false;">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
     }
+    var li = $('<li class="col-sm-'+(12-buttons.length)+'">&nbsp</li>');
+    li.appendTo(self.element);
 };
 
 /*
@@ -199,8 +199,13 @@ webui.SideBarView = function(mainView) {
                             '<div class="modal-dialog modal-sm">' +
                                 '<div class="modal-content">' +
                                     '<div class="modal-header">' +
-                                        '<button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>' +
                                         '<h4 class="modal-title">' + title + '</h4>' +
+                                        '<button type="button" class="btn -btn-default close" data-bs-dismiss="modal">'+
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+                                        '</svg>'+
+                                        '</button>' +
                                     '</div>' +
                                     '<div class="modal-body"><div class="list-group"></div></div>' +
                                 '</div>' +
@@ -294,7 +299,7 @@ webui.SideBarView = function(mainView) {
                     var li = $('<li class="sidebar-more">More ...</li>').appendTo(ul);
                     var popup = self.addPopup(section, title, id + "-popup", refs);
                     li.click(function() {
-                        $(popup).modal();
+                        $(popup).modal('show');
                     });
                 }
             } else {
@@ -305,7 +310,7 @@ webui.SideBarView = function(mainView) {
 
     self.mainView = mainView;
     self.element = $(   '<div id="sidebar">' +
-                            '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
+                            '<a href="#" data-bs-toggle="modal" data-bs-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<div id="sidebar-content">' +
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
@@ -985,8 +990,8 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
     if (! (parent instanceof webui.CommitExplorerView)) {
         html +=
             '<div class="panel-heading btn-toolbar" role="toolbar">' +
-                '<button type="button" class="btn btn-sm btn-default diff-ignore-whitespace" data-toggle="button">Ignore Whitespace</button>' +
-                '<button type="button" class="btn btn-sm btn-default diff-context-all" data-toggle="button">Complete file</button>' +
+                '<button type="button" class="btn btn-sm btn-default diff-ignore-whitespace" data-bs-toggle="button">Ignore Whitespace</button>' +
+                '<button type="button" class="btn btn-sm btn-default diff-context-all" data-bs-toggle="button">Complete file</button>' +
                 '<div class="btn-group btn-group-sm">' +
                     '<span></span>&nbsp;' +
                     '<button type="button" class="btn btn-default diff-context-remove">-</button>' +
@@ -1676,7 +1681,7 @@ webui.CommitMessageView = function(workspaceView) {
                             '<div class="panel-heading">' +
                                 '<h5>Message</h5>' +
                                 '<div class="btn-group btn-group-sm">' +
-                                    '<button type="button" class="btn btn-default commit-message-amend" data-toggle="button">Amend</button>' +
+                                    '<button type="button" class="btn btn-default commit-message-amend" data-bs-toggle="button">Amend</button>' +
                                     '<button type="button" class="btn btn-default commit-message-commit">Commit</button>' +
                                 '</div>' +
                             '</div>' +

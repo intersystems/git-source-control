@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Modifications Copyright (C) 2021 InterSystems Corporation
- */
-
 "use strict"
 
 var webui = webui || {};

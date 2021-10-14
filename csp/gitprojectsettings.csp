@@ -25,26 +25,12 @@ body {
     border:none;
     padding:0%;
     margin-left:0%;
-<<<<<<< HEAD
     margin-top:-2%;
-=======
-    margin-top:-1%;
->>>>>>> 2e4377b (Fixed UI errors + minimal look)
 }
 .btn-remove {
     border: 1px solid #ced4da;
     border-left: none;
     border-radius: 0 0.25rem 0.25rem 0;
-<<<<<<< HEAD
-}
-
-hr {
-    opacity: 0.15
-=======
-    margin-left:-1%;
-    margin-top:-1%;
-    padding-top: none;
->>>>>>> 2e4377b (Fixed UI errors + minimal look)
 }
 
 hr {

@@ -2,8 +2,9 @@
 	set url = $Piece($Get(%request.CgiEnvs("REQUEST_URI"),$Get(%request.CgiEnvs("HTTP_URL"))),"?")
 	set pagePath = $Piece(url,..#CSPURL,2,*)
     set namespace = $Piece(pagePath,"/",2)
-    set resource = $Piece(pagePath,"/",3,*)
-    set %base = $Piece(url,..#CSPURL,1)_..#CSPURL_"/"_namespace_"/"
+    set internalName = $ZConvert($Piece(pagePath,"/",3),"I","URL")
+    set resource = $Piece(pagePath,"/",4,*)
+    set %base = $Piece(url,..#CSPURL,1)_..#CSPURL_"/"_namespace_"/"_$ZConvert(internalName,"O","URL")_"/"
 
     new $NAMESPACE
     set $NAMESPACE = namespace
@@ -39,7 +40,7 @@
     }
 
 	// Handles HTTP requests to /api/ (everything new) plus things previously sent to the Python backend
-	do ##class(SourceControl.Git.WebUIDriver).HandleRequest("/"_resource, .handled, .%data)
+	do ##class(SourceControl.Git.WebUIDriver).HandleRequest("/"_resource, internalName, .handled, .%data)
 	if handled {
 		kill %base
 		quit 1

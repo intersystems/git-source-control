@@ -41,6 +41,7 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 		quit $$$OK
 	}
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 	set ec = ##class(Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
 	quit ec
 }
@@ -53,6 +54,7 @@ Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %Strin
 		quit $$$OK
 	}
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 	set ec = ##class(Utils).AfterUserAction(Type, Name, InternalName, .Answer, .Msg, .Reload)
 	quit ec
 }
@@ -133,7 +135,7 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 		set Enabled = -1
 	} elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
 		set Enabled = $case(menuItemName,"%AddToSC":1,"%RemoveFromSC":1,:-1)
-	} elseif ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInternalName(itemName)) {
+	} elseif ##class(Utils).IsInSourceControl(itemName) {
 		set Enabled = $Case(menuItemName, "%AddToSC":-1,:1)
 	} else {
 		set Enabled = $Case(menuItemName, "%AddToSC":1,:-1)
@@ -148,6 +150,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 /// this menu item from the list totally, 0 will gray the menu item out and the default 1 will display the menu item as normal.
 Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As %String, ByRef Enabled As %Boolean, ByRef DisplayName As %String) As %Status
 {
+	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
+
 	#dim menu As %String= $Piece(MenuName,",")
 	#dim name As %String = $Piece(MenuName,",",2)
 	if menu = "%SourceContext", name = "" {
@@ -170,6 +175,7 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 /// to load the item from an external format.
 Method OnBeforeLoad(InternalName As %String) As %Status
 {
+	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
 	if ##class(Utils).IsInSourceControl(InternalName) {
 		quit ##class(Utils).ImportItem(InternalName)
@@ -186,6 +192,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 	set sc = $$$OK
 	try {
 		set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+		set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 		if ##class(Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
 			set filename = ##class(Utils).FullExternalName(InternalName)
 			$$$ThrowOnError(##class(Utils).RemoveRoutineTSH(InternalName))
@@ -216,6 +223,7 @@ InternalName'="" && ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInt
 /// Called after an item is deleted.
 Method OnAfterDelete(InternalName As %String) As %Status
 {
+	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
 	if ##class(Utils).IsInSourceControl(InternalName) {
 		quit ##class(Utils).DeleteExternalFile(InternalName)
@@ -240,7 +248,7 @@ Method IsReadOnly(InternalName As %String) As %Boolean
 /// Check if another user has committed any changes to the item and return the status
 Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
-	#; Quit ##super(InternalName,.IsInSourceControl,.Editable,.IsCheckedOut,.UserCheckedOut)
+	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 	set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
 	set filename=##class(SourceControl.Git.Utils).FullExternalName(InternalName)
 	set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
@@ -250,7 +258,7 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 	if '$$$FileExists(filename) {
 		set IsCheckedOut=0
 	}
-	do ##class(Utils).GitStatus(.files)
+	do ##class(SourceControl.Git.Utils).GitStatus(.files)
 	if $Get(files(InternalName)) '= "" {
 		///it's in source control, checked out, and should be locked to editing by other users
 		///find out who has it edited

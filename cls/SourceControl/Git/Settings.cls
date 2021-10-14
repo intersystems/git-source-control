@@ -23,6 +23,14 @@ Property gitUserName As %String [ InitialExpression = {##class(SourceControl.Git
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()}, Required ];
 
+Property Mappings [ MultiDimensional ];
+
+Method %OnNew() As %Status
+{
+    Merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
+    quit $$$OK
+}
+
 Method %Save() As %Status
 {
     set sysStorage = ##class(SourceControl.Git.Utils).InstallNamespaceStorage()
@@ -36,7 +44,9 @@ Method %Save() As %Status
     set @storage@("settings","user",$username,"gitUserEmail") = ..gitUserEmail
     set @storage@("settings","ssh","privateKeyFile") = ..privateKeyFile
     set @storage@("settings","pullEventClass") = ..pullEventClass
-    
+
+    kill @##class(SourceControl.Git.Utils).MappingsNode()
+    merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
     quit $$$OK
 }
 
@@ -69,4 +79,3 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
-

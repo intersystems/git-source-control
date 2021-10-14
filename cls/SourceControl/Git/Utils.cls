@@ -1340,4 +1340,3 @@ ClassMethod OutputConfigureMessage()
 }
 
 }
-

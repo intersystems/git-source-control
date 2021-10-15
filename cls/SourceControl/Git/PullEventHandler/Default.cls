@@ -1,6 +1,6 @@
 Include SourceControl.Git
 
-Class SourceControl.Git.PullEventHandler.Default Extends (SourceControl.Git.PullEventHandler.IncrementalLoad,SourceControl.Git.PullEventHandler.PackageManager)
+Class SourceControl.Git.PullEventHandler.Default Extends (SourceControl.Git.PullEventHandler.IncrementalLoad, SourceControl.Git.PullEventHandler.PackageManager)
 {
 
 Parameter NAME = "Default";

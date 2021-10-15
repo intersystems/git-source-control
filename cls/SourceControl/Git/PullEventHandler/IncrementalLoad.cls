@@ -1,6 +1,6 @@
 Include SourceControl.Git
 
-Class SourceControl.Git.PullEventHandler.Default Extends SourceControl.Git.PullEventHandler
+Class SourceControl.Git.PullEventHandler.IncrementalLoad Extends SourceControl.Git.PullEventHandler
 {
 
 Parameter NAME = "Incremental Load";

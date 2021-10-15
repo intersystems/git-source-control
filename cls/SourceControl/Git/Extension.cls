@@ -127,11 +127,13 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 	} elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
 		set Enabled = $case(menuItemName,"%AddToSC":1,"%RemoveFromSC":1,:-1)
 	} elseif menuItemName = "%Revert" {
+		set Enabled = 1
 		do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 		if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
 			set Enabled = 0
 		}
 	} elseif menuItemName = "%Commit" {
+		set Enabled = 1
 		do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 		if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
 			set Enabled = 0

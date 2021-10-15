@@ -12,8 +12,8 @@ Method OnPull() As %Status
     set loadSC = $$$OK
     set nFiles = 0
     for i=1:1:$Get(..ModifiedFiles) {
-        if $Data(files(i))#2 {
-            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i)) 
+        if $Data(..ModifiedFiles(i))#2 {
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i),,0) 
             if (internalName = "") {
                 write files(i), " was not imported into the database and will not be compiled. ", !
             } else {

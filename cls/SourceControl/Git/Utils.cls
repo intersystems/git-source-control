@@ -310,7 +310,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     merge event.ModifiedFiles = files
     for i=1:1:$Get(files) {
         if $Data(files(i))#2 {
-            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(event.ModifiedFiles(i)) 
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(event.ModifiedFiles(i),,0) 
             if (internalName '= "") {
                 set event.ModifiedItems(internalName) = ""
             }
@@ -1310,7 +1310,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 	}
 	If ((IgnorePercent)&&($extract(InternalName)="%")) { Set InternalName = "" }	; don't return a result for % items if instructed to ignore them
 	If ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))) { Set InternalName = "" }	; only return item names which exist in the DB
-	Quit ..NormalizeInternalName(InternalName)
+    Quit ..NormalizeInternalName(InternalName)
 }
 
 ClassMethod OutputConfigureMessage()

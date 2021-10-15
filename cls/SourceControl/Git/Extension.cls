@@ -9,26 +9,29 @@ XData Menu
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
 <MenuItem Name="%Settings" />
-<MenuItem Name="%Init" Save = "001"/>
+<MenuItem Name="%Init" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%GitWebUI" Save = "111" />
+<MenuItem Name="%GitWebUI" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%Export" Save = "001" />
-<MenuItem Name="%ExportForce" Save = "001" />
-<MenuItem Name="%Import" Save = "001" />
-<MenuItem Name="%ImportForce" Save = "001" />
-<MenuItem Name="%Revert" Save = "001" />
+<MenuItem Name="%Export" />
+<MenuItem Name="%ExportForce" />
+<MenuItem Name="%Import" />
+<MenuItem Name="%ImportForce" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%Commit" Save = "001" />
-<MenuItem Name="%Push" Save = "001"/>
-<MenuItem Name="%Fetch" Save = "001"/>
-<MenuItem Name="%Pull" Save = "001"/>
+<MenuItem Name="%AddToSC" />
+<MenuItem Name="%RemoveFromSC"/>
+<MenuItem Name="%Revert" />
+<MenuItem Name="%Commit" />
+<MenuItem Separator="true"/>
+<MenuItem Name="%Push" />
+<MenuItem Name="%Fetch" />
+<MenuItem Name="%Pull" />
 </Menu>
 <Menu Name="%SourceContext" Type="1">
-<MenuItem Name="%AddToSC" Save = "001" />
+<MenuItem Name="%AddToSC" />
 <MenuItem Name="%RemoveFromSC"/>
-<MenuItem Name="%Revert" Save = "001" />
-<MenuItem Name="%Commit" Save = "001" />
+<MenuItem Name="%Revert" />
+<MenuItem Name="%Commit" />
 </Menu>
 </MenuBase>
 }
@@ -81,20 +84,8 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Import All"
 		} elseif name = "%ImportForce" {
 			set DisplayName = "Import All Force"
-		} elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
-			set DisplayName = "Check for modifications"
-		} elseif name = "%Revert" {
-			set DisplayName = "Revert Changes"
-			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
-				set Enabled = 0
-			}
-		} elseif name = "%Commit" {
-			set DisplayName = "Commit Changes"
-			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
-				set Enabled = 0
-			}
+		} elseif $ListFind($ListBuild("%AddToSC","%RemoveFromSC","%Revert","%Commit"),name) {
+			quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
 		} elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users
 			set Enabled = 1
@@ -135,6 +126,16 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 		set Enabled = -1
 	} elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
 		set Enabled = $case(menuItemName,"%AddToSC":1,"%RemoveFromSC":1,:-1)
+	} elseif menuItemName = "%Revert" {
+		do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+		if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
+			set Enabled = 0
+		}
+	} elseif menuItemName = "%Commit" {
+		do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+		if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
+			set Enabled = 0
+		}
 	} elseif ##class(Utils).IsInSourceControl(itemName) {
 		set Enabled = $Case(menuItemName, "%AddToSC":-1,:1)
 	} else {
@@ -287,3 +288,4 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 }
 
 }
+

@@ -58,6 +58,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     for {
         set property = $$$defMemberNext(%class.Name,$$$cCLASSproperty,property)
         quit:property=""
+        continue:$$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPmultidimensional)
         set sequence = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPsequencenumber)
         set orderedProperties(sequence) = property
     }
@@ -79,3 +80,4 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
+

@@ -310,7 +310,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     merge event.ModifiedFiles = files
     for i=1:1:$Get(files) {
         if $Data(files(i))#2 {
-            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i)) 
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(event.ModifiedFiles(i)) 
             if (internalName '= "") {
                 set event.ModifiedItems(internalName) = ""
             }
@@ -934,11 +934,13 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
         $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force))
     }else {
         if ..IsTempFileOutdated(InternalName) || force {
-            
             #dim filename As %String = ..FullExternalName(InternalName)
             write "exporting new version of ", InternalName, " to ", filename,!
             $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             $$$QuitOnError(..UpdateRoutineTSH(InternalName, $Horolog))
+			if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+				$$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $Username, "", 1, "", "", 0))
+			}
         }
     }
     quit $$$OK

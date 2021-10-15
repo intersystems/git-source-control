@@ -1,6 +1,13 @@
 Class SourceControl.Git.Change Extends %Studio.SourceControl.Change
 {
 
+/// Returns the name of the backup file for this Item in the file system
+/// Unused in this class, so override to avoid errors.
+Property BackupName As %String [ Calculated, SqlComputeCode = {s {*} = ""}, SqlComputed ];
+
+/// Returns the name of this Item in the file system
+Property ExternalName As %String [ Calculated, SqlComputeCode = {S {*} = "" }, SqlComputed ];
+
 Storage Default
 {
 <Type>%Storage.Persistent</Type>

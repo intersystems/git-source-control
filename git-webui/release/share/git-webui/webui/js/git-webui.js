@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/*
+ * Modifications Copyright (C) 2021 InterSystems Corporation
+ */
+
 "use strict"
 
 var webui = webui || {};
@@ -1484,7 +1488,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         } else {
                             model = line;
                         }
-                        var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        var isForCurrentUser = true; //(uncommittedItems.indexOf(model) > -1);
                         var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
 
                         var item = $('<a class="'+cssClass+'">').appendTo(fileList)[0];

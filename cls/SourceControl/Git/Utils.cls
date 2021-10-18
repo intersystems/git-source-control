@@ -176,7 +176,15 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     	} elseif (menuItemName = "%Revert") {
 	    	set Reload = 1
 	    	quit ..Revert(InternalName)
-	    } elseif (menuItemName = "%Commit") {
+	    } elseif (menuItemName = "%NewBranch") {
+            set Target = "Please enter the name of the new branch"
+            set Action = 7
+            quit $$$OK
+        } elseif (menuItemName = "%SwitchBranch") {
+            set Target = "Please enter the name of the existing branch"
+            set Action = 7
+            quit $$$OK
+        } elseif (menuItemName = "%Commit") {
 	    	set Target = "Please enter a commit message"
 	    	set Action = 7
 	    	quit $$$OK
@@ -243,6 +251,16 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
 		    do ..Commit(InternalName, Msg)
 		    set Reload = 1
 	    }
+    } elseif (menuItemName = "%NewBranch") {
+        if (Answer = 1) {
+            do ..NewBranch(Msg)
+            set Reload = 1
+        }
+    } elseif (menuItemName = "%SwitchBranch") {
+        if (Answer = 1) {
+            do ..SwitchBranch(Msg)
+            set Reload = 1
+        }
     }
     quit $$$OK
 }
@@ -255,6 +273,22 @@ ClassMethod Revert(InternalName As %String) As %Status
 	$$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
 	$$$QuitOnError(..ImportItem(InternalName))
 	quit $$$OK
+}
+
+ClassMethod NewBranch(Msg As %String) As %Status
+{
+    do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", Msg)
+    do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
+    quit $$$OK
+}
+
+ClassMethod SwitchBranch(Msg As %String) As %Status
+{
+    do ..RunGitWithArgs(.errStream, .outStream, "checkout", Msg)
+    do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status

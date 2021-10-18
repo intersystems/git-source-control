@@ -19,6 +19,13 @@ XData Menu
 <MenuItem Name="%ImportForce" Save = "001" />
 <MenuItem Name="%Revert" Save = "001" />
 <MenuItem Separator="true"/>
+<MenuItem Name="%NewBranch" Save = "001" />
+<MenuItem Name="%SwitchBranch" Save = "001" />
+	<!-- <Menu Name = "%LocalBranches" Type="1">
+	<MenuItem Name="Branch1" Save="001"/>
+	</Menu>
+</MenuItem> -->
+<MenuItem Separator="true"/>
 <MenuItem Name="%Commit" Save = "001" />
 <MenuItem Name="%Push" Save = "001"/>
 <MenuItem Name="%Fetch" Save = "001"/>
@@ -45,6 +52,8 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 	set ec = ##class(Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
 	quit ec
 }
+
+// hello
 
 Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
@@ -89,6 +98,12 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
 				set Enabled = 0
 			}
+		} elseif name = "%NewBranch" {
+			set DisplayName = "Create a new branch"
+			set Enabled = 1
+		} elseif name = "%SwitchBranch" {
+			set DisplayName = "Checkout an exisisting branch"
+			set Enabled = 1
 		} elseif name = "%Commit" {
 			set DisplayName = "Commit Changes"
 			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
@@ -98,13 +113,13 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 		} elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users
 			set Enabled = 1
-			set DisplayName = "Push"
+			set DisplayName = "Push to remote branch"
 		} elseif name = "%Fetch" {
 			set Enabled = 1
-			set DisplayName = "Fetch"
+			set DisplayName = "Fetch from remote"
 		} elseif name = "%Pull" {
 			set Enabled = 1
-			set DisplayName = "Pull"
+			set DisplayName = "Pull changes from remote branch"
 		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",

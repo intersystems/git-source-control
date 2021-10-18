@@ -15,7 +15,7 @@ Method OnPull() As %Status
         if $Data(..ModifiedFiles(i))#2 {
             set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i),,0) 
             if (internalName = "") {
-                write files(i), " was not imported into the database and will not be compiled. ", !
+                write ..ModifiedFiles(i), " was not imported into the database and will not be compiled. ", !
             } else {
                 set compilelist(internalName) = ""
                 set nFiles = nFiles + 1

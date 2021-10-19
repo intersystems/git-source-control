@@ -51,8 +51,6 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 	quit ec
 }
 
-// hello
-
 Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
 	#dim ec As %Status = $$$OK

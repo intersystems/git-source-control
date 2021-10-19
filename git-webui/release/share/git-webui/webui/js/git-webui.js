@@ -316,7 +316,12 @@ webui.SideBarView = function(mainView) {
                                     '<h4>Workspace</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-local-branches">' +
-                                    '<h4>Local Branches</h4>' +
+                                    '<h4>Local Branches' +
+                                    '<button type="button" class="btn btn-default btn-add" >' +
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">'+
+                                            '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>'+
+                                        '</svg>'+
+                                    '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
                                     '<h4>Remote Branches</h4>' +
@@ -1735,4 +1740,48 @@ function MainUi() {
 
 $(document).ready(function () {
     new MainUi()
+});
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+})
+$(function()
+{
+    $(document).on('click', '.btn-add', function(e)
+    {
+        e.preventDefault();
+
+        var controlForm = $('#sidebar-local-branches');
+        // $('<div class="col-sm-3" id="indent-div"> </div>').appendTo(controlForm);
+
+        // var currentEntry = $(this).children('ul').children()('.sidebar:last');
+        var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
+                            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
+                                '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
+                            '</svg>'+
+                        '</button>' +
+                        '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
+        controlForm.append(inputForm);
+
+        // newEntry.find('input').val('');
+        //controlForm.find('.btn-add:not(:last)')
+            //.removeClass('btn-default').addClass('btn-danger')
+            //.removeClass('btn-add').addClass('btn-remove')
+            
+            //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
+    }).on('click', '.btn-remove', function(e)
+    {
+        $(this).parent().parent().parent().prev('#indent-div').remove();
+        $(this).parents('.voca:first').remove();
+
+        e.preventDefault();
+        return false;
+    }).on('click', '#btn_createList', function(e)
+    {
+        $('#sidebar-local-branches ul').append($('<li>', {
+            text: $('#newBranchName').val()
+        }));
+        $('#sidebar-local-branches input').remove();
+        $('#sidebar-local-branches .btn-ok').remove()
+    });
 });

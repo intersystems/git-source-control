@@ -83,7 +83,7 @@ webui.git = function(cmd, arg1, arg2) {
                 }
             }
 
-            var messageStartIndex = fIndex - parseInt(footers["Git-Stderr-Length"]);
+            var messageStartIndex = fIndex - parseInt(footers["Git-Stderr-Length"]) -1;
             var message = data.substring(messageStartIndex, fIndex);
             var output = data.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
@@ -92,7 +92,7 @@ webui.git = function(cmd, arg1, arg2) {
                     callback(output);
                 }
                 // Return code is 0 but there is stderr output: this is a warning message
-                if (message.length > 0) {
+                if (message.length > 1) {
                     console.log(message);
                     webui.showWarning(message);
                 }
@@ -1777,7 +1777,8 @@ $(function()
         e.preventDefault();
         return false;
     }).on('click', '#btn_createList', function(e)
-    {
+    {   
+        webui.git("checkout -b " + $('#newBranchName').val())
         $('#sidebar-local-branches ul').append($('<li>', {
             text: $('#newBranchName').val()
         }));

@@ -57,7 +57,8 @@ body {
   min-width: 0;
   flex-direction: column;
   -webkit-flex-direction: column;
-  width: 14em;
+  padding: 0 0.5% 0 0.5%;
+  width: 17em;
   background-color: #333333;
 }
 #sidebar #sidebar-logo {
@@ -128,6 +129,32 @@ body {
 #sidebar .modal-dialog .list-group-item {
   border: 0;
 }
+
+#newBranchName {
+  background-color: inherit;
+  max-width: 12em;
+  color: inherit;
+  overflow: hidden;
+  margin: 0 3% 0 12%
+}
+
+.form-control-xs {
+  height: calc(1em + .375rem + 2px) !important;
+  padding: .125rem .25rem !important;
+  font-size: .75rem !important;
+  line-height: 1.5;
+  border-radius: .2rem;
+}
+
+.btn-add {
+  padding: 5%;
+}
+
+.btn-ok {
+  float: right;
+  margin-top:-3%
+}
+
 #main-view {
   display: flex;
   display: -webkit-flex;

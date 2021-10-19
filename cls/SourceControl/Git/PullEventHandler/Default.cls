@@ -1,35 +1,18 @@
 Include SourceControl.Git
 
-Class SourceControl.Git.PullEventHandler.Default Extends SourceControl.Git.PullEventHandler
+Class SourceControl.Git.PullEventHandler.Default Extends (SourceControl.Git.PullEventHandler.IncrementalLoad, SourceControl.Git.PullEventHandler.PackageManager)
 {
 
 Parameter NAME = "Default";
 
-Parameter DESCRIPTION = "Performs an incremental load and compile of all changes pulled.";
+Parameter DESCRIPTION = "Does a zpm ""load <repo root>"" for PackageManager-enabled repos and an incremental load otherwise.";
 
 Method OnPull() As %Status
 {
-    set loadSC = $$$OK
-    set nFiles = 0
-    for i=1:1:$Get(..ModifiedFiles) {
-        if $Data(files(i))#2 {
-            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i)) 
-            if (internalName = "") {
-                write files(i), " was not imported into the database and will not be compiled. ", !
-            } else {
-                set compilelist(internalName) = ""
-                set nFiles = nFiles + 1
-                set loadSC = $$$ADDSC(loadSC,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
-            }
-        }
+    If ##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename("module.xml",..LocalRoot)) {
+        Quit ##class(SourceControl.Git.PullEventHandler.PackageManager)$This.OnPull()
     }
-    
-    if (nFiles = 0) {
-        write "Nothing to compile.",!
-        quit $$$OK
-    }
-
-    Quit $System.OBJ.CompileList(.compilelist, "cukb")
+    Quit ##class(SourceControl.Git.PullEventHandler.IncrementalLoad)$This.OnPull()
 }
 
 }

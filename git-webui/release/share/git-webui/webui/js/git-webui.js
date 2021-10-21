@@ -152,17 +152,17 @@ webui.TabBox = function(buttons) {
         elt.callback();
     }
 
-    self.element = $('<ul class="nav nav-pills navbar bg-light" role="tablist">')[0];
+    self.element = $('<ul class="nav nav-pills" role="tablist">')[0];
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li class="col-sm-1"><a href="#" onclick="return false;">' + item[0] + '</a></li>');
+        var li = $('<li class="nav-item"><a class="nav-link" href="#" onclick="return false;">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
     }
-    var li = $('<li class="col-sm-'+(12-buttons.length)+'">&nbsp</li>');
-    li.appendTo(self.element);
+    // var li = $('<li class="col-sm-'+(12-buttons.length)+'">&nbsp</li>');
+    // li.appendTo(self.element);
 };
 
 /*
@@ -204,7 +204,7 @@ webui.SideBarView = function(mainView) {
                                 '<div class="modal-content">' +
                                     '<div class="modal-header">' +
                                         '<h4 class="modal-title">' + title + '</h4>' +
-                                        '<button type="button" class="btn -btn-default close" data-bs-dismiss="modal">'+
+                                        '<button type="button" class="btn btn-default close" data-bs-dismiss="modal">'+
                                         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
                                         '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
                                         '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
@@ -252,7 +252,7 @@ webui.SideBarView = function(mainView) {
                 });
             }
             if (refs.length > 0) {
-                var ul = $("<ul>").appendTo(section)[0];
+                var accordionDiv = $('<div class="accordion" id="accordion-'+id+'">').appendTo(section)[0];
                 refs = refs.sort(function(a, b) {
                     if (id != "local-branches") {
                         return -a.localeCompare(b);
@@ -277,25 +277,52 @@ webui.SideBarView = function(mainView) {
                             ref = '  ' + newref;
                         }
                     }
-                    var li = $('<li class="sidebar-ref">').appendTo(ul)[0];
+                    var cardDiv = $('<div class="accordion-item custom-accordion">').appendTo(accordionDiv)[0];
+                    // var li = $('<li class="sidebar-ref">').appendTo(ul)[0];
                     if (id == "local-branches") {
-                        li.refName = ref.substr(2);
+                        // li.refName = ref.substr(2);
+                        var refname = ref.substr(2)
+                        var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
+                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
+                                        + refname
+                                    + '</button>').appendTo(cardHeader)
+                        
+                        var collapseDiv = $('<div id="collapse-'+ refname+'" class="accordion-collapse collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                        var cardBody = $('<div class="accordion-body">' +
+                                            '<div class="d-grid gap-2 col-12 mx-auto">'+
+                                                '<button class="btn btn-xs btn-primary btn-block">Checkout Branch</button>'+
+                                                '<button class="btn btn-xs btn-danger btn-block">Delete Branch</button>'+
+                                            '</div>'+
+                                        '</div>').appendTo(collapseDiv);
                         if (ref[0] == "*") {
-                            $(li).addClass("branch-current");
+                            $(button).addClass("branch-current");
                             window.setTimeout(function() {
                                 var current = $(".branch-current", self.element)[0];
                                 if (current) {
-                                    self.selectRef(current.refName);
+                                    self.selectRef(current.innerHTML);
                                 }
                             }, 0);
                         }
+
                     } else {
-                        li.refName = ref;
+                        var refname = ref.replaceAll('/', '-');
+                        var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
+                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
+                                        + ref //IMPORTANT: This has to be the original ref for selectRef to work 
+                                    + '</button>').appendTo(cardHeader)
+
+                        var collapseDiv = $('<div id="collapse-'+ refname+'" class="collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                        var cardBody = $('<div class="card-body">' +
+                                        '<div class="d-grid gap-2 col-12 mx-auto">'+
+                                            '<button class="btn btn-xs btn-primary btn-block">Checkout Branch</button>'+
+                                        '</div>'+
+                                        '</div>').appendTo(collapseDiv);
                     }
-                    $(li).attr("title", li.refName);
-                    $(li).text(li.refName);
-                    $(li).click(function (event) {
-                        self.selectRef(event.target.refName);
+                    // $(button).attr("title", li.refName);
+                    $(button).click(function (event) {
+                        // $(button).removeClass("collapsed");
+                        // $(button).siblings().closest().addClass("show")
+                        self.selectRef(event.target.innerHTML);
                     });
                 }
 
@@ -320,15 +347,15 @@ webui.SideBarView = function(mainView) {
                                     '<h4>Workspace</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-local-branches">' +
-                                    '<h4>Local Branches' +
+                                    '<h4 class="mt-3">Local Branches' +
                                     '<button type="button" class="btn btn-default btn-add" >' +
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">'+
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#eee" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">'+
                                             '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>'+
                                         '</svg>'+
                                     '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
-                                    '<h4>Remote Branches</h4>' +
+                                    '<h4 class="mt-3">Remote Branches</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
@@ -1782,7 +1809,7 @@ $(function()
         return false;
     }).on('click', '#btn_createList', function(e)
     {   
-        webui.git("checkout -b " + $('#newBranchName').val())
+        webui.git("checkout -b " + $('#newBranchName').val());
         $('#sidebar-local-branches ul').append($('<li>', {
             text: $('#newBranchName').val()
         }));

@@ -95,6 +95,37 @@ body {
   cursor: pointer;
   padding: 10px 0;
 }
+#sidebar-switch-branches > h4 a {
+  color: inherit;
+}
+
+.accordion-item {
+  background-color: #333333;
+  color: #eeeeee;
+  padding-bottom:1%;
+  margin: 0%;
+  border: none;
+}
+
+.accordion-header {
+  padding: 1% 2% 0% 14%;
+  background-color: #333333;
+  color: #eeeeee;
+  border:none;
+}
+
+.btn-branch {
+  background-color: #333333;
+  color: #eee;
+  padding: 0%;
+  margin: 0%;
+  border: none;
+}
+
+.btn-branch:hover {
+  color: #fff;
+}
+
 #sidebar #sidebar-content #sidebar-workspace h4:before {
   content: url(../img/computer.svg);
 }
@@ -102,7 +133,8 @@ body {
   content: url(../img/daemon.svg);
 }
 #sidebar #sidebar-content #sidebar-local-branches h4:before,
-#sidebar #sidebar-content #sidebar-remote-branches h4:before {
+#sidebar #sidebar-content #sidebar-remote-branches h4:before,
+#sidebar #sidebar-content #sidebar-switch-branches h4:before {
   content: url(../img/branch.svg);
 }
 #sidebar #sidebar-content #sidebar-tags h4:before {
@@ -146,8 +178,16 @@ body {
   border-radius: .2rem;
 }
 
+.btn-xs {
+  height: calc(1.5em + .375rem + 2px) !important;
+  padding: .125rem .25rem !important;
+  font-size: .75rem !important;
+  line-height: 1.5;
+  border-radius: .2rem;
+}
+
 .btn-add {
-  padding: 5%;
+  padding: 0% 0% 2% 5%;
 }
 
 .btn-ok {

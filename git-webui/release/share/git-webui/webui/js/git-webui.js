@@ -285,15 +285,18 @@ webui.SideBarView = function(mainView) {
                         var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
                         var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
                                         + refname
-                                    + '</button>').appendTo(cardHeader)
+                                    + '</button>').appendTo(cardHeader);
                         
-                        var collapseDiv = $('<div id="collapse-'+ refname+'" class="accordion-collapse collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
-                        var cardBody = $('<div class="accordion-body">' +
+                        if(ref[0] != "*") {
+                            var collapseDiv = $('<div id="collapse-'+ refname+'" class="accordion-collapse collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                            var cardBody = $('<div class="accordion-body">' +
                                             '<div class="d-grid gap-2 col-12 mx-auto">'+
                                                 '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch">Checkout Branch</button>'+
                                                 '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                             '</div>'+
                                         '</div>').appendTo(collapseDiv);
+                        }
+                        
                         if (ref[0] == "*") {
                             $(button).addClass("branch-current");
                             window.setTimeout(function() {

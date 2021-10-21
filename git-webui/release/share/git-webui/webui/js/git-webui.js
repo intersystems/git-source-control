@@ -290,8 +290,8 @@ webui.SideBarView = function(mainView) {
                         var collapseDiv = $('<div id="collapse-'+ refname+'" class="accordion-collapse collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
                         var cardBody = $('<div class="accordion-body">' +
                                             '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                                '<button class="btn btn-xs btn-primary btn-block">Checkout Branch</button>'+
-                                                '<button class="btn btn-xs btn-danger btn-block">Delete Branch</button>'+
+                                                '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch">Checkout Branch</button>'+
+                                                '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                             '</div>'+
                                         '</div>').appendTo(collapseDiv);
                         if (ref[0] == "*") {
@@ -314,7 +314,7 @@ webui.SideBarView = function(mainView) {
                         var collapseDiv = $('<div id="collapse-'+ refname+'" class="collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
                         var cardBody = $('<div class="card-body">' +
                                         '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                            '<button class="btn btn-xs btn-primary btn-block">Checkout Branch</button>'+
+                                            '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
                                         '</div>'+
                                         '</div>').appendTo(collapseDiv);
                     }
@@ -1816,4 +1816,39 @@ $(function()
         $('#sidebar-local-branches input').remove();
         $('#sidebar-local-branches .btn-ok').remove()
     });
+});
+
+$(function () {
+
+    $(document).on('click', '.btn-checkout-local-branch', function(e) {
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".accordion-header").children("button").html();
+
+        webui.git("checkout " + refName);
+        
+    });
+
+    $(document).on('click', '.btn-delete-branch', function(e) {
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".accordion-header").children("button").html();
+
+        webui.git("branch -d " + refName);
+        webui.showWarning("Local branch "+refName+" deleted.")        
+    });
+
+    $(document).on('click', '.btn-checkout-remote-branch', function(e) {
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".accordion-header").children("button").html();
+
+        var remoteName = refName.split('/')[0];
+        var branchName = refName.split('/')[1];
+        
+        webui.git("fetch "+remoteName);
+        webui.git("checkout -b " + branchName + " " + refName);
+        
+    });
+
 });

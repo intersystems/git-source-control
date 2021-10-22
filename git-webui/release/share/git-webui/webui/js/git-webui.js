@@ -39,6 +39,7 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
 
 
 webui.showError = function(message) {
+    webui.errorMessage = message;
     $("#error-modal .alert").text(message);
     $("#error-modal").modal('show');
 }
@@ -55,10 +56,6 @@ webui.showWarning = function(message) {
             '</button>' +
             message +
         '</div>').appendTo(messageBox);
-    
-    // setTimeout(function() {
-    //     location.reload();
-    // }, 2000);
 }
 
 webui.git = function(cmd, arg1, arg2) {
@@ -95,22 +92,20 @@ webui.git = function(cmd, arg1, arg2) {
             var message = data.substring(messageStartIndex, fIndex);
             var output = data.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
+            webui.rcode = rcode;
             if (rcode == 0) {
                 if (callback) {
                     callback(output);
                 }
                 // Return code is 0 but there is stderr output: this is a warning message
                 if (message.length > 1) {
-                    console.log(message);
                     webui.showWarning(message);
                 }
                 $("#error-modal .alert").text("");
             } else {
-                console.log(message);
                 webui.showError(message);
             }
         } else {
-            console.log(data);
             webui.showError(data);
         }
     }, "text")
@@ -156,17 +151,15 @@ webui.TabBox = function(buttons) {
         elt.callback();
     }
 
-    self.element = $('<ul class="nav nav-pills" role="tablist">')[0];
+    self.element = $('<ul class="nav nav-pills">')[0];
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li class="nav-item"><a class="nav-link" href="#" onclick="return false;">' + item[0] + '</a></li>');
+        var li = $('<li class="nav-item"><a class="nav-link" href="#">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
     }
-    // var li = $('<li class="col-sm-'+(12-buttons.length)+'">&nbsp</li>');
-    // li.appendTo(self.element);
 };
 
 /*
@@ -282,9 +275,7 @@ webui.SideBarView = function(mainView) {
                         }
                     }
                     var cardDiv = $('<div class="accordion-item custom-accordion">').appendTo(accordionDiv)[0];
-                    // var li = $('<li class="sidebar-ref">').appendTo(ul)[0];
                     if (id == "local-branches") {
-                        // li.refName = ref.substr(2);
                         var refname = ref.substr(2)
                         var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
                         var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
@@ -325,10 +316,7 @@ webui.SideBarView = function(mainView) {
                                         '</div>'+
                                         '</div>').appendTo(collapseDiv);
                     }
-                    // $(button).attr("title", li.refName);
                     $(button).click(function (event) {
-                        // $(button).removeClass("collapsed");
-                        // $(button).siblings().closest().addClass("show")
                         self.selectRef(event.target.innerHTML);
                     });
                 }
@@ -1743,24 +1731,19 @@ function MainUi() {
 
     var self = this;
 
-    console.log(this);
-
     self.switchTo = function(element) {
         webui.detachChildren(self.mainView);
         self.mainView.appendChild(element);
     }
 
     $.get("dirname", function (data) {
-        console.log(data);
         webui.repo = data;
         var title = $("title")[0];
         title.textContent = "Git - " + webui.repo;
         $.get("viewonly", function (data) {
             webui.viewonly = data == "1";
-            console.log(data);
             $.get("hostname", function (data) {
                 webui.hostname = data
-                console.log(data);
 
                 var body = $("body")[0];
                 $('<div id="message-box">').appendTo(body);
@@ -1768,8 +1751,6 @@ function MainUi() {
 
                 self.sideBarView = new webui.SideBarView(self);
                 globalContainer.appendChild(self.sideBarView.element);
-
-                // console.log(self);
 
                 self.mainView = $('<div id="main-view">')[0];
                 globalContainer.appendChild(self.mainView);
@@ -1786,14 +1767,12 @@ function MainUi() {
 var MainUIObject;
 
 $(document).ready(function () {
-    MainUIObject = new MainUi();
-    console.log(MainUIObject)
+   MainUIObject = new MainUi();
+   webui.errorMessage="";
 });
 
 function updateSideBar () {
-
     var sideBarView = $('#sidebar')[0];              
-
     MainUIObject.sideBarView = new webui.SideBarView(MainUIObject);
     sideBarView.replaceWith(MainUIObject.sideBarView.element);
 }
@@ -1807,33 +1786,20 @@ $(function()
     {
         e.preventDefault();
 
-        var controlForm = $('#sidebar-local-branches');
-        // $('<div class="col-sm-3" id="indent-div"> </div>').appendTo(controlForm);
+        var newBranchForm = $('#sidebar-local-branches');
 
-        // var currentEntry = $(this).children('ul').children()('.sidebar:last');
         var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
                             '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
                                 '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
                             '</svg>'+
                         '</button>' +
                         '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
-        controlForm.append(inputForm);
+        newBranchForm.append(inputForm);
 
-        // newEntry.find('input').val('');
-        //controlForm.find('.btn-add:not(:last)')
-            //.removeClass('btn-default').addClass('btn-danger')
-            //.removeClass('btn-add').addClass('btn-remove')
-            
-            //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
     }).on('click', '#btn_createList', function(e)
     {   
         webui.git("checkout -b " + $('#newBranchName').val());
         updateSideBar();
-        // $('#sidebar-local-branches ul').append($('<li>', {
-        //     text: $('#newBranchName').val()
-        // }));
-        $('#sidebar-local-branches input').remove();
-        $('#sidebar-local-branches .btn-ok').remove()
     });
 });
 
@@ -1845,7 +1811,12 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("checkout " + refName);
-        updateSideBar();
+        if(webui.errorMessage==""){
+            updateSideBar();
+        }
+        else{
+            webui.errorMessage="";
+        }
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1855,7 +1826,12 @@ $(function () {
 
         webui.git("branch -d " + refName);
         webui.showWarning("Local branch "+refName+" deleted.");
-        updateSideBar();
+        if(webui.errorMessage==""){
+            updateSideBar();
+        }
+        else{
+            webui.errorMessage="";
+        }
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1867,8 +1843,14 @@ $(function () {
         var branchName = refName.split('/')[1];
         
         webui.git("fetch "+remoteName);
-        webui.git("checkout -b " + branchName + " " + refName);
-        updateSideBar();
+        webui.git("checkout -b " + remoteName+"--"+branchName + " " + refName);
+        if(webui.errorMessage==""){
+            console.log(webui.errorMessage);
+            updateSideBar();
+        }
+        else{
+            webui.errorMessage="";
+        }
     });
 
 });

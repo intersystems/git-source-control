@@ -152,17 +152,15 @@ webui.TabBox = function(buttons) {
         elt.callback();
     }
 
-    self.element = $('<ul class="nav nav-pills" role="tablist">')[0];
+    self.element = $('<ul class="nav nav-pills">')[0];
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li class="nav-item"><a class="nav-link" href="#" onclick="return false;">' + item[0] + '</a></li>');
+        var li = $('<li class="nav-item"><a class="nav-link" href="#">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
     }
-    // var li = $('<li class="col-sm-'+(12-buttons.length)+'">&nbsp</li>');
-    // li.appendTo(self.element);
 };
 
 /*
@@ -278,9 +276,7 @@ webui.SideBarView = function(mainView) {
                         }
                     }
                     var cardDiv = $('<div class="accordion-item custom-accordion">').appendTo(accordionDiv)[0];
-                    // var li = $('<li class="sidebar-ref">').appendTo(ul)[0];
                     if (id == "local-branches") {
-                        // li.refName = ref.substr(2);
                         var refname = ref.substr(2)
                         var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
                         var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
@@ -321,10 +317,7 @@ webui.SideBarView = function(mainView) {
                                         '</div>'+
                                         '</div>').appendTo(collapseDiv);
                     }
-                    // $(button).attr("title", li.refName);
                     $(button).click(function (event) {
-                        // $(button).removeClass("collapsed");
-                        // $(button).siblings().closest().addClass("show")
                         self.selectRef(event.target.innerHTML);
                     });
                 }
@@ -1750,12 +1743,13 @@ function MainUi() {
         title.textContent = "Git - " + webui.repo;
         $.get("viewonly", function (data) {
             webui.viewonly = data == "1";
+            console.log(data);
             $.get("hostname", function (data) {
                 webui.hostname = data
 
                 var body = $("body")[0];
                 $('<div id="message-box">').appendTo(body);
-                var globalContainer = $('<div id="global-container">').appendTo(body)[0];
+                var globalContainer = $('<div id="global-container">').appendTo(body)[0];                
 
                 self.sideBarView = new webui.SideBarView(self);
                 globalContainer.appendChild(self.sideBarView.element);
@@ -1772,9 +1766,19 @@ function MainUi() {
     });
 }
 
+var MainUIObject;
+
 $(document).ready(function () {
-    new MainUi()
+    MainUIObject = new MainUi();
+    console.log(MainUIObject)
 });
+
+function updateSideBar () {
+
+    var sideBarView = $('#sidebar')[0];              
+    MainUIObject.sideBarView = new webui.SideBarView(MainUIObject);
+    sideBarView.replaceWith(MainUIObject.sideBarView.element);
+}
 
 $(function () {
     $('[data-toggle="tooltip"]').tooltip()
@@ -1785,39 +1789,20 @@ $(function()
     {
         e.preventDefault();
 
-        var controlForm = $('#sidebar-local-branches');
-        // $('<div class="col-sm-3" id="indent-div"> </div>').appendTo(controlForm);
+        var newBranchForm = $('#sidebar-local-branches');
 
-        // var currentEntry = $(this).children('ul').children()('.sidebar:last');
         var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
                             '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
                                 '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
                             '</svg>'+
                         '</button>' +
                         '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
-        controlForm.append(inputForm);
+        newBranchForm.append(inputForm);
 
-        // newEntry.find('input').val('');
-        //controlForm.find('.btn-add:not(:last)')
-            //.removeClass('btn-default').addClass('btn-danger')
-            //.removeClass('btn-add').addClass('btn-remove')
-            
-            //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
-    }).on('click', '.btn-remove', function(e)
-    {
-        $(this).parent().parent().parent().prev('#indent-div').remove();
-        $(this).parents('.voca:first').remove();
-
-        e.preventDefault();
-        return false;
     }).on('click', '#btn_createList', function(e)
     {   
         webui.git("checkout -b " + $('#newBranchName').val());
-        $('#sidebar-local-branches ul').append($('<li>', {
-            text: $('#newBranchName').val()
-        }));
-        $('#sidebar-local-branches input').remove();
-        $('#sidebar-local-branches .btn-ok').remove()
+        updateSideBar();
     });
 });
 
@@ -1829,7 +1814,7 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("checkout " + refName);
-        
+        updateSideBar();
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1838,7 +1823,8 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("branch -d " + refName);
-        webui.showWarning("Local branch "+refName+" deleted.")        
+        webui.showWarning("Local branch "+refName+" deleted.");
+        updateSideBar();
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1850,8 +1836,15 @@ $(function () {
         var branchName = refName.split('/')[1];
         
         webui.git("fetch "+remoteName);
-        webui.git("checkout -b " + branchName + " " + refName);
-        
+        webui.git("checkout -b " + remoteName+"--"+branchName + " " + refName);
+        updateSideBar();
     });
 
+});
+
+$(function () {
+    $(document).on('click', '.btn-refresh', function(e) {
+        e.preventDefault();
+        location.reload()
+    });
 });

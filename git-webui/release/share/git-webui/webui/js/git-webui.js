@@ -54,7 +54,6 @@ webui.showWarning = function(message) {
             '</svg>'+
             '</button>' +
             message +
-            '<button class="btn btn-xxs btn-default btn-refresh">Refresh</button>'+
         '</div>').appendTo(messageBox);
     
     // setTimeout(function() {
@@ -1744,26 +1743,33 @@ function MainUi() {
 
     var self = this;
 
+    console.log(this);
+
     self.switchTo = function(element) {
         webui.detachChildren(self.mainView);
         self.mainView.appendChild(element);
     }
 
     $.get("dirname", function (data) {
+        console.log(data);
         webui.repo = data;
         var title = $("title")[0];
         title.textContent = "Git - " + webui.repo;
         $.get("viewonly", function (data) {
             webui.viewonly = data == "1";
+            console.log(data);
             $.get("hostname", function (data) {
                 webui.hostname = data
+                console.log(data);
 
                 var body = $("body")[0];
                 $('<div id="message-box">').appendTo(body);
-                var globalContainer = $('<div id="global-container">').appendTo(body)[0];
+                var globalContainer = $('<div id="global-container">').appendTo(body)[0];                
 
                 self.sideBarView = new webui.SideBarView(self);
                 globalContainer.appendChild(self.sideBarView.element);
+
+                // console.log(self);
 
                 self.mainView = $('<div id="main-view">')[0];
                 globalContainer.appendChild(self.mainView);
@@ -1777,9 +1783,20 @@ function MainUi() {
     });
 }
 
+var MainUIObject;
+
 $(document).ready(function () {
-    new MainUi()
+    MainUIObject = new MainUi();
+    console.log(MainUIObject)
 });
+
+function updateSideBar () {
+
+    var sideBarView = $('#sidebar')[0];              
+
+    MainUIObject.sideBarView = new webui.SideBarView(MainUIObject);
+    sideBarView.replaceWith(MainUIObject.sideBarView.element);
+}
 
 $(function () {
     $('[data-toggle="tooltip"]').tooltip()
@@ -1811,11 +1828,12 @@ $(function()
     }).on('click', '#btn_createList', function(e)
     {   
         webui.git("checkout -b " + $('#newBranchName').val());
+        updateSideBar();
         // $('#sidebar-local-branches ul').append($('<li>', {
         //     text: $('#newBranchName').val()
         // }));
-        // $('#sidebar-local-branches input').remove();
-        // $('#sidebar-local-branches .btn-ok').remove()
+        $('#sidebar-local-branches input').remove();
+        $('#sidebar-local-branches .btn-ok').remove()
     });
 });
 
@@ -1827,6 +1845,7 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("checkout " + refName);
+        updateSideBar();
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1835,7 +1854,8 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("branch -d " + refName);
-        webui.showWarning("Local branch "+refName+" deleted.")
+        webui.showWarning("Local branch "+refName+" deleted.");
+        updateSideBar();
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1848,6 +1868,7 @@ $(function () {
         
         webui.git("fetch "+remoteName);
         webui.git("checkout -b " + branchName + " " + refName);
+        updateSideBar();
     });
 
 });

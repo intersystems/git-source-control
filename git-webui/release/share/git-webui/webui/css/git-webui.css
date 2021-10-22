@@ -156,12 +156,8 @@ body {
   text-overflow: ellipsis;
 }
 #sidebar #sidebar-content .active {
-  background-color: #428bca;
+  background-color: #0d6efd;
 }
-#sidebar .modal-dialog .list-group-item {
-  border: 0;
-}
-
 #newBranchName {
   background-color: inherit;
   max-width: 12em;
@@ -268,7 +264,7 @@ body {
   background-color: rgba(244, 244, 244, 0.9);
 }
 #log-view .log-entry.active {
-  background-color: rgba(46, 127, 197, 0.9);
+  background-color: rgba(2, 82, 202, 0.9);
 }
 #log-view .log-entry.active header h6 a {
   color: #ffffff;
@@ -376,6 +372,9 @@ body {
   border-right: 0;
   white-space: nowrap;
 }
+.list-group-item{
+  border-radius: 0;
+}
 .diff-view-container {
   display: flex;
   display: -webkit-flex;
@@ -450,7 +449,7 @@ body {
   border: 0;
 }
 .diff-view-container .panel-body .diff-view .diff-view-lines .diff-view-line.active {
-  background-color: #428bca;
+  background-color: #0d6efd;
   color: white;
 }
 .diff-view-container .panel-body .diff-view .diff-view-lines .diff-line-header {
@@ -648,6 +647,7 @@ body {
   padding: 5px 10px;
   border-left: 0;
   border-right: 0;
+  border-radius: 0;
   white-space: nowrap;
 }
 #workspace-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.available,

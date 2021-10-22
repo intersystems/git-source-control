@@ -90,24 +90,12 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
 		} elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
 			set DisplayName = "Check for modifications"
-		} elseif name = "%Revert" {
-			set DisplayName = "Revert Changes"
-			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
-				set Enabled = 0
-			}
 		} elseif name = "%NewBranch" {
 			set DisplayName = "Create a new branch"
 			set Enabled = 1
 		} elseif name = "%SwitchBranch" {
 			set DisplayName = "Checkout an exisisting branch"
 			set Enabled = 1
-		} elseif name = "%Commit" {
-			set DisplayName = "Commit Changes"
-			do ..GetStatus(InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-			if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(InternalName))) || ($username '= userCheckedOut) {
-				set Enabled = 0
-			}
 		} elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users
 			set Enabled = 1

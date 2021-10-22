@@ -372,9 +372,6 @@ body {
   border: 0;
   margin: 0;
 }
-.panel-heading {
-  border-bottom: 1px solid #dddddd;
-}
 .diff-view-container .panel-heading {
   margin: 0;
   padding: 5px 16px;

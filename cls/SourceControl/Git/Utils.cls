@@ -141,83 +141,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         write !!,"===Path to git.exe not found: "_..GitBinPath()_"!===",!
     }
     
-    if (menuName = "%SourceMenu") {
-        if (menuItemName = "%Settings") {
-            set Action = 2
-            set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
-        } elseif (menuItemName = "%Init") {
-            if ##class(%File).CreateDirectoryChain(..TempFolder()) {
-                // cleanup items info
-                kill @..#Storage@("items")
-                kill @..#Storage@("TSH")
-                set Action = 3
-                set Target = ..RunGitCommand("init",.errStream,.outStream)
-            } else {
-                set ec = ..MakeError("Unable to create folder "_..TempFolder())
-            }
-        } elseif (menuItemName = "%GitWebUI") {
-            set Action = 2
-            set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$ZConvert(InternalName,"O","URL")
-        } elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
-            write "==export start==",!
-            set ec = ..ExportAll($case(menuItemName="%ExportForce",1:$$$Force,:0))
-            if ec {
-                write !,"==export done==",!
-            }
-        } elseif (menuItemName = "%Import") {
-            set ec = ..ImportAll()
-            set Reload = 1
-        } elseif (menuItemName = "%ImportForce") {
-            set ec = ..ImportAll($$$Force)
-            set Reload = 1
-        } elseif (menuItemName = "%OpenRepoFolder") {
-	        set Action = 3
-	        set Target = ..TempFolder()
-    	} elseif (menuItemName = "%Revert") {
-	    	set Reload = 1
-	    	quit ..Revert(InternalName)
-	    } elseif (menuItemName = "%NewBranch") {
-            set Target = "Please enter the name of the new branch"
-            set Action = 7
-            quit $$$OK
-        } elseif (menuItemName = "%SwitchBranch") {
-            set Target = "Please enter the name of the existing branch"
-            set Action = 7
-            quit $$$OK
-        } elseif (menuItemName = "%Commit") {
-	    	set Target = "Please enter a commit message"
-	    	set Action = 7
-	    	quit $$$OK
-	    } elseif (menuItemName = "%Push") {
-	    	quit ..Push()
-	    } elseif (menuItemName = "%Fetch") {
-            $$$QuitOnError(..Fetch(.diffFiles))
-            set pointer = 0
-            while $ListNext(diffFiles, pointer, item){
-	        	write !,item
-	        }
-            write !
-	    } elseif (menuItemName = "%Pull") {
-            quit ..Pull()
-	    } elseif ..IsMenuGitCommand(menuItemName) {
-                set Action = 3
-                #dim command As %String = $ZConvert($Extract(menuItemName, 2, *), "L")
-                set ec = $$$OK
-                if $Data(@..#Storage@("settings","hook"),hook)=1 {
-	                set $ListBuild(class,method) = hook
-	                set ec = $classmethod(class, method, command, InternalName)
-                }
-                if $$$ISOK(ec) {
-                	set Target = ..GitCommand(command)
-                }
-        }
-    } elseif (menuName = "%SourceContext") {
-	    
-        if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
-            set InternalName = "/" _ InternalName
-        }
+    if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
+        set InternalName = "/" _ InternalName
     }
-    
+
     if (menuItemName = "%Settings") {
         set Action = 2
         set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
@@ -253,6 +180,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "%Revert") {
         set Reload = 1
         quit ..Revert(InternalName)
+    } elseif (menuItemName = "%NewBranch") {
+        set Target = "Please enter the name of the new branch"
+        set Action = 7
+        quit $$$OK
+    } elseif (menuItemName = "%SwitchBranch") {
+        set Target = "Please enter the name of the existing branch"
+        set Action = 7
+        quit $$$OK
     } elseif (menuItemName = "%Commit") {
         set Target = "Please enter a commit message"
         set Action = 7

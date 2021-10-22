@@ -92,7 +92,6 @@ webui.git = function(cmd, arg1, arg2) {
             var message = data.substring(messageStartIndex, fIndex);
             var output = data.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
-            webui.rcode = rcode;
             if (rcode == 0) {
                 if (callback) {
                     callback(output);
@@ -1845,7 +1844,6 @@ $(function () {
         webui.git("fetch "+remoteName);
         webui.git("checkout -b " + remoteName+"--"+branchName + " " + refName);
         if(webui.errorMessage==""){
-            console.log(webui.errorMessage);
             updateSideBar();
         }
         else{

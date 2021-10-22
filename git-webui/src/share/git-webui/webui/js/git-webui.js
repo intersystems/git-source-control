@@ -39,6 +39,7 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
 
 
 webui.showError = function(message) {
+    webui.errorMessage = message;
     $("#error-modal .alert").text(message);
     $("#error-modal").modal('show');
 }
@@ -97,16 +98,13 @@ webui.git = function(cmd, arg1, arg2) {
                 }
                 // Return code is 0 but there is stderr output: this is a warning message
                 if (message.length > 1) {
-                    console.log(message);
                     webui.showWarning(message);
                 }
                 $("#error-modal .alert").text("");
             } else {
-                console.log(message);
                 webui.showError(message);
             }
         } else {
-            console.log(data);
             webui.showError(data);
         }
     }, "text")
@@ -1743,7 +1741,6 @@ function MainUi() {
         title.textContent = "Git - " + webui.repo;
         $.get("viewonly", function (data) {
             webui.viewonly = data == "1";
-            console.log(data);
             $.get("hostname", function (data) {
                 webui.hostname = data
 
@@ -1769,12 +1766,11 @@ function MainUi() {
 var MainUIObject;
 
 $(document).ready(function () {
-    MainUIObject = new MainUi();
-    console.log(MainUIObject)
+   MainUIObject = new MainUi();
+   webui.errorMessage="";
 });
 
 function updateSideBar () {
-
     var sideBarView = $('#sidebar')[0];              
     MainUIObject.sideBarView = new webui.SideBarView(MainUIObject);
     sideBarView.replaceWith(MainUIObject.sideBarView.element);
@@ -1814,7 +1810,12 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("checkout " + refName);
-        updateSideBar();
+        if(webui.errorMessage==""){
+            updateSideBar();
+        }
+        else{
+            webui.errorMessage="";
+        }
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1824,7 +1825,12 @@ $(function () {
 
         webui.git("branch -d " + refName);
         webui.showWarning("Local branch "+refName+" deleted.");
-        updateSideBar();
+        if(webui.errorMessage==""){
+            updateSideBar();
+        }
+        else{
+            webui.errorMessage="";
+        }
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1837,7 +1843,12 @@ $(function () {
         
         webui.git("fetch "+remoteName);
         webui.git("checkout -b " + remoteName+"--"+branchName + " " + refName);
-        updateSideBar();
+        if(webui.errorMessage==""){
+            updateSideBar();
+        }
+        else{
+            webui.errorMessage="";
+        }
     });
 
 });

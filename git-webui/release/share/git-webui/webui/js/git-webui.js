@@ -54,7 +54,12 @@ webui.showWarning = function(message) {
             '</svg>'+
             '</button>' +
             message +
+            '<button class="btn btn-xxs btn-default btn-refresh">Refresh</button>'+
         '</div>').appendTo(messageBox);
+    
+    // setTimeout(function() {
+    //     location.reload();
+    // }, 2000);
 }
 
 webui.git = function(cmd, arg1, arg2) {
@@ -1803,21 +1808,14 @@ $(function()
             //.removeClass('btn-add').addClass('btn-remove')
             
             //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
-    }).on('click', '.btn-remove', function(e)
-    {
-        $(this).parent().parent().parent().prev('#indent-div').remove();
-        $(this).parents('.voca:first').remove();
-
-        e.preventDefault();
-        return false;
     }).on('click', '#btn_createList', function(e)
     {   
         webui.git("checkout -b " + $('#newBranchName').val());
-        $('#sidebar-local-branches ul').append($('<li>', {
-            text: $('#newBranchName').val()
-        }));
-        $('#sidebar-local-branches input').remove();
-        $('#sidebar-local-branches .btn-ok').remove()
+        // $('#sidebar-local-branches ul').append($('<li>', {
+        //     text: $('#newBranchName').val()
+        // }));
+        // $('#sidebar-local-branches input').remove();
+        // $('#sidebar-local-branches .btn-ok').remove()
     });
 });
 
@@ -1829,7 +1827,6 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("checkout " + refName);
-        
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1838,7 +1835,7 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("branch -d " + refName);
-        webui.showWarning("Local branch "+refName+" deleted.")        
+        webui.showWarning("Local branch "+refName+" deleted.")
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1851,7 +1848,13 @@ $(function () {
         
         webui.git("fetch "+remoteName);
         webui.git("checkout -b " + branchName + " " + refName);
-        
     });
 
+});
+
+$(function () {
+    $(document).on('click', '.btn-refresh', function(e) {
+        e.preventDefault();
+        location.reload()
+    });
 });

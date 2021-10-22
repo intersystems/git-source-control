@@ -178,6 +178,22 @@ body {
   border-radius: .2rem;
 }
 
+.btn-refresh {
+  color: #B39D5C;
+  background-color: #fff3cd;
+  border: solid 1px;
+  border-color: #B39D5C;
+  margin-left: 0.5%;
+}
+
+.btn-xxs {
+  height: calc(1.2em + .175rem + 2px) !important;
+  padding: .2rem .1rem !important;
+  font-size: .7rem !important;
+  line-height: 1;
+  border-radius: .2rem;
+}
+
 .btn-xs {
   height: calc(1.5em + .375rem + 2px) !important;
   padding: .125rem .25rem !important;

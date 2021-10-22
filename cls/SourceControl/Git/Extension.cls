@@ -94,7 +94,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Create a new branch"
 			set Enabled = 1
 		} elseif name = "%SwitchBranch" {
-			set DisplayName = "Checkout an exisisting branch"
+			set DisplayName = "Check out an existing branch"
 			set Enabled = 1
 		} elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users

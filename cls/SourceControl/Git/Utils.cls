@@ -251,17 +251,17 @@ ClassMethod Revert(InternalName As %String) As %Status
 	quit $$$OK
 }
 
-ClassMethod NewBranch(Msg As %String) As %Status
+ClassMethod NewBranch(newBranchName As %String) As %Status
 {
-    do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", Msg)
+    do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
     do errStream.OutputToDevice()
 	do outStream.OutputToDevice()
     quit $$$OK
 }
 
-ClassMethod SwitchBranch(Msg As %String) As %Status
+ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
-    do ..RunGitWithArgs(.errStream, .outStream, "checkout", Msg)
+    do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do errStream.OutputToDevice()
 	do outStream.OutputToDevice()
     quit $$$OK

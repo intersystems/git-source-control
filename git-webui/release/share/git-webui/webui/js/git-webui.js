@@ -1842,7 +1842,7 @@ $(function () {
         var branchName = refName.split('/')[1];
         
         webui.git("fetch "+remoteName);
-        webui.git("checkout -b " + remoteName+"--"+branchName + " " + refName);
+        webui.git("checkout -b " +branchName + " " + refName);
         if(webui.errorMessage==""){
             updateSideBar();
         }

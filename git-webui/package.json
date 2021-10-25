@@ -17,19 +17,11 @@
   "author": "Éric ALBER <eric.alber@gmail.com>",
   "license": "Apache-2.0",
   "devDependencies": {
-<<<<<<< HEAD
     "grunt": "^1.4.1",
     "grunt-contrib-clean": "^2.0.0",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-less": "^3.0.0",
     "grunt-contrib-watch": "^1.1.0"
-=======
-    "grunt": "^1.3.0",
-    "grunt-contrib-clean": "^0.5.0",
-    "grunt-contrib-copy": "^0.5.0",
-    "grunt-contrib-less": "^0.11.3",
-    "grunt-contrib-watch": "^0.6.1"
->>>>>>> 3398a97fa4a48fcc95bcb2e6e719b52fe859a15a
   },
   "dependencies": {
     "@popperjs/core": "^2.10.2",

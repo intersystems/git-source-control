@@ -1770,7 +1770,7 @@ $(document).ready(function () {
 function updateSideBar () {
     var sideBarView = $('#sidebar')[0];              
     MainUIObject.sideBarView = new webui.SideBarView(MainUIObject);
-    sideBarView.replaceWith(MainUIObject.sideBarView.element);
+    $(sideBarView).replaceWith(MainUIObject.sideBarView.element);
 }
 
 $(function () {

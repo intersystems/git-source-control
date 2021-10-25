@@ -39,7 +39,6 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
 
 
 webui.showError = function(message) {
-    webui.errorMessage = message;
     $("#error-modal .alert").text(message);
     $("#error-modal").modal('show');
 }
@@ -100,7 +99,6 @@ webui.git = function(cmd, arg1, arg2) {
                 if (message.length > 1) {
                     webui.showWarning(message);
                 }
-                $("#error-modal .alert").text("");
             } else {
                 webui.showError(message);
             }
@@ -277,16 +275,16 @@ webui.SideBarView = function(mainView) {
                     if (id == "local-branches") {
                         var refname = ref.substr(2)
                         var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
-                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
+                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left mb-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
                                         + refname
                                     + '</button>').appendTo(cardHeader);
                         
                         if(ref[0] != "*") {
                             var collapseDiv = $('<div id="collapse-'+ refname+'" class="accordion-collapse collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
-                            var cardBody = $('<div class="accordion-body">' +
-                                            '<div class="d-grid gap-2 col-12 mx-auto">'+
+                            var cardBody = $('<div class="accordion-body mt-1">' +
+                                            '<div class="d-grid gap-2 col-10 mx-auto">'+
                                                 '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch">Checkout Branch</button>'+
-                                                '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
+                                                '<button class="btn btn-xs btn-danger btn-block btn-delete-branch mb-2">Delete Branch</button>'+
                                             '</div>'+
                                         '</div>').appendTo(collapseDiv);
                         }
@@ -304,14 +302,14 @@ webui.SideBarView = function(mainView) {
                     } else {
                         var refname = ref.replaceAll('/', '-');
                         var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
-                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
+                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left mb-0" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
                                         + ref //IMPORTANT: This has to be the original ref for selectRef to work 
                                     + '</button>').appendTo(cardHeader)
 
                         var collapseDiv = $('<div id="collapse-'+ refname+'" class="collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
                         var cardBody = $('<div class="card-body">' +
                                         '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                            '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
+                                            '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch mt-0 mb-0">Checkout Branch</button>'+
                                         '</div>'+
                                         '</div>').appendTo(collapseDiv);
                     }
@@ -1767,7 +1765,6 @@ var MainUIObject;
 
 $(document).ready(function () {
    MainUIObject = new MainUi();
-   webui.errorMessage="";
 });
 
 function updateSideBar () {
@@ -1784,16 +1781,22 @@ $(function()
     $(document).on('click', '.btn-add', function(e)
     {
         e.preventDefault();
+        if($("#btn_createList").length == 0){
+            var newBranchForm = $('#sidebar-local-branches');
 
-        var newBranchForm = $('#sidebar-local-branches');
-
-        var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
-                                '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
-                            '</svg>'+
-                        '</button>' +
-                        '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
-        newBranchForm.append(inputForm);
+            var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
+                                    '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
+                                '</svg>'+
+                            '</button>' +
+                            '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
+            newBranchForm.append(inputForm);
+            $("#sidebar-local-branches input").focus();
+        }
+        else {
+            $("#sidebar-local-branches input").focus(); 
+            $("#sidebar-local-branches input").select(); 
+        }
 
     }).on('click', '#btn_createList', function(e)
     {   
@@ -1810,12 +1813,7 @@ $(function () {
             ".accordion-header").children("button").html();
 
         webui.git("checkout " + refName);
-        if(webui.errorMessage==""){
-            updateSideBar();
-        }
-        else{
-            webui.errorMessage="";
-        }
+        updateSideBar();
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1825,12 +1823,7 @@ $(function () {
 
         webui.git("branch -d " + refName);
         webui.showWarning("Local branch "+refName+" deleted.");
-        if(webui.errorMessage==""){
-            updateSideBar();
-        }
-        else{
-            webui.errorMessage="";
-        }
+        updateSideBar();
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1843,12 +1836,7 @@ $(function () {
         
         webui.git("fetch "+remoteName);
         webui.git("checkout -b " +branchName + " " + refName);
-        if(webui.errorMessage==""){
-            updateSideBar();
-        }
-        else{
-            webui.errorMessage="";
-        }
+        updateSideBar();
     });
 
 });

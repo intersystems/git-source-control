@@ -265,6 +265,7 @@ body {
 }
 #log-view .log-entry.active {
   background-color: rgba(2, 82, 202, 0.9);
+  color:#ffffff;
 }
 #log-view .log-entry.active header h6 a {
   color: #ffffff;

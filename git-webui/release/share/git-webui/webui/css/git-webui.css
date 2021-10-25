@@ -103,7 +103,7 @@ body {
   color: inherit;
 }
 
-.accordion-item {
+.custom-card, .card {
   background-color:inherit !important;
   color: inherit !important;
   padding-bottom:1%;
@@ -111,7 +111,7 @@ body {
   border: none;
 }
 
-.accordion-header {
+.card-header {
   padding: 1% 2% 0% 14%;
   background-color: inherit !important;
   color: inherit !important;

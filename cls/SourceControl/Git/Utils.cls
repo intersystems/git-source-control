@@ -140,11 +140,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     		($system.Version.GetOS()="Windows") {
         write !!,"===Path to git.exe not found: "_..GitBinPath()_"!===",!
     }
-	    
+    
     if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
         set InternalName = "/" _ InternalName
     }
-    
+
     if (menuItemName = "%Settings") {
         set Action = 2
         set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
@@ -180,6 +180,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "%Revert") {
         set Reload = 1
         quit ..Revert(InternalName)
+    } elseif (menuItemName = "%NewBranch") {
+        set Target = "Please enter the name of the new branch"
+        set Action = 7
+        quit $$$OK
+    } elseif (menuItemName = "%SwitchBranch") {
+        set Target = "Please enter the name of the existing branch"
+        set Action = 7
+        quit $$$OK
     } elseif (menuItemName = "%Commit") {
         set Target = "Please enter a commit message"
         set Action = 7
@@ -219,6 +227,16 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
 		    do ..Commit(InternalName, Msg)
 		    set Reload = 1
 	    }
+    } elseif (menuItemName = "%NewBranch") {
+        if (Answer = 1) {
+            do ..NewBranch(Msg)
+            set Reload = 1
+        }
+    } elseif (menuItemName = "%SwitchBranch") {
+        if (Answer = 1) {
+            do ..SwitchBranch(Msg)
+            set Reload = 1
+        }
     }
     quit $$$OK
 }
@@ -231,6 +249,22 @@ ClassMethod Revert(InternalName As %String) As %Status
 	$$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
 	$$$QuitOnError(..ImportItem(InternalName))
 	quit $$$OK
+}
+
+ClassMethod NewBranch(newBranchName As %String) As %Status
+{
+    do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
+    do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
+    quit $$$OK
+}
+
+ClassMethod SwitchBranch(targetBranchName As %String) As %Status
+{
+    do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
+    do errStream.OutputToDevice()
+	do outStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
@@ -1322,4 +1356,3 @@ ClassMethod OutputConfigureMessage()
 }
 
 }
-

@@ -80,4 +80,3 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
-

@@ -20,6 +20,8 @@ XData Menu
 <MenuItem Separator="true"/>
 <MenuItem Name="%AddToSC" />
 <MenuItem Name="%RemoveFromSC"/>
+<MenuItem Name="%NewBranch" />
+<MenuItem Name="%SwitchBranch" />
 <MenuItem Name="%Revert" />
 <MenuItem Name="%Commit" />
 <MenuItem Separator="true"/>
@@ -86,16 +88,24 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 			set DisplayName = "Import All Force"
 		} elseif $ListFind($ListBuild("%AddToSC","%RemoveFromSC","%Revert","%Commit"),name) {
 			quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
+		} elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
+			set DisplayName = "Check for modifications"
+		} elseif name = "%NewBranch" {
+			set DisplayName = "Create a new branch"
+			set Enabled = 1
+		} elseif name = "%SwitchBranch" {
+			set DisplayName = "Check out an existing branch"
+			set Enabled = 1
 		} elseif name = "%Push" {
 			// TODO: Only display if there are no files checked out by other users
 			set Enabled = 1
-			set DisplayName = "Push"
+			set DisplayName = "Push to remote branch"
 		} elseif name = "%Fetch" {
 			set Enabled = 1
-			set DisplayName = "Fetch"
+			set DisplayName = "Fetch from remote"
 		} elseif name = "%Pull" {
 			set Enabled = 1
-			set DisplayName = "Pull"
+			set DisplayName = "Pull changes from remote branch"
 		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
 			set DisplayName = $case(name,"%StashSave":"Stash save",
 			                             "%StashPop":"Stash pop",
@@ -290,4 +300,3 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 }
 
 }
-

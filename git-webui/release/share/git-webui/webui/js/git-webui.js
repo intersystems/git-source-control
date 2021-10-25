@@ -258,8 +258,8 @@ webui.SideBarView = function(mainView) {
                 if(ref[0] != "*") {
                     var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
                     var cardBody = $('<div class="accordion-body">' +
-                                    '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                        '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch">Checkout Branch</button>'+
+                                    '<div class="d-grid gap-2 col-10 mx-auto">'+
+                                        '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);

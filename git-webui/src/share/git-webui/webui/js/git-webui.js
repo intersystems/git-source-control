@@ -100,7 +100,6 @@ webui.git = function(cmd, arg1, arg2) {
                 if (message.length > 1) {
                     webui.showWarning(message);
                 }
-                $("#error-modal .alert").text("");
             } else {
                 webui.showError(message);
             }
@@ -259,8 +258,8 @@ webui.SideBarView = function(mainView) {
                 if(ref[0] != "*") {
                     var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
                     var cardBody = $('<div class="accordion-body">' +
-                                    '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                        '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch">Checkout Branch</button>'+
+                                    '<div class="d-grid gap-2 col-10 mx-auto">'+
+                                        '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);
@@ -1762,7 +1761,6 @@ var MainUIObject;
 
 $(document).ready(function () {
    MainUIObject = new MainUi();
-   webui.errorMessage="";
 });
 
 function updateSideBar () {
@@ -1779,16 +1777,22 @@ $(function()
     $(document).on('click', '.btn-add', function(e)
     {
         e.preventDefault();
+        if($("#btn_createList").length == 0){
+            var newBranchForm = $('#sidebar-local-branches');
 
-        var newBranchForm = $('#sidebar-local-branches');
-
-        var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
-                                '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
-                            '</svg>'+
-                        '</button>' +
-                        '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
-        newBranchForm.append(inputForm);
+            var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
+                                    '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
+                                '</svg>'+
+                            '</button>' +
+                            '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
+            newBranchForm.append(inputForm);
+            $("#sidebar-local-branches input").focus();
+        }
+        else {
+            $("#sidebar-local-branches input").focus(); 
+            $("#sidebar-local-branches input").select(); 
+        }
 
     }).on('click', '#btn_createList', function(e)
     {   

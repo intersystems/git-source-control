@@ -34,6 +34,10 @@ body {
 #error-modal .modal-body {
   margin-bottom: 0;
 }
+.modal-header .close {
+  padding: 1rem 1rem;
+  margin: -0.51rem -0.5rem -1rem auto;
+}
 #help-modal img {
   display: block;
   margin: 0 auto;
@@ -100,8 +104,8 @@ body {
 }
 
 .accordion-item {
-  background-color: #333333;
-  color: #eeeeee;
+  background-color:inherit !important;
+  color: inherit !important;
   padding-bottom:1%;
   margin: 0%;
   border: none;
@@ -109,21 +113,17 @@ body {
 
 .accordion-header {
   padding: 1% 2% 0% 14%;
-  background-color: #333333;
-  color: #eeeeee;
+  background-color: inherit !important;
+  color: inherit !important;
   border:none;
 }
 
 .btn-branch {
-  background-color: #333333;
-  color: #eee;
+  background-color: inherit !important;
+  color: inherit !important;
   padding: 0%;
   margin: 0%;
   border: none;
-}
-
-.btn-branch:hover {
-  color: #fff;
 }
 
 #sidebar #sidebar-content #sidebar-workspace h4:before {
@@ -265,10 +265,7 @@ body {
 }
 #log-view .log-entry.active {
   background-color: rgba(2, 82, 202, 0.9);
-<<<<<<< HEAD
   color:#ffffff;
-=======
->>>>>>> 3398a97fa4a48fcc95bcb2e6e719b52fe859a15a
 }
 #log-view .log-entry.active header h6 a {
   color: #ffffff;

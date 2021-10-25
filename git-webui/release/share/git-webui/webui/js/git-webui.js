@@ -100,7 +100,6 @@ webui.git = function(cmd, arg1, arg2) {
                 if (message.length > 1) {
                     webui.showWarning(message);
                 }
-                $("#error-modal .alert").text("");
             } else {
                 webui.showError(message);
             }
@@ -213,26 +212,89 @@ webui.SideBarView = function(mainView) {
                         '</div>')[0];
         self.element.appendChild(popup);
         var popupContent = $(".list-group", popup)[0];
-        refs.forEach(function(ref) {
-            var link = $('<a class="list-group-item sidebar-ref">')[0];
-            link.section = section;
-            if (id == "local-branches-popup") {
-                link.refName = ref.substr(2);
-                if (ref[0] == "*") {
-                    $(link).addClass("branch-current");
-                }
-            } else {
-                link.refName = ref;
-            }
-            $(link).text(link.refName);
-            popupContent.appendChild(link);
-            $(link).click(function (event) {
-                $(popup).modal('hide');
-                self.selectRef(event.target.refName);
-            });
-        });
+        $(self.buildAccordion(section, refs, id, undefined, "popup")).appendTo(popupContent);
+        $(popupContent).find(".btn-delete-branch, .btn-checkout-local-branch, .btn-checkout-remote-branch").click(function() {
+            $(popup).modal('hide');
+        })
         return popup;
     };
+
+    self.buildAccordion = function(section, refs, id, maxRefsCount, idPostfix) {
+        maxRefsCount = maxRefsCount || refs.length;
+        idPostfix = idPostfix || "";
+        var accordionDiv = $('<div class="accordion" id="accordion-'+id+'">').appendTo(section)[0];
+        refs = refs.sort(function(a, b) {
+            if (id != "local-branches") {
+                return -a.localeCompare(b);
+            } else if (a[0] == "*") {
+                return -1;
+            } else if (b[0] == "*") {
+                return 1;
+            } else {
+                return a.localeCompare(b);
+            }
+        });
+
+        for (var i = 0; i < refs.length && i < maxRefsCount; ++i) {
+            var ref = refs[i] + ""; // Get a copy of it
+            if (ref[2] == '(' && ref[ref.length - 1] == ')') {
+                // This is a '(detached from XXXXXX)'
+                var newref = ref.substring(ref.lastIndexOf(' ') + 1, ref.length - 1)
+                if (ref[0] == '*') {
+                    ref = '* ' + newref;
+                } else {
+                    ref = '  ' + newref;
+                }
+            }
+            var cardDiv = $('<div class="accordion-item custom-accordion">').appendTo(accordionDiv)[0];
+            if (id.indexOf("local-branches") > -1) {
+                var refname = ref.substr(2);
+                var itemId = refname + idPostfix;
+                var cardHeader = $('<div class="accordion-header" id="heading-' + itemId + '">').appendTo(cardDiv);
+                var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
+                                + refname
+                            + '</button>').appendTo(cardHeader);
+                
+                if(ref[0] != "*") {
+                    var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                    var cardBody = $('<div class="accordion-body">' +
+                                    '<div class="d-grid gap-2 col-10 mx-auto">'+
+                                        '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
+                                        '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
+                                    '</div>'+
+                                '</div>').appendTo(collapseDiv);
+                }
+                
+                if (ref[0] == "*") {
+                    $(button).addClass("branch-current");
+                    window.setTimeout(function() {
+                        var current = $(".branch-current", self.element)[0];
+                        if (current) {
+                            self.selectRef(current.innerHTML);
+                        }
+                    }, 0);
+                }
+            } else {
+                var refname = ref.replaceAll('/', '-');
+                var itemId = refname + idPostfix;
+                var cardHeader = $('<div class="accordion-header" id="heading-' + itemId +'">').appendTo(cardDiv);
+                var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
+                                + ref //IMPORTANT: This has to be the original ref for selectRef to work 
+                            + '</button>').appendTo(cardHeader)
+
+                var collapseDiv = $('<div id="collapse-' + itemId + '" class="collapse" aria-labelledby="heading-' + itemId + '" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                var cardBody = $('<div class="card-body">' +
+                                '<div class="d-grid gap-2 col-12 mx-auto">'+
+                                    '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
+                                '</div>'+
+                                '</div>').appendTo(collapseDiv);
+            }
+            $(button).click(function (event) {
+                self.selectRef(event.target.innerHTML);
+            });
+        }
+        return accordionDiv;
+    }
 
     self.fetchSection = function(section, title, id, gitCommand) {
         webui.git(gitCommand, function(data) {
@@ -248,82 +310,14 @@ webui.SideBarView = function(mainView) {
                 });
             }
             if (refs.length > 0) {
-                var accordionDiv = $('<div class="accordion" id="accordion-'+id+'">').appendTo(section)[0];
-                refs = refs.sort(function(a, b) {
-                    if (id != "local-branches") {
-                        return -a.localeCompare(b);
-                    } else if (a[0] == "*") {
-                        return -1;
-                    } else if (b[0] == "*") {
-                        return 1;
-                    } else {
-                        return a.localeCompare(b);
-                    }
-                });
-
                 var maxRefsCount = 5;
-                for (var i = 0; i < refs.length && i < maxRefsCount; ++i) {
-                    var ref = refs[i];
-                    if (ref[2] == '(' && ref[ref.length - 1] == ')') {
-                        // This is a '(detached from XXXXXX)'
-                        var newref = ref.substring(ref.lastIndexOf(' ') + 1, ref.length - 1)
-                        if (ref[0] == '*') {
-                            ref = '* ' + newref;
-                        } else {
-                            ref = '  ' + newref;
-                        }
-                    }
-                    var cardDiv = $('<div class="accordion-item custom-accordion">').appendTo(accordionDiv)[0];
-                    if (id == "local-branches") {
-                        var refname = ref.substr(2)
-                        var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
-                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
-                                        + refname
-                                    + '</button>').appendTo(cardHeader);
-                        
-                        if(ref[0] != "*") {
-                            var collapseDiv = $('<div id="collapse-'+ refname+'" class="accordion-collapse collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
-                            var cardBody = $('<div class="accordion-body">' +
-                                            '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                                '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch">Checkout Branch</button>'+
-                                                '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
-                                            '</div>'+
-                                        '</div>').appendTo(collapseDiv);
-                        }
-                        
-                        if (ref[0] == "*") {
-                            $(button).addClass("branch-current");
-                            window.setTimeout(function() {
-                                var current = $(".branch-current", self.element)[0];
-                                if (current) {
-                                    self.selectRef(current.innerHTML);
-                                }
-                            }, 0);
-                        }
-
-                    } else {
-                        var refname = ref.replaceAll('/', '-');
-                        var cardHeader = $('<div class="accordion-header" id="heading-' + refname+'">').appendTo(cardDiv)
-                        var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-'+ refname+'" aria-expanded="true" aria-controls="collapse-'+ refname+'">'
-                                        + ref //IMPORTANT: This has to be the original ref for selectRef to work 
-                                    + '</button>').appendTo(cardHeader)
-
-                        var collapseDiv = $('<div id="collapse-'+ refname+'" class="collapse" aria-labelledby="heading-' + refname+'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
-                        var cardBody = $('<div class="card-body">' +
-                                        '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                            '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
-                                        '</div>'+
-                                        '</div>').appendTo(collapseDiv);
-                    }
-                    $(button).click(function (event) {
-                        self.selectRef(event.target.innerHTML);
-                    });
-                }
-
                 if (refs.length > maxRefsCount) {
-                    var li = $('<li class="sidebar-more">More ...</li>').appendTo(ul);
                     var popup = self.addPopup(section, title, id + "-popup", refs);
-                    li.click(function() {
+                }
+                var accordionDiv = self.buildAccordion(section, refs, id, maxRefsCount);
+                if (refs.length > maxRefsCount) {
+                    var more = $('<div class="accordion-item custom-accordion"><div class="accordion-header">More ...</div></div>').appendTo(accordionDiv);
+                    more.click(function() {
                         $(popup).modal('show');
                     });
                 }
@@ -1767,7 +1761,6 @@ var MainUIObject;
 
 $(document).ready(function () {
    MainUIObject = new MainUi();
-   webui.errorMessage="";
 });
 
 function updateSideBar () {
@@ -1784,16 +1777,22 @@ $(function()
     $(document).on('click', '.btn-add', function(e)
     {
         e.preventDefault();
+        if($("#btn_createList").length == 0){
+            var newBranchForm = $('#sidebar-local-branches');
 
-        var newBranchForm = $('#sidebar-local-branches');
-
-        var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
-                            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
-                                '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
-                            '</svg>'+
-                        '</button>' +
-                        '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
-        newBranchForm.append(inputForm);
+            var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#eeeeee" class="bi bi-check2" viewBox="0 0 16 16">'+
+                                    '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>'+
+                                '</svg>'+
+                            '</button>' +
+                            '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
+            newBranchForm.append(inputForm);
+            $("#sidebar-local-branches input").focus();
+        }
+        else {
+            $("#sidebar-local-branches input").focus(); 
+            $("#sidebar-local-branches input").select(); 
+        }
 
     }).on('click', '#btn_createList', function(e)
     {   
@@ -1809,13 +1808,9 @@ $(function () {
         var refName = $(this).parent().parent().parent().siblings(
             ".accordion-header").children("button").html();
 
-        webui.git("checkout " + refName);
-        if(webui.errorMessage==""){
+        webui.git("checkout " + refName, function() {
             updateSideBar();
-        }
-        else{
-            webui.errorMessage="";
-        }
+        });
     });
 
     $(document).on('click', '.btn-delete-branch', function(e) {
@@ -1823,14 +1818,10 @@ $(function () {
         var refName = $(this).parent().parent().parent().siblings(
             ".accordion-header").children("button").html();
 
-        webui.git("branch -d " + refName);
-        webui.showWarning("Local branch "+refName+" deleted.");
-        if(webui.errorMessage==""){
+        webui.git("branch -d " + refName, function() {
+            webui.showWarning("Local branch " + refName + " deleted.");
             updateSideBar();
-        }
-        else{
-            webui.errorMessage="";
-        }
+        });
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
@@ -1842,13 +1833,9 @@ $(function () {
         var branchName = refName.split('/')[1];
         
         webui.git("fetch "+remoteName);
-        webui.git("checkout -b " +branchName + " " + refName);
-        if(webui.errorMessage==""){
+        webui.git("checkout -b " +branchName + " " + refName, function() {
             updateSideBar();
-        }
-        else{
-            webui.errorMessage="";
-        }
+        });
     });
 
 });

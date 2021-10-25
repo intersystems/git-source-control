@@ -8,6 +8,7 @@
 
     new $NAMESPACE
     set $NAMESPACE = namespace
+	set %namespace = namespace
 	
 	try {
 		if (%request.UserAgent [ " Code/") {
@@ -51,11 +52,10 @@
 
 	quit 1
 </script><server>
-	if $data(%base)#2 { 
-        &html<<base href="#(..EscapeHTML(%base))#"/>>
-	}
+    new $NAMESPACE
+	set $NAMESPACE = %namespace
 	if $Get(%stream) {
-		Quit ##class(%CSP.StreamServer).Page()
+		Quit ##class(SourceControl.Git.StreamServer).Page()
 	} elseif $IsObject($Get(%data)) {
         do %data.OutputToDevice()
     }

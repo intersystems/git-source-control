@@ -39,7 +39,6 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
 
 
 webui.showError = function(message) {
-    webui.errorMessage = message;
     $("#error-modal .alert").text(message);
     $("#error-modal").modal('show');
 }
@@ -48,7 +47,7 @@ webui.showWarning = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
     $(  '<div class="alert alert-warning alert-dismissible" role="alert">' +
-            '<button type="button" class="btn btn-default close" data-bs-dismiss="alert">' +
+            '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
             '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
             '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
             '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
@@ -199,7 +198,7 @@ webui.SideBarView = function(mainView) {
                                 '<div class="modal-content">' +
                                     '<div class="modal-header">' +
                                         '<h4 class="modal-title">' + title + '</h4>' +
-                                        '<button type="button" class="btn btn-default close" data-bs-dismiss="modal">'+
+                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
                                         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
                                         '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
                                         '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
@@ -246,19 +245,19 @@ webui.SideBarView = function(mainView) {
                     ref = '  ' + newref;
                 }
             }
-            var cardDiv = $('<div class="accordion-item custom-accordion">').appendTo(accordionDiv)[0];
+            var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 var refname = ref.substr(2);
                 var itemId = refname + idPostfix;
-                var cardHeader = $('<div class="accordion-header" id="heading-' + itemId + '">').appendTo(cardDiv);
-                var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
+                var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
+                var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + refname
                             + '</button>').appendTo(cardHeader);
                 
                 if(ref[0] != "*") {
-                    var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
-                    var cardBody = $('<div class="accordion-body">' +
-                                    '<div class="d-grid gap-2 col-10 mx-auto">'+
+                    var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                    var cardBody = $('<div class="card-body">' +
+                                    '<div class="d-grid gap-2 col-12 mx-auto">'+
                                         '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                     '</div>'+
@@ -277,12 +276,12 @@ webui.SideBarView = function(mainView) {
             } else {
                 var refname = ref.replaceAll('/', '-');
                 var itemId = refname + idPostfix;
-                var cardHeader = $('<div class="accordion-header" id="heading-' + itemId +'">').appendTo(cardDiv);
-                var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
+                var cardHeader = $('<div class="card-header" id="heading-' + itemId +'">').appendTo(cardDiv);
+                var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + ref //IMPORTANT: This has to be the original ref for selectRef to work 
                             + '</button>').appendTo(cardHeader)
 
-                var collapseDiv = $('<div id="collapse-' + itemId + '" class="collapse" aria-labelledby="heading-' + itemId + '" data-bs-parent="#accordion-'+id+'">').appendTo(cardDiv);
+                var collapseDiv = $('<div id="collapse-' + itemId + '" class="collapse" aria-labelledby="heading-' + itemId + '" data-parent="#accordion-'+id+'">').appendTo(cardDiv);
                 var cardBody = $('<div class="card-body">' +
                                 '<div class="d-grid gap-2 col-12 mx-auto">'+
                                     '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
@@ -316,7 +315,12 @@ webui.SideBarView = function(mainView) {
                 }
                 var accordionDiv = self.buildAccordion(section, refs, id, maxRefsCount);
                 if (refs.length > maxRefsCount) {
-                    var more = $('<div class="accordion-item custom-accordion"><div class="accordion-header">More ...</div></div>').appendTo(accordionDiv);
+                    var more = $('<div class="card custom-card">'+
+                                '<div class="card-header">'+
+                                '<button class="btn btn-sm btn-default btn-branch text-left" type="button">'+
+                                'More ...'+
+                                '</button>'+
+                                '</div></div>').appendTo(accordionDiv);
                     more.click(function() {
                         $(popup).modal('show');
                     });
@@ -329,7 +333,7 @@ webui.SideBarView = function(mainView) {
 
     self.mainView = mainView;
     self.element = $(   '<div id="sidebar">' +
-                            '<a href="#" data-bs-toggle="modal" data-bs-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
+                            '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<div id="sidebar-content">' +
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
@@ -1014,8 +1018,8 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
     if (! (parent instanceof webui.CommitExplorerView)) {
         html +=
             '<div class="panel-heading btn-toolbar" role="toolbar">' +
-                '<button type="button" class="btn btn-sm btn-default diff-ignore-whitespace" data-bs-toggle="button">Ignore Whitespace</button>' +
-                '<button type="button" class="btn btn-sm btn-default diff-context-all" data-bs-toggle="button">Complete file</button>' +
+                '<button type="button" class="btn btn-sm btn-default diff-ignore-whitespace" data-toggle="button">Ignore Whitespace</button>' +
+                '<button type="button" class="btn btn-sm btn-default diff-context-all" data-toggle="button">Complete file</button>' +
                 '<div class="btn-group btn-group-sm">' +
                     '<span></span>&nbsp;' +
                     '<button type="button" class="btn btn-default diff-context-remove">-</button>' +
@@ -1705,7 +1709,7 @@ webui.CommitMessageView = function(workspaceView) {
                             '<div class="panel-heading">' +
                                 '<h5>Message</h5>' +
                                 '<div class="btn-group btn-group-sm">' +
-                                    '<button type="button" class="btn btn-default commit-message-amend" data-bs-toggle="button">Amend</button>' +
+                                    '<button type="button" class="btn btn-default commit-message-amend" data-toggle="button">Amend</button>' +
                                     '<button type="button" class="btn btn-default commit-message-commit">Commit</button>' +
                                 '</div>' +
                             '</div>' +
@@ -1766,7 +1770,7 @@ $(document).ready(function () {
 function updateSideBar () {
     var sideBarView = $('#sidebar')[0];              
     MainUIObject.sideBarView = new webui.SideBarView(MainUIObject);
-    sideBarView.replaceWith(MainUIObject.sideBarView.element);
+    $(sideBarView).replaceWith(MainUIObject.sideBarView.element);
 }
 
 $(function () {
@@ -1806,7 +1810,7 @@ $(function () {
     $(document).on('click', '.btn-checkout-local-branch', function(e) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
-            ".accordion-header").children("button").html();
+            ".card-header").children("button").html();
 
         webui.git("checkout " + refName, function() {
             updateSideBar();
@@ -1816,7 +1820,7 @@ $(function () {
     $(document).on('click', '.btn-delete-branch', function(e) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
-            ".accordion-header").children("button").html();
+            ".card-header").children("button").html();
 
         webui.git("branch -d " + refName, function() {
             webui.showWarning("Local branch " + refName + " deleted.");
@@ -1827,7 +1831,7 @@ $(function () {
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
-            ".accordion-header").children("button").html();
+            ".card-header").children("button").html();
 
         var remoteName = refName.split('/')[0];
         var branchName = refName.split('/')[1];

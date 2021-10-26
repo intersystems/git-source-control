@@ -36,8 +36,9 @@ body {
   font-size:105%;
 }
 
-#confirm-delete {
+#confirm-delete, #cancel-delete {
   margin-left: 1rem;
+  margin-top: 0.5rem;
 }
 
 .modal-title pre{

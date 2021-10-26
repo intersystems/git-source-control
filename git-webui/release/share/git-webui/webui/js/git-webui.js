@@ -205,16 +205,16 @@ webui.SideBarView = function(mainView) {
                                         '</svg>'+
                                         '</button>' +
                                     '</div>' +
-                                    '<div class="modal-body"><div class="list-group"></div></div>' +
+                                    '<div class="modal-body"></div>' +
                                 '</div>' +
                             '</div>' +
                         '</div>')[0];
         self.element.appendChild(popup);
-        var popupContent = $(".list-group", popup)[0];
+        var popupContent = $(".modal-body", popup)[0];
         $(self.buildAccordion(section, refs, id, undefined, "popup")).appendTo(popupContent);
         $(popupContent).find(".btn-delete-branch, .btn-checkout-local-branch, .btn-checkout-remote-branch").click(function() {
             $(popup).modal('hide');
-        })
+        });
         return popup;
     };
 
@@ -1819,13 +1819,54 @@ $(function () {
 
     $(document).on('click', '.btn-delete-branch', function(e) {
         e.preventDefault();
+        $("#confirm-branch-delete").remove(); //removes any remaining modals. If there are more than one modals, the ids are duplicated and event listeners won't work.
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();
 
-        webui.git("branch -d " + refName, function() {
-            webui.showWarning("Local branch " + refName + " deleted.");
-            updateSideBar();
+        console.log($(this).parent().parent().parent()[0]);
+
+        var popup = $(  '<div class="modal fade" id="confirm-branch-delete" role="dialog">' +
+                            '<div class="modal-dialog modal-md">' +
+                                '<div class="modal-content">' +
+                                    '<div class="modal-header">' +
+                                        '<h5 class="modal-title">Confirm <pre> '+refName+' </pre>Deletion</h5>' +
+                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+                                        '</svg>'+
+                                        '</button>' +
+                                    '</div>' +
+                                    '<div class="modal-body"></div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>')[0];
+        
+        $("body").append(popup); 
+        var popupContent = $(".modal-body", popup)[0];
+        
+        $("<p>By deleting this branch, you might lose uncommitted work. <br/> Do you want to proceed?</p>"+
+        '<button class="btn btn-sm btn-danger float-right" id="confirm-delete">Delete Branch</button>'+
+        '<button class="btn btn-sm btn-secondary float-right" id="cancel-delete">Cancel</button>').appendTo(popupContent);
+        $(popup).modal('show');
+
+        $("#confirm-branch-delete").on('click', '#confirm-delete', function(e){
+            $(popup).children( ".modal-fade").modal('hide');
+            $(".modal-backdrop").remove();
+            $("#confirm-branch-delete").remove();
+            webui.git("branch -d " + refName, function() {
+                webui.showWarning("Local branch " + refName + " deleted.");
+                updateSideBar();
+            });
+            
+        }); 
+
+        $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
+            $(popup).children( ".modal-fade").modal('hide');
+            $(".modal-backdrop").remove();
+            $("#confirm-branch-delete").remove();
         });
+        
     });
 
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {

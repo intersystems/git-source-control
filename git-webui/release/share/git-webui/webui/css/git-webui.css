@@ -31,12 +31,27 @@ body {
   margin: 0;
   font: 10pt sans-serif;
 }
+
+#confirm-branch-delete p{
+  font-size:105%;
+}
+
+#confirm-delete {
+  margin-left: 1rem;
+}
+
+.modal-title pre{
+  display:inline;
+}
 #error-modal .modal-body {
   margin-bottom: 0;
 }
 .modal-header .close {
-  padding: 1rem 1rem;
-  margin: -0.51rem -0.5rem -1rem auto;
+  padding: 1.25rem 1.5rem;
+  margin: -1rem -1rem -1rem auto;
+}
+.alert-dismissible .close {
+  padding: .3rem 1.25rem;
 }
 #help-modal img {
   display: block;

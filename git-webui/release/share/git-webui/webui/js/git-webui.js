@@ -77,7 +77,7 @@ webui.git = function(cmd, arg1, arg2) {
             var fIndex = data.length;
             while (true) {
                 var oldFIndex = fIndex;
-                var fIndex = data.lastIndexOf("\r\n", fIndex - 1);
+                fIndex = data.lastIndexOf("\r\n", fIndex - 1);
                 var line = data.substring(fIndex + 2, oldFIndex);
                 if (line.length > 0) {
                     var footer = line.split(": ");
@@ -86,20 +86,25 @@ webui.git = function(cmd, arg1, arg2) {
                     break;
                 }
             }
+            // Trims the the data variable to remove the footers extracted in the loop.
+            // Windows adds \r\n for every line break but the Git-Stderr-Length variable,
+            // counts it as only one character, throwing off the message length.
+            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
+            var fIndex = trimmedData.length
 
-            var messageStartIndex = fIndex - parseInt(footers["Git-Stderr-Length"]);
-            var message = data.substring(messageStartIndex, fIndex);
-            var output = data.substring(0, messageStartIndex);
+            var messageLength = parseInt(footers["Git-Stderr-Length"]);
+            var messageStartIndex = fIndex-messageLength;
+            var message = trimmedData.substring(messageStartIndex, fIndex);
+
+            var output = trimmedData.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
-            console.log(data)
-            console.log(parseInt(footers["Git-Stderr-Length"]))
-            console.log(message)
+
             if (rcode == 0) {
                 if (callback) {
                     callback(output);
                 }
                 // Return code is 0 but there is stderr output: this is a warning message
-                if (message.length > 1) {
+                if (message.length > 0) {
                     webui.showWarning(message);
                 }
             } else {
@@ -1825,8 +1830,6 @@ $(function () {
         $("#confirm-branch-delete").remove(); //removes any remaining modals. If there are more than one modals, the ids are duplicated and event listeners won't work.
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();
-
-        console.log($(this).parent().parent().parent()[0]);
 
         var popup = $(  '<div class="modal fade" id="confirm-branch-delete" role="dialog">' +
                             '<div class="modal-dialog modal-md">' +

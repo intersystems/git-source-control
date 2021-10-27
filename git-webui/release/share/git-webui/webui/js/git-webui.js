@@ -91,6 +91,9 @@ webui.git = function(cmd, arg1, arg2) {
             var message = data.substring(messageStartIndex, fIndex);
             var output = data.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
+            console.log(data)
+            console.log(parseInt(footers["Git-Stderr-Length"]))
+            console.log(message)
             if (rcode == 0) {
                 if (callback) {
                     callback(output);
@@ -100,9 +103,6 @@ webui.git = function(cmd, arg1, arg2) {
                     webui.showWarning(message);
                 }
             } else {
-                console.log(data)
-                console.log(parseInt(footers["Git-Stderr-Length"]))
-                console.log(message)
                 webui.showError(message);
             }
         } else {

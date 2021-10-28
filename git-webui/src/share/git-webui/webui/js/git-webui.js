@@ -57,9 +57,11 @@ webui.showWarning = function(message) {
         '</div>').appendTo(messageBox);
 }
 
-webui.git = function(cmd, arg1, arg2) {
+webui.git = function(cmd, arg1, arg2, arg3, arg4) {
     // cmd = git command line arguments
-    // other arguments = optional stdin content and a callback function:
+    // other arguments = optional stdin content and a callback function.
+    // arg3 = optional callback for error handling
+    // arg4 = optional callback for warning handling
     // ex:
     // git("log", mycallback)
     // git("commit -F -", "my commit message", mycallback)
@@ -70,6 +72,14 @@ webui.git = function(cmd, arg1, arg2) {
         cmd += "\n" + arg1;
         var callback = arg2;
     }
+
+    if (typeof(arg3) == "function") {
+        var errorCallback = arg3;
+    } 
+    if (typeof(arg4) == "function") {
+        var warningCallback = arg4;
+    } 
+
     $.post("git", cmd, function(data, status, xhr) {
         if (xhr.status == 200) {
             // Convention : last lines are footer meta data like headers. An empty line marks the start if the footers
@@ -105,13 +115,25 @@ webui.git = function(cmd, arg1, arg2) {
                 }
                 // Return code is 0 but there is stderr output: this is a warning message
                 if (message.length > 0) {
-                    webui.showWarning(message);
+                    if(warningCallback) {
+                        warningCallback(message);
+                    } else {
+                        webui.showWarning(message);
+                    }
                 }
             } else {
-                webui.showError(message);
+                if(errorCallback) {
+                    errorCallback(message);
+                } else{
+                    webui.showError(message);
+                }
             }
         } else {
-            webui.showError(data);
+            if(errorCallback) {
+                errorCallback(message);
+            } else{
+                webui.showError(message);
+            }
         }
     }, "text")
     .fail(function(xhr, status, error) {
@@ -1781,6 +1803,12 @@ function updateSideBar () {
     $(sideBarView).replaceWith(MainUIObject.sideBarView.element);
 }
 
+function removeAllChildNodes(parent) {
+    while (parent.firstChild) {
+        parent.removeChild(parent.firstChild);
+    }
+}
+
 $(function () {
     $('[data-toggle="tooltip"]').tooltip()
 })
@@ -1827,6 +1855,12 @@ $(function () {
 
     $(document).on('click', '.btn-delete-branch', function(e) {
         e.preventDefault();
+
+        function removeDeleteModal(popup) {
+            $(popup).children( ".modal-fade").modal('hide');
+            $(".modal-backdrop").remove();
+            $("#confirm-branch-delete").remove();
+        }
         $("#confirm-branch-delete").remove(); //removes any remaining modals. If there are more than one modals, the ids are duplicated and event listeners won't work.
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();
@@ -1861,20 +1895,45 @@ $(function () {
         $(popup).modal('show');
 
         $("#confirm-branch-delete").on('click', '#confirm-delete', function(e){
-            $(popup).children( ".modal-fade").modal('hide');
-            $(".modal-backdrop").remove();
-            $("#confirm-branch-delete").remove();
-            webui.git("branch -d " + refName, function() {
-                webui.showWarning("Local branch " + refName + " deleted.");
+
+            removeDeleteModal(popup);
+
+            function deleteSuccessDisplay(output) {
+                webui.showWarning(output);
                 updateSideBar();
-            });
-            
-        }); 
+            }
+
+            function forceDelete(message) {
+                if(message.includes("git branch -D")){
+                    $("body").append(popup); 
+                    var popupContent = $(".modal-body", popup)[0];
+                    removeAllChildNodes(popupContent);
+                    $('<div class="row"><div class="col-sm-1">'+
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
+                        '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
+                    '</svg></div>'+
+                    '<div class="col-sm-11">This branch is not fully merged. Do you want to force delete it?</div></div>'+
+                    '<button class="btn btn-sm btn-danger float-right" id="confirm-force-delete">Force Delete</button>'+
+                    '<button class="btn btn-sm btn-secondary float-right" id="cancel-delete">Cancel</button>').appendTo(popupContent);
+                    $(popup).modal('show');
+
+                    $("#confirm-branch-delete").on('click', '#confirm-force-delete', function(e){
+                        removeDeleteModal(popup);
+                        webui.git("branch -D " + refName, function(output) {
+                            webui.showWarning(output);
+                            updateSideBar();
+                        });
+                    });
+                }
+                else {
+                    webui.showError(message);
+                }
+            }
+            webui.git("branch -d " + refName, deleteSuccessDisplay(output), "", forceDelete(message));  
+        });
 
         $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
-            $(popup).children( ".modal-fade").modal('hide');
-            $(".modal-backdrop").remove();
-            $("#confirm-branch-delete").remove();
+            removeDeleteModal(popup);
         });
         
     });

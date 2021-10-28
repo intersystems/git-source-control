@@ -1921,6 +1921,10 @@ $(function () {
                         removeDeleteModal(popup);
                         webui.git("branch -D " + refName, deleteSuccessDisplay);
                     });
+
+                    $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
+                        removeDeleteModal(popup);
+                    });
                 }
                 else {
                     webui.showError(message);

@@ -1919,17 +1919,14 @@ $(function () {
 
                     $("#confirm-branch-delete").on('click', '#confirm-force-delete', function(e){
                         removeDeleteModal(popup);
-                        webui.git("branch -D " + refName, function(output) {
-                            webui.showWarning(output);
-                            updateSideBar();
-                        });
+                        webui.git("branch -D " + refName, deleteSuccessDisplay);
                     });
                 }
                 else {
                     webui.showError(message);
                 }
             }
-            webui.git("branch -d " + refName, deleteSuccessDisplay(output), "", forceDelete(message));  
+            webui.git("branch -d " + refName, deleteSuccessDisplay, "", forceDelete);  
         });
 
         $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {

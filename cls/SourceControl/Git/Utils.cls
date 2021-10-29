@@ -313,7 +313,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
 
-    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
+    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream, remote, branchName)
     if (sc=1){
         do errStream.OutputToDevice()
         quit sc
@@ -322,7 +322,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !, "Fetch done"
     write !, "Files in diff: "
 
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (remote_"/"_branchName), branchName)
     while (outStream.AtEnd = 0) { 
         set file = outStream.ReadLine()
         set files($I(files)) = file

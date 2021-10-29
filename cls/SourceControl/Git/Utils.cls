@@ -307,7 +307,8 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 }
 
 ClassMethod Pull(remote As %String = "origin") As %Status
-{
+{   
+    //test comment
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)

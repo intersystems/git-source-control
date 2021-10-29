@@ -307,8 +307,8 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
 }
 
 ClassMethod Pull(remote As %String = "origin") As %Status
-{   
-    //test comment
+{
+   
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
@@ -323,7 +323,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !, "Fetch done"
     write !, "Files in diff: "
 
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (remote_"/"_branchName), branchName)
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (remote_"/"_branchName), branchName, "--name-only")
     while (outStream.AtEnd = 0) { 
         set file = outStream.ReadLine()
         set files($I(files)) = file

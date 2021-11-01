@@ -17,37 +17,6 @@ Method OnPull() As %Status
         set internalName = ..ModifiedFiles(externalName)
         if (internalName = "") {
             write externalName, " was not imported into the database and will not be compiled. ", !
-        } elseif '(##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename(externalName,..LocalRoot))) {
-            #dim type As %String = ##class(SourceControl.Git.Utils).Type(internalName)
-            #dim name As %String = ##class(SourceControl.Git.Utils).NameWithoutExtension(internalName)
-            #dim deleted As %Boolean = 1
-
-            if type = "prj" {
-                set ec = $$$ADDSC(ec, $system.OBJ.DeleteProject(name))
-            }elseif type = "cls" {
-                set ec = $$$ADDSC(ec, $system.OBJ.Delete(internalName))
-            }elseif $ListFind($ListBuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
-                set ec = $$$ADDSC(ec, ##class(%Routine).Delete(internalName))
-            }elseif type = "csp" {
-                #dim filename = $system.CSP.GetFileName(internalName)
-                if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
-                    set ec = $$$ADDSC(ec, ##class(SourceControl.Git.Utils).MakeError("Error while removing "_internalName))
-                }
-            } else {
-                set deleted = 0
-            }
-
-            if deleted && ec {
-                do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(internalName)
-                write internalName, " was deleted", !
-            } else {
-                if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {
-                    write "Error: could not delete ", internalName, !
-                } else {
-                    // if something we wanted to delete is already deleted -- good!
-                    set ec = $$$OK
-                }
-            }
         } else {
             set compilelist(internalName) = ""
             set nFiles = nFiles + 1

@@ -368,6 +368,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 
             if deleted && sc {
                 do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(internalName)
+                set event.ModifiedFiles(externalName) = ""
             } else {
                 if +$system.Status.GetErrorCodes(sc) '= $$$ClassDoesNotExist {
                     write "Error: could not delete ", internalName, !
@@ -377,7 +378,8 @@ ClassMethod Pull(remote As %String = "origin") As %Status
                 }
             }
         }
-        set externalName = $ORDER(..ModifiedFiles(externalName))
+        set externalName = $ORDER(event.ModifiedFiles(externalName))
+        if 
     }
 	quit event.OnPull()
 }

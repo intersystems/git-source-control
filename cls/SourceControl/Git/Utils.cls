@@ -356,6 +356,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
                 set sc = $$$ADDSC(sc, $system.OBJ.DeleteProject(name))
             }elseif type = "cls" {
                 set sc = $$$ADDSC(sc, $system.OBJ.Delete(internalName))
+                do $system.Status.DisplayError(sc)
             }elseif $ListFind($ListBuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
                 set sc = $$$ADDSC(sc, ##class(%Routine).Delete(internalName))
             }elseif type = "csp" {
@@ -379,7 +380,6 @@ ClassMethod Pull(remote As %String = "origin") As %Status
             }
         }
         set externalName = $ORDER(event.ModifiedFiles(externalName))
-        if 
     }
 	quit event.OnPull()
 }

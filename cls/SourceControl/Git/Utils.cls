@@ -340,47 +340,9 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 	do outStream.OutputToDevice()
     write !
 
-    set sc = $$$OK
     set event = $classmethod(..PullEventClass(),"%New")
     set event.LocalRoot = ..TempFolder()
     merge event.ModifiedFiles = files
-
-    set externalName = $ORDER(event.ModifiedFiles(""))
-    while(externalName '= "") {
-        set internalName = event.ModifiedFiles(externalName)
-        if '(##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename(externalName,event.LocalRoot))) {
-            #dim type As %String = ##class(SourceControl.Git.Utils).Type(internalName)
-            #dim name As %String = ##class(SourceControl.Git.Utils).NameWithoutExtension(internalName)
-            #dim deleted As %Boolean = 1
-
-            if type = "prj" {
-                set sc = $$$ADDSC(sc, $system.OBJ.DeleteProject(name))
-            }elseif type = "cls" {
-                set sc = $$$ADDSC(sc, $system.OBJ.Delete(internalName))
-            }elseif $ListFind($ListBuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
-                set sc = $$$ADDSC(sc, ##class(%Routine).Delete(internalName))
-            }elseif type = "csp" {
-                if ##class(%File).Exists(externalName) && '##class(%File).Delete(externalName) {
-                    set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).MakeError("Error while removing "_internalName))
-                }
-            } else {
-                set deleted = 0
-            }
-
-            if deleted && sc {
-                do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(internalName)
-                set event.ModifiedFiles(externalName) = ""
-            } else {
-                if +$system.Status.GetErrorCodes(sc) '= $$$ClassDoesNotExist {
-                    write "Error: could not delete ", internalName, !
-                } else {
-                    // if something we wanted to delete is already deleted -- good!
-                    set sc = $$$OK
-                }
-            }
-        }
-        set externalName = $ORDER(event.ModifiedFiles(externalName))
-    }
 	quit event.OnPull()
 }
 

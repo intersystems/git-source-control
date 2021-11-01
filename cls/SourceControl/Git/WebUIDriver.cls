@@ -151,18 +151,25 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 } else {
                     set inFile = ""
                 }
-                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.%data,gitArgs...)
+                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
 
-                do %data.MoveToEnd()
+                set %data = ##class(%Stream.TmpCharacter).%New()
+                set changeTerminators = (%data.LineTerminator '= $c(13,10))
+                set %data.LineTerminator = $c(13,10) // For the CSPGateway.
+                while 'outStream.AtEnd {
+                    do %data.WriteLine(outStream.ReadLine())
+                }
 
+                set nLines = 0
                 while 'errStream.AtEnd {
                     do %data.WriteLine(errStream.ReadLine())
+                    set:changeTerminators nLines = nLines + 1
                 }
                 
                 // Need to write out two lines or we get an infinite loop in JavaScript...
                 do %data.WriteLine()
                 do %data.WriteLine()
-                do %data.WriteLine("Git-Stderr-Length: " _ errStream.Size)
+                do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 set handled = 1

@@ -65,14 +65,10 @@ ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 
 ClassMethod GitBinExists() As %Boolean
 {
-	#if $system.Version.GetOS()'="Windows" 
-	 quit 0
-	#else 
 	if '$Data(@..InstallNamespaceStorage()@("%gitBinExists")) {
 		set @..InstallNamespaceStorage()@("%gitBinExists") = ##class(%File).Exists($Extract(..GitBinPath(),2,*-1))
 	}
 	quit @..InstallNamespaceStorage()@("%gitBinExists")
-	#endif
 }
 
 ClassMethod GitBinPath() As %String
@@ -135,11 +131,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     #dim menuName As %String = $Piece(MenuName,",")
     #dim menuItemName As %String = $Piece(MenuName,",",2)
     #dim ec As %Status = $$$OK
-    
-    if ..GitBinExists() = 0 && (menuItemName'="%Cache-Git-Settings") && 
-    		($system.Version.GetOS()="Windows") {
-        write !!,"===Path to git.exe not found: "_..GitBinPath()_"!===",!
-    }
     
     if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
         set InternalName = "/" _ InternalName
@@ -1149,7 +1140,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set command = $Extract(..GitBinPath(),2,*-1)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),command,newArgs...)
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1356,3 +1348,4 @@ ClassMethod OutputConfigureMessage()
 }
 
 }
+

@@ -340,6 +340,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 	do outStream.OutputToDevice()
     write !
 
+    set sc = $$$OK
     set event = $classmethod(..PullEventClass(),"%New")
     set event.LocalRoot = ..TempFolder()
     merge event.ModifiedFiles = files
@@ -356,7 +357,6 @@ ClassMethod Pull(remote As %String = "origin") As %Status
                 set sc = $$$ADDSC(sc, $system.OBJ.DeleteProject(name))
             }elseif type = "cls" {
                 set sc = $$$ADDSC(sc, $system.OBJ.Delete(internalName))
-                do $system.Status.DisplayError(sc)
             }elseif $ListFind($ListBuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
                 set sc = $$$ADDSC(sc, ##class(%Routine).Delete(internalName))
             }elseif type = "csp" {

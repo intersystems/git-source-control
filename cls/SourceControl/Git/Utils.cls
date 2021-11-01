@@ -325,8 +325,9 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (remote_"/"_branchName), branchName, "--name-only")
     while (outStream.AtEnd = 0) { 
         set file = outStream.ReadLine()
-        set files($I(files)) = file
-        write !,?4, file
+        set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(file)
+        set files(file) = internalName
+        write !,?4, internalName, ": ", file
     }
 
 	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
@@ -1356,3 +1357,4 @@ ClassMethod OutputConfigureMessage()
 }
 
 }
+

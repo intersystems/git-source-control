@@ -16,6 +16,9 @@ Method OnPull() As %Status
             set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i),,0) 
             if (internalName = "") {
                 write ..ModifiedFiles(i), " was not imported into the database and will not be compiled. ", !
+            } elseif '(##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename(..ModifiedFiles(i),..LocalRoot))) {
+                do $system.OBJ.Delete(internalName)
+                write ..ModifiedFiles(i), " was deleted from the module.",!
             } else {
                 set compilelist(internalName) = ""
                 set nFiles = nFiles + 1
@@ -33,4 +36,3 @@ Method OnPull() As %Status
 }
 
 }
-

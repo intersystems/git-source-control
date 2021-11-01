@@ -9,11 +9,10 @@ Parameter DESCRIPTION = "Does a zpm ""load <repo root>"" for PackageManager-enab
 
 Method OnPull() As %Status
 {
-    If ##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename("module.xml",..LocalRoot)) {
-        Quit ##class(SourceControl.Git.PullEventHandler.PackageManager)$This.OnPull()
-    }
+    #; If ##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename("module.xml",..LocalRoot)) {
+    #;     Quit ##class(SourceControl.Git.PullEventHandler.PackageManager)$This.OnPull()
+    #; }
     Quit ##class(SourceControl.Git.PullEventHandler.IncrementalLoad)$This.OnPull()
 }
 
 }
-

@@ -13,7 +13,7 @@ Storage Default
 <Type>%Storage.Persistent</Type>
 }
 
-/// Removes one or more Uncommitted items from the Uncommitted queue and changes the exported file to Reaonly (except for reverts of Adds, or new CSP files within the Perforce root)
+/// Removes one or more Uncommitted items from the Uncommitted queue and changes the exported file to Readonly (except for reverts of Adds, or new CSP files within the Perforce root)
 /// <P> Default assumed behavior is that the the change was not reverted, and that it was actively committed to Perforce
 /// <P> If the method calling does not know whether it was reverted or committed to Perforce, then it should pass <var>Revert</var> = 0 and <var>ActiveCommit</var> = 0, 
 /// indicating that the change might have been reverted and the Perforce history should be checked for the definitive answer.
@@ -88,4 +88,3 @@ ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
 }
 
 }
-

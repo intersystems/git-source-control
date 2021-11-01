@@ -24,7 +24,7 @@ module.exports = function(grunt) {
             popperjs: {
                 expand: true,
                 flatten: true,
-                src: 'node_modules/@popperjs/core/dist/umd/popper.min.js',
+                src: 'node_modules/popper.js/dist/umd/popper.min.js',
                 dest: 'dist/share/git-webui/webui/js/',
             },
             git_webui: {

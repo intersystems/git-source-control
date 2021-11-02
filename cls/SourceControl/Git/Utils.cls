@@ -76,6 +76,7 @@ ClassMethod GitBinExists(ByRef version) As %Boolean
 
 ClassMethod GitBinPath(Output isDefault) As %String
 {
+    set isDefault = 0
     set binPath = "git"
     if '$Data(@..InstallNamespaceStorage()@("%gitBinPath"),binPath)#2 {
         set isDefault = 1

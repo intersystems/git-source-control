@@ -4,7 +4,7 @@
 ## Prerequisites/Dependencies
 
 * IRIS instance with license key
-* Git
+* Git 2.x (tested as far back as 2.22)
 * InterSystems package manager (https://openexchange.intersystems.com/package/ObjectScript-Package-Manager)
 
 ## Installation and Setup

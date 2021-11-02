@@ -71,7 +71,7 @@ hr {
         <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
 
         <div class="form-group row mb-3">
-            <label for="gitBinPath" class="col-sm-3 col-form-label" data-toggle="tooltip" title="Absolute path to the Git executable">Path to git.exe</label>
+            <label for="gitBinPath" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
             <div class="col-sm-7">
                 <server>
                     set exists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
@@ -92,14 +92,14 @@ hr {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="namespaceTemp" class="col-sm-3 col-form-label" data-toggle="tooltip" title="Absolute path to you project">Temp folder for this namespace<br/></label>
+            <label for="namespaceTemp" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <label for="privateKeyFile" class="col-sm-3 col-form-label" data-toggle="tooltip" title="Absolute path to your private SSH key file">SSH Private Key File</label>
+            <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
                 
@@ -107,7 +107,7 @@ hr {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="pullEventClass" class="col-sm-3 col-form-label" data-toggle="tooltip" title="Handler class for git pull">Pull Event Class</label>
+            <label for="pullEventClass" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
                     <option value="SourceControl.Git.PullEventHandler.Default" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.Default":"selected",:""))#>Default</option>
@@ -118,7 +118,7 @@ hr {
 
         <div class="form-group row mb-3 mapping-input-group">
             <div class="col-sm-3">
-                <label for="MappingsPath" class="col-form-label" data-toggle="tooltip" title="Relative paths mapping the files in your project">Mappings</label>
+                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project">Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
                         <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"></path>
@@ -173,14 +173,14 @@ hr {
         <br/><br/><br/>
 
         <div class="form-group row mb-3">
-            <label for="gitUserName" class="col-sm-3 col-form-label" data-toggle="tooltip" title="Firstname Lastname">Git Committer Name </label>
+            <label for="gitUserName" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <label for="gitUserEmail" class="col-sm-3 col-form-label" data-toggle="tooltip" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
+            <label for="gitUserEmail" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>

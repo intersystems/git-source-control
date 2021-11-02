@@ -73,9 +73,20 @@ hr {
         <div class="form-group row mb-3">
             <label for="gitBinPath" class="col-sm-3 col-form-label" data-toggle="tooltip" title="Absolute path to the Git executable">Path to git.exe</label>
             <div class="col-sm-7">
-                <input type="text" class="form-control" id="gitBinPath" name="gitBinPath" value='#(..EscapeHTML(settings.gitBinPath))#' placeholder="(e.g. C:\Program Files\Git\bin\git.exe)">
-                <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).GitBinExists()=0)'>
+                <server>
+                    set exists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
+                    set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\Program Files\Git\bin\git.exe)",
+                        1:"(e.g., /usr/bin/git)")
+                    if (exists && (settings.gitBinPath = "")) {
+                        set placeholder = "(available via PATH at version shown below)"
+                    }
+                </server>
+                <input type="text" class="form-control" id="gitBinPath" name="gitBinPath" value='#(..EscapeHTML(settings.gitBinPath))#' placeholder="#(placeholder)#">
+                <csp:if condition="'$length(version)">
                     <p class="text-danger">File not found</p>
+                <csp:else>
+                    <p><em>#(version)#</em></p>
+                </csp:else>
                 </csp:if>
             </div>
         </div>

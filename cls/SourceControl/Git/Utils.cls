@@ -63,17 +63,23 @@ ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
     quit result
 }
 
-ClassMethod GitBinExists() As %Boolean
+ClassMethod GitBinExists(ByRef version) As %Boolean
 {
-	if '$Data(@..InstallNamespaceStorage()@("%gitBinExists")) {
-		set @..InstallNamespaceStorage()@("%gitBinExists") = ##class(%File).Exists($Extract(..GitBinPath(),2,*-1))
-	}
-	quit @..InstallNamespaceStorage()@("%gitBinExists")
+    Try {
+        Do ..RunGitCommand("--version",.err,.out)
+        Set version = out.ReadLine()
+    } Catch e {
+        Set version = ""
+    }
+    Quit (version '= "")
 }
 
-ClassMethod GitBinPath() As %String
+ClassMethod GitBinPath(Output isDefault) As %String
 {
-    set binPath = $Get(@..InstallNamespaceStorage()@("%gitBinPath"))
+    set binPath = "git"
+    if '$Data(@..InstallNamespaceStorage()@("%gitBinPath"),binPath)#2 {
+        set isDefault = 1
+    }
     quit $case($Extract(binPath),"""":binPath,:""""_binPath_"""")
 }
 

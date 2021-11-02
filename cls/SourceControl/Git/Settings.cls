@@ -6,7 +6,7 @@ Class SourceControl.Git.Settings Extends %RegisteredObject
 {
 
 /// Path to git executable
-Property gitBinPath As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitBinPath()}, Required ];
+Property gitBinPath As %String;
 
 /// Local git repo root folder
 Property namespaceTemp As %String [ InitialExpression = {##class(SourceControl.Git.Utils).TempFolder()}, Required ];
@@ -28,6 +28,10 @@ Property Mappings [ MultiDimensional ];
 Method %OnNew() As %Status
 {
     Merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
+    Set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
+    If ('isDefault) {
+        Set ..gitBinPath = gitBinPath
+    }
     quit $$$OK
 }
 
@@ -35,7 +39,10 @@ Method %Save() As %Status
 {
     set sysStorage = ##class(SourceControl.Git.Utils).InstallNamespaceStorage()
     set storage = ##class(SourceControl.Git.Utils).#Storage
-    set @sysStorage@("%gitBinPath") = ..gitBinPath
+    kill @sysStorage@("%gitBinPath")
+    if (..gitBinPath '= "") {
+        set @sysStorage@("%gitBinPath") = ..gitBinPath
+    }
     kill @sysStorage@("%gitBinExists")
     
     set @storage@("settings","namespaceTemp") = ##class(SourceControl.Git.Utils).AddSlash(..namespaceTemp)
@@ -80,3 +87,4 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
+

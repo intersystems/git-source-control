@@ -18,6 +18,12 @@ ClassMethod Configure()
             set @mappingsNode@("MAC","*")="rtn/"
             write !,"Configured default mappings for classes, routines, and include files. You can customize these in the global:",!?5,mappingsNode
         }
+        set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
+        set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
+        if gitExists && isDefault {
+            // Note: version starts with "git version"
+            write !,version," is available via PATH. You may enter a path to a different version if needed."
+        }
         set good = ##class(SourceControl.Git.Settings).Configure()
         if 'good {
             write !,"Cancelled."

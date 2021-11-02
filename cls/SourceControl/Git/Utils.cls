@@ -63,21 +63,24 @@ ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
     quit result
 }
 
-ClassMethod GitBinExists() As %Boolean
+ClassMethod GitBinExists(ByRef version) As %Boolean
 {
-	#if $system.Version.GetOS()'="Windows" 
-	 quit 0
-	#else 
-	if '$Data(@..InstallNamespaceStorage()@("%gitBinExists")) {
-		set @..InstallNamespaceStorage()@("%gitBinExists") = ##class(%File).Exists($Extract(..GitBinPath(),2,*-1))
-	}
-	quit @..InstallNamespaceStorage()@("%gitBinExists")
-	#endif
+    Try {
+        Do ..RunGitCommand("--version",.err,.out)
+        Set version = out.ReadLine()
+    } Catch e {
+        Set version = ""
+    }
+    Quit (version '= "")
 }
 
-ClassMethod GitBinPath() As %String
+ClassMethod GitBinPath(Output isDefault) As %String
 {
-    set binPath = $Get(@..InstallNamespaceStorage()@("%gitBinPath"))
+    set isDefault = 0
+    set binPath = "git"
+    if '$Data(@..InstallNamespaceStorage()@("%gitBinPath"),binPath)#2 {
+        set isDefault = 1
+    }
     quit $case($Extract(binPath),"""":binPath,:""""_binPath_"""")
 }
 
@@ -135,11 +138,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     #dim menuName As %String = $Piece(MenuName,",")
     #dim menuItemName As %String = $Piece(MenuName,",",2)
     #dim ec As %Status = $$$OK
-    
-    if ..GitBinExists() = 0 && (menuItemName'="%Cache-Git-Settings") && 
-    		($system.Version.GetOS()="Windows") {
-        write !!,"===Path to git.exe not found: "_..GitBinPath()_"!===",!
-    }
     
     if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
         set InternalName = "/" _ InternalName
@@ -1149,7 +1147,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),"git",newArgs...)
+    set command = $Extract(..GitBinPath(),2,*-1)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),command,newArgs...)
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1356,3 +1355,4 @@ ClassMethod OutputConfigureMessage()
 }
 
 }
+

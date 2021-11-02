@@ -12,9 +12,9 @@ Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 /// Name of the file with version controlled items
 Parameter SCListFilename = "sc-list.txt";
 
-Parameter GitMenuItems = ",%Settings,%Commit,%Pull,%Fetch,%Push,%Revert,";
+Parameter GitMenuItems = ",Settings,Commit,Pull,Fetch,Push,Revert,";
 
-Parameter ImportAfterGitMenuItems = ",%Commit,%Pull,%Fetch,%Push,";
+Parameter ImportAfterGitMenuItems = ",Commit,Pull,Fetch,Push,";
 
 Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
@@ -65,12 +65,17 @@ ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 
 ClassMethod GitBinExists(ByRef version) As %Boolean
 {
+    // Intentionally leak this as an optimization.
+    If $Data(^||GitVersion,version)#2 && (version '= "") {
+        Quit 1
+    }
     Try {
         Do ..RunGitCommand("--version",.err,.out)
         Set version = out.ReadLine()
     } Catch e {
         Set version = ""
     }
+    Set ^||GitVersion = version
     Quit (version '= "")
 }
 
@@ -143,10 +148,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set InternalName = "/" _ InternalName
     }
 
-    if (menuItemName = "%Settings") {
+    if (menuItemName = "Settings") {
         set Action = 2
         set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
-    } elseif (menuItemName = "%Init") {
+    } elseif (menuItemName = "Init") {
         if ##class(%File).CreateDirectoryChain(..TempFolder()) {
             // cleanup items info
             kill @..#Storage@("items")
@@ -157,55 +162,55 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         } else {
             set ec = ..MakeError("Unable to create folder "_..TempFolder())
         }
-    } elseif (menuItemName = "%GitWebUI") {
+    } elseif (menuItemName = "GitWebUI") {
         set Action = 2
         set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$ZConvert(InternalName,"O","URL")
-    } elseif (menuItemName = "%Export") || (menuItemName = "%ExportForce") {
+    } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write "==export start==",!
-        set ec = ..ExportAll($case(menuItemName="%ExportForce",1:$$$Force,:0))
+        set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
         if ec {
             write !,"==export done==",!
         }
-    } elseif (menuItemName = "%Import") {
+    } elseif (menuItemName = "Import") {
         set ec = ..ImportAll()
         set Reload = 1
-    } elseif (menuItemName = "%ImportForce") {
+    } elseif (menuItemName = "ImportForce") {
         set ec = ..ImportAll($$$Force)
         set Reload = 1
     } elseif (menuItemName = "%OpenRepoFolder") {
         set Action = 3
         set Target = ..TempFolder()
-    } elseif (menuItemName = "%Revert") {
+    } elseif (menuItemName = "Revert") {
         set Reload = 1
         quit ..Revert(InternalName)
-    } elseif (menuItemName = "%NewBranch") {
+    } elseif (menuItemName = "NewBranch") {
         set Target = "Please enter the name of the new branch"
         set Action = 7
         quit $$$OK
-    } elseif (menuItemName = "%SwitchBranch") {
+    } elseif (menuItemName = "SwitchBranch") {
         set Target = "Please enter the name of the existing branch"
         set Action = 7
         quit $$$OK
-    } elseif (menuItemName = "%Commit") {
+    } elseif (menuItemName = "Commit") {
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
-    } elseif (menuItemName = "%Push") {
+    } elseif (menuItemName = "Push") {
         quit ..Push()
-    } elseif (menuItemName = "%Fetch") {
+    } elseif (menuItemName = "Fetch") {
         $$$QuitOnError(..Fetch(.diffFiles))
         set pointer = 0
         while $ListNext(diffFiles, pointer, item){
             write !,item
         }
         write !
-    } elseif (menuItemName = "%Pull") {
+    } elseif (menuItemName = "Pull") {
         quit ..Pull()
-    } elseif (menuItemName = "%AddToSC") {
+    } elseif (menuItemName = "AddToSC") {
         set ec = ..AddToSourceControl(InternalName)
-    } elseif (menuItemName = "%RemoveFromSC") {
+    } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
-    } elseif (menuItemName = "%Commit") {
+    } elseif (menuItemName = "Commit") {
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
@@ -217,20 +222,20 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
 {
     #dim menuName As %String = $Piece(Name,",")
     #dim menuItemName As %String = $Piece(Name,",",2)
-    if (menuItemName = "%Revert") || (menuItemName [ "%Import") {
+    if (menuItemName = "Revert") || (menuItemName [ "Import") {
         set Reload = 1
     }
-    if (menuItemName = "%Commit") {
+    if (menuItemName = "Commit") {
 	    if (Answer = 1) {
 		    do ..Commit(InternalName, Msg)
 		    set Reload = 1
 	    }
-    } elseif (menuItemName = "%NewBranch") {
+    } elseif (menuItemName = "NewBranch") {
         if (Answer = 1) {
             do ..NewBranch(Msg)
             set Reload = 1
         }
-    } elseif (menuItemName = "%SwitchBranch") {
+    } elseif (menuItemName = "SwitchBranch") {
         if (Answer = 1) {
             do ..SwitchBranch(Msg)
             set Reload = 1
@@ -620,6 +625,10 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 {
     #dim isInSourceControl As %Boolean = 1
     set sourceControlItem = ""
+    if (InternalName = "") {
+	    quit 0
+    }
+    
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
     if $Data(@..#Storage@("items", ..NormalizeExtension(InternalName))) {
 	    set InternalName = ..NormalizeExtension(InternalName)
@@ -643,7 +652,8 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
         #dim type As %String = ..Type(InternalName)
         if type = "cls" {
 	        #define StripExtension(%s) $Piece(%s,".",1,$Length(%s, ".") - 1)
-	        if InternalName'="" && ($$$defClassKeyGet($$$StripExtension(InternalName),$$$cCLASSgeneratedby)'="") {
+	        set className = $$$StripExtension(InternalName)
+	        if (InternalName '= "") && (className '= "") && ($$$defClassKeyGet(className,$$$cCLASSgeneratedby)'="") {
 		        set isInSourceControl = 0 // skip generated classes
 	        } else {
             	set isInSourceControl = ..FindInPackages(InternalName, .sourceControlItem)
@@ -1352,6 +1362,22 @@ ClassMethod OutputConfigureMessage()
         write !!,"NOTE: To configure settings for git-source-control, run the following command: ",!
         write "do ##class(SourceControl.Git.API).Configure()",!
     }
+}
+
+ClassMethod Localize()
+{
+    // Ensure we don't fall back to defaults due to lack of en-us or the default language.
+    merge ^IRIS.Msg("Studio","en-us") = ^IRIS.Msg("Studio","en")
+    if $$$DefaultLanguage '= "en" {
+        merge ^IRIS.Msg("Studio",$$$DefaultLanguage) = ^IRIS.Msg("Studio","en")
+    }
+}
+
+ClassMethod GetSourceControlInclude() As %String
+{
+    quit $Select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
+        "<script type=""text/javascript"" src=""/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
+        1: "")
 }
 
 }

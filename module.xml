@@ -22,6 +22,7 @@
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 
       <Invoke Class="SourceControl.Git.Utils" Method="OutputConfigureMessage" />
+      <Invoke Class="SourceControl.Git.Utils" Method="Localize" />
     </Module>
   </Document>
 </Export>

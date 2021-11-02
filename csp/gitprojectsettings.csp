@@ -7,6 +7,7 @@
 <title>IRIS/Git Integration Settings</title>
 <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
 <link rel="stylesheet" type="text/css" href="css/git-webui.css" />
+#(##class(SourceControl.Git.Utils).GetSourceControlInclude())#
 <style type='text/css'>
 .error {
     color: red;

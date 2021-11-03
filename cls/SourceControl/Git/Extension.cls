@@ -4,36 +4,38 @@ Import SourceControl.Git
 Class SourceControl.Git.Extension Extends %Studio.Extension.Base
 {
 
+Parameter DOMAIN = "Studio";
+
 XData Menu
 {
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
-<MenuItem Name="%Settings" />
-<MenuItem Name="%Init" />
+<MenuItem Name="Settings" />
+<MenuItem Name="Init" />
+<MenuItem Name="GitWebUI" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%GitWebUI" />
+<MenuItem Name="AddToSC" />
+<MenuItem Name="RemoveFromSC"/>
+<MenuItem Name="Revert" />
+<MenuItem Name="Commit" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%Export" />
-<MenuItem Name="%ExportForce" />
-<MenuItem Name="%Import" />
-<MenuItem Name="%ImportForce" />
+<MenuItem Name="Push" />
+<MenuItem Name="Fetch" />
+<MenuItem Name="Pull" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%AddToSC" />
-<MenuItem Name="%RemoveFromSC"/>
-<MenuItem Name="%NewBranch" />
-<MenuItem Name="%SwitchBranch" />
-<MenuItem Name="%Revert" />
-<MenuItem Name="%Commit" />
+<MenuItem Name="NewBranch" />
+<MenuItem Name="SwitchBranch" />
 <MenuItem Separator="true"/>
-<MenuItem Name="%Push" />
-<MenuItem Name="%Fetch" />
-<MenuItem Name="%Pull" />
+<MenuItem Name="Export" />
+<MenuItem Name="ExportForce" />
+<MenuItem Name="Import" />
+<MenuItem Name="ImportForce" />
 </Menu>
 <Menu Name="%SourceContext" Type="1">
-<MenuItem Name="%AddToSC" />
-<MenuItem Name="%RemoveFromSC"/>
-<MenuItem Name="%Revert" />
-<MenuItem Name="%Commit" />
+<MenuItem Name="AddToSC" />
+<MenuItem Name="RemoveFromSC"/>
+<MenuItem Name="Revert" />
+<MenuItem Name="Commit" />
 </Menu>
 </MenuBase>
 }
@@ -64,58 +66,58 @@ Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %Strin
 	quit ec
 }
 
+Method LocalizeName(name As %String) As %String
+{
+	Quit $Case(name,
+		"Settings":$$$Text("@Settings@Settings"),
+		"Init":$$$Text("@Init@Initialize"),
+		"GitWebUI":$$$Text("@GitWebUI@Launch Git UI"),
+		"Export":$$$Text("@Export@Export All"),
+		"ExportForce":$$$Text("@ExportForce@Export All (Force)"),
+		"Import":$$$Text("@Import@Import All"),
+		"ImportForce":$$$Text("@ImportForce@Import All (Force)"),
+		"AddToSC":$$$Text("@AddToSC@Add"),
+		"RemoveFromSC":$$$Text("@RemoveFromSC@Remove"),
+		"NewBranch":$$$Text("@NewBranch@Create a new branch"),
+		"SwitchBranch":$$$Text("@SwitchBranch@Check out an existing branch"),
+		"Revert":$$$Text("@Revert@Discard changes to file"),
+		"Commit":$$$Text("@Commit@Commit changes to file"),
+		"Push":$$$Text("@Push@Push to remote branch"),
+		"Fetch":$$$Text("@Fetch@Fetch from remote"),
+		"Pull":$$$Text("@Pull@Pull changes from remote branch"),
+		:name)
+}
+
 Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
-	if name = "%Settings" {
-		// We always show Settings
-		set DisplayName = "Settings"
+	if name = "Settings" {
 		quit $$$OK
 	}
 	if ##class(Utils).NeedSettings() {
 		set Enabled = -1
 		quit $$$OK
 	}
+	set Enabled = 1
 	if ##class(Utils).IsNamespaceInGit() {
-		if name = "%GitWebUI" {
-			set DisplayName = "Launch Git UI"
-		} elseif name = "%Export" {
-			set DisplayName = "Export All"
-		} elseif name="%ExportForce" {
-			set DisplayName = "Export All Force"
-		} elseif name = "%Import" {
-			set DisplayName = "Import All"
-		} elseif name = "%ImportForce" {
-			set DisplayName = "Import All Force"
-		} elseif $ListFind($ListBuild("%AddToSC","%RemoveFromSC","%Revert","%Commit"),name) {
+		if name = "GitWebUI" {
+		} elseif name = "Export" {
+		} elseif name = "ExportForce" {
+		} elseif name = "Import" {
+		} elseif name = "ImportForce" {
+		} elseif $ListFind($ListBuild("AddToSC","RemoveFromSC","Revert","Commit"),name) {
 			quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
-		} elseif name = "%RepoStatus" && ##class(Utils).GitBinExists() {
-			set DisplayName = "Check for modifications"
-		} elseif name = "%NewBranch" {
-			set DisplayName = "Create a new branch"
-			set Enabled = 1
-		} elseif name = "%SwitchBranch" {
-			set DisplayName = "Check out an existing branch"
-			set Enabled = 1
-		} elseif name = "%Push" {
-			// TODO: Only display if there are no files checked out by other users
-			set Enabled = 1
-			set DisplayName = "Push to remote branch"
-		} elseif name = "%Fetch" {
-			set Enabled = 1
-			set DisplayName = "Fetch from remote"
-		} elseif name = "%Pull" {
-			set Enabled = 1
-			set DisplayName = "Pull changes from remote branch"
-		} elseif ##class(Utils).IsMenuGitCommand(name) && ##class(Utils).GitBinExists() {
-			set DisplayName = $case(name,"%StashSave":"Stash save",
-			                             "%StashPop":"Stash pop",
-			                             :$Extract(name, 2, *))
+		} elseif name = "NewBranch" {
+		} elseif name = "SwitchBranch" {
+		} elseif name = "Push" {
+		} elseif name = "Fetch" {
+		} elseif name = "Pull" {
+		} elseif name = "" {
+			// enable separators if namespace is in git
 		} else {
 			set Enabled = -1
 		}
 	} elseif ##class(Utils).GitBinExists() { 
-		if name = "%Init" {
-			set DisplayName = "Initialize"
+		if name = "Init" {
 		} else {
 			set Enabled = -1
 		}
@@ -127,31 +129,26 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 
 Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByRef Enabled As %String, ByRef DisplayName As %String) As %Status
 {
-	set:menuItemName="%AddToSC" DisplayName = "Add"
-	set:menuItemName="%RemoveFromSC" DisplayName = "Remove"
-	set:menuItemName="%Revert" DisplayName = "Discard changes to file"
-	set:menuItemName="%Commit" DisplayName = "Commit changes to file"
-
 	if (itemName = "") || '##class(Utils).IsNamespaceInGit() {
 		set Enabled = -1
 	} elseif $F(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
-		set Enabled = $case(menuItemName,"%AddToSC":1,"%RemoveFromSC":1,:-1)
-	} elseif menuItemName = "%Revert" {
+		set Enabled = $case(menuItemName,"AddToSC":1,"RemoveFromSC":1,:-1)
+	} elseif menuItemName = "Revert" {
 		set Enabled = 1
 		do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 		if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
 			set Enabled = 0
 		}
-	} elseif menuItemName = "%Commit" {
+	} elseif menuItemName = "Commit" {
 		set Enabled = 1
 		do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 		if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
 			set Enabled = 0
 		}
 	} elseif ##class(Utils).IsInSourceControl(itemName) {
-		set Enabled = $Case(menuItemName, "%AddToSC":-1,:1)
+		set Enabled = $Case(menuItemName, "AddToSC":-1,:1)
 	} else {
-		set Enabled = $Case(menuItemName, "%AddToSC":1,:-1)
+		set Enabled = $Case(menuItemName, "AddToSC":1,:-1)
 	}
 	quit $$$OK
 }
@@ -300,3 +297,4 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 }
 
 }
+

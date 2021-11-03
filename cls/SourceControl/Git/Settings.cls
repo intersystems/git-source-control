@@ -43,7 +43,7 @@ Method %Save() As %Status
     if (..gitBinPath '= "") {
         set @sysStorage@("%gitBinPath") = ..gitBinPath
     }
-    kill @sysStorage@("%gitBinExists")
+    kill ^||GitVersion
     
     set @storage@("settings","namespaceTemp") = ##class(SourceControl.Git.Utils).AddSlash(..namespaceTemp)
     set @storage@("settings","user",$username,"gitUserName") = ..gitUserName

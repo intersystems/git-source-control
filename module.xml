@@ -3,7 +3,7 @@
   <Document name="git-source-control.ZPM">
     <Module>
       <Name>git-source-control</Name>
-      <Version>1.1.1</Version>
+      <Version>1.1.2</Version>
       <Description>Server-side source control extension for use of Git on InterSystems platforms</Description>
       <Keywords>git source control studio vscode</Keywords>
       <Packaging>module</Packaging>
@@ -22,6 +22,7 @@
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 
       <Invoke Class="SourceControl.Git.Utils" Method="OutputConfigureMessage" />
+      <Invoke Class="SourceControl.Git.Utils" Method="Localize" />
     </Module>
   </Document>
 </Export>

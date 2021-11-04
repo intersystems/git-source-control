@@ -804,10 +804,8 @@ ClassMethod FixProjectCspReferences(projectName As %String) As %Status
 
 /// imports file if version in system is newer then version on disk.
 /// if <var>force</var> = 1 then imports in any case.
-ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0) As %Status
+ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose As %Boolean = 1) As %Status
 {
-    //WRITE "Before Load Of: ", InternalName, " ", ..IsInSourceControl(InternalName), !
-    //q:'..IsInSourceControl(InternalName) $$$OK
     #dim filename As %String = ..FullExternalName(InternalName)
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
     #dim sc As %Status = $$$OK
@@ -824,7 +822,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0) As %Statu
 	        write "ERROR importing" ,InternalName,!
 	        do $system.Status.DisplayError(sc)
         }
-    } else {
+    } elseif verbose {
 	    write InternalName, " is the same as on-disk version or newer, skipping import",!
     }
     Quit sc

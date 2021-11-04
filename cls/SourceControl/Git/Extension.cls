@@ -183,14 +183,20 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 
 /// This is called before the actual load of data to give the chance
 /// to load the item from an external format.
-Method OnBeforeLoad(InternalName As %String) As %Status
+Method OnBeforeLoad(InternalName As %String, verbose As %Boolean) As %Status
 {
 	set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 	set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
 	if ##class(Utils).IsInSourceControl(InternalName) {
-		quit ##class(Utils).ImportItem(InternalName)
+		quit ##class(Utils).ImportItem(InternalName,,0)
 	}
 	quit $$$OK
+}
+
+/// Called before Studio checks for the timestamp of an item.
+Method OnBeforeTimestamp(InternalName As %String)
+{
+	quit ..OnBeforeLoad(InternalName,0)
 }
 
 /// This is called after the item has been saved to the database.

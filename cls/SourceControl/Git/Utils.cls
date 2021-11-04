@@ -322,12 +322,15 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !, "Fetch done"
     write !, "Files in diff: "
 
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (remote_"/"_branchName), branchName, "--name-only")
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_".."_(remote_"/"_branchName)), "--name-status")
     while (outStream.AtEnd = 0) { 
         set file = outStream.ReadLine()
-        set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(file,,0) 
-        set files(file) = internalName
-        write !,?4, internalName, ": ", file
+        set modification = ##class(SourceControl.Git.Modification).%New()
+        set modification.changeType = $PIECE(file, " ", 1)
+        set modification.externalName = $ZSTRIP($PIECE(file," ",2,*),"<W")
+        set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0) 
+        set files($I(files)) = modification
+        write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
     }
 
 	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)

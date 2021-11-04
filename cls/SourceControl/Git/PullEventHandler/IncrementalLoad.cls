@@ -12,12 +12,12 @@ Method OnPull() As %Status
     set loadSC = $$$OK
     set nFiles = 0
 
-    set externalName = $ORDER(..ModifiedFiles(""))
-    while(externalName '= "") {
-        set internalName = ..ModifiedFiles(externalName)
-        if (internalName = "") {
-            write externalName, " was not imported into the database and will not be compiled. ", !
-        } elseif '(##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename(externalName,..LocalRoot))) {
+    #; set externalName = $ORDER(..ModifiedFiles(""))
+    FOR i=1:1:$G(..ModifiedFiles){
+        set internalName = ..ModifiedFiles(i).internalName
+        if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
+            write ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. ", !
+        } elseif ..ModifiedFiles(i).changeType = "D" {
             #dim type As %String = ##class(SourceControl.Git.Utils).Type(internalName)
             #dim name As %String = ##class(SourceControl.Git.Utils).NameWithoutExtension(internalName)
             #dim deleted As %Boolean = 1
@@ -53,8 +53,6 @@ Method OnPull() As %Status
             set nFiles = nFiles + 1
             set loadSC = $$$ADDSC(loadSC,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
         }
-
-        set externalName = $ORDER(..ModifiedFiles(externalName))
     }
 
     if (nFiles = 0) {

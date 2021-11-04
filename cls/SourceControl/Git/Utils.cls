@@ -322,7 +322,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !, "Fetch done"
     write !, "Files in diff: "
 
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_".."_(remote_"/"_branchName)), "--name-status")
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_"..."_(remote_"/"_branchName)), "--name-status")
     while (outStream.AtEnd = 0) { 
         set file = outStream.ReadLine()
         set modification = ##class(SourceControl.Git.Modification).%New()

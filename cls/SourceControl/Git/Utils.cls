@@ -320,7 +320,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     }
 
     write !, "Fetch done"
-    write !, "Files in diff: "
+    write !, "Files that will be modified by git pull: "
 
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_"..."_(remote_"/"_branchName)), "--name-status")
     while (outStream.AtEnd = 0) { 

@@ -8,7 +8,7 @@ Parameter DESCRIPTION = "Does zpm ""load <repo root>""";
 /// Subclasses may override to customize behavior on pull.
 Method OnPull() As %Status
 {
-    Quit ##class(%ZPM.PackageManager).Shell("load "_..LocalRoot)
+    quit ##class(%ZPM.PackageManager).Shell("load "_..LocalRoot)
 }
 
 }

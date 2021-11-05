@@ -17,8 +17,8 @@ Method InternalNameSet(InternalName As %String = "") As %Status
         set i%InternalName = InternalName
         set ..Package = ##class(%ZPM.PackageManager.Developer.Extension.Utils).FindHomeModule(InternalName,,.resourceReference)
         set ..ResourceReference = resourceReference
-        set ..IsInGitEnabledPackage = $IsObject(..Package) && ##class(%Library.File).DirectoryExists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))
-        set ..IsInDefaultPackage = $IsObject(..Package) && (##class(%Library.File).NormalizeDirectory(..Package.Root) = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).TempFolder()))
+        set ..IsInGitEnabledPackage = $isobject(..Package) && ##class(%Library.File).DirectoryExists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))
+        set ..IsInDefaultPackage = $isobject(..Package) && (##class(%Library.File).NormalizeDirectory(..Package.Root) = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).TempFolder()))
     }
     quit $$$OK
 }
@@ -34,10 +34,10 @@ Method Dump()
 {
     write !,"Package manager context: "
     write !?4,"InternalName: ",..InternalName
-    write !?4,"Package: ",$Select($IsObject(..Package):..Package.Name,1:"<none>")
-    write !?4,"Resource: ",$Select($IsObject(..ResourceReference):..ResourceReference.Name,1:"<none>")
-    write !?4,"Default? ",$Select(..IsInDefaultPackage:"Yes",1:"No")
-    write !?4,"Git-enabled? ",$Select(..IsInGitEnabledPackage:"Yes",1:"No"),!
+    write !?4,"Package: ",$select($isobject(..Package):..Package.Name,1:"<none>")
+    write !?4,"Resource: ",$select($isobject(..ResourceReference):..ResourceReference.Name,1:"<none>")
+    write !?4,"Default? ",$select(..IsInDefaultPackage:"Yes",1:"No")
+    write !?4,"Git-enabled? ",$select(..IsInGitEnabledPackage:"Yes",1:"No"),!
 }
 
 }

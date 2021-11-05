@@ -27,10 +27,10 @@ Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
 {
-    Merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
-    Set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
-    If ('isDefault) {
-        Set ..gitBinPath = gitBinPath
+    merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
+    set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
+    if ('isDefault) {
+        set ..gitBinPath = gitBinPath
     }
     quit $$$OK
 }
@@ -71,12 +71,12 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     }
     set sequence = ""
     for {
-        set sequence = $Order(orderedProperties(sequence),1,property)
+        set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")
-        set promptQuoted = $Replace(promptQuoted,"${username}","'""_$Username_""'")
+        set promptQuoted = $replace(promptQuoted,"${username}","'""_$Username_""'")
         do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
         do %code.WriteLine(" set inst."_property_" = value")

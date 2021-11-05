@@ -30,61 +30,62 @@ Storage Default
 /// </ul>
 ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 1, CommitCCR) As %Status
 {
-	If '$DATA(FileList) Quit $$$ERROR($$$GeneralError,"No filenames were passed")
-	Set filename=FileList,SCs=$$$OK
-	If $DATA(FileList)>1 Set filename=$ORDER(FileList(""))
-	While (filename'="") {
-		If Display Write !,filename_" removed from uncommitted list"
-		If '..IsUncommitted(filename) Set filename=$ORDER(FileList(filename)) continue
-		Set obj=..OpenUncommitted(filename)
-		If (obj.Source="trakcare")&&($D(^SYS("ChangeControlClass"))) {
-			Set changeSourceClass=^SYS("ChangeControlClass")
-		} Else {
-			Set changeSourceClass=##class(%Studio.SourceControl.Interface).SourceControlClassGet()
-		}
-		If ('$G(^SYS("SourceControl","ChangeConfig","KeepHistory")))||(Revert) {
-			Set sc=..%DeleteId(obj.%Id())
-		} Else {
-			If $G(CommitCCR)'="" Set obj.CCR=CommitCCR
-			Set obj.P4Issued=$zdt($H,3)
-			Set obj.Committed=1	
-			Set obj.ActivelyCommitted=ActiveCommit
-			Set obj.CommittedTime=$zdt($H,3)
-			Set sc=obj.%Save()
-			If $$$ISERR(sc) Do $SYSTEM.Status.AppendStatus(SCs, sc) If Display Do $System.Status.DisplayError(sc)
-		}
-		Set filename=$ORDER(FileList(filename))
-	}
-	Quit SCs
+    if '$data(FileList) quit $$$ERROR($$$GeneralError,"No filenames were passed")
+    set filename=FileList,SCs=$$$OK
+    if $data(FileList)>1 set filename=$order(FileList(""))
+    while (filename'="") {
+        if Display write !,filename_" removed from uncommitted list"
+        if '..IsUncommitted(filename) set filename=$order(FileList(filename)) continue
+        set obj=..OpenUncommitted(filename)
+        if (obj.Source="trakcare")&&($data(^SYS("ChangeControlClass"))) {
+            set changeSourceClass=^SYS("ChangeControlClass")
+        } else {
+            set changeSourceClass=##class(%Studio.SourceControl.Interface).SourceControlClassGet()
+        }
+        if ('$get(^SYS("SourceControl","ChangeConfig","KeepHistory")))||(Revert) {
+            set sc=..%DeleteId(obj.%Id())
+        } else {
+            if $get(CommitCCR)'="" set obj.CCR=CommitCCR
+            set obj.P4Issued=$zdatetime($h,3)
+            set obj.Committed=1
+            set obj.ActivelyCommitted=ActiveCommit
+            set obj.CommittedTime=$zdatetime($h,3)
+            set sc=obj.%Save()
+            if $$$ISERR(sc) do $system.Status.AppendStatus(SCs, sc) if Display do $system.Status.DisplayError(sc)
+        }
+        set filename=$order(FileList(filename))
+    }
+    quit SCs
 }
 
 ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 {
-	&sql(SELECT ID into :ID FROM SourceControl_Git.Change WHERE ItemFile = :Filename AND Committed = '0')
-	If (SQLCODE=0) {
-		Quit 1
-	} Else {
-		Set ID=""
-		Quit 0
-	}
+    &SQL(SELECT ID INTO :ID FROM SourceControl_Git.Change WHERE ItemFile = :Filename AND Committed = '0')
+    if (SQLCODE=0) {
+        quit 1
+    } else {
+        set ID=""
+        quit 0
+    }
 }
 
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
 ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
 {
-	Set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
-	If $$$ISERR(sc) Quit sc
-	Set filename="", filename=$ORDER(tFileList(filename),1,action)
-	While (filename'="") {
-		Set examine=$Select(action="add":1,action="edit":1,IncludeRevert&&(action="revert"):1,1:0)
-		If 'examine Set filename=$ORDER(tFileList(filename),1,action) continue
-		If ('##class(%File).Exists(filename)) {
-			Set sc=..RemoveUncommitted(filename,Display,0,0)	
-			If $$$ISERR(sc) s filename="" continue
-		}
-		Set filename=$ORDER(tFileList(filename),1,action)
-	}
-	Quit sc
+    set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
+    if $$$ISERR(sc) quit sc
+    set filename="", filename=$order(tFileList(filename),1,action)
+    while (filename'="") {
+        set examine=$select(action="add":1,action="edit":1,IncludeRevert&&(action="revert"):1,1:0)
+        if 'examine set filename=$order(tFileList(filename),1,action) continue
+        if ('##class(%File).Exists(filename)) {
+            set sc=..RemoveUncommitted(filename,Display,0,0)
+            if $$$ISERR(sc) set filename="" continue
+        }
+        set filename=$order(tFileList(filename),1,action)
+    }
+    quit sc
 }
 
 }
+

@@ -12,3 +12,4 @@ Property internalName As %String;
 Property changeType As %String;
 
 }
+

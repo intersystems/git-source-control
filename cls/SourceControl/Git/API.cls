@@ -5,13 +5,13 @@ Class SourceControl.Git.API
 ClassMethod Configure()
 {
     set sc = $$$OK
-    set initTLevel = $TLevel
+    set initTLevel = $tlevel
     try {
-        TSTART
+        tstart
         $$$ThrowOnError(##class(%Studio.SourceControl.Interface).SourceControlClassSet("SourceControl.Git.Extension"))
         write !,"Configured SourceControl.Git.Extension as source control class for namespace ",$namespace
         set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
-        if '$Data(@mappingsNode) {
+        if '$data(@mappingsNode) {
             set @mappingsNode@("CLS","*")="cls/"
             set @mappingsNode@("CLS","UnitTest")="test/"
             set @mappingsNode@("INC","*")="inc/"
@@ -29,13 +29,13 @@ ClassMethod Configure()
             write !,"Cancelled."
             quit
         }
-        TCOMMIT
+        tcommit
     } catch e {
         set sc = e.AsStatus()
-        write !,$System.Status.GetErrorText(sc)
+        write !,$system.Status.GetErrorText(sc)
     }
-    while $TLevel > initTLevel {
-        TROLLBACK 1
+    while $tlevel > initTLevel {
+        trollback 1
     }
 }
 

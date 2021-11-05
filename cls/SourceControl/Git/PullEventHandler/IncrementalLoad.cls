@@ -12,22 +12,21 @@ Method OnPull() As %Status
     set loadSC = $$$OK
     set nFiles = 0
 
-    #; set externalName = $ORDER(..ModifiedFiles(""))
-    FOR i=1:1:$G(..ModifiedFiles){
+    for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. ", !
         } elseif ..ModifiedFiles(i).changeType = "D" {
-            #dim type As %String = ##class(SourceControl.Git.Utils).Type(internalName)
-            #dim name As %String = ##class(SourceControl.Git.Utils).NameWithoutExtension(internalName)
-            #dim deleted As %Boolean = 1
+            #dim type as %String = ##class(SourceControl.Git.Utils).Type(internalName)
+            #dim name as %String = ##class(SourceControl.Git.Utils).NameWithoutExtension(internalName)
+            #dim deleted as %Boolean = 1
             write !
 
             if type = "prj" {
                 set loadSC = $$$ADDSC(loadSC, $system.OBJ.DeleteProject(name))
             }elseif type = "cls" {
                 set loadSC = $$$ADDSC(loadSC, $system.OBJ.Delete(internalName))
-            }elseif $ListFind($ListBuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
+            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
                 set loadSC = $$$ADDSC(loadSC, ##class(%Routine).Delete(internalName))
             }elseif type = "csp" {
                 #dim filename = $system.CSP.GetFileName(internalName)
@@ -59,7 +58,8 @@ Method OnPull() As %Status
         write "Nothing to compile.",!
         quit $$$OK
     }
-    Quit $System.OBJ.CompileList(.compilelist, "cukb")
+    quit $system.OBJ.CompileList(.compilelist, "cukb")
 }
 
 }
+

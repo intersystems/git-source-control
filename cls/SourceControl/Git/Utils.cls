@@ -36,11 +36,11 @@ $$$ERROR(8012,"Git",msg)
 
 ClassMethod TempFolder() As %String
 {
-    Set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    If context.IsInGitEnabledPackage {
-        Quit context.Package.Root
+    set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    if context.IsInGitEnabledPackage {
+        quit context.Package.Root
     }
-    Quit $Get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$Translate($znspace,"%")_..#Slash)
+    quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$translate($znspace,"%")_..#Slash)
 }
 
 ClassMethod MappingsNode() As %String [ CodeMode = expression ]
@@ -56,8 +56,8 @@ $Get(@..#Storage@("settings","pullEventClass"), ##class(SourceControl.Git.PullEv
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {
-    set result = $Get(@..#Storage@("settings","locked"),0)
-    if $Data(newFlagValue)#2 {
+    set result = $get(@..#Storage@("settings","locked"),0)
+    if $data(newFlagValue)#2 {
         set @..#Storage@("settings","locked") = ''newFlagValue
     }
     quit result
@@ -66,42 +66,42 @@ ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 ClassMethod GitBinExists(ByRef version) As %Boolean
 {
     // Intentionally leak this as an optimization.
-    If $Data(^||GitVersion,version)#2 && (version '= "") {
-        Quit 1
+    if $data(^||GitVersion,version)#2 && (version '= "") {
+        quit 1
     }
-    Try {
-        Do ..RunGitCommand("--version",.err,.out)
-        Set version = out.ReadLine()
-    } Catch e {
-        Set version = ""
+    try {
+        do ..RunGitCommand("--version",.err,.out)
+        set version = out.ReadLine()
+    } catch e {
+        set version = ""
     }
-    Set ^||GitVersion = version
-    Quit (version '= "")
+    set ^||GitVersion = version
+    quit (version '= "")
 }
 
 ClassMethod GitBinPath(Output isDefault) As %String
 {
     set isDefault = 0
     set binPath = "git"
-    if '$Data(@..InstallNamespaceStorage()@("%gitBinPath"),binPath)#2 {
+    if '$data(@..InstallNamespaceStorage()@("%gitBinPath"),binPath)#2 {
         set isDefault = 1
     }
-    quit $case($Extract(binPath),"""":binPath,:""""_binPath_"""")
+    quit $case($extract(binPath),"""":binPath,:""""_binPath_"""")
 }
 
 ClassMethod GitUserName() As %String
 {
-    Quit $Get(@..#Storage@("settings","user",$username,"gitUserName"))
+    quit $get(@..#Storage@("settings","user",$username,"gitUserName"))
 }
 
 ClassMethod GitUserEmail() As %String
 {
-    Quit $Get(@..#Storage@("settings","user",$username,"gitUserEmail"))
+    quit $get(@..#Storage@("settings","user",$username,"gitUserEmail"))
 }
 
 ClassMethod PrivateKeyFile() As %String
 {
-    Quit $Get(@..#Storage@("settings","ssh","privateKeyFile"))
+    quit $get(@..#Storage@("settings","ssh","privateKeyFile"))
 }
 
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
@@ -116,7 +116,7 @@ ClassMethod InstallNamespace() As %String [ CodeMode = expression ]
 
 ClassMethod AddSlash(path As %String) As %String
 {
-	if path'="" && ($Extract(path,*)'=..#Slash) {
+    if path'="" && ($extract(path,*)'=..#Slash) {
         set path = path_..#Slash
     }
     quit path
@@ -139,12 +139,12 @@ $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 
 ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean) As %Status
 {
-	#define Force 1
-    #dim menuName As %String = $Piece(MenuName,",")
-    #dim menuItemName As %String = $Piece(MenuName,",",2)
-    #dim ec As %Status = $$$OK
+    #define Force 1
+    #dim menuName as %String = $piece(MenuName,",")
+    #dim menuItemName as %String = $piece(MenuName,",",2)
+    #dim ec as %Status = $$$OK
     
-    if (..Type(InternalName) = "csp") && ($Extract(InternalName,1) '= "/") {
+    if (..Type(InternalName) = "csp") && ($extract(InternalName,1) '= "/") {
         set InternalName = "/" _ InternalName
     }
 
@@ -164,7 +164,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         }
     } elseif (menuItemName = "GitWebUI") {
         set Action = 2
-        set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$ZConvert(InternalName,"O","URL")
+        set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -200,7 +200,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "Fetch") {
         $$$QuitOnError(..Fetch(.diffFiles))
         set pointer = 0
-        while $ListNext(diffFiles, pointer, item){
+        while $listnext(diffFiles, pointer, item){
             write !,item
         }
         write !
@@ -220,16 +220,16 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
-    #dim menuName As %String = $Piece(Name,",")
-    #dim menuItemName As %String = $Piece(Name,",",2)
+    #dim menuName as %String = $piece(Name,",")
+    #dim menuItemName as %String = $piece(Name,",",2)
     if (menuItemName = "Revert") || (menuItemName [ "Import") {
         set Reload = 1
     }
     if (menuItemName = "Commit") {
-	    if (Answer = 1) {
-		    do ..Commit(InternalName, Msg)
-		    set Reload = 1
-	    }
+        if (Answer = 1) {
+            do ..Commit(InternalName, Msg)
+            set Reload = 1
+        }
     } elseif (menuItemName = "NewBranch") {
         if (Answer = 1) {
             do ..NewBranch(Msg)
@@ -246,19 +246,19 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
 
 ClassMethod Revert(InternalName As %String) As %Status
 {
-	set filename = ..FullExternalName(InternalName)
-	do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
-	$$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
-	$$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
-	$$$QuitOnError(..ImportItem(InternalName))
-	quit $$$OK
+    set filename = ..FullExternalName(InternalName)
+    do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
+    $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
+    $$$QuitOnError(..ImportItem(InternalName))
+    quit $$$OK
 }
 
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
     do errStream.OutputToDevice()
-	do outStream.OutputToDevice()
+    do outStream.OutputToDevice()
     quit $$$OK
 }
 
@@ -266,47 +266,47 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do errStream.OutputToDevice()
-	do outStream.OutputToDevice()
+    do outStream.OutputToDevice()
     quit $$$OK
 }
 
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
 {
-	set filename = ..FullExternalName(InternalName)
-	set username = ..GitUserName()
-	set email = ..GitUserEmail()
-	set author = username_" <"_email_">"
-	do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
-	write !
-	do outStream.OutputToDevice()
-	write !
-	do errStream.OutputToDevice()
-	quit $$$OK
+    set filename = ..FullExternalName(InternalName)
+    set username = ..GitUserName()
+    set email = ..GitUserEmail()
+    set author = username_" <"_email_">"
+    do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
+    write !
+    do outStream.OutputToDevice()
+    write !
+    do errStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod Push(remote As %String = "origin") As %Status
 {
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
-	do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
-	do errStream.OutputToDevice()
-	do outStream.OutputToDevice()
-	quit $$$OK
+    do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
+    do errStream.OutputToDevice()
+    do outStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod Fetch(ByRef diffFiles) As %Status
 {
-	do ..RunGitCommand("fetch", .errStream, .outStream)
-	w !, "git fetch"
-	kill errStream, outStream
-	do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
-	set diffFiles = ""
+    do ..RunGitCommand("fetch", .errStream, .outStream)
+    write !, "git fetch"
+    kill errStream, outStream
+    do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
+    set diffFiles = ""
     while (outStream.AtEnd = 0) {
-        set diffFiles = diffFiles_$lb(outStream.ReadLine())
+        set diffFiles = diffFiles_$listbuild(outStream.ReadLine())
     }
     do outStream.Rewind()
     do outStream.OutputToDevice()
-	quit $$$OK
+    quit $$$OK
 }
 
 ClassMethod Pull(remote As %String = "origin") As %Status
@@ -326,36 +326,36 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !, "Files that will be modified by git pull: "
 
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_"..."_(remote_"/"_branchName)), "--name-status")
-    while (outStream.AtEnd = 0) { 
+    while (outStream.AtEnd = 0) {
         set file = outStream.ReadLine()
         set modification = ##class(SourceControl.Git.Modification).%New()
-        set modification.changeType = $PIECE(file, " ", 1)
-        set modification.externalName = $ZSTRIP($PIECE(file," ",2,*),"<W")
-        set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0) 
-        set files($I(files)) = modification
+        set modification.changeType = $piece(file, " ", 1)
+        set modification.externalName = $zstrip($piece(file," ",2,*),"<W")
+        set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+        set files($increment(files)) = modification
         write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
     }
-    if ('$DATA(files)) {
+    if ('$data(files)) {
         write !, ?4, "None"
         write !, "Already up to date. Git Pull will not be executed."
         quit $$$OK
     }
 
 
-	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+    set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
         do errStream.OutputToDevice()
         do outStream.OutputToDevice()
         quit $$$ERROR(5001, "Pull event handler not called. Fix errors before compiling.")
     }
     write !
-	do outStream.OutputToDevice()
+    do outStream.OutputToDevice()
     write !
 
     set event = $classmethod(..PullEventClass(),"%New")
     set event.LocalRoot = ..TempFolder()
     merge event.ModifiedFiles = files
-	quit event.OnPull()
+    quit event.OnPull()
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]
@@ -368,25 +368,25 @@ ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]
 /// adds last slash if not present<br/>
 ClassMethod NormalizeFolder(folder As %String) As %String
 {
-	set folder = $Translate(folder, "/", ..#Slash)
-	set:$Extract(folder)=..#Slash $Extract(folder) = ""
-	set:$Extract(folder,*)'=..#Slash folder = folder _ ..#Slash
-	quit folder
+    set folder = $translate(folder, "/", ..#Slash)
+    set:$extract(folder)=..#Slash $extract(folder) = ""
+    set:$extract(folder,*)'=..#Slash folder = folder _ ..#Slash
+    quit folder
 }
 
 ClassMethod ExternalName(InternalName As %String) As %String
 {
-	Quit ..Name(InternalName)
+    quit ..Name(InternalName)
 }
 
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
 {
-    #dim i As %Integer
-    #dim ec As %Status = $$$OK
-    for i = 1:1:$Length(InternalName, ",") {
-        #dim item As %String = ..NormalizeExtension($Piece(InternalName, ",", i))
+    #dim i as %Integer
+    #dim ec as %Status = $$$OK
+    for i = 1:1:$length(InternalName, ",") {
+        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
         set @..#Storage@("items", item) = ""
-        #dim sc As %Status =  ..ExportItem(item)
+        #dim sc as %Status =  ..ExportItem(item)
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
@@ -401,8 +401,8 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
 
 ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
 {
-    #dim type As %String = ..Type(InternalName)
-    #dim ec As %Status = $$$OK
+    #dim type as %String = ..Type(InternalName)
+    #dim ec as %Status = $$$OK
     if (type = "prj") || (type = "pkg") || (type = "csp" && ..IsCspFolder(InternalName)) {
         // we delete complex items
         
@@ -410,15 +410,15 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
         #dim itemsList
         $$$QuitOnError(..ListItemsInFiles(.itemsList))
         
-        #dim item As %String = ""
+        #dim item as %String = ""
         //for all item in files
         for  {
-            set item = $Order(itemsList(item))
+            set item = $order(itemsList(item))
             quit:item=""
             
             //if item is not in sc -- delete file
             if '..IsInSourceControl(item) {
-                #dim sc As %Status = ..DeleteExternalFile(item)
+                #dim sc as %Status = ..DeleteExternalFile(item)
                 if 'sc {
                     set ec = $$$ADDSC(ec, sc)
                 }
@@ -432,28 +432,28 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
 
 ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
 {
-    #dim sc As %Status = $$$OK
-    for i = 1:1:$Length(InternalName, ",") {
-	    #dim tsc As %Status = $$$OK
-	    set item = $Piece(InternalName, ",", i)
-	    if $Data(@..#Storage@("items", ..NormalizeExtension(item))) {
-		    set item = ..NormalizeExtension(item)
-	    }
-	    
-	    if $Data(@..#Storage@("items", item)) {
-	        kill @..#Storage@("items", item)
-	        set tsc = ..DeleteExternalsForItem(item)
-	        do ..RemoveFolderIfEmpty(..TempFolder())
-	        set tsc = $$$ADDSC(tsc, ..ExportSCList())
-	    } else {
-	        #dim parentElement As %String = ""
-	        if ..IsInSourceControl(item, .parentElement) {
-	            set tsc = ..MakeError(item _ " is contained in "_parentElement_" that tracked by SourceControl")
-	        }else {
-	            set tsc = ..MakeError(item _ " is not in SourceControl")
-	        }
-	    }
-	    set sc = $$$ADDSC(tsc, sc)
+    #dim sc as %Status = $$$OK
+    for i = 1:1:$length(InternalName, ",") {
+        #dim tsc as %Status = $$$OK
+        set item = $piece(InternalName, ",", i)
+        if $data(@..#Storage@("items", ..NormalizeExtension(item))) {
+            set item = ..NormalizeExtension(item)
+        }
+        
+        if $data(@..#Storage@("items", item)) {
+            kill @..#Storage@("items", item)
+            set tsc = ..DeleteExternalsForItem(item)
+            do ..RemoveFolderIfEmpty(..TempFolder())
+            set tsc = $$$ADDSC(tsc, ..ExportSCList())
+        } else {
+            #dim parentElement as %String = ""
+            if ..IsInSourceControl(item, .parentElement) {
+                set tsc = ..MakeError(item _ " is contained in "_parentElement_" that tracked by SourceControl")
+            }else {
+                set tsc = ..MakeError(item _ " is not in SourceControl")
+            }
+        }
+        set sc = $$$ADDSC(tsc, sc)
     }
 
     quit sc
@@ -461,12 +461,12 @@ ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
 
 ClassMethod IsCspFolder(InternalName As %String) As %Boolean
 {
-    #dim extension = $Piece(InternalName, ".", $Length(InternalName, "."))
+    #dim extension = $piece(InternalName, ".", $length(InternalName, "."))
     quit:extension="csp" 0
     
     #dim filename = $system.CSP.GetFileName(InternalName_"/")
-    if filename = "" && ($Extract(InternalName,1) '= "/") {
-	    set filename = $system.CSP.GetFileName("/"_InternalName_"/")
+    if filename = "" && ($extract(InternalName,1) '= "/") {
+        set filename = $system.CSP.GetFileName("/"_InternalName_"/")
     }
     quit filename'="" && ##class(%File).DirectoryExists(filename)
 }
@@ -477,25 +477,23 @@ ClassMethod IsCspFolder(InternalName As %String) As %Boolean
 /// csp -- any static file from csp-folder 
 ClassMethod Type(InternalName As %String) As %String
 {
-    #dim extension As %String = $ZConvert($Piece(InternalName,".",$Length(InternalName,".")),"L")
-    #dim type As %String = extension
+    #dim extension as %String = $zconvert($piece(InternalName,".",$length(InternalName,".")),"L")
+    #dim type as %String = extension
     
-    if ($Extract(InternalName, 1, 4) = "/csp") 
-          || ($Find(InternalName,".") = 0) 
-          || ($Find(InternalName,"/") > 0) {
-	          //we need to double-check
-	          //Sometimes (see NormalizeInternalName) Studio passes routine names as /Package/SubPackage/Routine.mac
-	          //Generally speaking this can be static file
-	          if (type = "mac") || (type = "inc") || (type = "int") {
-		          #dim filename = $system.CSP.GetFileName(InternalName)
-		          if ##class(%File).Exists(filename) {
-			          set type = "csp"
-		          }
-	          } else {
-        			set type ="csp"
-	          }
+    if ($extract(InternalName, 1, 4) = "/csp") || ($find(InternalName,".") = 0) || ($find(InternalName,"/") > 0) {
+        //we need to double-check
+        //Sometimes (see NormalizeInternalName) Studio passes routine names as /Package/SubPackage/Routine.mac
+        //Generally speaking this can be static file
+        if (type = "mac") || (type = "inc") || (type = "int") {
+            #dim filename = $system.CSP.GetFileName(InternalName)
+            if ##class(%File).Exists(filename) {
+                set type = "csp"
+            }
+        } else {
+            set type ="csp"
+        }
     }
-   
+    
     quit type
 }
 
@@ -516,27 +514,22 @@ ClassMethod IsItemInProject(InternalName As %String, projectName As %String) As 
     // we should check two cases
     // direct inclusion
     // inclusion in package or csp-folder that contained in project
-    #dim type As %String = ..Type(InternalName)
-    //w InternalName, "->"
-    #dim name As %String = $case(type, "cls": ..NameWithoutExtension(InternalName), 
-                                       "pkg": $Translate(..NameWithoutExtension(InternalName), "/", "."), 
-                                       "csp": $Extract(InternalName, 2, *),
-                                       :InternalName)
-    if $Extract(name) = "." && (type = "pkg") {
-        set $Extract(name) = ""
+    #dim type as %String = ..Type(InternalName)
+    #dim name as %String = $case(type, "cls": ..NameWithoutExtension(InternalName),
+        "pkg": $translate(..NameWithoutExtension(InternalName), "/", "."),
+        "csp": $extract(InternalName, 2, *),
+        :InternalName)
+    if $extract(name) = "." && (type = "pkg") {
+        set $extract(name) = ""
     }
     
-    //w name, " "
-    #dim checkId = projectName_"||"_name_"||"_$ZConvert(type,"U")
-    //w checkId
-    #dim isItemInProject As %Boolean = ##class(%Studio.ProjectItem).%ExistsId(checkId)
-    //w " ", isItemInProject, !
+    #dim checkId = projectName_"||"_name_"||"_$zconvert(type,"U")
+    #dim isItemInProject as %Boolean = ##class(%Studio.ProjectItem).%ExistsId(checkId)
     
-    #dim i As %Integer
+    #dim i as %Integer
     if 'isItemInProject && ((type = "cls") || (type="pkg")) {
-        for i = 1:1:$Length(name, ".") {
-            set checkId = projectName_"||"_$Piece(name, ".", 1, i)_"||PKG"
-            //w checkId, !
+        for i = 1:1:$length(name, ".") {
+            set checkId = projectName_"||"_$piece(name, ".", 1, i)_"||PKG"
             if ##class(%Studio.ProjectItem).%ExistsId(checkId) {
                 set isItemInProject = 1
                 quit
@@ -545,8 +538,8 @@ ClassMethod IsItemInProject(InternalName As %String, projectName As %String) As 
     }
     
     if 'isItemInProject && (type = "csp") {
-        for i = 1:1:$Length(name, "/") {
-            set checkId = projectName_"||"_$Piece(name, "/", 1, i)_"||DIR"
+        for i = 1:1:$length(name, "/") {
+            set checkId = projectName_"||"_$piece(name, "/", 1, i)_"||DIR"
             
             if ##class(%Studio.ProjectItem).%ExistsId(checkId) {
                 set isItemInProject = 1
@@ -564,13 +557,13 @@ $Extract(InternalName, 1, $Length(cspFolder)) = cspFolder
 
 ClassMethod FindInPackages(InternalName As %String, ByRef sourceControlItem As %String) As %Boolean
 {
-    #dim item As %String = ""
-    #dim found As %Boolean = 0
+    #dim item as %String = ""
+    #dim found as %Boolean = 0
     for  {
-        set item = $Order(@..#Storage@("items", item))
+        set item = $order(@..#Storage@("items", item))
         quit:item=""
         continue:..Type(item)'="pkg"
-        #dim packageName As %String = ..NameWithoutExtension(item)
+        #dim packageName as %String = ..NameWithoutExtension(item)
 
         if ..IsClassInPackage(InternalName, packageName) {
             set found = 1
@@ -583,13 +576,13 @@ ClassMethod FindInPackages(InternalName As %String, ByRef sourceControlItem As %
 
 ClassMethod FindInProjects(InternalName As %String, ByRef sourceControlItem As %String) As %Boolean
 {
-    #dim item As %String = ""
-    #dim found As %Boolean = 0
+    #dim item as %String = ""
+    #dim found as %Boolean = 0
     for  {
-        set item = $Order(@..#Storage@("items", item))
+        set item = $order(@..#Storage@("items", item))
         quit:item=""
         continue:..Type(item)'="prj"
-        #dim projectName As %String = ..NameWithoutExtension(item)
+        #dim projectName as %String = ..NameWithoutExtension(item)
         
         if ..IsItemInProject(InternalName, projectName) {
             set found = 1
@@ -602,10 +595,10 @@ ClassMethod FindInProjects(InternalName As %String, ByRef sourceControlItem As %
 
 ClassMethod FindInCspFolders(InternalName As %String, ByRef sourceControlItem As %String) As %Boolean
 {
-    #dim cspFolder As %String = ""
-    #dim found As %Boolean = 0
+    #dim cspFolder as %String = ""
+    #dim found as %Boolean = 0
     for  {
-        set cspFolder = $Order(@..#Storage@("items", cspFolder))
+        set cspFolder = $order(@..#Storage@("items", cspFolder))
         quit:cspFolder=""
         //no need to check IsCspFolder. It might not exist yet
         //continue:'(..Type(cspFolder)="csp" && ..IsCspFolder(cspFolder))
@@ -616,7 +609,7 @@ ClassMethod FindInCspFolders(InternalName As %String, ByRef sourceControlItem As
         if ..IsItemInCSPFolder(InternalName, cspFolder) {
             set found = 1
             set sourceControlItem = cspFolder
-            quit 
+            quit
         }
     }
     quit found
@@ -624,18 +617,18 @@ ClassMethod FindInCspFolders(InternalName As %String, ByRef sourceControlItem As
 
 ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem As %String) As %String
 {
-    #dim isInSourceControl As %Boolean = 1
+    #dim isInSourceControl as %Boolean = 1
     set sourceControlItem = ""
     if (InternalName = "") {
-	    quit 0
+        quit 0
     }
     
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    if $Data(@..#Storage@("items", ..NormalizeExtension(InternalName))) {
-	    set InternalName = ..NormalizeExtension(InternalName)
+    if $data(@..#Storage@("items", ..NormalizeExtension(InternalName))) {
+        set InternalName = ..NormalizeExtension(InternalName)
     }
     
-    set isInSourceControl = $Data(@..#Storage@("items", InternalName)) > 0
+    set isInSourceControl = $data(@..#Storage@("items", InternalName)) > 0
     if isInSourceControl {
         // Direct reference to namespace-default project
         set sourceControlItem = InternalName
@@ -650,19 +643,19 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
         // projects for everything
         // csp-folders for csp and static files
 
-        #dim type As %String = ..Type(InternalName)
+        #dim type as %String = ..Type(InternalName)
         if type = "cls" {
-	        #define StripExtension(%s) $Piece(%s,".",1,$Length(%s, ".") - 1)
-	        set className = $$$StripExtension(InternalName)
-	        if (InternalName '= "") && (className '= "") && ($$$defClassKeyGet(className,$$$cCLASSgeneratedby)'="") {
-		        set isInSourceControl = 0 // skip generated classes
-	        } else {
-            	set isInSourceControl = ..FindInPackages(InternalName, .sourceControlItem)
-	        }
+            #define StripExtension(%s) $Piece(%s,".",1,$Length(%s, ".") - 1)
+            set className = $$$StripExtension(InternalName)
+            if (InternalName '= "") && (className '= "") && ($$$defClassKeyGet(className,$$$cCLASSgeneratedby)'="") {
+                set isInSourceControl = 0 // skip generated classes
+            } else {
+                set isInSourceControl = ..FindInPackages(InternalName, .sourceControlItem)
+            }
         } elseif type = "csp" {
-	        if $Extract(InternalName) '= "/" {
-		        set InternalName = "/" _ InternalName
-	        }
+            if $extract(InternalName) '= "/" {
+                set InternalName = "/" _ InternalName
+            }
             set isInSourceControl = ..FindInCspFolders(InternalName, .sourceControlItem)
         }
         
@@ -681,32 +674,32 @@ ClassMethod FullExternalName(InternalName As %String) As %String [ CodeMode = ex
 
 ClassMethod NormalizeInternalName(name As %String) As %String
 {
-	//Studio passes name of routine with dots as it is in folders
-	//e.g. Package.SubPackage.Routine.mac has InternalName =  /Package/SubPackage/Routine.mac
-	//This happens if right-click in Workspace -> Namespace
-	//If right-click in Workspace -> Project then everything passes ok
-	//let's fix this
-	if (name = "") {
-		quit ""
-	}
-	
-	if $Extract(name) '= "/" {
-		quit $Piece(name,".",1,*-1)_"."_$ZConvert($Piece(name,".",*),"U")
-	}
-	
-	set type = ..Type(name)
-	
-	if (type = "inc") || (type = "mac") || (type = "int") {
-		set name = $Extract($Translate(name, "/", "."), 2, *)
-	}
+    //Studio passes name of routine with dots as it is in folders
+    //e.g. Package.SubPackage.Routine.mac has InternalName =  /Package/SubPackage/Routine.mac
+    //This happens if right-click in Workspace -> Namespace
+    //If right-click in Workspace -> Project then everything passes ok
+    //let's fix this
+    if (name = "") {
+        quit ""
+    }
+    
+    if $extract(name) '= "/" {
+        quit $piece(name,".",1,*-1)_"."_$zconvert($piece(name,".",*),"U")
+    }
+    
+    set type = ..Type(name)
+    
+    if (type = "inc") || (type = "mac") || (type = "int") {
+        set name = $extract($translate(name, "/", "."), 2, *)
+    }
     quit name
 }
 
 ClassMethod NormalizeExtension(name As %String) As %String
 {
-    #dim extension = $Piece(name, ".", $Length(name, "."))
-    if $Length(extension) <= 3 {
-        set $Piece(name, ".", $Length(name, ".")) = $ZConvert(extension, "L")
+    #dim extension = $piece(name, ".", $length(name, "."))
+    if $length(extension) <= 3 {
+        set $piece(name, ".", $length(name, ".")) = $zconvert(extension, "L")
     }
     quit name
 }
@@ -715,14 +708,14 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
 {
     #dim type = ..Type(InternalName)
     //for csp-files (csp,js,html,css, all that stored in csp/...) we always check for changes in external file
-    #dim tsh = $case(type,"csp":"",:$Get(@..#Storage@("TSH", ..NormalizeExtension(InternalName))))
+    #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ..NormalizeExtension(InternalName))))
     if tsh = "" {
-        #dim ts As %String = ##class(%RoutineMgr).TS(InternalName)
+        #dim ts as %String = ##class(%RoutineMgr).TS(InternalName)
         if ts '= "" {
             // prj files have milliseconds in timestamp, so we crop them
-            set tsh = $Piece($ZDateTimeH(ts, 3),".",1)
+            set tsh = $piece($zdatetimeh(ts, 3),".",1)
         } else {
-	        set tsh = "1840-12-31 00:00:00"
+            set tsh = "1840-12-31 00:00:00"
         }
     }
     quit tsh
@@ -730,7 +723,7 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
 
 ClassMethod UpdateRoutineTSH(InternalName As %String, tsh As %String) As %Status
 {
-    set @..#Storage@("TSH", ..NormalizeExtension(InternalName)) = $Get(tsh, $Horolog)
+    set @..#Storage@("TSH", ..NormalizeExtension(InternalName)) = $get(tsh, $h)
     quit $$$OK
 }
 
@@ -743,19 +736,19 @@ ClassMethod RemoveRoutineTSH(InternalName As %String) As %Status
 ClassMethod DeleteExternalFile(InternalName As %String) As %Status
 {
     #dim fullName = ##class(Utils).FullExternalName(InternalName)
-    #dim ec As %Status = $$$OK
+    #dim ec as %Status = $$$OK
     if ##class(%File).Exists(fullName) {
         set ec = ##class(%File).Delete(fullName)
         do ..RemoveRoutineTSH(InternalName)
         write fullName, " for ", InternalName, " deleted",!
     }
-    Quit ec
+    quit ec
 }
 
 /// if temp file for InternalName not found return "0,0" in tempFileTSH
 ClassMethod GetTempFileAndRoutineTS(InternalName As %String, ByRef tempFileTSH As %String, ByRef routineTSH As %String)
 {
-    #dim filename As %String = ..FullExternalName(InternalName)
+    #dim filename as %String = ..FullExternalName(InternalName)
     set tempFileTSH = ##class(%File).GetFileDateModified(filename)
     set routineTSH = ..RoutineTSH(InternalName)
     //file not found or path not found or some other error
@@ -778,25 +771,25 @@ ClassMethod IsRoutineOutdated(InternalName As %String) As %Boolean
 
 ClassMethod FixProjectCspReferences(projectName As %String) As %Status
 {
-    #dim loadedProject As %String = $Piece(projectName, ".", 1)
+    #dim loadedProject as %String = $piece(projectName, ".", 1)
     // now we should fix reference to csp pages in project items
     // that is: if project was exported from USER and imported in SAMPLES
     // then all reference to csp/user/page.csp should be changed to csp/samples/page.csp
-    #dim item As %String =""
-    #dim oldCspApp As %String = ""
-    #dim newCspApp As %String = ""
+    #dim item as %String =""
+    #dim oldCspApp as %String = ""
+    #dim newCspApp as %String = ""
     for  {
-        set item = $Order(^oddPROJECT(loadedProject,"Items",item))
+        set item = $order(^oddPROJECT(loadedProject,"Items",item))
         quit:item=""
-        set type = $Order(^oddPROJECT(loadedProject,"Items",item,""))
+        set type = $order(^oddPROJECT(loadedProject,"Items",item,""))
         if type = "CSP" || (type = "DIR") {
-            #dim newitem As %String = item
-            set $Piece(newitem,"/",1,2) = $Extract($system.CSP.GetDefaultApp($znspace),2,*)
+            #dim newitem as %String = item
+            set $piece(newitem,"/",1,2) = $extract($system.CSP.GetDefaultApp($znspace),2,*)
             if newitem '= item {
                 set ^oddPROJECT(loadedProject,"Items",newitem,type) = ^oddPROJECT(loadedProject,"Items",item,type)
                 kill ^oddPROJECT(loadedProject,"Items",item,type)
-                set newCspApp = $Extract($system.CSP.GetDefaultApp($znspace),2,*)
-                set oldCspApp = $Piece(item,"/",1,2)
+                set newCspApp = $extract($system.CSP.GetDefaultApp($znspace),2,*)
+                set oldCspApp = $piece(item,"/",1,2)
             }
         }
     }
@@ -807,10 +800,10 @@ ClassMethod FixProjectCspReferences(projectName As %String) As %Status
 /// if <var>force</var> = 1 then imports in any case.
 ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose As %Boolean = 1) As %Status
 {
-    #dim filename As %String = ..FullExternalName(InternalName)
+    #dim filename as %String = ..FullExternalName(InternalName)
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
-    #dim sc As %Status = $$$OK
- 
+    #dim sc as %Status = $$$OK
+    
     if ..IsRoutineOutdated(InternalName) || force {
         set sc = $system.OBJ.Load(filename,"-l-d")
         if sc {
@@ -820,13 +813,13 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             }
             write InternalName," has been imported from ", filename,!
         } else {
-	        write "ERROR importing" ,InternalName,!
-	        do $system.Status.DisplayError(sc)
+            write "ERROR importing" ,InternalName,!
+            do $system.Status.DisplayError(sc)
         }
     } elseif verbose {
-	    write InternalName, " is the same as on-disk version or newer, skipping import",!
+        write InternalName, " is the same as on-disk version or newer, skipping import",!
     }
-    Quit sc
+    quit sc
 }
 
 ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
@@ -834,23 +827,23 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     #define DoNotLoad 1
     set res = $system.OBJ.ImportDir(..TempFolder(),"*.xml","-d",.err,1, .itemList, $$$DoNotLoad)
     
-    if '$Data(itemList) && $$$ISERR(res) {
-	    quit res
+    if '$data(itemList) && $$$ISERR(res) {
+        quit res
     }
     
-    if $Get(err) > 0 {
-	    write "There were some errors while importing files",!
-	    for i=1:1:err {
-		    write err(i),!
-	    }
+    if $get(err) > 0 {
+        write "There were some errors while importing files",!
+        for i=1:1:err {
+            write err(i),!
+        }
     }
     
     //change all csp/ names to /csp/ names
-    #dim item As %String = "csp"
+    #dim item as %String = "csp"
     for  {
-        set item = $Order(itemList(item))
+        set item = $order(itemList(item))
         quit:item=""
-        quit:$Extract(item, 1, 4)'="csp/"
+        quit:$extract(item, 1, 4)'="csp/"
         kill itemList(item)
         set itemList("/"_item)=""
     }
@@ -859,25 +852,24 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 
 ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
 {
-	write "==import start==", !
-	
+    write "==import start==", !
+    
     #dim err, itemList
     
     kill err, itemList
-    set err = 0   
+    set err = 0
     
-    #dim ec As %Status = ..ListItemsInFiles(.itemList, .err)
+    #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
     
-    #dim internalName As %String = ""
+    #dim internalName as %String = ""
     for  {
-        set internalName = $Order(itemList(internalName))
+        set internalName = $order(itemList(internalName))
         quit:internalName=""
         if '..IsInSourceControl(internalName) {
-        	//w "item ",internalName," is not in source control, skipping",!
-        	continue
+            continue
         }
-        #dim sc As %Status = ..ImportItem(internalName, force)
+        #dim sc as %Status = ..ImportItem(internalName, force)
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }
@@ -886,18 +878,18 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     //let's delete all items for which corresponding files had been deleted
     #dim item as %String = ""
     for  {
-        set item = $Order(@..#Storage@("TSH", item))
+        set item = $order(@..#Storage@("TSH", item))
         quit:item=""
 
         if '##class(%File).Exists(..FullExternalName(item)) {
-            #dim type As %String = ..Type(item)
-            #dim name As %String = ..NameWithoutExtension(item)
-            #dim deleted As %Boolean = 1
+            #dim type as %String = ..Type(item)
+            #dim name as %String = ..NameWithoutExtension(item)
+            #dim deleted as %Boolean = 1
             if type = "prj" {
                 set ec = $$$ADDSC(ec, $system.OBJ.DeleteProject(name))
             }elseif type = "cls" {
                 set ec = $$$ADDSC(ec, $system.OBJ.Delete(item))
-            }elseif $ListFind($ListBuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
+            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
                 set ec = $$$ADDSC(ec, ##class(%Routine).Delete(item))
             }elseif type = "csp" {
                 #dim filename = $system.CSP.GetFileName(item)
@@ -912,12 +904,12 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
                 do ..RemoveRoutineTSH(item)
                 write item, " was deleted", !
             } else {
-	            if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {
-                	write "Error: could not delete ", item, !
-	            } else {
-		            // if something we wanted to delete is already deleted -- good!
-		            set ec = $$$OK
-	            }
+                if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {
+                    write "Error: could not delete ", item, !
+                } else {
+                    // if something we wanted to delete is already deleted -- good!
+                    set ec = $$$OK
+                }
             }
         }
     }
@@ -939,20 +931,20 @@ ClassMethod ExportRoutinesAux(path As %String, sep As %String = "", level As %In
     #define Directory 9
     #define CSPFolder 10
     
-    #dim rs As %ResultSet = ##class(%ResultSet).%New("%RoutineMgr:StudioOpenDialog")
-    #dim ec As %Status = rs.Execute(path_$case(path,"":"",:"/")_"*",$$$Dir, $$$OrderBy, $$$SystemFiles, $$$Flat, $$$NotStudio, $$$ShowGenerated, $$$Filter)
+    #dim rs as %ResultSet = ##class(%ResultSet).%New("%RoutineMgr:StudioOpenDialog")
+    #dim ec as %Status = rs.Execute(path_$case(path,"":"",:"/")_"*",$$$Dir, $$$OrderBy, $$$SystemFiles, $$$Flat, $$$NotStudio, $$$ShowGenerated, $$$Filter)
     quit:'ec ec
     while rs.Next() {
-        #dim name As %String = rs.Get("Name")
-        #dim isdirectory As %String = rs.Get("IsDirectory")
-        #dim type As %String = rs.Get("Type")
+        #dim name as %String = rs.Get("Name")
+        #dim isdirectory as %String = rs.Get("IsDirectory")
+        #dim type as %String = rs.Get("Type")
         
         if (type = $$$Directory) || (type = $$$CSPFolder) {
-            #dim newpath As %String = $case(path,"":name,:path_isdirectory_name)
+            #dim newpath as %String = $case(path,"":name,:path_isdirectory_name)
             do ..ExportRoutinesAux(newpath, isdirectory, level + 1, force)
         } else {
-            #dim InternalName As %String = path_sep_name
-            if (type = $$$CspFile) && ($Extract(InternalName) '= "/") {
+            #dim InternalName as %String = path_sep_name
+            if (type = $$$CspFile) && ($extract(InternalName) '= "/") {
                 set InternalName = "/"_InternalName
             }
             set ec = ..ExportItem(InternalName, 1, force)
@@ -965,7 +957,6 @@ ClassMethod ExportRoutinesAux(path As %String, sep As %String = "", level As %In
 ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As %Boolean = 0) As %Status
 {
     #dim type = ..Type(InternalName)
-    //write "checking if we should export "_InternalName,!
     if type = "pkg" {
         $$$QuitOnError(..ExportRoutinesAux(..NameWithoutExtension(InternalName), ".", 0, force))
     }elseif type = "prj" && expand {
@@ -975,13 +966,13 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
         $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force))
     }else {
         if ..IsTempFileOutdated(InternalName) || force {
-            #dim filename As %String = ..FullExternalName(InternalName)
+            #dim filename as %String = ..FullExternalName(InternalName)
             write "exporting new version of ", InternalName, " to ", filename,!
             $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
-            $$$QuitOnError(..UpdateRoutineTSH(InternalName, $Horolog))
-			if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-				$$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $Username, "", 1, "", "", 0))
-			}
+            $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
+            if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+                $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
+            }
         }
     }
     quit $$$OK
@@ -989,15 +980,15 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
 
 ClassMethod ExportProject(project As %String, force As %Boolean = 0) As %Status
 {
-    #dim rs As %ResultSet = ##class(%ResultSet).%New("%Studio.Project:ProjectItemsList")
+    #dim rs as %ResultSet = ##class(%ResultSet).%New("%Studio.Project:ProjectItemsList")
     $$$QuitOnError(rs.Execute(project))
-    #dim typesWithoutExtension As %List = $ListBuild("CLS", "PKG")
+    #dim typesWithoutExtension as %List = $listbuild("CLS", "PKG")
     while rs.Next() {
         #dim name = rs.Get("Name")
-        if $ListFind(typesWithoutExtension, rs.Get("Type")) {
+        if $listfind(typesWithoutExtension, rs.Get("Type")) {
             set name = name _ "." _ rs.Get("Type")
         }
-        #dim ec As %Status = ..ExportItem(name, 1, force)
+        #dim ec as %Status = ..ExportItem(name, 1, force)
         quit:'ec
     }
     kill rs
@@ -1020,31 +1011,31 @@ ClassMethod ImportAll(force As %Boolean = 0) As %Status
 
 ClassMethod ExportRoutines(force As %Boolean = 0) As %Status
 {
-    #dim item As %String = ""
-    #dim ec As %Status = $$$OK
+    #dim item as %String = ""
+    #dim ec as %Status = $$$OK
     for  {
-        set item = $Order(@..#Storage@("items",item))
+        set item = $order(@..#Storage@("items",item))
         quit:item=""
         set ec = ..ExportItem(item, 1, force)
-        quit:'ec       
+        quit:'ec
     }
     quit ec
 }
 
 ClassMethod ExportSCList() As %Status
 {
-    #dim filename = ..TempFolder()_..#SCListFilename    
-    #dim file As %File = ##class(%File).%New(filename)
-    #dim item As %String = ""
-    #dim defaultCspApp As %String = $system.CSP.GetDefaultApp($znspace)
+    #dim filename = ..TempFolder()_..#SCListFilename
+    #dim file as %File = ##class(%File).%New(filename)
+    #dim item as %String = ""
+    #dim defaultCspApp as %String = $system.CSP.GetDefaultApp($znspace)
     $$$QuitOnError(file.Open("WSN"))
     
     for  {
-        set item = $Order(@..#Storage@("items",item))
+        set item = $order(@..#Storage@("items",item))
         quit:item=""
-        #dim fixedItem As %String = item
-        if $Extract(fixedItem, 1, $Length(defaultCspApp)) = defaultCspApp {
-            set $Extract(fixedItem, 1, $Length(defaultCspApp)) = "<cspapp>"
+        #dim fixedItem as %String = item
+        if $extract(fixedItem, 1, $length(defaultCspApp)) = defaultCspApp {
+            set $extract(fixedItem, 1, $length(defaultCspApp)) = "<cspapp>"
         }
         
         do file.WriteLine(fixedItem)
@@ -1059,17 +1050,17 @@ ClassMethod ExportSCList() As %Status
 ClassMethod ImportSCList() As %Status
 {
     #dim filename = ..TempFolder()_..#SCListFilename
-    #dim file As %File = ##class(%File).%New(filename)
-    #dim defaultCspApp As %String = $system.CSP.GetDefaultApp($znspace)
-    #dim eol As %Boolean
+    #dim file as %File = ##class(%File).%New(filename)
+    #dim defaultCspApp as %String = $system.CSP.GetDefaultApp($znspace)
+    #dim eol as %Boolean
     
     $$$QuitOnError(file.Open("R", 10))
     
-    #dim a 
+    #dim a
     while 'file.AtEnd  {
-        #dim s As %String = file.ReadLine(,,.eol)
+        #dim s as %String = file.ReadLine(,,.eol)
         continue:s=""
-        #dim item As %String = $Replace(s, "<cspapp>", defaultCspApp)
+        #dim item as %String = $replace(s, "<cspapp>", defaultCspApp)
         set a(..NormalizeExtension(item)) = ""
     }
     kill @..#Storage("items")
@@ -1082,14 +1073,14 @@ ClassMethod ImportSCList() As %Status
 /// returns true if directory was deleted
 ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
 {
-    #dim rs As %ResultSet = ##class(%ResultSet).%New("%File:FileSet")
+    #dim rs as %ResultSet = ##class(%ResultSet).%New("%File:FileSet")
     #define DirsFirst 1
     $$$QuitOnError(rs.Execute(path,,,$$$DirsFirst))
-    #dim fileCount As %Integer = 0
+    #dim fileCount as %Integer = 0
     while rs.Next() {
-        #dim fullname As %String = rs.Get("Name")
-        #dim type As %String = rs.Get("Type")
-        #dim name As %String = rs.Get("ItemName")
+        #dim fullname as %String = rs.Get("Name")
+        #dim type as %String = rs.Get("Type")
+        #dim name as %String = rs.Get("ItemName")
         #define IsDirectory(%type) %type="D"
         
         set fileCount = fileCount + 1
@@ -1108,11 +1099,11 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
 
 ClassMethod RunGitWithArgs(Output errStream, Output outStream, args...) As %Integer
 {
-	set command = args(1)
-	for i=2:1:$get(args) {
-		set newArgs($i(newArgs)) = args(i)
-	}
-	quit ..RunGitCommand(command,.errStream,.outStream,newArgs...)
+    set command = args(1)
+    for i=2:1:$get(args) {
+        set newArgs($increment(newArgs)) = args(i)
+    }
+    quit ..RunGitCommand(command,.errStream,.outStream,newArgs...)
 }
 
 ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...) As %Integer
@@ -1122,42 +1113,41 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
-	set newArgs($i(newArgs)) = "-C"
-    set newArgs($i(newArgs)) = ..TempFolder()
+    set newArgs($increment(newArgs)) = "-C"
+    set newArgs($increment(newArgs)) = ..TempFolder()
 
     set privateKeyFile = ..PrivateKeyFile()
     if (privateKeyFile '= "") {
         if $$$isWINDOWS {
             // Escape slashes
-            set privateKeyFile = $Replace(privateKeyFile,"\","\\")
+            set privateKeyFile = $replace(privateKeyFile,"\","\\")
         }
-        set newArgs($i(newArgs)) = "-c"
+        set newArgs($increment(newArgs)) = "-c"
         // StrictHostKeyChecking=accept-new for good behavior on first connection
-        set newArgs($i(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
+        set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
     }
 
     set username = ..GitUserName()
-	set email = ..GitUserEmail()
+    set email = ..GitUserEmail()
 
-    set newArgs($i(newArgs)) = "-c"
-    set newArgs($i(newArgs)) = "user.name="_username
-    set newArgs($i(newArgs)) = "-c"
-    set newArgs($i(newArgs)) = "user.email="_email
+    set newArgs($increment(newArgs)) = "-c"
+    set newArgs($increment(newArgs)) = "user.name="_username
+    set newArgs($increment(newArgs)) = "-c"
+    set newArgs($increment(newArgs)) = "user.email="_email
 
-    set newArgs($i(newArgs)) = command
+    set newArgs($increment(newArgs)) = command
 
-    for i=1:1:$g(args) 
-    {
-        if ($DATA(args(i))) {
-            set newArgs($i(newArgs)) = args(i)
+    for i=1:1:$get(args) {
+        if ($data(args(i))) {
+            set newArgs($increment(newArgs)) = args(i)
         }
     }
 
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set command = $Extract(..GitBinPath(),2,*-1)
-    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$Case(inFile, "":"", :" /STDIN="_inFile),command,newArgs...)
+    set command = $extract(..GitBinPath(),2,*-1)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_inFile),command,newArgs...)
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1169,20 +1159,20 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
 ClassMethod GitStatus(ByRef files)
 {
-	do ..RunGitCommand("status", .errStream, .outStream, "-z", "-uall")
-	set lines = outStream.ReadLine()
-	set list = $ListFromString(lines, $c(0))
-	set pointer = 0
-	while $ListNext(list, pointer, item) {
-		set operation = $Extract(item, 1, 2)
-		set externalName = $Extract(item, 4, *)
-		///w externalName_" "
-		set internalName = ..NameToInternalName(externalName)
-		///write internalName, !
-		if (internalName '= "") {
-			set files(internalName) = $lb(operation, externalName)
-		}
-	}
+    do ..RunGitCommand("status", .errStream, .outStream, "-z", "-uall")
+    set lines = outStream.ReadLine()
+    set list = $listfromstring(lines, $char(0))
+    set pointer = 0
+    while $listnext(list, pointer, item) {
+        set operation = $extract(item, 1, 2)
+        set externalName = $extract(item, 4, *)
+        ///w externalName_" "
+        set internalName = ..NameToInternalName(externalName)
+        ///write internalName, !
+        if (internalName '= "") {
+            set files(internalName) = $listbuild(operation, externalName)
+        }
+    }
 }
 
 /*
@@ -1193,71 +1183,71 @@ ClassMethod GitStatus(ByRef files)
 */
 ClassMethod Name(InternalName As %String) As %String
 {
-	Set InternalName=##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
-    Set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    If (context.IsInGitEnabledPackage) && (InternalName = context.InternalName) && $IsObject(context.ResourceReference) {
-        Set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
-        Quit relativePath
+    set InternalName=##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
+    set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    if (context.IsInGitEnabledPackage) && (InternalName = context.InternalName) && $isobject(context.ResourceReference) {
+        set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
+        quit relativePath
     }
-	Set usertype=$system.CLS.IsMthd("%Library.RoutineMgr","UserType")
-		
-	// For an abstract document, use the GetOther() method to try to determine its "real" class
-	If usertype,##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
-		// Check for a real abstract document subclass (or GetOther() may not work)
-		If $classmethod(docclass,"%IsA","%Studio.AbstractDocument") {
-			// Grab the actual name
-			Set actualName = $classmethod(docclass,"GetOther",InternalName)
-			// The actualName is only valid if we get a single .cls as a result
-			If actualName'[",",$ZCVT($P(actualName,".",$L(actualName,".")),"U")="CLS" {
-				// We use what GetOther() gives us, thus Demo.Loan.FindRateProcess.bpl becomes Demo.Loan.FindRateProcess.cls
-				Set InternalName = actualName
-			}
-		}
-	}	
-	
-	If $$CheckProtect^%qccServer(InternalName) Quit ""
-	Set nam=$p(InternalName,".",1,*-1),ext=$p(InternalName,".",*),ext=$zcvt(ext,"u")
-	If nam=""||(ext="") Quit ""
-	// Any CSP items should be matched against the "/CSP/" mapping in ^Sources
-	If InternalName["/" {
-		Set filename=$$GetFilename^%apiCSP(InternalName)
-		//Find if this csp file is located within the ^Sources tree, and return appropriate value
-		If $$$isWINDOWS {
-			If $zcvt($extract(filename,1,$length($$$SourceRoot)),"l")=$zcvt($$$SourceRoot,"l") Quit $extract(filename,$length($$$SourceRoot)+1,*)
-		} Else {
-			If $extract(filename,1,$length($$$SourceRoot))=$$$SourceRoot Quit $extract(filename,$length($$$SourceRoot)+1,*)
-		}
-		//Do not support manipulating files in the /itemsetsourcelink* csp app which are not inside of the namespace's ^Sources tree
-		If InternalName["itemsetsourcelink" {
-			Write !,"To control files in the /itemsetsourcelink* web app, they must be in this tree: "_$$$SourceRoot_" ("_InternalName_" is located at "_filename_")"
-			Quit ""
-		}
-		// Any CSP items should be matched against the "/CSP/" mapping if the file is not stored in the ^Sources tree
-		Set ext="/CSP/"	
-	}
-	If ext="PRJ",nam["Default_" Quit ""
-	If ext="CLS",$$$defClassKeyGet(nam,$$$cCLASSgeneratedby)'="" Quit ""
-	Set default=0
-	Set p=$order($$$SourceMapping(ext,nam)) For  Set p=$order($$$SourceMapping(ext,p),-1) Quit:p=""  If $extract(nam,1,$length(p))=p,$data(^Sources(ext,p),found) Quit
-	If $data(found)=0,$data($$$SourceMapping(ext,"*"),found),'$$$GetSourceMapping(ext,"*","NoFolders") Set default=1
-	If $data(found)=0 Quit ""
-	If InternalName["/" {
-		// If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
-		Set InternalName=$extract(InternalName,$length(p)+2,*)
-		Quit $translate(found_$translate(InternalName,"%","_"),"\","/")
-	}
-	If (ext="DFI") {
-		// expected format is <folderName>-<itemName>.<itemType>.DFI; will map to an external file named <folderName>/<itemName>.<itemType>.xml 
-		// replace the first '-' with '/' to translate Item Folder into subfolder on disk and leave the other dashes as dashes; converts spaces to '_'
-		Quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")	
-	}
-	If ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
-		Set nam=$translate(nam,"%")
-		If '$$$GetSourceMapping(ext,"*","NoFolders") Set nam=$translate(nam,".","/")
-		#; If match ends in '`' character use UDL/CLS format rather than XML format
-		RETURN $translate(found_nam_".cls","\","/")
-	}
-	Quit $translate($g(found)_$tr(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
+    set usertype=$system.CLS.IsMthd("%Library.RoutineMgr","UserType")
+    
+    // For an abstract document, use the GetOther() method to try to determine its "real" class
+    if usertype,##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+        // Check for a real abstract document subclass (or GetOther() may not work)
+        if $classmethod(docclass,"%IsA","%Studio.AbstractDocument") {
+            // Grab the actual name
+            set actualName = $classmethod(docclass,"GetOther",InternalName)
+            // The actualName is only valid if we get a single .cls as a result
+            if actualName'[",",$zconvert($piece(actualName,".",$length(actualName,".")),"U")="CLS" {
+                // We use what GetOther() gives us, thus Demo.Loan.FindRateProcess.bpl becomes Demo.Loan.FindRateProcess.cls
+                set InternalName = actualName
+            }
+        }
+    }
+    
+    if $$CheckProtect^%qccServer(InternalName) quit ""
+    set nam=$piece(InternalName,".",1,*-1),ext=$piece(InternalName,".",*),ext=$zconvert(ext,"u")
+    if nam=""||(ext="") quit ""
+    // Any CSP items should be matched against the "/CSP/" mapping in ^Sources
+    if InternalName["/" {
+        set filename=$$GetFilename^%apiCSP(InternalName)
+        //Find if this csp file is located within the ^Sources tree, and return appropriate value
+        if $$$isWINDOWS {
+            if $zconvert($extract(filename,1,$length($$$SourceRoot)),"l")=$zconvert($$$SourceRoot,"l") quit $extract(filename,$length($$$SourceRoot)+1,*)
+        } else {
+            if $extract(filename,1,$length($$$SourceRoot))=$$$SourceRoot quit $extract(filename,$length($$$SourceRoot)+1,*)
+        }
+        //Do not support manipulating files in the /itemsetsourcelink* csp app which are not inside of the namespace's ^Sources tree
+        if InternalName["itemsetsourcelink" {
+            write !,"To control files in the /itemsetsourcelink* web app, they must be in this tree: "_$$$SourceRoot_" ("_InternalName_" is located at "_filename_")"
+            quit ""
+        }
+        // Any CSP items should be matched against the "/CSP/" mapping if the file is not stored in the ^Sources tree
+        set ext="/CSP/"
+    }
+    if ext="PRJ",nam["Default_" quit ""
+    if ext="CLS",$$$defClassKeyGet(nam,$$$cCLASSgeneratedby)'="" quit ""
+    set default=0
+    set p=$order($$$SourceMapping(ext,nam)) for  set p=$order($$$SourceMapping(ext,p),-1) quit:p=""  if $extract(nam,1,$length(p))=p,$data(^Sources(ext,p),found) quit
+    if $data(found)=0,$data($$$SourceMapping(ext,"*"),found),'$$$GetSourceMapping(ext,"*","NoFolders") set default=1
+    if $data(found)=0 quit ""
+    if InternalName["/" {
+        // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
+        set InternalName=$extract(InternalName,$length(p)+2,*)
+        quit $translate(found_$translate(InternalName,"%","_"),"\","/")
+    }
+    if (ext="DFI") {
+        // expected format is <folderName>-<itemName>.<itemType>.DFI; will map to an external file named <folderName>/<itemName>.<itemType>.xml
+        // replace the first '-' with '/' to translate Item Folder into subfolder on disk and leave the other dashes as dashes; converts spaces to '_'
+        quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")
+    }
+    if ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
+        set nam=$translate(nam,"%")
+        if '$$$GetSourceMapping(ext,"*","NoFolders") set nam=$translate(nam,".","/")
+        #; If match ends in '`' character use UDL/CLS format rather than XML format
+        return $translate(found_nam_".cls","\","/")
+    }
+    quit $translate($get(found)_$translate(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
 }
 
 /*
@@ -1266,93 +1256,93 @@ ClassMethod Name(InternalName As %String) As %String
 */
 ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) As %String
 {
-	Set InternalName=""
-	If ($ZCVT(Name,"U")'[$ZCVT($$$SourceRoot,"U")) {
-		Set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
-	}
-	If (##class(%File).Exists(Name)) {
-		New %SourceControl //don't trigger source hooks with this test load to get the Name
-		Set sc=$system.OBJ.Load(Name,"-d",,.outName,1)
-		If ($data(outName)=1) || ($data(outName) = 11 && ($Order(outName(""),-1) = $Order(outName("")))) {
-			//only set if a single Name was returned ... ignore multi-item files
-			Set InternalName=outName
-		}
-	}
-	If (InternalName="") {
-		If ($ZCVT(Name,"U")'[$ZCVT($$$SourceRoot,"U")) {
-			//w !, Name
-			Quit ""	; file is not in ^Sources so translation cannot occur
-		}
-		Set name=$extract(Name,$length($$$SourceRoot)+1,*)
-		Set name=$replace(name,"\","/")	; standardize slash direction
-		If (name["/") {
-			//file is in a subdirectory under the ^Sources root
-			Set nam=$piece(name,"/",2,$length(name,"/")),extDir=$piece(name,"/")_"/"
-			If nam="" Quit ""
-		
-			Set queryary=$query($$$SourceMapping(""),-1,dir), subscript=$qsubscript(queryary,1)
-			While (queryary'="")&&(subscript'=0) {
-				If (dir["/")&&(dir=extDir) {
-					Set ext=subscript
-					Quit
-				}
-				Set queryary=$query(@queryary,-1,dir)
-				If (queryary="") {
-					Quit
-				}
-				Set subscript=$qsubscript(queryary,1)
-			}
-		} Else {
-			//there is no leading directory to remove 
-			Set nam=name	
-		}
+    set InternalName=""
+    if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
+        set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
+    }
+    if (##class(%File).Exists(Name)) {
+        new %SourceControl //don't trigger source hooks with this test load to get the Name
+        set sc=$system.OBJ.Load(Name,"-d",,.outName,1)
+        if ($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName("")))) {
+            //only set if a single Name was returned ... ignore multi-item files
+            set InternalName=outName
+        }
+    }
+    if (InternalName="") {
+        if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
+            quit ""	// file is not in ^Sources so translation cannot occur
+        }
+        set name=$extract(Name,$length($$$SourceRoot)+1,*)
+        set name=$replace(name,"\","/")	// standardize slash direction
+        if (name["/") {
+            //file is in a subdirectory under the ^Sources root
+            set nam=$piece(name,"/",2,$length(name,"/")),extDir=$piece(name,"/")_"/"
+            if nam="" quit ""
+            
+            set queryary=$query($$$SourceMapping(""),-1,dir), subscript=$qsubscript(queryary,1)
+            while (queryary'="")&&(subscript'=0) {
+                if (dir["/")&&(dir=extDir) {
+                    set ext=subscript
+                    quit
+                }
+                set queryary=$query(@queryary,-1,dir)
+                if (queryary="") {
+                    quit
+                }
+                set subscript=$qsubscript(queryary,1)
+            }
+        } else {
+            //there is no leading directory to remove
+            set nam=name
+        }
 
-		If ($get(ext)="/CSP/") {
-			//loop through to find if any subscripts of /CSP/ match
-			Set cspapp = $order($$$SourceMapping("/CSP/",""),-1,subdir)
-			If (cspapp'="*"){
-				Do {
-					If $extract(name,1,$length(subdir))=subdir {
-						Set InternalName=cspapp_$replace(name,subdir,"/")
-						Quit
-					}
-					Set cspapp = $order($$$SourceMapping("/CSP/",cspapp),-1,subdir)
-				} While cspapp'="*"
-			}
-			If InternalName="" {
-				//Internal Name is just the remainder after the subdirectory was removed and the leading "/" is added back
-				Set InternalName="/"_nam
-			}
-			If ($length(InternalName,"/")=2) {
-				//this was a file dropped directly under /cspapp/ so treat it as a non-mapped file
-				Set InternalName = ""
-			}
-		}
-		Set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
-		If (InternalName="")&&('$data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
-			//no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
-			//so treat it as a non-mapped file
-			Kill ext			 	
-		}
-		If $data(ext)=0 {
-			Quit ""
-		}
-		If (InternalName="") {
-			//take our best guess based on the document extension mapped to that subdirectory
-			Set nam=$piece(nam,".",1,$length(nam,".")-1)
-			Set nam=$translate(nam,"_/","%.")
-			Set InternalName=nam_"."_ext
-			If (ext="CLS") {	; special handling for possible collissions between % and non-% classes of the same name
-				Set alternateInternalName="%"_InternalName
-				Set primaryExists=##class(%RoutineMgr).Exists(InternalName), alternateExists=##class(%RoutineMgr).Exists(alternateInternalName)
-				If ('primaryExists)&&(alternateExists) { Set InternalName=alternateInternalName }	; it must have been a %-class as one by that name exists
-				If (primaryExists)&&(alternateExists) { Quit "" }	;indeterminate as the class exists in % and non-% form in the DB
-			}
-		}
-	}
-	If ((IgnorePercent)&&($extract(InternalName)="%")) { Set InternalName = "" }	; don't return a result for % items if instructed to ignore them
-	If ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))) { Set InternalName = "" }	; only return item names which exist in the DB
-    Quit ..NormalizeInternalName(InternalName)
+        if ($get(ext)="/CSP/") {
+            //loop through to find if any subscripts of /CSP/ match
+            set cspapp = $order($$$SourceMapping("/CSP/",""),-1,subdir)
+            if (cspapp'="*"){
+                do {
+                    if $extract(name,1,$length(subdir))=subdir {
+                        set InternalName=cspapp_$replace(name,subdir,"/")
+                        quit
+                    }
+                    set cspapp = $order($$$SourceMapping("/CSP/",cspapp),-1,subdir)
+                } while cspapp'="*"
+            }
+            if InternalName="" {
+                //Internal Name is just the remainder after the subdirectory was removed and the leading "/" is added back
+                set InternalName="/"_nam
+            }
+            if ($length(InternalName,"/")=2) {
+                //this was a file dropped directly under /cspapp/ so treat it as a non-mapped file
+                set InternalName = ""
+            }
+        }
+        set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
+        if (InternalName="")&&('$data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
+            //no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
+            //so treat it as a non-mapped file
+            kill ext
+        }
+        if $data(ext)=0 {
+            quit ""
+        }
+        if (InternalName="") {
+            //take our best guess based on the document extension mapped to that subdirectory
+            set nam=$piece(nam,".",1,$length(nam,".")-1)
+            set nam=$translate(nam,"_/","%.")
+            set InternalName=nam_"."_ext
+            if (ext="CLS") {
+                // special handling for possible collissions between % and non-% classes of the same name
+                set alternateInternalName="%"_InternalName
+                set primaryExists=##class(%RoutineMgr).Exists(InternalName), alternateExists=##class(%RoutineMgr).Exists(alternateInternalName)
+                if ('primaryExists)&&(alternateExists) { set InternalName=alternateInternalName }	// it must have been a %-class as one by that name exists
+                if (primaryExists)&&(alternateExists) { quit "" }	//indeterminate as the class exists in % and non-% form in the DB
+            }
+        }
+    }
+    if ((IgnorePercent)&&($extract(InternalName)="%")) { set InternalName = "" }	// don't return a result for % items if instructed to ignore them
+    if ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))) { set InternalName = "" }	// only return item names which exist in the DB
+    quit ..NormalizeInternalName(InternalName)
 }
 
 ClassMethod OutputConfigureMessage()
@@ -1374,7 +1364,7 @@ ClassMethod Localize()
 
 ClassMethod GetSourceControlInclude() As %String
 {
-    quit $Select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
+    quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src=""/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
 }

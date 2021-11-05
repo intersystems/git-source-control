@@ -332,6 +332,12 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         set files($I(files)) = modification
         write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
     }
+    if ('$DATA(files)) {
+        write !, ?4, "None"
+        write !, "Already up to date. Git Pull will not be executed."
+        quit $$$OK
+    }
+
 
 	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){

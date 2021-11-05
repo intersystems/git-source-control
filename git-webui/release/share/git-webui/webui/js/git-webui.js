@@ -1434,7 +1434,7 @@ webui.CommitView = function(historyView) {
         currentCommit = entry.commit;
         self.showDiff();
         buttonBox.select(0);
-        diffView.update("show", [entry.commit]);
+        diffView.update("show -p --diff-merges=separate", [entry.commit]);
         treeView.update(entry.tree);
     };
 
@@ -1849,7 +1849,6 @@ $(function()
     $(document).on('click', '.btn-prune-remote-branches', function(e){
         e.preventDefault();
         $(".btn-prune-remote-branches").addClass("refresh-start");
-
         webui.git("fetch --prune", function() {
             updateSideBar();
         });

@@ -1428,7 +1428,7 @@ webui.CommitView = function(historyView) {
         currentCommit = entry.commit;
         self.showDiff();
         buttonBox.select(0);
-        diffView.update("show", [entry.commit]);
+        diffView.update("show -p --diff-merges=separate", [entry.commit]);
         treeView.update(entry.tree);
     };
 

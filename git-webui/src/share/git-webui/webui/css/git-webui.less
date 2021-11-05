@@ -55,6 +55,23 @@
     user-select: none;
 }
 
+@keyframes rotate {
+
+    from {transform: rotate(0deg)}
+    to {transform: rotate(360deg)}
+    
+}    
+    
+.refresh-start {
+    
+    animation-name: rotate;
+    animation-duration: 2s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+    animation-play-state: running;
+    
+}
+
 .display-flex() {
     display: flex;
     display: -webkit-flex;
@@ -148,7 +165,7 @@ body {
 }
   
 .btn-sidebar-icon {
-    padding: 0% 0% 2% 5%;
+    padding: 2% 5%;
 }
   
 .btn-ok {

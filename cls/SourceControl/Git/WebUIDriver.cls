@@ -35,38 +35,18 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             */
             if (pathStart = "git") {
                 if $piece(pagePath,"/",3) = "cat-file" {
-                    /*
-                    if self.path.startswith("/git/cat-file/"): {
-                    obj = self.path[14:]
-                    }
-                    self.process(["git", "-c", "color.ui=false", "cat-file", "-p", obj], b"", True, False)
-                    */
                     set file = $piece(pagePath,"/",4,*)
                     do ##class(SourceControl.Git.Utils).RunGitCommand("-c",,.%data,"color.ui=false","cat-file","-p",file)
                     set handled = 1
                 }
             } elseif (pathStart = "hostname") {
-                /*
-                elif self.path == "/hostname":
-                self.send_text(200, codecs.encode(socket.gethostname(), "utf-8"))
-                */
                 do %data.Write(##class(%SYS.System).GetNodeName())
                 set handled = 1
             } elseif (pathStart = "viewonly") {
-                /*
-                elif self.path == "/viewonly":
-                vo = "1" if self.is_view_only() else "0"
-                self.send_text(200, codecs.encode(vo, "utf-8"))
-                */
                 // Never view-only
                 do %data.Write(0)
                 set handled = 1
             } elseif (pathStart = "dirname") {
-                /*
-                elif self.path == "/dirname":
-                wc = os.path.split(WebUiRequestHandler.REPO_ROOT)[1]
-                self.send_text(200, codecs.encode(wc, "utf-8"))
-                */
                 do %data.Write(##class(SourceControl.Git.Utils).TempFolder())
                 set handled = 1
             }
@@ -79,31 +59,6 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             SimpleHTTPRequestHandler.do_POST(self)
             */
             if (pathStart = "git") {
-                /*
-                def do_POST(self):
-                if self.path == "/git": {
-                content_length = int(self.headers["Content-Length"])
-                }
-                content = self.rfile.read(content_length)
-                # Convention : First line = git arguments, rest = git process stdin
-                i = content.find(b'\n')
-                if i != -1: {
-                args = content[:i]
-                }
-                stdin = content[i + 1:]
-                else:
-                args = content
-                stdin = b""
-                if sys.version > '3': {
-                args = codecs.decode(args, "utf-8")
-                }
-                cmd = shlex.split("git -c color.ui=true " + args)
-                action = cmd[3]
-                if not self.is_view_only() or args in ["branch", "branch --remotes", "tag"] or action in ["show", "status", "log", "ls-tree"]: {
-                self.process(cmd, stdin, True, True)
-                } else:
-                self.send_error(403)
-                */
                 set reference = "%request.Data"
                 for {
                     set reference = $query(@reference)

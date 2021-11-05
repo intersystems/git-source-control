@@ -10,16 +10,11 @@ Parameter DESCRIPTION [ Abstract ];
 /// Local git repo root directory
 Property LocalRoot As %String(MAXLEN = "");
 
-/// Modified files (integer-subscripted array, with path relative to repo root)
+/// Modified files (integer-subscripted array storing objects of class SourceControl.Git.Modification)
 Property ModifiedFiles [ MultiDimensional ];
-
-/// Modified items (InternalName format - e.g., SourceControl.Git.PullEventHandler.CLS)
-/// Array is subscripted by item name
-Property ModifiedItems [ MultiDimensional ];
 
 Method OnPull() As %Status [ Abstract ]
 {
 }
 
 }
-

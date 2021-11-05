@@ -316,21 +316,31 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
 
-    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream,)
+    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream, remote, branchName)
     if (sc=1){
         do errStream.OutputToDevice()
         quit sc
     }
 
     write !, "Fetch done"
-    write !, "Files in diff: "
+    write !, "Files that will be modified by git pull: "
 
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream,"--name-only",".."_remote)
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_"..."_(remote_"/"_branchName)), "--name-status")
     while (outStream.AtEnd = 0) { 
         set file = outStream.ReadLine()
-        set files($I(files)) = file
-        write !,?4, file
+        set modification = ##class(SourceControl.Git.Modification).%New()
+        set modification.changeType = $PIECE(file, " ", 1)
+        set modification.externalName = $ZSTRIP($PIECE(file," ",2,*),"<W")
+        set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0) 
+        set files($I(files)) = modification
+        write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
     }
+    if ('$DATA(files)) {
+        write !, ?4, "None"
+        write !, "Already up to date. Git Pull will not be executed."
+        quit $$$OK
+    }
+
 
 	set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
@@ -345,15 +355,6 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set event = $classmethod(..PullEventClass(),"%New")
     set event.LocalRoot = ..TempFolder()
     merge event.ModifiedFiles = files
-    for i=1:1:$Get(files) {
-        if $Data(files(i))#2 {
-            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(event.ModifiedFiles(i),,0) 
-            if (internalName '= "") {
-                set event.ModifiedItems(internalName) = ""
-            }
-        }
-    }
-
 	quit event.OnPull()
 }
 

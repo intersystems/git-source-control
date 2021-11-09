@@ -1963,7 +1963,7 @@ $(function () {
 
         function testMergeHandler (message) {
             console.log(message);
-            
+
             function suppressErrorMessage(error) {
             }
             webui.git("merge --abort", "", "", suppressErrorMessage);
@@ -2006,3 +2006,4 @@ $(function () {
 
 //test comment
 //test comment 2
+//test comment 3

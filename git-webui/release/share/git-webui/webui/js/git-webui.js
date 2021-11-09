@@ -109,7 +109,6 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
             var output = trimmedData.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
 
-            console.log(message, output);
             if (rcode == 0) {
                 if (callback) {
                     callback(output);
@@ -1961,14 +1960,20 @@ $(function () {
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();
 
-        function logOutput (output) {
-            console.log(output);
+        function testMergeHandler (message) {
+            if(message.includes("Automatic merge went well")){
+                webui.git("merge "+refName);
+            }
+            else {
+                webui.showError(message);
+                function suppressErrorMessage(error) {
+                }
+                webui.git("merge --abort", "", "", suppressErrorMessage);
+            }
         }
-
-        webui.git("merge --no-commit --no-ff "+refName, logOutput);
-        webui.git("merge --abort", logOutput);
+        webui.git("merge --no-commit --no-ff "+refName, testMergeHandler, testMergeHandler, testMergeHandler);
     });
-
+        
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(

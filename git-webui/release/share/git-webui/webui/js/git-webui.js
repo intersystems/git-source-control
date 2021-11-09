@@ -109,6 +109,7 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
             var output = trimmedData.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
 
+            console.log(message, output);
             if (rcode == 0) {
                 if (callback) {
                     callback(output);
@@ -290,6 +291,7 @@ webui.SideBarView = function(mainView) {
                                     '<div class="d-grid gap-2 col-12 mx-auto">'+
                                         '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
+                                        '<button class="btn btn-xs btn-danger btn-block btn-merge-branch">Merge Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);
                 }
@@ -315,6 +317,7 @@ webui.SideBarView = function(mainView) {
                 var cardBody = $('<div class="card-body">' +
                                 '<div class="d-grid gap-2 col-12 mx-auto">'+
                                     '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
+                                    '<button class="btn btn-xs btn-danger btn-block btn-merge-remote-branch">Merge Branch</button>'+
                                 '</div>'+
                                 '</div>').appendTo(collapseDiv);
             }
@@ -1953,6 +1956,19 @@ $(function () {
         
     });
 
+    $(document).on('click', '.btn-merge-branch', function(e){
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+
+        function logOutput (output) {
+            console.log(output);
+        }
+
+        webui.git("merge --no-commit --no-ff "+refName, logOutput);
+        webui.git("merge --abort", logOutput);
+    });
+
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
@@ -1961,7 +1977,7 @@ $(function () {
         var remoteName = refName.split('/')[0];
         var branchName = refName.split('/')[1];
         
-        webui.git("fetch "+remoteName);
+        webui.git("fetch "+remoteName+" "+branchName);
         webui.git("checkout -b " +branchName + " " + refName, function() {
             updateSideBar();
         });

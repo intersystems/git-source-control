@@ -1962,7 +1962,7 @@ $(function () {
 
         function testMergeHandler (message) {
             if(message.includes("Automatic merge went well")){
-                webui.git("merge "+refName, function (output){
+                webui.git("merge "+refName, "", "", function (output){
                     webui.showWarning(output);
                 });
             }

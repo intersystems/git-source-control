@@ -1962,8 +1962,9 @@ $(function () {
             ".card-header").children("button").html();
 
         function testMergeHandler (message) {
+            console.log(message);
             if(message.includes("Automatic merge went well")){
-                console.log("Automatic merge possible")
+                console.log("Automatic merge possible");
                 webui.git("merge "+refName, "", "", function (output){
                     webui.showWarning(output);
                 });

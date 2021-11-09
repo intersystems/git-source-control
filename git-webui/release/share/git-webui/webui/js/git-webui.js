@@ -1963,6 +1963,11 @@ $(function () {
 
         function testMergeHandler (message) {
             console.log(message);
+            
+            function suppressErrorMessage(error) {
+            }
+            webui.git("merge --abort", "", "", suppressErrorMessage);
+
             if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
                 console.log("Automatic merge possible");
                 webui.git("merge "+refName, "", "", function (output){
@@ -1971,9 +1976,6 @@ $(function () {
             }
             else {
                 webui.showError(message);
-                function suppressErrorMessage(error) {
-                }
-                webui.git("merge --abort", "", "", suppressErrorMessage);
             }
         }
         webui.git("merge --no-commit --no-ff "+refName, testMergeHandler, "", testMergeHandler, testMergeHandler);
@@ -2003,3 +2005,4 @@ $(function () {
 });
 
 //test comment
+//test comment 2

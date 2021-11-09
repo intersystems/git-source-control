@@ -1976,7 +1976,7 @@ $(function () {
                 webui.git("merge --abort", "", "", suppressErrorMessage);
             }
         }
-        webui.git("merge --no-commit --no-ff "+refName, testMergeHandler, testMergeHandler, testMergeHandler);
+        webui.git("merge --no-commit --no-ff "+refName, testMergeHandler, "", testMergeHandler, testMergeHandler);
     });
         
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {

@@ -108,7 +108,7 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
 
             var output = trimmedData.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
-            console.log(output, " ---- \n", message)
+            // console.log(output, " ---- \n", message)
 
             if (rcode == 0) {
                 if (callback) {
@@ -1963,7 +1963,7 @@ $(function () {
 
         function testMergeHandler (message) {
             console.log(message);
-            if(message.includes("Automatic merge went well")){
+            if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
                 console.log("Automatic merge possible");
                 webui.git("merge "+refName, "", "", function (output){
                     webui.showWarning(output);

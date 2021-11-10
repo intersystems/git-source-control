@@ -37,6 +37,19 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
                 "#e47b07", "#e36920", "#d34e2a", "#ec3b24", "#ba3d99", "#9d45c9", "#4f5aec", "#615dcf", "#3286cf", "#00abca", "#279227", "#3a980c", "#6c7f00", "#ab8b0a", "#b56427", "#757575",
                 "#ff911a", "#fc8120", "#e7623e", "#fa5236", "#ca4da9", "#a74fd3", "#5a68ff", "#6d69db", "#489bd9", "#00bcde", "#36a436", "#47a519", "#798d0a", "#c1a120", "#bf7730", "#8e8e8e"]
 
+webui.showSuccess = function(message) {
+    var messageBox = $("#message-box");
+    messageBox.empty();
+    $(  '<div class="alert alert-success alert-dismissible" role="alert">' +
+            '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+            '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+            '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+            '</svg>'+
+            '</button>' +
+            message +
+        '</div>').appendTo(messageBox);
+}
 
 webui.showError = function(message) {
     $("#error-modal .alert").text(message);
@@ -108,7 +121,6 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
 
             var output = trimmedData.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
-            console.log(cmd, "------ \n",output, " ---- \n", message)
 
             if (rcode == 0) {
                 if (callback) {
@@ -137,7 +149,7 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
                         webui.showError(displayMessage);
                     }
                 } else {
-                    webui.showError("The command <pre>"+cmd+"</pre> failed because of an unknown reason. Returned response: \n"+data)
+                    webui.showError("The command <pre>"+cmd+"</pre> failed because of an unknown reason. Returned response: \n\n"+data)
                 }
             }
         } else {
@@ -301,8 +313,8 @@ webui.SideBarView = function(mainView) {
                     var cardBody = $('<div class="card-body">' +
                                     '<div class="d-grid gap-2 col-12 mx-auto">'+
                                         '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
+                                        '<button class="btn btn-xs btn-warning btn-block btn-merge-branch">Merge Branch</button>'+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
-                                        '<button class="btn btn-xs btn-danger btn-block btn-merge-branch">Merge Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);
                 }
@@ -328,7 +340,7 @@ webui.SideBarView = function(mainView) {
                 var cardBody = $('<div class="card-body">' +
                                 '<div class="d-grid gap-2 col-12 mx-auto">'+
                                     '<button class="btn btn-xs btn-primary btn-block btn-checkout-remote-branch">Checkout Branch</button>'+
-                                    '<button class="btn btn-xs btn-danger btn-block btn-merge-remote-branch">Merge Branch</button>'+
+                                    '<button class="btn btn-xs btn-warning btn-block btn-merge-remote-branch">Merge Branch</button>'+
                                 '</div>'+
                                 '</div>').appendTo(collapseDiv);
             }
@@ -1973,17 +1985,40 @@ $(function () {
             ".card-header").children("button").html();
 
         function testMergeHandler (message) {
-            console.log(message);
-
             function suppressErrorMessage(error) {
             }
             webui.git("merge --abort", "", "", suppressErrorMessage);
 
             if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
-                console.log("Automatic merge possible");
                 webui.git("merge "+refName, function (output){
-                    console.log("Actual merge outpot: ", output)
-                    webui.showWarning(output);
+                    webui.showSuccess(output);
+                });
+            }
+            else {
+                webui.showError(message);
+            }
+        }
+        webui.git("merge --no-commit --no-ff "+refName, "", "", testMergeHandler, testMergeHandler);
+    });
+
+    $(document).on('click', '.btn-merge-remote-branch', function(e){
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+
+        var remoteName = refName.split('/')[0];
+        var branchName = refName.split('/')[1];
+        
+        webui.git("fetch "+remoteName+" "+branchName);
+
+        function testMergeHandler (message) {
+            function suppressErrorMessage(error) {
+            }
+            webui.git("merge --abort", "", "", suppressErrorMessage);
+
+            if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
+                webui.git("merge "+refName, function (output){
+                    webui.showSuccess(output);
                 });
             }
             else {
@@ -2015,16 +2050,3 @@ $(function () {
         location.reload()
     });
 });
-
-//test comment
-//test comment 2
-//test comment 3
-//test comment 4
-//test comment 5
-//test comment 6
-//test comment 7
-//test comment 8
-//test comment 9
-//test comment 10
-//test comment 11
-//test comment 12

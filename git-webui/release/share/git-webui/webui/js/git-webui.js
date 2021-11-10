@@ -108,7 +108,7 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
 
             var output = trimmedData.substring(0, messageStartIndex);
             var rcode = parseInt(footers["Git-Return-Code"]);
-            console.log(output, " ---- \n", message)
+            console.log(cmd, "------ \n",output, " ---- \n", message)
 
             if (rcode == 0) {
                 if (callback) {

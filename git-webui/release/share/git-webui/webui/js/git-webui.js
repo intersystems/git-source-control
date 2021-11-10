@@ -123,10 +123,21 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
                     }
                 }
             } else {
-                if(errorCallback) {
-                    errorCallback(message);
-                } else{
-                    webui.showError(message);
+                var displayMessage = ""
+                if(output.length > 0){
+                    displayMessage += (output+"\n");
+                }
+                if(message.length > 0){
+                    displayMessage += message;
+                }
+                if(displayMessage.length > 0){
+                    if(errorCallback) {
+                        errorCallback(displayMessage);
+                    } else{
+                        webui.showError(displayMessage);
+                    }
+                } else {
+                    webui.showError("The command <pre>"+cmd+"</pre> failed because of an unknown reason. Returned response: \n"+data)
                 }
             }
         } else {

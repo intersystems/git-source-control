@@ -1971,6 +1971,7 @@ $(function () {
             if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
                 console.log("Automatic merge possible");
                 webui.git("merge "+refName, "", "", function (output){
+                    console.log("Actual merge outpot: ", output)
                     webui.showWarning(output);
                 });
             }
@@ -1978,7 +1979,7 @@ $(function () {
                 webui.showError(message);
             }
         }
-        webui.git("merge --no-commit --no-ff "+refName, testMergeHandler, "", testMergeHandler, testMergeHandler);
+        webui.git("merge --no-commit --no-ff "+refName, "", "", testMergeHandler, testMergeHandler);
     });
         
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {

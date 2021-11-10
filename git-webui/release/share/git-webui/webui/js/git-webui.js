@@ -1970,7 +1970,7 @@ $(function () {
 
             if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
                 console.log("Automatic merge possible");
-                webui.git("merge "+refName, "", "", function (output){
+                webui.git("merge "+refName, function (output){
                     console.log("Actual merge outpot: ", output)
                     webui.showWarning(output);
                 });

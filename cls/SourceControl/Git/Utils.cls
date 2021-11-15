@@ -265,6 +265,8 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     do outStream.OutputToDevice()
     write !
     do errStream.OutputToDevice()
+    $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted())
     quit $$$OK
 }
 
@@ -1370,3 +1372,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

@@ -254,6 +254,20 @@ ClassMethod Revert(InternalName As %String) As %Status
     quit $$$OK
 }
 
+ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
+{
+    set filename = ..FullExternalName(InternalName)
+    set username = ..GitUserName()
+    set email = ..GitUserEmail()
+    set author = username_" <"_email_">"
+    do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
+    write !
+    do outStream.OutputToDevice()
+    write !
+    do errStream.OutputToDevice()
+    quit $$$OK
+}
+
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
@@ -267,20 +281,6 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do errStream.OutputToDevice()
     do outStream.OutputToDevice()
-    quit $$$OK
-}
-
-ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
-{
-    set filename = ..FullExternalName(InternalName)
-    set username = ..GitUserName()
-    set email = ..GitUserEmail()
-    set author = username_" <"_email_">"
-    do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
-    write !
-    do outStream.OutputToDevice()
-    write !
-    do errStream.OutputToDevice()
     quit $$$OK
 }
 
@@ -1370,4 +1370,3 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
-

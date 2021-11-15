@@ -46,6 +46,9 @@ Method %Save() As %Status
     kill ^||GitVersion
     
     set @storage@("settings","namespaceTemp") = ##class(SourceControl.Git.Utils).AddSlash(..namespaceTemp)
+    if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){
+        do ##class(%Library.File).CreateDirectoryChain(@storage@("settings","namespaceTemp"))
+    }
     set @storage@("settings","user",$username,"gitUserName") = ..gitUserName
 
     set @storage@("settings","user",$username,"gitUserEmail") = ..gitUserEmail

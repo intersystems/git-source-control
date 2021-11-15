@@ -1147,7 +1147,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set errLog = ##class(%Library.File).TempFilename()
 
     set command = $extract(..GitBinPath(),2,*-1)
-    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_inFile),command,newArgs...)
+    set returnCode = $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile)),command,newArgs...)
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1370,4 +1370,3 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
-

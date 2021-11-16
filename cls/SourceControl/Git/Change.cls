@@ -37,6 +37,7 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
         if Display write !,filename_" removed from uncommitted list"
         if '..IsUncommitted(filename) set filename=$order(FileList(filename)) continue
         set obj=..OpenUncommitted(filename)
+        zwrite obj
         if (obj.Source="trakcare")&&($data(^SYS("ChangeControlClass"))) {
             set changeSourceClass=^SYS("ChangeControlClass")
         } else {
@@ -62,7 +63,6 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
 ClassMethod AddDeletedToUncommitted(Filename, InternalName) As %Status
 {
    
-    write !,Filename
     Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "", 0)
 }
 

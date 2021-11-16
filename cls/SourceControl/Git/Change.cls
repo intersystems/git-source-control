@@ -58,6 +58,14 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
     quit SCs
 }
 
+/// This method records a deleted file in the uncommitted queue
+ClassMethod AddDeletedToUncommitted(Filename, InternalName) As %Status
+{
+   
+    write !,Filename
+    Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "", 0)
+}
+
 ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 {
     &SQL(SELECT ID INTO :ID FROM SourceControl_Git.Change WHERE ItemFile = :Filename AND Committed = '0')
@@ -88,4 +96,3 @@ ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
 }
 
 }
-

@@ -88,4 +88,3 @@ ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
 }
 
 }
-

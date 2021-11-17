@@ -207,10 +207,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "Pull") {
         quit ..Pull()
     } elseif (menuItemName = "AddToSC") {
-        do $System.OBJ.GetPackageList(.files,InternalName)
-        if ($DATA(files) '= 0) {
-                set InternalName = ($piece($order(files("")), ".", 1)_".pkg")
-        }
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
@@ -455,7 +451,7 @@ ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
         } else {
             #dim parentElement as %String = ""
             if ..IsInSourceControl(item, .parentElement) {
-                set tsc = ..MakeError(item _ " is contained in "_parentElement_" that tracked by SourceControl")
+                set tsc = ..MakeError(item _ " is contained in "_parentElement_" that tracked is by SourceControl")
             }else {
                 set tsc = ..MakeError(item _ " is not in SourceControl")
             }

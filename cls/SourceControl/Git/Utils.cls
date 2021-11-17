@@ -207,6 +207,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "Pull") {
         quit ..Pull()
     } elseif (menuItemName = "AddToSC") {
+        do $System.OBJ.GetPackageList(.files,InternalName)
+        if ($DATA(files) '= 0) {
+                set InternalName = ($piece($order(files("")), ".", 1)_".pkg")
+        }
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
@@ -388,14 +392,17 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
     for i = 1:1:$length(InternalName, ",") {
         #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
         set @..#Storage@("items", item) = ""
-        #dim sc as %Status =  ..ExportItem(item)
+        #dim sc as %Status =  ..ExportItem(item,,,.filenames)
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
-        // Necessary for items in new folders
-        do ..RunGitCommand("add",.errStream,.outStream,..ExternalName(InternalName))
-        do outStream.OutputToDevice()
-        do errStream.OutputToDevice()
+        #dim extension = $piece(item, ".", $length(item, "."))
+
+        for i=1:1:filenames{
+            do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
+            do outStream.OutputToDevice()
+            do errStream.OutputToDevice()
+        }
     }
     set ec = $$$ADDSC(ec, ..ExportSCList())
     quit ec
@@ -920,7 +927,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     quit ec
 }
 
-ClassMethod ExportRoutinesAux(path As %String, sep As %String = "", level As %Integer = 0, force As %Boolean = 0) As %Status
+ClassMethod ExportRoutinesAux(path As %String, sep As %String = "", level As %Integer = 0, force As %Boolean = 0, ByRef filenames) As %Status
 {
     #define Dir
     #define OrderBy
@@ -943,32 +950,33 @@ ClassMethod ExportRoutinesAux(path As %String, sep As %String = "", level As %In
         
         if (type = $$$Directory) || (type = $$$CSPFolder) {
             #dim newpath as %String = $case(path,"":name,:path_isdirectory_name)
-            do ..ExportRoutinesAux(newpath, isdirectory, level + 1, force)
+            do ..ExportRoutinesAux(newpath, isdirectory, level + 1, force, .filenames)
         } else {
             #dim InternalName as %String = path_sep_name
             if (type = $$$CspFile) && ($extract(InternalName) '= "/") {
                 set InternalName = "/"_InternalName
             }
-            set ec = ..ExportItem(InternalName, 1, force)
+            set ec = ..ExportItem(InternalName, 1, force, .filenames)
         }
     }
     kill rs
     quit ec
 }
 
-ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As %Boolean = 0) As %Status
+ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As %Boolean = 0, ByRef filenames) As %Status
 {
     #dim type = ..Type(InternalName)
     if type = "pkg" {
-        $$$QuitOnError(..ExportRoutinesAux(..NameWithoutExtension(InternalName), ".", 0, force))
+        $$$QuitOnError(..ExportRoutinesAux(..NameWithoutExtension(InternalName), ".", 0, force, .filenames))
     }elseif type = "prj" && expand {
-        $$$QuitOnError(..ExportProject(..NameWithoutExtension(InternalName), force))
-        $$$QuitOnError(..ExportItem(InternalName, 0, force))
+        $$$QuitOnError(..ExportProject(..NameWithoutExtension(InternalName), force, .filenames))
+        $$$QuitOnError(..ExportItem(InternalName, 0, force, .filenames))
     }elseif (type = "csp") && ..IsCspFolder(InternalName) {
-        $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force))
+        $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force, .filenames))
     }else {
         if ..IsTempFileOutdated(InternalName) || force {
             #dim filename as %String = ..FullExternalName(InternalName)
+            set filenames($I(filenames)) = filename
             write "exporting new version of ", InternalName, " to ", filename,!
             $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
@@ -980,7 +988,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
     quit $$$OK
 }
 
-ClassMethod ExportProject(project As %String, force As %Boolean = 0) As %Status
+ClassMethod ExportProject(project As %String, force As %Boolean = 0, ByRef filenames) As %Status
 {
     #dim rs as %ResultSet = ##class(%ResultSet).%New("%Studio.Project:ProjectItemsList")
     $$$QuitOnError(rs.Execute(project))
@@ -990,7 +998,7 @@ ClassMethod ExportProject(project As %String, force As %Boolean = 0) As %Status
         if $listfind(typesWithoutExtension, rs.Get("Type")) {
             set name = name _ "." _ rs.Get("Type")
         }
-        #dim ec as %Status = ..ExportItem(name, 1, force)
+        #dim ec as %Status = ..ExportItem(name, 1, force, .filenames)
         quit:'ec
     }
     kill rs

@@ -47,6 +47,10 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
     }
+    do $System.OBJ.GetPackageList(.files,InternalName)
+    if ($DATA(files) '= 0) {
+            set InternalName = ($piece($order(files("")), ".", 1)_".pkg")
+    }
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set ec = ##class(Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
@@ -239,8 +243,6 @@ InternalName'="" && ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInt
 /// Called before an item is deleted.
 Method OnBeforeDelete(InternalName As %String) As %Status
 {
-    Do LOG^%ETN
-    write !, !, "----------------before delete--------------"
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     set Filename = ##class(Utils).FullExternalName(InternalName)
@@ -253,8 +255,6 @@ Method OnBeforeDelete(InternalName As %String) As %Status
 /// Called after an item is deleted.
 Method OnAfterDelete(InternalName As %String) As %Status
 {
-    Do LOG^%ETN
-    write !, !, "----------------after delete--------------",!,!
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     if ##class(Utils).IsInSourceControl(InternalName) {

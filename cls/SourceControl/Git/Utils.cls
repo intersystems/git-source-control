@@ -1168,9 +1168,7 @@ ClassMethod GitStatus(ByRef files)
     while $listnext(list, pointer, item) {
         set operation = $extract(item, 1, 2)
         set externalName = $extract(item, 4, *)
-        ///w externalName_" "
         set internalName = ..NameToInternalName(externalName)
-        ///write internalName, !
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
         }
@@ -1259,6 +1257,7 @@ ClassMethod Name(InternalName As %String) As %String
 ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) As %String
 {
     set InternalName=""
+    set Deleted = 0
     if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
         set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
     }
@@ -1269,6 +1268,13 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
             //only set if a single Name was returned ... ignore multi-item files
             set InternalName=outName
         }
+    } else {
+        // check for file in uncommitted queue
+        &sql(SELECT internalName into :InternalName FROM SourceControl_Git.Change where ItemFile = :Name)
+        if (SQLCODE = 100) {
+            set InternalName = ""
+        }
+        set Deleted = 1
     }
     if (InternalName="") {
         if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
@@ -1343,7 +1349,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
         }
     }
     if ((IgnorePercent)&&($extract(InternalName)="%")) { set InternalName = "" }	// don't return a result for % items if instructed to ignore them
-    if ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))) { set InternalName = "" }	// only return item names which exist in the DB
+    if ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))&&('Deleted)) { set InternalName = "" }	// only return item names which exist in the DB
     quit ..NormalizeInternalName(InternalName)
 }
 

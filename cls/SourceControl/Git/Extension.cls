@@ -239,8 +239,6 @@ InternalName'="" && ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInt
 /// Called before an item is deleted.
 Method OnBeforeDelete(InternalName As %String) As %Status
 {
-    Do LOG^%ETN
-    write !, !, "----------------before delete--------------"
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     set Filename = ##class(Utils).FullExternalName(InternalName)
@@ -253,8 +251,6 @@ Method OnBeforeDelete(InternalName As %String) As %Status
 /// Called after an item is deleted.
 Method OnAfterDelete(InternalName As %String) As %Status
 {
-    Do LOG^%ETN
-    write !, !, "----------------after delete--------------",!,!
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     if ##class(Utils).IsInSourceControl(InternalName) {

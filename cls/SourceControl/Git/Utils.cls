@@ -453,6 +453,7 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
         }
     } else {
         set ec = ..DeleteExternalFile(InternalName)
+        do ..RemoveFromGit(InternalName)
     }
     quit ec
 }

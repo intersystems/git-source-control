@@ -265,11 +265,8 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     do outStream.OutputToDevice()
     write !
     do errStream.OutputToDevice()
-<<<<<<< HEAD
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted())
-=======
->>>>>>> main
     quit $$$OK
 }
 

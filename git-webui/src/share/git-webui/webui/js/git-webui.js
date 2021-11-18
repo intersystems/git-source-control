@@ -1574,10 +1574,20 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         } else {
                             model = line;
                         }
-                        var isForCurrentUser = true; //(uncommittedItems.indexOf(model) > -1);
+                        var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                         var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
 
-                        var item = $('<a class="'+cssClass+'">').appendTo(fileList)[0];
+                        if(isForCurrentUser){
+                            var item = $('<a class="'+cssClass+'">').prependTo(fileList)[0];
+                        }
+                        else{
+                            var item = $('<a class="'+cssClass+'">'+
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">'+
+                                            '<path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>'+
+                                            '<path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>'+
+                                            '<path d="M4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>'+
+                                        '</svg>').appendTo(fileList)[0];
+                        }
                         item.model = model;
                         item.status = status;
                         item.appendChild(document.createTextNode(line));
@@ -1652,14 +1662,67 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         }
     };
 
-    self.getFileList = function(including, excluding) {
+    function confirmActionForUnavailalbleFile(child, action) {
+        function removeUnavailableModal(popup) {
+            $(popup).children( ".modal-fade").modal('hide');
+            $(".modal-backdrop").remove();
+            $("#confirm-unavailable-staging").remove();
+        }
+
+        var popup = $(  '<div class="modal fade" id="confirm-unavailable-staging" role="dialog">' +
+                            '<div class="modal-dialog modal-md">' +
+                                '<div class="modal-content">' +
+                                    '<div class="modal-header">' +
+                                        '<h5 class="modal-title">Confirm Staging</h5>' +
+                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+                                        '</svg>'+
+                                        '</button>' +
+                                    '</div>' +
+                                    '<div class="modal-body"></div>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>')[0];
+        $("body").append(popup); 
+        var popupContent = $(".modal-body", popup)[0];
+        removeAllChildNodes(popupContent);
+        $('<div class="row"><div class="col-sm-1">'+
+        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
+            '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
+        '</svg></div>'+
+        '<div class="col-sm-11"><pre>'+child.model+'</pre> was changed by another user. Are you sure you want to ' + action + ' it?</div></div>'+
+        '<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substr(1)+'</button>'+
+        '<button class="btn btn-sm btn-secondary float-right" id="cancel-staging">Cancel</button>').appendTo(popupContent);
+        $(popup).modal('show');
+
+        $("#confirm-unavailable-staging").on('click', '#confirm-staging', function(e){
+            removeUnavailableModal(popup);
+            console.log("Confirm unavailable file")
+            $(child).addClass("available");
+            $(child).removeClass("unavailable");
+            self.process()
+        });
+
+        $("#confirm-unavailable-staging").find("#cancel-staging, .close").click(function() {
+            removeUnavailableModal(popup);
+        });
+    }
+
+    self.getFileList = function(including, excluding, includeUnavailable=0, action="stage") {
         var files = "";
         for (var i = 0; i < fileList.childElementCount; ++i) {
             var child = fileList.children[i];
             var included = including == undefined || including.indexOf(child.status) != -1;
             var excluded = excluding != undefined && excluding.indexOf(child.status) != -1;
-            if ($(child).hasClass("active") && $(child).hasClass("available") && included && !excluded) {
-                files += '"' + (child.model) + '" ';
+            if ($(child).hasClass("active") && ($(child).hasClass("available")||includeUnavailable) && included && !excluded) {
+                if($(child).hasClass("unavailable")) {
+                    confirmActionForUnavailalbleFile(child, action);
+                }
+                else {
+                    files += '"' + (child.model) + '" ';
+                }                
             }
         }
         return files;
@@ -1667,23 +1730,26 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
 
     self.process = function() {
         prevScrollTop = fileListContainer.scrollTop;
-        var files = self.getFileList(undefined, "D");
-        var rmFiles = self.getFileList("D");
+        var action = type == "working-copy" ? "stage" : "unstage"
+        var files = self.getFileList(undefined, "D", 1, action);
+        console.log(files, "\n\n")
+        var rmFiles = self.getFileList("D", undefined, 1, action);
+        console.log(rmFiles, "\n\n")
         if (files.length != 0) {
             var cmd = type == "working-copy" ? "add" : "reset";
             webui.git(cmd + " -- " + files, function(data) {
                 if (rmFiles.length != 0) {
                     webui.git("rm -- " + rmFiles, function(data) {
-                        workspaceView.update(type == "working-copy" ? "stage" : "unstage");
+                        workspaceView.update(action);
                     });
                 } else {
-                    workspaceView.update(type == "working-copy" ? "stage" : "unstage");
+                    workspaceView.update(action);
                 }
             });
         } else if (rmFiles.length != 0) {
             var cmd = type == "working-copy" ? "rm" : "reset";
             webui.git(cmd + " -- " + rmFiles, function(data) {
-                workspaceView.update(type == "working-copy" ? "stage" : "unstage");
+                workspaceView.update(action);
             });
         }
     };
@@ -1893,14 +1959,15 @@ $(function () {
         });
     });
 
+    function removeDeleteModal(popup) {
+        $(popup).children( ".modal-fade").modal('hide');
+        $(".modal-backdrop").remove();
+        $("#confirm-branch-delete").remove();
+    }
+
     $(document).on('click', '.btn-delete-branch', function(e) {
         e.preventDefault();
 
-        function removeDeleteModal(popup) {
-            $(popup).children( ".modal-fade").modal('hide');
-            $(".modal-backdrop").remove();
-            $("#confirm-branch-delete").remove();
-        }
         $("#confirm-branch-delete").remove(); //removes any remaining modals. If there are more than one modals, the ids are duplicated and event listeners won't work.
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();

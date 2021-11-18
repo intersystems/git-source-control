@@ -46,12 +46,15 @@ body {
   margin: 0;
   font: 10pt sans-serif;
 }
-#confirm-branch-delete p {
+#confirm-branch-delete,
+#confirm-staging p {
   font-size: 105%;
 }
 #confirm-delete,
 #cancel-delete,
-#confirm-force-delete {
+#confirm-force-delete,
+#confirm-staging,
+#cancel-staging {
   margin-left: 1rem;
   margin-top: 0.5rem;
 }
@@ -668,6 +671,16 @@ body {
   border-right: 0;
   white-space: nowrap;
   border-radius: 0;
+}
+#workspace-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#commit-explorer-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#workspace-view #commit-explorer-navigator-view #working-copy-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#commit-explorer-view #commit-explorer-navigator-view #working-copy-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#workspace-view #workspace-editor #staging-area-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#commit-explorer-view #workspace-editor #staging-area-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#workspace-view #commit-explorer-navigator-view #staging-area-view .file-list-container .list-group .list-group-item svg.bi-people-fill,
+#commit-explorer-view #commit-explorer-navigator-view #staging-area-view .file-list-container .list-group .list-group-item svg.bi-people-fill {
+  margin-right: 3%;
 }
 #workspace-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.available,
 #commit-explorer-view #workspace-editor #working-copy-view .file-list-container .list-group .list-group-item.available,

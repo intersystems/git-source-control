@@ -149,7 +149,7 @@ ClassMethod UserInfo() As %SystemBase
 ClassMethod Uncommitted() As %SystemBase
 {
     // Stub
-    do ##class(Utils).GitStatus(.files)
+    do ##class(Utils).GitStatus(.files, 1)
     set output = ""
     set key = ""
 
@@ -160,13 +160,17 @@ ClassMethod Uncommitted() As %SystemBase
         quit:key=""
         // Check that current user has files(key) uncommitted and only %Push if they do
         set filename = ##class(Utils).FullExternalName(key)
-        set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
-        if $$$ISOK(sc) && ($data(tAction)&&(UncommittedUser=$username)) {
+        if (($ISVALIDNUM(key)) && (files(key) '= "")){
             do array.%Push($listget(fileData,2))
+        }
+        else{
+            set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
+            if ($$$ISOK(sc)) && ($data(tAction)&&(UncommittedUser=$username)) {
+                do array.%Push($listget(fileData,2))
+            }
         }
     }
     quit array
 }
 
 }
-

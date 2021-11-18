@@ -106,11 +106,11 @@ body {
     font: 10pt sans-serif;
 }
 
-#confirm-branch-delete p{
+#confirm-branch-delete, #confirm-staging p{
     font-size:105%;
 }
 
-#confirm-delete, #cancel-delete, #confirm-force-delete {
+#confirm-delete, #cancel-delete, #confirm-force-delete, #confirm-staging, #cancel-staging {
     margin-left: 1rem;
     margin-top: 0.5rem;
 }
@@ -691,6 +691,10 @@ body {
                         border-right: 0;
                         white-space: nowrap;
                         border-radius: 0;
+
+                        svg.bi-people-fill {
+                            margin-right: 3%;
+                        }
                     }
 
                     .list-group-item.available {

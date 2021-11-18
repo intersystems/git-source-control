@@ -1163,7 +1163,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     quit returnCode
 }
 
-ClassMethod GitStatus(ByRef files)
+ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
 {
     do ..RunGitCommand("status", .errStream, .outStream, "-z", "-uall")
     set lines = outStream.ReadLine()
@@ -1175,7 +1175,10 @@ ClassMethod GitStatus(ByRef files)
         set internalName = ..NameToInternalName(externalName)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
-        }
+        } elseif IncludeAllFiles {
+            set externalName = $TRANSLATE(externalName, "\", "/")
+            set files($I(files)) = $listbuild(operation, externalName)
+        } 
     }
 }
 

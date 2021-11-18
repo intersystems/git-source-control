@@ -1,10 +1,5 @@
-Class SourceControl.Git.TempClass Extends %RegisteredObject
+Class SourceControl.Git.TempClass Extends %Persistent
 {
-
-Method HelloWorld()
-{
-		write "Hello World"
-}
 
 }
 

@@ -1699,7 +1699,6 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
 
         $("#confirm-unavailable-staging").on('click', '#confirm-staging', function(e){
             removeUnavailableModal(popup);
-            console.log("Confirm unavailable file")
             $(child).addClass("available");
             $(child).removeClass("unavailable");
             self.process()
@@ -1732,9 +1731,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         prevScrollTop = fileListContainer.scrollTop;
         var action = type == "working-copy" ? "stage" : "unstage"
         var files = self.getFileList(undefined, "D", 1, action);
-        console.log(files, "\n\n")
         var rmFiles = self.getFileList("D", undefined, 1, action);
-        console.log(rmFiles, "\n\n")
         if (files.length != 0) {
             var cmd = type == "working-copy" ? "add" : "reset";
             webui.git(cmd + " -- " + files, function(data) {

@@ -9,8 +9,6 @@ Parameter InstallNamespace = "%SYS";
 
 Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 
-Parameter NotMySlash = {$case($system.Version.GetOS(),"Windows":"/",:"\")};
-
 /// Name of the file with version controlled items
 Parameter SCListFilename = "sc-list.txt";
 
@@ -122,20 +120,6 @@ ClassMethod AddSlash(path As %String) As %String
         set path = path_..#Slash
     }
     quit path
-}
-
-ClassMethod FixSlashes(path As %String) As %String
-{
-    set fixedPath = ""
-    if (path '= ""){
-        for i=1:1:$LENGTH(path,..#NotMySlash){
-            if (($PIECE(path, ..#NotMySlash, i) '= "") || (i=1)) {
-                set fixedPath = fixedPath_$PIECE(path, ..#NotMySlash, i)_..#Slash
-            }
-        }
-    }
-    
-    quit fixedPath
 }
 
 ClassMethod IsMenuGitCommand(menuItemName As %String) As %Boolean [ CodeMode = expression ]
@@ -863,7 +847,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
         while (mappingCoverage '= ""){
 
             set mappedRelativePath = $$$SourceMapping(mappingFileType, mappingCoverage)
-            set mappedFilePath = ..FixSlashes(..TempFolder()_(mappedRelativePath))
+            set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
                 set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)

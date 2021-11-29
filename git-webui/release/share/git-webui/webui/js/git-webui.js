@@ -1662,7 +1662,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         }
     };
 
-    function confirmActionForUnavailalbleFile(child, action) {
+    function confirmActionForUnavailalbleFile(files, action) {
         function removeUnavailableModal(popup) {
             $(popup).children( ".modal-fade").modal('hide');
             $(".modal-backdrop").remove();
@@ -1692,16 +1692,40 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
             '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
         '</svg></div>'+
-        '<div class="col-sm-11"><pre>'+child.model+'</pre> was changed by another user. Are you sure you want to ' + action + ' it?</div></div>'+
-        '<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substr(1)+'</button>'+
+        '<div class="col-sm-11">The following files were changed by other users. Are you sure you want to ' + action + ' them?</div></div>').appendTo(popupContent);
+
+        files.forEach(function(file, index, array){
+            $('<div class="form-check">'+
+            '<input class="form-check-input" type="checkbox" value="'+ file.model+'" id="file'+index+'" checked>'+
+            '<label class="form-check-label" for="file'+index+'">'+file.model+
+            '</label>'+
+          '</div>').appendTo(popupContent);
+        });
+
+
+        $('<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substr(1)+'</button>'+
         '<button class="btn btn-sm btn-secondary float-right" id="cancel-staging">Cancel</button>').appendTo(popupContent);
         $(popup).modal('show');
 
         $("#confirm-unavailable-staging").on('click', '#confirm-staging', function(e){
+            var checkedFiles = $("#confirm-unavailable-staging input[type=checkbox]:checked" );
+            for (var i = 0; i < fileList.childElementCount; ++i) {
+                var newChild = fileList.children[i];
+                for (var j = 0 ; j < checkedFiles.length; j++) {
+                    if(newChild.model == $(checkedFiles[j]).val()){
+                        $(newChild).addClass("available");
+                        $(newChild).addClass("active");
+                        $(newChild).removeClass("unavailable");
+                    }
+                }
+            }
             removeUnavailableModal(popup);
-            $(child).addClass("available");
-            $(child).removeClass("unavailable");
-            self.process()
+            if(action == 'discard'){
+                self.cancel()
+            }
+            else{
+                self.process();
+            }
         });
 
         $("#confirm-unavailable-staging").find("#cancel-staging, .close").click(function() {
@@ -1709,29 +1733,31 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         });
     }
 
-    self.getFileList = function(including, excluding, includeUnavailable=0, action="stage") {
-        var files = "";
+    self.getFileList = function(including, excluding, onlyUnavailable=0, stringifyFilenames = 1) {
+        if(stringifyFilenames)
+            var files = "";
+        else
+            var files = [];
+
         for (var i = 0; i < fileList.childElementCount; ++i) {
             var child = fileList.children[i];
             var included = including == undefined || including.indexOf(child.status) != -1;
             var excluded = excluding != undefined && excluding.indexOf(child.status) != -1;
-            if ($(child).hasClass("active") && ($(child).hasClass("available")||includeUnavailable) && included && !excluded) {
-                if($(child).hasClass("unavailable")) {
-                    confirmActionForUnavailalbleFile(child, action);
-                }
-                else {
+            if ($(child).hasClass("active") && ($(child).hasClass("available")^onlyUnavailable) && included && !excluded) {   
+                if(stringifyFilenames)
                     files += '"' + (child.model) + '" ';
-                }                
+                else
+                    files.push(child);
             }
         }
         return files;
     }
 
     self.process = function() {
-        prevScrollTop = fileListContainer.scrollTop;
         var action = type == "working-copy" ? "stage" : "unstage"
-        var files = self.getFileList(undefined, "D", 1, action);
-        var rmFiles = self.getFileList("D", undefined, 1, action);
+        var files = self.getFileList(undefined, "D", 0);
+        var rmFiles = self.getFileList("D", undefined, 0);
+
         if (files.length != 0) {
             var cmd = type == "working-copy" ? "add" : "reset";
             webui.git(cmd + " -- " + files, function(data) {
@@ -1750,6 +1776,28 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
             });
         }
     };
+
+    self.processByAvailability = function() {
+        prevScrollTop = fileListContainer.scrollTop;
+        self.process();
+
+        var action = type == "working-copy" ? "stage" : "unstage"
+        var files = self.getFileList(undefined, "D", 1, 0);
+        var rmFiles = self.getFileList("D", undefined, 1, 0);
+        var combinedFiles = files.concat(rmFiles);
+
+        if(combinedFiles.length>0)
+            confirmActionForUnavailalbleFile(combinedFiles, action);
+    }
+
+    self.cancelByAvailability = function() {
+        prevScrollTop = fileListContainer.scrollTop;
+
+        var action = "discard"
+        var files = self.getFileList(undefined, undefined, 1, 0);
+        if(files.length>0)
+            confirmActionForUnavailalbleFile(files, action);
+    }
 
     self.cancel = function() {
         prevScrollTop = fileListContainer.scrollTop;
@@ -1775,9 +1823,9 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                             '</div>' +
                         '</div>')[0];
     if (type == "working-copy") {
-        var buttons = [{ name: "Stage", callback: self.process }, { name: "Cancel", callback: self.cancel }];
+        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Cancel", callback: self.cancelByAvailability }];
     } else {
-        var buttons = [{ name: "Unstage", callback: self.process }];
+        var buttons = [{ name: "Unstage", callback: self.processByAvailability }];
     }
     var btnGroup = $(".btn-group", self.element);
     buttons.forEach(function (btnData) {

@@ -110,6 +110,16 @@ body {
 #error-modal .modal-body {
   margin-bottom: 0;
 }
+#confirm-unavailable-staging .form-check {
+  padding-left: 18%;
+}
+#confirm-unavailable-staging .form-check-input {
+  margin-top: 0;
+}
+#confirm-unavailable-staging .form-check-input:first-of-type,
+#confirm-unavailable-staging .form-check-label:first-of-type {
+  margin-top: 3%;
+}
 #help-modal img {
   display: block;
   margin: 0 auto;

@@ -402,6 +402,13 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
     quit ec
 }
 
+ClassMethod RemoveFromGit(InternalName)
+{
+    #dim fullName = ##class(Utils).FullExternalName(InternalName)
+    do ..RunGitCommand("rm",.errStream,.outStream,"--cached", fullName)
+    do errStream.OutputToDevice()
+}
+
 ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
 {
     #dim type as %String = ..Type(InternalName)
@@ -425,16 +432,19 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
                 if 'sc {
                     set ec = $$$ADDSC(ec, sc)
                 }
+                do ..RemoveFromGit(item)
             }
         }
     } else {
         set ec = ..DeleteExternalFile(InternalName)
+        do ..RemoveFromGit(InternalName)
     }
     quit ec
 }
 
 ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
 {
+    write !
     #dim sc as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
         #dim tsc as %Status = $$$OK
@@ -828,8 +838,28 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
 ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 {
     #define DoNotLoad 1
-    set res = $system.OBJ.ImportDir(..TempFolder(),"*.xml","-d",.err,1, .itemList, $$$DoNotLoad)
     
+    set mappingFileType = $order($$$SourceMapping(""))
+    while (mappingFileType '= "") {
+
+        set mappingCoverage = $order($$$SourceMapping(mappingFileType, ""))
+
+        while (mappingCoverage '= ""){
+
+            set mappedRelativePath = $$$SourceMapping(mappingFileType, mappingCoverage)
+            set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
+            
+            if (##class(%File).DirectoryExists(mappedFilePath)){
+                set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
+                merge itemList = tempItemList
+            }
+
+            set mappingCoverage = $order($$$SourceMapping(mappingFileType, mappingCoverage))
+        }
+
+        set mappingFileType = $order($$$SourceMapping(mappingFileType))
+    }
+
     if '$data(itemList) && $$$ISERR(res) {
         quit res
     }

@@ -1662,7 +1662,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         }
     };
 
-    function confirmActionForUnavailalbleFile(files, action) {
+    function confirmActionForUnavailableFile(files, action) {
         function removeUnavailableModal(popup) {
             $(popup).children( ".modal-fade").modal('hide');
             $(".modal-backdrop").remove();
@@ -1787,7 +1787,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var combinedFiles = files.concat(rmFiles);
 
         if(combinedFiles.length>0)
-            confirmActionForUnavailalbleFile(combinedFiles, action);
+            confirmActionForUnavailableFile(combinedFiles, action);
     }
 
     self.cancelByAvailability = function() {
@@ -1796,7 +1796,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var action = "discard"
         var files = self.getFileList(undefined, undefined, 1, 0);
         if(files.length>0)
-            confirmActionForUnavailalbleFile(files, action);
+            confirmActionForUnavailableFile(files, action);
     }
 
     self.cancel = function() {

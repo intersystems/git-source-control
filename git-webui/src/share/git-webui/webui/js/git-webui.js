@@ -146,6 +146,10 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
                     if(errorCallback) {
                         errorCallback(displayMessage);
                     } else{
+                        if(displayMessage.indexOf("self.document.Login") != -1){
+                            location.reload();
+                            return false;
+                        }
                         webui.showError(displayMessage);
                     }
                 } else {

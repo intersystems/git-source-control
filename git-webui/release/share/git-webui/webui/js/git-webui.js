@@ -1733,11 +1733,17 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         });
     }
 
-    self.getFileList = function(including, excluding, onlyUnavailable=0, stringifyFilenames = 1) {
-        if(stringifyFilenames)
+    self.getFileList = function(including, excluding, onlyUnavailable, stringifyFilenames) {
+        if(stringifyFilenames || stringifyFilenames == undefined){
+            stringifyFilenames = 1
             var files = "";
+        }
         else
             var files = [];
+
+        if(onlyUnavailable == undefined){
+            onlyUnavailable = 0
+        }
 
         for (var i = 0; i < fileList.childElementCount; ++i) {
             var child = fileList.children[i];
@@ -1792,6 +1798,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
 
     self.cancelByAvailability = function() {
         prevScrollTop = fileListContainer.scrollTop;
+        self.cancel();
 
         var action = "discard"
         var files = self.getFileList(undefined, undefined, 1, 0);

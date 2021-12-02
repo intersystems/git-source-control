@@ -305,7 +305,7 @@ webui.SideBarView = function(mainView) {
             }
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
-                var refname = ref.substr(2);
+                var refname = ref.substring(2);
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
@@ -362,7 +362,7 @@ webui.SideBarView = function(mainView) {
                 refs = refs.map(function(ref) {
                     var end = ref.lastIndexOf(" -> ");
                     if (end == -1) {
-                        return ref.substr(2);
+                        return ref.substring(2);
                     } else {
                         return ref.substring(2, end);
                     }
@@ -470,7 +470,7 @@ webui.LogView = function(historyView) {
                 } else {
                     var len = undefined;
                 }
-                var entry = new Entry(self, data.substr(start, len));
+                var entry = new Entry(self, data.substring(start, start+len));
                 if (count < maxCount) {
                     content.appendChild(entry.element);
                     if (!self.lineHeight) {
@@ -608,11 +608,11 @@ webui.LogView = function(historyView) {
 
     function Person(data) {
         var nameEnd = data.indexOf("<");
-        this.name = data.substr(0, nameEnd - 1);
+        this.name = data.substring(0, nameEnd - 1);
         var emailEnd = data.indexOf(">", nameEnd);
-        this.email = data.substr(nameEnd + 1, emailEnd - nameEnd - 1);
+        this.email = data.substring(nameEnd + 1, emailEnd);
         var dateEnd = data.indexOf(" ", emailEnd + 2);
-        var secs = data.substr(emailEnd + 2, dateEnd - emailEnd - 2);
+        var secs = data.substring(emailEnd + 2, dateEnd);
         this.date = new Date(0);
         this.date.setUTCSeconds(parseInt(secs));
     };
@@ -621,7 +621,7 @@ webui.LogView = function(historyView) {
         var self = this;
 
         self.abbrevCommitHash = function() {
-            return self.commit.substr(0, 7);
+            return self.commit.substring(0, 7);
         };
 
         self.abbrevMessage = function() {
@@ -629,7 +629,7 @@ webui.LogView = function(historyView) {
             if (end == -1) {
                 return self.message
             } else {
-                return self.message.substr(0, end);
+                return self.message.substring(0, end);
             }
         };
 
@@ -648,13 +648,13 @@ webui.LogView = function(historyView) {
                 var entryName = $("h6", self.element);
                 self.refs.forEach(function (ref) {
                     if (ref.indexOf("refs/remotes") == 0) {
-                        ref = ref.substr(13);
+                        ref = ref.substring(13);
                         var reftype = "danger";
                     } else if (ref.indexOf("refs/heads") == 0) {
-                        ref = ref.substr(11);
+                        ref = ref.substring(11);
                         var reftype = "success";
                     } else if (ref.indexOf("tag: refs/tags") == 0) {
-                        ref = ref.substr(15);
+                        ref = ref.substring(15);
                         var reftype = "info";
                     } else {
                         var reftype = "warning";
@@ -686,25 +686,25 @@ webui.LogView = function(historyView) {
 
         data.split("\n").forEach(function(line) {
             if (line.indexOf("commit ") == 0) {
-                self.commit = line.substr(7, 40);
+                self.commit = line.substring(7, 47);
                 if (line.length > 47) {
                     self.refs = []
                     var s = line.lastIndexOf("(") + 1;
                     var e = line.lastIndexOf(")");
-                    line.substr(s, e - s).split(", ").forEach(function(ref) {
+                    line.substring(s, e).split(", ").forEach(function(ref) {
                         self.refs.push(ref);
                     });
                 }
             } else if (line.indexOf("parent ") == 0) {
-                self.parents.push(line.substr(7));
+                self.parents.push(line.substring(7));
             } else if (line.indexOf("tree ") == 0) {
-                self.tree = line.substr(5);
+                self.tree = line.substring(5);
             } else if (line.indexOf("author ") == 0) {
-                self.author = new Person(line.substr(7));
+                self.author = new Person(line.substring(7));
             } else if (line.indexOf("committer ") == 0) {
-                self.committer = new Person(line.substr(10));
+                self.committer = new Person(line.substring(10));
             } else if (line.indexOf("    ") == 0) {
-                self.message += line.substr(4) + "\n";
+                self.message += line.substring(4) + "\n";
             }
         });
 
@@ -956,9 +956,9 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
     self.reverseLine = function(line) {
         switch (line[0]) {
             case '-':
-                return '+' + line.substr(1);
+                return '+' + line.substring(1);
             case '+':
-                return '-' + line.substr(1);
+                return '-' + line.substring(1);
                 break;
             default:
                 return line;
@@ -1173,18 +1173,18 @@ webui.TreeView = function(commitView) {
         }
 
         var end = line.indexOf(" ");
-        self.mode = parseInt(line.substr(0, end));
+        self.mode = parseInt(line.substring(0, end));
         var start = end + 1;
         var end = line.indexOf(" ", start);
-        self.type = line.substr(start, end - start);
+        self.type = line.substring(start, end);
         start = end + 1;
         var end = line.indexOf(" ", start);
-        self.object = line.substr(start, end - start);
+        self.object = line.substring(start, end);
         start = end + 1;
         var end = line.indexOf("\t", start);
-        self.size = parseInt(line.substr(start, end - start).trim());
+        self.size = parseInt(line.substring(start, end).trim());
         start = end + 1;
-        self.name = line.substr(start);
+        self.name = line.substring(start);
     }
 
     self.update = function(treeRef) {
@@ -1570,7 +1570,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                     var status = line[col];
                     if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
                         ++self.filesCount;
-                        line = line.substr(3);
+                        line = line.substring(3);
                         var splitted = line.split(" -> ");
                         var model;
                         if (splitted.length > 1) {
@@ -1707,7 +1707,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         });
 
 
-        $('<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substr(1)+'</button>'+
+        $('<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substring(1)+'</button>'+
         '<button class="btn btn-sm btn-secondary float-right" id="cancel-staging">Cancel</button>').appendTo(popupContent);
         $(popup).modal('show');
 
@@ -1965,7 +1965,7 @@ function removeAllChildNodes(parent) {
 
 $(function () {
     $('[data-toggle="tooltip"]').tooltip()
-})
+});
 $(function()
 {
     $(document).on('click', '.btn-add', function(e)

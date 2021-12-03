@@ -2102,6 +2102,12 @@ $(function () {
         
     });
 
+    function upToDateHandler(message){
+        if(message.includes("Already up to date.")) {
+            webui.showSuccess(message);
+        }
+    }
+
     $(document).on('click', '.btn-merge-branch', function(e){
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
@@ -2121,7 +2127,7 @@ $(function () {
                 webui.showError(message);
             }
         }
-        webui.git("merge --no-commit --no-ff "+refName, "", "", testMergeHandler, testMergeHandler);
+        webui.git("merge --no-commit --no-ff "+refName, "", upToDateHandler, testMergeHandler, testMergeHandler);
     });
 
     $(document).on('click', '.btn-merge-remote-branch', function(e){
@@ -2138,7 +2144,6 @@ $(function () {
             function suppressErrorMessage(error) {
             }
             webui.git("merge --abort", "", "", suppressErrorMessage);
-
             if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
                 webui.git("merge "+refName, function (output){
                     webui.showSuccess(output);
@@ -2148,7 +2153,7 @@ $(function () {
                 webui.showError(message);
             }
         }
-        webui.git("merge --no-commit --no-ff "+refName, "", "", testMergeHandler, testMergeHandler);
+        webui.git("merge --no-commit --no-ff "+refName, "", upToDateHandler, testMergeHandler, testMergeHandler);
     });
         
     $(document).on('click', '.btn-checkout-remote-branch', function(e) {

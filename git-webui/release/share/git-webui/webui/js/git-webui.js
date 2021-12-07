@@ -807,6 +807,7 @@ webui.StashListView = function(stashView) {
             self.element = $('<a class="log-entry list-group-item">' +
                                 '<header>' +
                                     '<h6></h6>' +
+                                    '<p class="stash-list-index">' + self.stashIndex + '</p>' +
                                     '<span class="log-entry-date">' + self.date + '&nbsp;</span> ' +
                                     '<span class="badge">' + self.commit + '</span>' +
                                 '</header>' +
@@ -876,11 +877,6 @@ webui.StashCommitView = function(stashView) {
     self.showDiff = function() {
         webui.detachChildren(commitViewContent);
         commitViewContent.appendChild(diffView.element);
-    };
-
-    self.showTree = function() {
-        webui.detachChildren(commitViewContent);
-        commitViewContent.appendChild(treeView.element);
     };
 
     self.stashView = stashView;
@@ -1248,6 +1244,27 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         commitExplorerView.show();
     };
 
+    self.applySelectedStash = function() {
+        if(! self.currentDiff) {
+            return;
+        }
+        var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
+        webui.git("stash apply stash@{"+stashIndex+"}", function(output){
+            webui.showSuccess(output);
+        });
+    }
+
+    self.popSelectedStash = function() {
+        if(! self.currentDiff) {
+            return;
+        }
+        var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
+        webui.git("stash pop stash@{"+stashIndex+"}", function(output){
+            webui.showSuccess(output);
+            parent.stashView.update(0);
+        });
+    }
+
     var html = '<div class="diff-view-container panel panel-default">';
     if (! (parent instanceof webui.CommitExplorerView)) {
         html +=
@@ -1265,7 +1282,8 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                     '<button type="button" class="btn btn-default diff-unstage" style="display:none">Unstage</button>' +
                 '</div>' +
                 ((sideBySide || stashedCommit) ? '' : '<button type="button"  class="btn btn-sm btn-default diff-explore">Explore</button>') +
-                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default apply-stash">Apply Stash</button>':'')+
+                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default apply-stash">Apply</button>':'')+
+                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default pop-stash">Pop</button>':'')+
             '</div>';
     }
     html += '<div class="panel-body"></div></div>'
@@ -1304,6 +1322,8 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     $(".diff-unstage", self.element).click(function() { self.applySelection(true, true); });
 
     $(".diff-explore", self.element).click(function() { self.switchToExploreView(); });
+    $(".apply-stash", self.element).click(function() { self.applySelectedStash(); });
+    $(".pop-stash", self.element).click(function() { self.popSelectedStash(); });
 
     self.context = 3;
     self.complete = false;

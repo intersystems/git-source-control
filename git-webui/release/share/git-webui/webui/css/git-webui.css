@@ -315,6 +315,9 @@ body {
   align-items: baseline;
   -webkit-align-items: baseline;
 }
+#log-view .log-entry header .stash-list-index {
+  display: none !important;
+}
 #log-view .log-entry header h6 {
   font-weight: bold;
   margin-top: 0;

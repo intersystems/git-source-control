@@ -2009,6 +2009,35 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         }
     }
 
+    self.stashByAvailability = function() {
+        prevScrollTop = fileListContainer.scrollTop;
+        self.stash();
+
+        var action = "stash";
+
+        var files = self.getFileList(undefined, "D", 1, 0);
+        var rmFiles = self.getFileList("D", undefined, 1, 0);
+        var combinedFiles = files.concat(rmFiles);
+
+        if(combinedFiles.length>0)
+            confirmActionForUnavailableFile(combinedFiles, action);
+
+    }
+
+    self.stash = function() {
+        var files = self.getFileList(undefined, "D", 0, 1);
+        var rmFiles = self.getFileList("D", undefined, 0, 1);
+        var combinedFiles = files+" "+rmFiles;
+
+        console.log(combinedFiles);
+
+        if(combinedFiles.length != 0){
+            webui.git("stash push -- " + combinedFiles, function(output){
+                webui.showSuccess(output);
+            });
+        }
+    }
+
     self.getSelectedItemsCount = function() {
         return $(".active", fileList).length;
     }
@@ -2023,7 +2052,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                             '</div>' +
                         '</div>')[0];
     if (type == "working-copy") {
-        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Cancel", callback: self.cancelByAvailability }];
+        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Stash", callback: self.stash }, { name: "Cancel", callback: self.cancelByAvailability }];
     } else {
         var buttons = [{ name: "Unstage", callback: self.processByAvailability }];
     }

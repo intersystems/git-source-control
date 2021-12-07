@@ -5,6 +5,7 @@
 
 * IRIS instance with license key
 * Git 2.31.0+
+* OpenSSH 7.6+
 * InterSystems package manager (https://openexchange.intersystems.com/package/ObjectScript-Package-Manager)
 
 ## Installation and Setup

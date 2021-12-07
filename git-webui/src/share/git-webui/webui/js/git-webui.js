@@ -1265,6 +1265,17 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         });
     }
 
+    self.dropSelectedStash = function() {
+        if(! self.currentDiff) {
+            return;
+        }
+        var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
+        webui.git("stash drop stash@{"+stashIndex+"}", function(output){
+            webui.showSuccess(output.substring(output.indexOf("Dropped")));
+            parent.stashView.update(0);
+        });
+    }
+
     var html = '<div class="diff-view-container panel panel-default">';
     if (! (parent instanceof webui.CommitExplorerView)) {
         html +=
@@ -1284,6 +1295,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                 ((sideBySide || stashedCommit) ? '' : '<button type="button"  class="btn btn-sm btn-default diff-explore">Explore</button>') +
                 (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default apply-stash">Apply</button>':'')+
                 (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default pop-stash">Pop</button>':'')+
+                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default drop-stash">Drop</button>':'')+
             '</div>';
     }
     html += '<div class="panel-body"></div></div>'
@@ -1324,6 +1336,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     $(".diff-explore", self.element).click(function() { self.switchToExploreView(); });
     $(".apply-stash", self.element).click(function() { self.applySelectedStash(); });
     $(".pop-stash", self.element).click(function() { self.popSelectedStash(); });
+    $(".drop-stash", self.element).click(function() { self.popSelectedStash(); });
 
     self.context = 3;
     self.complete = false;

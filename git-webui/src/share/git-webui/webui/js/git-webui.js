@@ -765,8 +765,6 @@ webui.StashListView = function(stashView) {
     }
 
     self.populate = function() {
-        var maxCount = 1000;
-        var startAt = content.childElementCount;
         webui.git("stash list --format='%gd::%ch::%cL::%cN::%gs'", function(data) {
             var start = 0;
             var count = 0;
@@ -785,6 +783,12 @@ webui.StashListView = function(stashView) {
 
                 start = end + 1;
                 ++count;
+            }
+            if(count == 0){
+                var emptyStash = $('<h4 class="empty-stash">You have no stashed changes.</h4>');
+                var emptyDiv =  $('<h1 class="empty-stash">&nbsp<br>&nbsp</h1>');
+                $("#log-view div").append(emptyDiv);
+                $("#log-view div").append(emptyStash);
             }
             svg.setAttribute("height", $(content).outerHeight());
             svg.setAttribute("width", $(content).outerWidth());

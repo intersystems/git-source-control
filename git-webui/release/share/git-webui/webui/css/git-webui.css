@@ -187,6 +187,9 @@ body {
 #sidebar #sidebar-content #sidebar-workspace h4:before {
   content: url(../img/computer.svg);
 }
+#sidebar #sidebar-content #sidebar-stash h4:before {
+  content: url(../img/inboxes.svg);
+}
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
 }
@@ -257,7 +260,8 @@ body {
   font-size: 36pt;
   margin-top: 0;
 }
-#history-view {
+#history-view,
+#stash-view {
   display: flex;
   display: -webkit-flex;
   min-height: 0;

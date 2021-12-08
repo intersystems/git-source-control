@@ -398,6 +398,9 @@ webui.SideBarView = function(mainView) {
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
                                 '</section>' +
+                                '<section id="sidebar-stash">' +
+                                    '<h4>Stash</h4>' +
+                                '</section>' +
                                 '<section id="sidebar-local-branches">' +
                                     '<h4 class="mt-3">Local Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
@@ -429,6 +432,13 @@ webui.SideBarView = function(mainView) {
             $("*", self.element).removeClass("active");
             workspaceElement.addClass("active");
             self.mainView.workspaceView.update("stage");
+        });
+
+        var stashElement = $("#sidebar-stash h4", self.element);
+        stashElement.click(function (event) {
+            $("*", self.element).removeClass("active");
+            stashElement.addClass("active");
+            self.mainView.stashView.update(0);
         });
     }
 
@@ -723,10 +733,168 @@ webui.LogView = function(historyView) {
     var streamColor = 0;
 };
 
+webui.StashView = function(mainView) {
+    
+    var self = this;
+
+    self.show = function() {
+        mainView.switchTo(self.element);
+    };
+
+    self.update = function(stashIndex) {
+        self.show();
+        self.stashListView.update(stashIndex);
+    };
+
+    self.element = $('<div id="stash-view">')[0];
+
+    self.stashListView = new webui.StashListView(self);
+    self.element.appendChild(self.stashListView.element);
+    self.commitView = new webui.StashCommitView(self);
+    self.element.appendChild(self.commitView.element);
+    self.mainView = mainView;
+} 
+
+webui.StashListView = function(stashView) {
+    var self = this;
+
+    self.update = function(stashIndex){
+        $(svg).empty();
+        $(content).empty();
+        self.populate();
+    }
+
+    self.populate = function() {
+        webui.git("stash list --format='%gd::%ch::%cL::%cN::%gs'", function(data) {
+            var start = 0;
+            var count = 0;
+            while (true) {
+                var end = data.indexOf("\n", start);
+                if (end != -1) {
+                    var len = end - start;
+                } else {
+                    break;
+                }
+                var entry = new Entry(self, data.substring(start, start+len));
+                if(start == 0){
+                    entry.select();
+                }
+                content.appendChild(entry.element);
+
+                start = end + 1;
+                ++count;
+            }
+            if(count == 0){
+                var emptyStash = $('<h4 class="empty-stash">You have no stashed changes.</h4>');
+                var emptyDiv =  $('<h1 class="empty-stash">&nbsp<br>&nbsp</h1>');
+                $("#log-view div").append(emptyDiv);
+                $("#log-view div").append(emptyStash);
+            }
+            svg.setAttribute("height", $(content).outerHeight());
+            svg.setAttribute("width", $(content).outerWidth());
+        });
+    }
+
+    function Entry(stashListView, data) {
+        var self = this;
+
+        self.abbrevMessage = function() {
+            var end = self.message.indexOf("\n");
+            if (end == -1) {
+                return self.message
+            } else {
+                return self.message.substring(0, end);
+            }
+        };
+
+        self.createElement = function() {
+            self.element = $('<a class="log-entry list-group-item">' +
+                                '<header>' +
+                                    '<h6></h6>' +
+                                    '<p class="stash-list-index">' + self.stashIndex + '</p>' +
+                                    '<span class="log-entry-date">' + self.date + '&nbsp;</span> ' +
+                                    '<span class="badge">' + self.commit + '</span>' +
+                                '</header>' +
+                                '<p class="list-group-item-text"></p>' +
+                             '</a>')[0];
+            $('<a target="_blank" href="mailto:' + self.authorEmail + '">' + self.authorName + '</a>').appendTo($("h6", self.element));
+            $(".list-group-item-text", self.element)[0].appendChild(document.createTextNode(self.commitMessage));
+
+            self.element.model = self;
+            var model = self;
+            $(self.element).click(function (event) {
+                model.select();
+            });
+            return self.element;
+        };
+
+        self.select = function() {
+            if (currentSelection != self) {
+                if (currentSelection) {
+                    $(currentSelection.element).removeClass("active");
+                }
+                $(self.element).addClass("active");
+                currentSelection = self;
+                stashListView.stashView.commitView.update(self);
+            }
+        };
+
+        self.parents = [];
+        self.message = ""
+
+        var pieces = data.split(/::|:\s/gm);
+        self.stashIndex = pieces[0].substring(pieces[0].indexOf('{')+1, pieces[0].indexOf('}'));
+        self.date = pieces[1];
+        self.authorEmail = pieces[2];
+        self.authorName = pieces[3];
+        self.branchName = pieces[4];
+        self.commit = pieces[5].substring(0, pieces[5].indexOf(" "));
+        self.commitMessage = pieces[5].substring(pieces[5].indexOf(" ")).trim();
+
+        self.createElement();
+    };
+
+    self.element = $('<div id="log-view" class="list-group"><svg xmlns="http://www.w3.org/2000/svg"></svg><div></div></div>')[0];
+    var svg = self.element.children[0];
+    var content = self.element.children[1];
+    var currentSelection = null;
+    // var lineHeight = null;
+    // var streams = [];
+    // var streamColor = 0;
+    self.stashView = stashView
+}
+
+webui.StashCommitView = function(stashView) {
+    var self = this;
+
+    self.update = function(entry) {
+        if (currentCommit == entry.commit) {
+            // We already display the right data. No need to update.
+            return;
+
+        }
+        currentCommit = entry.commit;
+        self.showDiff();
+        diffView.update("stash show -p stash@{"+entry.stashIndex+"}");
+    };
+
+    self.showDiff = function() {
+        webui.detachChildren(commitViewContent);
+        commitViewContent.appendChild(diffView.element);
+    };
+
+    self.stashView = stashView;
+    var currentCommit = null;
+    self.element = $('<div id="commit-view">')[0];
+    var commitViewContent = $('<div id="commit-view-content">')[0];
+    self.element.appendChild(commitViewContent);
+    var diffView = new webui.DiffView(undefined, false, self, true);
+};
+
 /*
  * == DiffView ================================================================
  */
-webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
+webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommit) {
 
     var self = this;
 
@@ -1080,6 +1248,38 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
         commitExplorerView.show();
     };
 
+    self.applySelectedStash = function() {
+        if(! self.currentDiff) {
+            return;
+        }
+        var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
+        webui.git("stash apply stash@{"+stashIndex+"}", function(output){
+            webui.showSuccess(output);
+        });
+    }
+
+    self.popSelectedStash = function() {
+        if(! self.currentDiff) {
+            return;
+        }
+        var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
+        webui.git("stash pop stash@{"+stashIndex+"}", function(output){
+            webui.showSuccess(output);
+            parent.stashView.update(0);
+        });
+    }
+
+    self.dropSelectedStash = function() {
+        if(! self.currentDiff) {
+            return;
+        }
+        var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
+        webui.git("stash drop stash@{"+stashIndex+"}", function(output){
+            webui.showSuccess(output.substring(output.indexOf("Dropped")));
+            parent.stashView.update(0);
+        });
+    }
+
     var html = '<div class="diff-view-container panel panel-default">';
     if (! (parent instanceof webui.CommitExplorerView)) {
         html +=
@@ -1096,7 +1296,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
                     '<button type="button" class="btn btn-default diff-cancel" style="display:none">Cancel</button>' +
                     '<button type="button" class="btn btn-default diff-unstage" style="display:none">Unstage</button>' +
                 '</div>' +
-                (sideBySide ? '' : '<button type="button"  class="btn btn-sm btn-default diff-explore">Explore</button>') +
+                ((sideBySide || stashedCommit) ? '' : '<button type="button"  class="btn btn-sm btn-default diff-explore">Explore</button>') +
+                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default apply-stash">Apply</button>':'')+
+                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default pop-stash">Pop</button>':'')+
+                (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default drop-stash">Drop</button>':'')+
             '</div>';
     }
     html += '<div class="panel-body"></div></div>'
@@ -1135,6 +1338,9 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent) {
     $(".diff-unstage", self.element).click(function() { self.applySelection(true, true); });
 
     $(".diff-explore", self.element).click(function() { self.switchToExploreView(); });
+    $(".apply-stash", self.element).click(function() { self.applySelectedStash(); });
+    $(".pop-stash", self.element).click(function() { self.popSelectedStash(); });
+    $(".drop-stash", self.element).click(function() { self.popSelectedStash(); });
 
     self.context = 3;
     self.complete = false;
@@ -1820,6 +2026,35 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         }
     }
 
+    self.stashByAvailability = function() {
+        prevScrollTop = fileListContainer.scrollTop;
+        self.stash();
+
+        var action = "stash";
+
+        var files = self.getFileList(undefined, "D", 1, 0);
+        var rmFiles = self.getFileList("D", undefined, 1, 0);
+        var combinedFiles = files.concat(rmFiles);
+
+        if(combinedFiles.length>0)
+            confirmActionForUnavailableFile(combinedFiles, action);
+
+    }
+
+    self.stash = function() {
+        var files = self.getFileList(undefined, "D", 0, 1);
+        var rmFiles = self.getFileList("D", undefined, 0, 1);
+        var combinedFiles = files+" "+rmFiles;
+
+        console.log(combinedFiles);
+
+        if(combinedFiles.length != 0){
+            webui.git("stash push -- " + combinedFiles, function(output){
+                webui.showSuccess(output);
+            });
+        }
+    }
+
     self.getSelectedItemsCount = function() {
         return $(".active", fileList).length;
     }
@@ -1834,7 +2069,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                             '</div>' +
                         '</div>')[0];
     if (type == "working-copy") {
-        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Cancel", callback: self.cancelByAvailability }];
+        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Stash", callback: self.stash }, { name: "Cancel", callback: self.cancelByAvailability }];
     } else {
         var buttons = [{ name: "Unstage", callback: self.processByAvailability }];
     }
@@ -1939,6 +2174,7 @@ function MainUi() {
                 self.historyView = new webui.HistoryView(self);
                 if (!webui.viewonly) {
                     self.workspaceView = new webui.WorkspaceView(self);
+                    self.stashView = new webui.StashView(self);
                 }
             });
         });

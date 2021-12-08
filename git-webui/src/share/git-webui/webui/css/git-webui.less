@@ -268,6 +268,10 @@ body {
             content: url(../img/computer.svg);
         }
 
+        #sidebar-stash h4:before {
+            content: url(../img/inboxes.svg);
+        }
+
         #sidebar-remote h4:before {
             content: url(../img/daemon.svg);
         }
@@ -348,9 +352,13 @@ body {
     }
 }
 
-#history-view {
+#history-view, #stash-view {
     .display-flex();
     .flex(1);
+}
+
+.empty-stash{
+    text-align: center;
 }
 
 #log-view {
@@ -402,6 +410,10 @@ body {
         header {
             .display-flex();
             .align-items(baseline);
+            
+            .stash-list-index{
+                display: none !important;
+            }
 
             h6 {
                 font-weight: bold;

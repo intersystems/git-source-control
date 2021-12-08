@@ -187,6 +187,9 @@ body {
 #sidebar #sidebar-content #sidebar-workspace h4:before {
   content: url(../img/computer.svg);
 }
+#sidebar #sidebar-content #sidebar-stash h4:before {
+  content: url(../img/inboxes.svg);
+}
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
 }
@@ -257,13 +260,17 @@ body {
   font-size: 36pt;
   margin-top: 0;
 }
-#history-view {
+#history-view,
+#stash-view {
   display: flex;
   display: -webkit-flex;
   min-height: 0;
   min-width: 0;
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;
+}
+.empty-stash {
+  text-align: center;
 }
 #log-view {
   flex: 1 1 0px;
@@ -310,6 +317,9 @@ body {
   min-width: 0;
   align-items: baseline;
   -webkit-align-items: baseline;
+}
+#log-view .log-entry header .stash-list-index {
+  display: none !important;
 }
 #log-view .log-entry header h6 {
   font-weight: bold;

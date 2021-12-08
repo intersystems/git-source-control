@@ -2067,7 +2067,7 @@ $(function () {
             }
 
             function forceDelete(message) {
-                if(message.includes("git branch -D")){
+                if(message.indexOf("git branch -D")>-1){
                     $("body").append(popup); 
                     var popupContent = $(".modal-body", popup)[0];
                     removeAllChildNodes(popupContent);
@@ -2103,7 +2103,7 @@ $(function () {
     });
 
     function upToDateHandler(message){
-        if(message.includes("Already up to date.")) {
+        if(message.indexOf("Already up to date.")>-1) {
             webui.showSuccess(message);
         }
     }
@@ -2118,7 +2118,7 @@ $(function () {
             }
             webui.git("merge --abort", "", "", suppressErrorMessage);
 
-            if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
+            if(message.indexOf("Automatic merge went well")>-1 || message.indexOf("Auto-merging ")>-1){
                 webui.git("merge "+refName, function (output){
                     webui.showSuccess(output);
                 });
@@ -2144,7 +2144,7 @@ $(function () {
             function suppressErrorMessage(error) {
             }
             webui.git("merge --abort", "", "", suppressErrorMessage);
-            if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
+            if(message.indexOf("Automatic merge went well")>-1 || message.indexOf("Auto-merging ")>-1){
                 webui.git("merge "+refName, function (output){
                     webui.showSuccess(output);
                 });

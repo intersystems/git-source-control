@@ -1080,6 +1080,10 @@ ClassMethod ExportSCList() As %Status
     $$$QuitOnError(file.%Save())
     do file.Close()
     kill file
+
+    do ..RunGitWithArgs(.errStream, .outStream, "add", ..#SCListFilename)
+    do errStream.OutputToDevice()
+    do outStream.OutputToDevice()
     quit $$$OK
 }
 

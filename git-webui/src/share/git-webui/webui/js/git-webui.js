@@ -2038,6 +2038,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
 
         if(combinedFiles.length>0)
             confirmActionForUnavailableFile(combinedFiles, action);
+            workspaceView.update("stash");
 
     }
 
@@ -2045,8 +2046,6 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var files = self.getFileList(undefined, "D", 0, 1);
         var rmFiles = self.getFileList("D", undefined, 0, 1);
         var combinedFiles = files+" "+rmFiles;
-
-        console.log(combinedFiles);
 
         if(combinedFiles.length != 0){
             webui.git("stash push -- " + combinedFiles, function(output){
@@ -2069,7 +2068,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                             '</div>' +
                         '</div>')[0];
     if (type == "working-copy") {
-        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Stash", callback: self.stash }, { name: "Cancel", callback: self.cancelByAvailability }];
+        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Stash", callback: self.stashByAvailability }, { name: "Cancel", callback: self.cancelByAvailability }];
     } else {
         var buttons = [{ name: "Unstage", callback: self.processByAvailability }];
     }

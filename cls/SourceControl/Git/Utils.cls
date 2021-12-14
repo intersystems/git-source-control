@@ -1239,24 +1239,32 @@ ClassMethod Name(InternalName As %String) As %String
             // Grab the actual name
             set actualName = $classmethod(docclass,"GetOther",InternalName)
             // The actualName is only valid if we get a single .cls as a result
-            if actualName'[",",$zconvert($piece(actualName,".",$length(actualName,".")),"U")="CLS" {
+            if (actualName'[",") && ($zconvert($piece(actualName,".",$length(actualName,".")),"U")="CLS") {
                 // We use what GetOther() gives us, thus Demo.Loan.FindRateProcess.bpl becomes Demo.Loan.FindRateProcess.cls
                 set InternalName = actualName
             }
         }
     }
     
-    if $$CheckProtect^%qccServer(InternalName) quit ""
-    set nam=$piece(InternalName,".",1,*-1),ext=$piece(InternalName,".",*),ext=$zconvert(ext,"u")
-    if nam=""||(ext="") quit ""
+    if $$CheckProtect^%qccServer(InternalName) {
+        quit ""
+    }
+       
+    set nam=$piece(InternalName,".",1,*-1)
+    set ext=$zconvert($piece(InternalName,".",*),"u")
+
+    if (nam="")||(ext=""){
+        quit ""
+    } 
+
     // Any CSP items should be matched against the "/CSP/" mapping in ^Sources
     if InternalName["/" {
         set filename=$$GetFilename^%apiCSP(InternalName)
         //Find if this csp file is located within the ^Sources tree, and return appropriate value
-        if $$$isWINDOWS {
-            if $zconvert($extract(filename,1,$length($$$SourceRoot)),"l")=$zconvert($$$SourceRoot,"l") quit $extract(filename,$length($$$SourceRoot)+1,*)
-        } else {
-            if $extract(filename,1,$length($$$SourceRoot))=$$$SourceRoot quit $extract(filename,$length($$$SourceRoot)+1,*)
+        if ($$$isWINDOWS) && ($zconvert($extract(filename,1,$length($$$SourceRoot)),"l")=$zconvert($$$SourceRoot,"l")){
+            quit $extract(filename,$length($$$SourceRoot)+1,*)
+        } elseif $extract(filename,1,$length($$$SourceRoot))=$$$SourceRoot{
+            quit $extract(filename,$length($$$SourceRoot)+1,*)
         }
         //Do not support manipulating files in the /itemsetsourcelink* csp app which are not inside of the namespace's ^Sources tree
         if InternalName["itemsetsourcelink" {
@@ -1266,29 +1274,55 @@ ClassMethod Name(InternalName As %String) As %String
         // Any CSP items should be matched against the "/CSP/" mapping if the file is not stored in the ^Sources tree
         set ext="/CSP/"
     }
-    if ext="PRJ",nam["Default_" quit ""
-    if ext="CLS",$$$defClassKeyGet(nam,$$$cCLASSgeneratedby)'="" quit ""
-    set default=0
-    set p=$order($$$SourceMapping(ext,nam)) for  set p=$order($$$SourceMapping(ext,p),-1) quit:p=""  if $extract(nam,1,$length(p))=p,$data(^Sources(ext,p),found) quit
-    if $data(found)=0,$data($$$SourceMapping(ext,"*"),found),'$$$GetSourceMapping(ext,"*","NoFolders") set default=1
-    if $data(found)=0 quit ""
+
+    if (ext="PRJ") && (nam["Default_"){
+        quit ""
+    } 
+
+    if (ext="CLS") && ($$$defClassKeyGet(nam,$$$cCLASSgeneratedby)'=""){
+        quit ""
+    } 
+    
+    set default=1
+    set p=$order($$$SourceMapping(ext,nam))
+    for{
+        set p=$order($$$SourceMapping(ext,p),-1) 
+        quit:p=""  
+        if ($extract(nam,1,$length(p))=p) && ($data(^Sources(ext,p),found)){
+            quit
+        }
+    }
+    if ($data(found)=0) && ($data($$$SourceMapping(ext,"*"),found)) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
+        set default=0
+
+    } elseif $data(found)=0{
+        set found = $zconvert(ext,"L")_"/"
+    }
+
     if InternalName["/" {
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
-    }
-    if (ext="DFI") {
+    
+    } elseif (ext="DFI") {
         // expected format is <folderName>-<itemName>.<itemType>.DFI; will map to an external file named <folderName>/<itemName>.<itemType>.xml
         // replace the first '-' with '/' to translate Item Folder into subfolder on disk and leave the other dashes as dashes; converts spaces to '_'
         quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")
-    }
-    if ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
+    
+    } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
         set nam=$translate(nam,"%")
-        if '$$$GetSourceMapping(ext,"*","NoFolders") set nam=$translate(nam,".","/")
+        if '$$$GetSourceMapping(ext,"*","NoFolders"){
+            set nam=$translate(nam,".","/")
+        }
         #; If match ends in '`' character use UDL/CLS format rather than XML format
-        return $translate(found_nam_".cls","\","/")
+        return $translate(found_nam_"."_$zconvert(ext, "l"),"\","/")
     }
-    quit $translate($get(found)_$translate(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
+
+    if ('default){
+        quit $translate($get(found)_$translate(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
+    } else {
+        quit $translate($get(found)_nam_"."_$zconvert(ext,"l"),"\","/")
+    }
 }
 
 /*
@@ -1377,10 +1411,10 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
         }
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
-            set nam=$piece(nam,".",1,$length(nam,".")-1)
+            set nam=$piece(nam,".",1*-1)
             set nam=$translate(nam,"_/","%.")
-            set InternalName=nam_"."_ext
-            if (ext="CLS") {
+            set InternalName=nam_"."_fileExt
+            if (fileExt="cls") {
                 // special handling for possible collissions between % and non-% classes of the same name
                 set alternateInternalName="%"_InternalName
                 set primaryExists=##class(%RoutineMgr).Exists(InternalName), alternateExists=##class(%RoutineMgr).Exists(alternateInternalName)

@@ -34,6 +34,12 @@ body {
     border-radius: 0 0.25rem 0.25rem 0;
 }
 
+.custom-switch {
+    padding: 0.4rem 0.5rem 0 2.75rem;
+    border: 1px solid #ced4da;
+    border-left: 0px;
+}
+
 hr {
     opacity: 0.15
 }
@@ -54,7 +60,12 @@ hr {
     set param = "MappingsPath"
     kill settings.Mappings
     while ( $Get(%request.Data(param,i)) '= "" ){
+        if ($Get(%request.Data(param,i)) = "NoFolders"){
+            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+        }
+
         set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
+
         set i = i+1
     }
     do settings.%Save()
@@ -128,7 +139,7 @@ hr {
             </div>
             <script language="cache" runat=server>
                 set extKey = ""
-                set first = 1
+                set idx = 1
                 for {
                     set covKey = ""
                     set extKey = $ORDER(settings.Mappings(extKey))
@@ -137,19 +148,46 @@ hr {
                         set covKey = $ORDER(settings.Mappings(extKey, covKey))
                         quit:covKey=""
 
-                        if (first = 1) {
-                            set first = 0
-                        }
-                        else {
+                        if (idx '= 1) {
                             &html<<div class="col-sm-3" id="indent-div">
                             </div>>
+                        }                        
+
+                        if ($DATA(settings.Mappings(extKey, covKey)) = 1){
+                            set checked = "checked"
+                            set activated = " active"
+                            set readOnly = ""
+                            set mapPath = settings.Mappings(extKey, covKey)
+                            
+                        } else {
+                            set checked = ""
+                            set activated = ""
+                            set readOnly = "readonly"
+                            set mapPath = "NoFolders"
                         }
 
                         &html<<div class="voca col-sm-7">
                             <div class = "input-group mb-1">
                                 <input type="text" class="form-control" id="MappingsExt" name="MappingsExt" value=#(extKey)# placeholder="Extension">
                                 <input type="text" class="form-control" id="MappingsCov" name="MappingsCov" value=#(covKey)# placeholder="Coverage">
-                                <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(settings.Mappings(extKey, covKey))# placeholder="Relative path">
+                                <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(mapPath)# placeholder="Relative path" #(readOnly)#>
+                                <div class="custom-control custom-switch" data-delay='{"show":"1000", "hide":"100"}' data-toggle="tooltip" data-placement="top" title="Switch off to store files in a flat directory structure.">
+                                    <input type="checkbox" class="#("custom-control-input"_activated)#" id=#("noFoldersSwitch"_idx)# #(checked)#>
+                                    <label class="custom-control-label" for=#("noFoldersSwitch"_idx)#>>
+
+                                    if (checked '= ""){
+                                        &html<<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#007bff" class="bi bi-folder-fill" viewBox="0 0 16 16">
+                                            <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139z"/>
+                                        </svg>>                                        
+                                    } else{
+                                        &html<<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">
+                                            <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+                                            <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293l-1.146-1.147z"/>
+                                        </svg>>
+                                    }
+                                    
+                                    &html<</label>
+                                </div>
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-remove" >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#dc3545" class="bi bi-dash-circle-fill" viewBox="0 0 16 16">
@@ -159,6 +197,8 @@ hr {
                                 </div>
                             </div>
                         </div>>
+
+                        set idx = idx + 1
                     }
                 }
             </script>
@@ -205,8 +245,12 @@ hr {
 <script src="js/popper.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script type="text/javascript">
+
+previous_path = new Array($(".voca").length).fill("");
 $(function () {
-  $('[data-toggle="tooltip"]').tooltip()
+    $('[data-toggle="tooltip"]').tooltip({
+        trigger: 'hover'
+    });
 })
 $(function()
 {
@@ -235,6 +279,34 @@ $(function()
         return false;
     });
 });
+
+$('[id^=noFoldersSwitch]').click(function(e) {
+
+    $(this).siblings("label").empty()
+    var idx = parseInt($(this)[0].id.split("noFoldersSwitch")[1]);
+
+    if (!$(this).hasClass("active")) {
+        $(this).addClass("active");
+        $(this).siblings("label").append('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#007bff" class="bi bi-folder-fill" viewBox="0 0 16 16">'+
+                                        '<path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139z"/>'+
+                                    '</svg>');
+        
+        $(this).parent().siblings("#MappingsPath")[0].value = previous_path[idx-1];
+        $(this).parent().siblings("#MappingsPath")[0].readOnly = false;
+        
+    } else {
+        $(this).removeClass("active");
+        $(this).siblings("label").append('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">'+
+                                        '<path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>'+
+                                        '<path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293l-1.146-1.147z"/>'+
+                                    '</svg>');  
+
+        previous_path[idx-1] = $(this).parent().siblings("#MappingsPath").val()
+        $(this).parent().siblings("#MappingsPath")[0].value = "NoFolders";
+        $(this).parent().siblings("#MappingsPath")[0].readOnly = true;
+    }
+});
+
 </script>
 </body>
 </html>

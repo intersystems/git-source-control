@@ -34,7 +34,7 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
     set filename=FileList,SCs=$$$OK
     if $data(FileList)>1 set filename=$order(FileList(""))
     while (filename'="") {
-        if Display write !,filename_" removed from uncommitted list"
+        if Display write !,filename_" removed from uncommitted list",!
         if '..IsUncommitted(filename) set filename=$order(FileList(filename)) continue
         set obj=..OpenUncommitted(filename)
         if (obj.Source="trakcare")&&($data(^SYS("ChangeControlClass"))) {

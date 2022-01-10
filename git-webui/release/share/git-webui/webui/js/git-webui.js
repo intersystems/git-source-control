@@ -2238,173 +2238,253 @@ $(function()
     })
 });
 
-$(function () {
+function removeModal(id) {
+    $(id).children( ".modal-fade").modal('hide');
+    $(".modal-backdrop").remove();
+    $(id).remove();
+}
 
-    $(document).on('click', '.btn-checkout-local-branch', function(e) {
-        e.preventDefault();
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
+$(document).on('click', '.btn-checkout-local-branch', function(e) {
+    e.preventDefault();
+    $("#confirm-branch-checkout").remove();
 
-        webui.git("checkout " + refName, function() {
-            updateSideBar();
-        });
-    });
+    var refName = $(this).parent().parent().parent().siblings(
+        ".card-header").children("button").html();
+    
+    var flag = 0;
+    webui.git("status --porcelain", function(data) {
+        $.get("api/uncommitted", function (uncommitted) {
+            var uncommittedItems = JSON.parse(uncommitted);
+            var col = 1
+            webui.splitLines(data).forEach(function(line) {
+                var status = line[col];
+                if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
+                    line = line.substring(3);
+                    var splitted = line.split(" -> ");
+                    var model;
+                    if (splitted.length > 1) {
+                        model = splitted[1];
+                    } else {
+                        model = line;
+                    }
+                    console.log(model, "\t", isForCurrentUser)
+                    var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                    if(!isForCurrentUser) {
+                        flag = 1;
+                    }
+                }
+            });
 
-    function removeDeleteModal(popup) {
-        $(popup).children( ".modal-fade").modal('hide');
-        $(".modal-backdrop").remove();
-        $("#confirm-branch-delete").remove();
-    }
+            console.log(flag);
 
-    $(document).on('click', '.btn-delete-branch', function(e) {
-        e.preventDefault();
-
-        $("#confirm-branch-delete").remove(); //removes any remaining modals. If there are more than one modals, the ids are duplicated and event listeners won't work.
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
-
-        var popup = $(  '<div class="modal fade" id="confirm-branch-delete" role="dialog">' +
-                            '<div class="modal-dialog modal-md">' +
-                                '<div class="modal-content">' +
-                                    '<div class="modal-header">' +
-                                        '<h5 class="modal-title">Confirm <pre>'+refName+' </pre>Deletion</h5>' +
-                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
-                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
-                                        '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
-                                        '</svg>'+
-                                        '</button>' +
+            if(flag){
+                var popup = $(  '<div class="modal fade" id="confirm-branch-checkout" role="dialog">' +
+                                '<div class="modal-dialog modal-md">' +
+                                    '<div class="modal-content">' +
+                                        '<div class="modal-header">' +
+                                            '<h5 class="modal-title">Confirm <pre>' + refName + '</pre> Checkout</h5>' +
+                                            '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+                                            '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+                                            '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+                                            '</svg>'+
+                                            '</button>' +
+                                        '</div>' +
+                                        '<div class="modal-body"></div>' +
                                     '</div>' +
-                                    '<div class="modal-body"></div>' +
                                 '</div>' +
+                            '</div>')[0];
+            
+                $("body").append(popup); 
+                var popupContent = $(".modal-body", popup)[0];
+                
+                $('<div class="row"><div class="col-sm-1">'+
+                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
+                    '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
+                '</svg></div>'+
+                '<div class="col-sm-11">Another user has uncommitted work on this branch. By proceeding with the checkout, you will be carrying over their changes. <br/> Do you want to proceed?</div></div>'+
+                '<button class="btn btn-sm btn-danger float-right" id="confirm-checkout">Continue</button>'+
+                '<button class="btn btn-sm btn-secondary float-right" id="cancel-checkout">Cancel</button>').appendTo(popupContent);
+                $(popup).modal('show');
+
+                $("#confirm-branch-checkout").on('click', '#confirm-checkout', function(e){
+                    e.preventDefault();
+                    var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
+                    webui.git("checkout " + refName, function() {
+                        updateSideBar();
+                    });
+                    removeModal("#confirm-branch-checkout");
+                });
+            
+                $("#confirm-branch-checkout").find("#cancel-checkout, .close").click(function() {
+                    removeModal("#confirm-branch-checkout");
+                });
+
+            }
+            else{
+                e.preventDefault();
+                var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
+                webui.git("checkout " + refName, function() {
+                    updateSideBar();
+                });
+            }
+        });
+    });
+});
+
+function removeDeleteModal(popup) {
+    $(popup).children( ".modal-fade").modal('hide');
+    $(".modal-backdrop").remove();
+    $("#confirm-branch-delete").remove();
+}
+
+$(document).on('click', '.btn-delete-branch', function(e) {
+    e.preventDefault();
+
+    $("#confirm-branch-delete").remove(); //removes any remaining modals. If there are more than one modals, the ids are duplicated and event listeners won't work.
+    var refName = $(this).parent().parent().parent().siblings(
+        ".card-header").children("button").html();
+
+    var popup = $(  '<div class="modal fade" id="confirm-branch-delete" role="dialog">' +
+                        '<div class="modal-dialog modal-md">' +
+                            '<div class="modal-content">' +
+                                '<div class="modal-header">' +
+                                    '<h5 class="modal-title">Confirm <pre>'+refName+' </pre>Deletion</h5>' +
+                                    '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">'+
+                                    '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.854 2.146a.5.5 0 0 1 0 .708l-11 11a.5.5 0 0 1-.708-.708l11-11a.5.5 0 0 1 .708 0Z" fill="#000"/>'+
+                                    '<path fill-rule="evenodd" clip-rule="evenodd" d="M2.146 2.146a.5.5 0 0 0 0 .708l11 11a.5.5 0 0 0 .708-.708l-11-11a.5.5 0 0 0-.708 0Z" fill="#000"/>'+
+                                    '</svg>'+
+                                    '</button>' +
+                                '</div>' +
+                                '<div class="modal-body"></div>' +
                             '</div>' +
-                        '</div>')[0];
-        
-        $("body").append(popup); 
-        var popupContent = $(".modal-body", popup)[0];
-        
-        $('<div class="row"><div class="col-sm-1">'+
-        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
-            '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
-        '</svg></div>'+
-        '<div class="col-sm-11">By deleting this branch, you might lose uncommitted work. <br/> Do you want to proceed?</div></div>'+
-        '<button class="btn btn-sm btn-danger float-right" id="confirm-delete">Delete Branch</button>'+
-        '<button class="btn btn-sm btn-secondary float-right" id="cancel-delete">Cancel</button>').appendTo(popupContent);
-        $(popup).modal('show');
+                        '</div>' +
+                    '</div>')[0];
+    
+    $("body").append(popup); 
+    var popupContent = $(".modal-body", popup)[0];
+    
+    $('<div class="row"><div class="col-sm-1">'+
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
+        '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
+    '</svg></div>'+
+    '<div class="col-sm-11">By deleting this branch, you might lose uncommitted work. <br/> Do you want to proceed?</div></div>'+
+    '<button class="btn btn-sm btn-danger float-right" id="confirm-delete">Delete Branch</button>'+
+    '<button class="btn btn-sm btn-secondary float-right" id="cancel-delete">Cancel</button>').appendTo(popupContent);
+    $(popup).modal('show');
 
-        $("#confirm-branch-delete").on('click', '#confirm-delete', function(e){
+    $("#confirm-branch-delete").on('click', '#confirm-delete', function(e){
 
-            removeDeleteModal(popup);
+        removeDeleteModal(popup);
 
-            function deleteSuccessDisplay(output) {
-                webui.showWarning(output);
-                updateSideBar();
+        function deleteSuccessDisplay(output) {
+            webui.showWarning(output);
+            updateSideBar();
+        }
+
+        function forceDelete(message) {
+            if(message.indexOf("git branch -D")>-1){
+                $("body").append(popup); 
+                var popupContent = $(".modal-body", popup)[0];
+                removeAllChildNodes(popupContent);
+                $('<div class="row"><div class="col-sm-1">'+
+                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
+                    '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
+                '</svg></div>'+
+                '<div class="col-sm-11">This branch is not fully merged. Do you want to force delete it?</div></div>'+
+                '<button class="btn btn-sm btn-danger float-right" id="confirm-force-delete">Force Delete</button>'+
+                '<button class="btn btn-sm btn-secondary float-right" id="cancel-delete">Cancel</button>').appendTo(popupContent);
+                $(popup).modal('show');
+
+                $("#confirm-branch-delete").on('click', '#confirm-force-delete', function(e){
+                    removeDeleteModal(popup);
+                    webui.git("branch -D " + refName, deleteSuccessDisplay);
+                });
+
+                $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
+                    removeDeleteModal(popup);
+                });
             }
-
-            function forceDelete(message) {
-                if(message.includes("git branch -D")){
-                    $("body").append(popup); 
-                    var popupContent = $(".modal-body", popup)[0];
-                    removeAllChildNodes(popupContent);
-                    $('<div class="row"><div class="col-sm-1">'+
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
-                        '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
-                    '</svg></div>'+
-                    '<div class="col-sm-11">This branch is not fully merged. Do you want to force delete it?</div></div>'+
-                    '<button class="btn btn-sm btn-danger float-right" id="confirm-force-delete">Force Delete</button>'+
-                    '<button class="btn btn-sm btn-secondary float-right" id="cancel-delete">Cancel</button>').appendTo(popupContent);
-                    $(popup).modal('show');
-
-                    $("#confirm-branch-delete").on('click', '#confirm-force-delete', function(e){
-                        removeDeleteModal(popup);
-                        webui.git("branch -D " + refName, deleteSuccessDisplay);
-                    });
-
-                    $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
-                        removeDeleteModal(popup);
-                    });
-                }
-                else {
-                    webui.showError(message);
-                }
+            else {
+                webui.showError(message);
             }
-            webui.git("branch -d " + refName, deleteSuccessDisplay, "", forceDelete);  
-        });
-
-        $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
-            removeDeleteModal(popup);
-        });
-        
+        }
+        webui.git("branch -d " + refName, deleteSuccessDisplay, "", forceDelete);  
     });
 
-    function upToDateHandler(message){
-        if(message.includes("Already up to date.")) {
-            webui.showSuccess(message);
+    $("#confirm-branch-delete").find("#cancel-delete, .close").click(function() {
+        removeDeleteModal(popup);
+    });
+    
+});
+
+function upToDateHandler(message){
+    if(message.indexOf("Already up to date.")>-1) {
+        webui.showSuccess(message);
+    }
+}
+
+$(document).on('click', '.btn-merge-branch', function(e){
+    e.preventDefault();
+    var refName = $(this).parent().parent().parent().siblings(
+        ".card-header").children("button").html();
+
+    function testMergeHandler (message) {
+        function suppressErrorMessage(error) {
+        }
+        webui.git("merge --abort", "", "", suppressErrorMessage);
+
+        if(message.indexOf("Automatic merge went well")>-1 || message.indexOf("Auto-merging ")>-1){
+            webui.git("merge "+refName, function (output){
+                webui.showSuccess(output);
+            });
+        }
+        else {
+            webui.showError(message);
         }
     }
+    webui.git("merge --no-commit --no-ff "+refName, "", upToDateHandler, testMergeHandler, testMergeHandler);
+});
 
-    $(document).on('click', '.btn-merge-branch', function(e){
-        e.preventDefault();
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
+$(document).on('click', '.btn-merge-remote-branch', function(e){
+    e.preventDefault();
+    var refName = $(this).parent().parent().parent().siblings(
+        ".card-header").children("button").html();
 
-        function testMergeHandler (message) {
-            function suppressErrorMessage(error) {
-            }
-            webui.git("merge --abort", "", "", suppressErrorMessage);
+    var remoteName = refName.split('/')[0];
+    var branchName = refName.split('/')[1];
+    
+    webui.git("fetch "+remoteName+" "+branchName);
 
-            if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
-                webui.git("merge "+refName, function (output){
-                    webui.showSuccess(output);
-                });
-            }
-            else {
-                webui.showError(message);
-            }
+    function testMergeHandler (message) {
+        function suppressErrorMessage(error) {
         }
-        webui.git("merge --no-commit --no-ff "+refName, "", upToDateHandler, testMergeHandler, testMergeHandler);
-    });
-
-    $(document).on('click', '.btn-merge-remote-branch', function(e){
-        e.preventDefault();
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
-
-        var remoteName = refName.split('/')[0];
-        var branchName = refName.split('/')[1];
-        
-        webui.git("fetch "+remoteName+" "+branchName);
-
-        function testMergeHandler (message) {
-            function suppressErrorMessage(error) {
-            }
-            webui.git("merge --abort", "", "", suppressErrorMessage);
-            if(message.includes("Automatic merge went well") || message.includes("Auto-merging ")){
-                webui.git("merge "+refName, function (output){
-                    webui.showSuccess(output);
-                });
-            }
-            else {
-                webui.showError(message);
-            }
+        webui.git("merge --abort", "", "", suppressErrorMessage);
+        if(message.indexOf("Automatic merge went well")>-1 || message.indexOf("Auto-merging ")>-1){
+            webui.git("merge "+refName, function (output){
+                webui.showSuccess(output);
+            });
         }
-        webui.git("merge --no-commit --no-ff "+refName, "", upToDateHandler, testMergeHandler, testMergeHandler);
-    });
-        
-    $(document).on('click', '.btn-checkout-remote-branch', function(e) {
-        e.preventDefault();
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
+        else {
+            webui.showError(message);
+        }
+    }
+    webui.git("merge --no-commit --no-ff "+refName, "", upToDateHandler, testMergeHandler, testMergeHandler);
+});
+    
+$(document).on('click', '.btn-checkout-remote-branch', function(e) {
+    e.preventDefault();
+    var refName = $(this).parent().parent().parent().siblings(
+        ".card-header").children("button").html();
 
-        var remoteName = refName.split('/')[0];
-        var branchName = refName.split('/')[1];
-        
-        webui.git("fetch "+remoteName+" "+branchName);
-        webui.git("checkout -b " +branchName + " " + refName, function() {
-            updateSideBar();
-        });
+    var remoteName = refName.split('/')[0];
+    var branchName = refName.split('/')[1];
+    
+    webui.git("fetch "+remoteName+" "+branchName);
+    webui.git("checkout -b " +branchName + " " + refName, function() {
+        updateSideBar();
     });
-
 });
 
 $(function () {

@@ -47,14 +47,17 @@ body {
   font: 10pt sans-serif;
 }
 #confirm-branch-delete,
-#confirm-staging p {
+#confirm-staging,
+#confirm-branch-checkout p {
   font-size: 105%;
 }
 #confirm-delete,
 #cancel-delete,
 #confirm-force-delete,
 #confirm-staging,
-#cancel-staging {
+#cancel-staging,
+#confirm-checkout,
+#cancel-checkout {
   margin-left: 1rem;
   margin-top: 0.5rem;
 }

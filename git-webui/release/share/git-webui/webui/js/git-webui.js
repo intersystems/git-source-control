@@ -2319,7 +2319,6 @@ $(document).on('click', '.btn-checkout-local-branch', function(e) {
 
             }
             else{
-                e.preventDefault();
                 webui.git("checkout " + refName, function() {
                     updateSideBar();
                 });
@@ -2473,6 +2472,8 @@ $(document).on('click', '.btn-checkout-remote-branch', function(e) {
     e.preventDefault();
     var refName = $(this).parent().parent().parent().siblings(
         ".card-header").children("button").html();
+    var remoteName = refName.split('/')[0];
+    var branchName = refName.split('/')[1];
 
     var flag = 0;
     webui.git("status --porcelain", function(data) {
@@ -2490,15 +2491,12 @@ $(document).on('click', '.btn-checkout-remote-branch', function(e) {
                     } else {
                         model = line;
                     }
-                    console.log(model, "\t", isForCurrentUser)
                     var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                     if(!isForCurrentUser) {
                         flag = 1;
                     }
                 }
             });
-
-            console.log(flag);
 
             if(flag){
                 var popup = $(  '<div class="modal fade" id="confirm-branch-checkout" role="dialog">' +
@@ -2540,20 +2538,14 @@ $(document).on('click', '.btn-checkout-remote-branch', function(e) {
                     webui.git("checkout -b " +branchName + " " + refName, function() {
                         updateSideBar();
                     });
-
                     removeModal("#confirm-branch-checkout");
                 });
             
                 $("#confirm-branch-checkout").find("#cancel-checkout, .close").click(function() {
                     removeModal("#confirm-branch-checkout");
                 });
-
             }
-            else{
-                var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
-                var remoteName = refName.split('/')[0];
-                var branchName = refName.split('/')[1];
-                
+            else{       
                 webui.git("fetch "+remoteName+" "+branchName);
                 webui.git("checkout -b " +branchName + " " + refName, function() {
                     updateSideBar();
@@ -2561,8 +2553,6 @@ $(document).on('click', '.btn-checkout-remote-branch', function(e) {
             }
         });
     });
-    
-    
 });
 
 $(function () {

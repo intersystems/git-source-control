@@ -2267,15 +2267,12 @@ $(document).on('click', '.btn-checkout-local-branch', function(e) {
                     } else {
                         model = line;
                     }
-                    console.log(model, "\t", isForCurrentUser)
                     var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                     if(!isForCurrentUser) {
                         flag = 1;
                     }
                 }
             });
-
-            console.log(flag);
 
             if(flag){
                 var popup = $(  '<div class="modal fade" id="confirm-branch-checkout" role="dialog">' +
@@ -2323,7 +2320,6 @@ $(document).on('click', '.btn-checkout-local-branch', function(e) {
             }
             else{
                 e.preventDefault();
-                var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
                 webui.git("checkout " + refName, function() {
                     updateSideBar();
                 });

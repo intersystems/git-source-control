@@ -63,9 +63,9 @@ hr {
         if ($Get(%request.Data(param,i)) = "NoFolders"){
             set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
         }
-
-        set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
-
+        else{
+            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
+        }
         set i = i+1
     }
     do settings.%Save()

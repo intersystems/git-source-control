@@ -395,6 +395,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         #dim extension = $piece(item, ".", $length(item, "."))
 
         for i=1:1:filenames{
+            set @..#Storage@("items", ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i))) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
             do outStream.OutputToDevice()
             do errStream.OutputToDevice()
@@ -424,7 +425,7 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
         
         #dim item as %String = ""
         //for all item in files
-        for  {
+        for {
             set item = $order(itemsList(item))
             quit:item=""
             
@@ -442,6 +443,69 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
         do ..RemoveFromGit(InternalName)
     }
     quit ec
+}
+
+ClassMethod FindTrackedFilesInPackage(InternalName As %String, ByRef trackedFiles As %String) As %Status
+{
+    Set sc = $$$OK
+    set item = ""
+    set trackedFiles = ""
+    for{
+        set item = $order(@..#Storage@("items",item))
+        quit:item=""
+        
+        if ..IsClassInPackage(item, InternalName) {
+            set trackedFiles = trackedFiles_item_","
+        }
+    }
+    Return sc
+}
+
+ClassMethod FindTrackedFilesInProjects(InternalName As %String, ByRef trackedFiles As %String) As %Status
+{
+    Set sc = $$$OK
+    #dim item as %String = ""
+    set trackedFiles = ""
+    for{
+        set item = $order(@..#Storage@("items",item))
+        quit:item=""
+
+        if ..IsItemInProject(item, InternalName) {
+            set trackedFiles = trackedFiles_item_","
+        }
+    }
+    Return sc
+}
+
+ClassMethod FindTrackedFilesInCSPFolders(InternalName As %String, ByRef trackedFiles As %String) As %Status
+{
+    Set sc = $$$OK    
+    #dim item as %String = ""
+    set trackedFiles = ""
+    for  {
+        set item = $order(@..#Storage@("items",item))
+        quit:item=""
+        
+        if ..IsItemInCSPFolder(item, InternalName) {
+            set trackedFiles = trackedFiles_item_","
+        }
+    }
+    Return sc
+}
+
+ClassMethod FindTrackedFiles(InternalName As %String, ByRef trackedFiles As %String) As %Status
+{
+   
+    #dim type as %String = ..Type(InternalName)
+    set InternalName = ..NameWithoutExtension(InternalName)
+
+    if (type = "pkg") {
+        do ..FindTrackedFilesInPackage(InternalName, .trackedFiles)
+    } elseif (type ="prj") {
+        do ..FindTrackedFilesInProjects(InternalName, .trackedFiles)
+    } elseif (type = "csp") {
+        do ..FindTrackedFilesInCSPFolders(InternalName, .trackedFiles)
+    }
 }
 
 ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
@@ -462,9 +526,12 @@ ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
             set tsc = $$$ADDSC(tsc, ..ExportSCList())
         } else {
             #dim parentElement as %String = ""
-            if ..IsInSourceControl(item, .parentElement) {
-                set tsc = ..MakeError(item _ " is contained in "_parentElement_" that tracked is by SourceControl")
-            }else {
+            #dim type as %String = ..Type(InternalName)
+            if ((type="pkj") || (type="csp") || (type="prj")) {
+                set tsc = $$$ADDSC(tsc, ..FindTrackedFiles(InternalName, .trackedFiles))
+                zwrite trackedFiles
+                #; set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles))
+            } elseif (type = "cls") {
                 set tsc = ..MakeError(item _ " is not in SourceControl")
             }
         }
@@ -618,8 +685,6 @@ ClassMethod FindInCspFolders(InternalName As %String, ByRef sourceControlItem As
         //no need to check IsCspFolder. It might not exist yet
         //continue:'(..Type(cspFolder)="csp" && ..IsCspFolder(cspFolder))
         continue:'(..Type(cspFolder)="csp")
-
-
         
         if ..IsItemInCSPFolder(InternalName, cspFolder) {
             set found = 1

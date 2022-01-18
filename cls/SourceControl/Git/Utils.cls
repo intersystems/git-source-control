@@ -508,12 +508,44 @@ ClassMethod FindTrackedFiles(InternalName As %String, ByRef trackedFiles As %Str
     }
 }
 
-ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
+/// Description
+ClassMethod FindTrackedParent(InternalName As %String, ByRef parentElement As %String) As %Status
+{
+    #dim type as %String = ..Type(InternalName)
+    set isInSourceControl = 0
+    if type = "cls" {
+        #define StripExtension(%s) $Piece(%s,".",1,$Length(%s, ".") - 1)
+        set className = $$$StripExtension(InternalName)
+        set isInSourceControl = ..FindInPackages(InternalName, .parentElement)
+        if (isInSourceControl){
+            set parentElement = parentElement_".pkg"
+        }
+    } elseif type = "csp" {
+        if $extract(InternalName) '= "/" {
+            set InternalName = "/" _ InternalName
+        }
+        set isInSourceControl = ..FindInCspFolders(InternalName, .parentElement)
+    }
+    
+    // our last chance to find item -- let's look in projects
+    if 'isInSourceControl {
+        set isInSourceControl = ..FindInProjects(InternalName, .parentElement)
+        if (isInSourceControl){
+            set parentElement = parentElement_".prj"
+        }
+    }
+
+    quit isInSourceControl
+}
+
+ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %Boolean = 1) As %Status
 {
     write !
     #dim sc as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
         #dim tsc as %Status = $$$OK
+        #dim type as %String = ..Type(InternalName)
+
         set item = $piece(InternalName, ",", i)
         if $data(@..#Storage@("items", ..NormalizeExtension(item))) {
             set item = ..NormalizeExtension(item)
@@ -524,15 +556,20 @@ ClassMethod RemoveFromSourceControl(InternalName As %String) As %Status
             set tsc = ..DeleteExternalsForItem(item)
             do ..RemoveFolderIfEmpty(..TempFolder())
             set tsc = $$$ADDSC(tsc, ..ExportSCList())
-        } else {
+            
+            // remove the parent element if it exists
             #dim parentElement as %String = ""
-            #dim type as %String = ..Type(InternalName)
+            set found = ..FindTrackedParent(item, .parentElement)
+            
+            if (found){
+                do ..RemoveFromSourceControl(parentElement, 0)
+            }
+        } elseif (type = "cls") {
+            set tsc = ..MakeError(item _ " is not in SourceControl")
+        } elseif (cascadeDelete) {            
             if ((type="pkj") || (type="csp") || (type="prj")) {
                 set tsc = $$$ADDSC(tsc, ..FindTrackedFiles(InternalName, .trackedFiles))
-                zwrite trackedFiles
-                #; set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles))
-            } elseif (type = "cls") {
-                set tsc = ..MakeError(item _ " is not in SourceControl")
+                set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles))
             }
         }
         set sc = $$$ADDSC(tsc, sc)

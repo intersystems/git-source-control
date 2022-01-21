@@ -275,7 +275,8 @@ body {
 .empty-stash {
   text-align: center;
 }
-#log-view {
+#log-view,
+#stash-view {
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;
   overflow-y: auto;
@@ -283,37 +284,46 @@ body {
   margin-bottom: 0;
   border-right: 1px #dddddd solid;
   position: relative;
+  overflow-x: hidden;
 }
-#log-view svg {
+#log-view svg,
+#stash-view svg {
   position: absolute;
   top: 0;
   left: 0;
 }
-#log-view svg path {
+#log-view svg path,
+#stash-view svg path {
   stroke-width: 2;
   fill: none;
 }
-#log-view svg circle {
+#log-view svg circle,
+#stash-view svg circle {
   stroke: none;
   fill: #555555;
 }
-#log-view .log-entry {
+#log-view .log-entry,
+#stash-view .log-entry {
   padding: 5px 10px;
   background-color: transparent;
   margin: 0;
   border-top-width: 0;
 }
-#log-view .log-entry:hover {
+#log-view .log-entry:hover,
+#stash-view .log-entry:hover {
   background-color: rgba(219 / 0.9, 219 / 0.9, 219 / 0.9, 0.9);
 }
-#log-view .log-entry.active {
+#log-view .log-entry.active,
+#stash-view .log-entry.active {
   background-color: rgba(13, 110, 253, 0.9) !important;
   color: #ffffff;
 }
-#log-view .log-entry.active header h6 a {
+#log-view .log-entry.active header h6 a,
+#stash-view .log-entry.active header h6 a {
   color: #ffffff;
 }
-#log-view .log-entry header {
+#log-view .log-entry header,
+#stash-view .log-entry header {
   display: flex;
   display: -webkit-flex;
   min-height: 0;
@@ -321,31 +331,39 @@ body {
   align-items: baseline;
   -webkit-align-items: baseline;
 }
-#log-view .log-entry header .stash-list-index {
+#log-view .log-entry header .stash-list-index,
+#stash-view .log-entry header .stash-list-index {
   display: none !important;
 }
-#log-view .log-entry header h6 {
+#log-view .log-entry header h6,
+#stash-view .log-entry header h6 {
   font-weight: bold;
   margin-top: 0;
 }
-#log-view .log-entry header h6 a {
+#log-view .log-entry header h6 a,
+#stash-view .log-entry header h6 a {
   color: #777777;
 }
-#log-view .log-entry header .badge {
+#log-view .log-entry header .badge,
+#stash-view .log-entry header .badge {
   font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
 }
-#log-view .log-entry header .log-entry-date {
+#log-view .log-entry header .log-entry-date,
+#stash-view .log-entry header .log-entry-date {
   margin-left: auto;
 }
-#log-view .log-entry .list-group-item-text {
+#log-view .log-entry .list-group-item-text,
+#stash-view .log-entry .list-group-item-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#log-view .log-entry-more {
+#log-view .log-entry-more,
+#stash-view .log-entry-more {
   padding: 10px 16px;
 }
-#log-view .log-entry-more a {
+#log-view .log-entry-more a,
+#stash-view .log-entry-more a {
   display: block;
   text-align: center;
 }

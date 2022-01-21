@@ -2450,6 +2450,7 @@ $(document).on('click', '.btn-delete-branch', function(e) {
         function deleteSuccessDisplay(output) {
             webui.showWarning(output);
             updateSideBar();
+
         }
 
         function forceDelete(message) {

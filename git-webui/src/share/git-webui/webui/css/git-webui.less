@@ -361,13 +361,14 @@ body {
     text-align: center;
 }
 
-#log-view {
+#log-view, #stash-view {
     .flex(1);
     overflow-y: auto;
     cursor: default;
     margin-bottom: 0;
     border-right: 1px @separator-line solid;
     position: relative;
+    overflow-x: hidden;
 
     svg {
         position: absolute;

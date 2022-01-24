@@ -389,13 +389,26 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
         set @..#Storage@("items", item) = ""
         #dim sc as %Status =  ..ExportItem(item,,,.filenames)
+        zwrite filenames
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
-        #dim extension = $piece(item, ".", $length(item, "."))
 
         for i=1:1:filenames{
-            set @..#Storage@("items", ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i))) = ""
+            set FileInternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i))
+            set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
+
+            continue:..NormalizeExtension(FileInternalName)=item
+
+            if (FileType = "cls"){
+                set potentialMissingPackage = $case($piece(FileInternalName, ".", 1, *-2), "":"", :$piece(FileInternalName, ".", 1, *-2)_".pkg")
+                
+                if (potentialMissingPackage '= "") {
+                    set @..#Storage@("items", potentialMissingPackage) = ""
+                }
+            }
+
+            set @..#Storage@("items", FileInternalName) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
             do outStream.OutputToDevice()
             do errStream.OutputToDevice()
@@ -448,14 +461,19 @@ ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
 ClassMethod FindTrackedFilesInPackage(InternalName As %String, ByRef trackedFiles As %String) As %Status
 {
     Set sc = $$$OK
-    set item = ""
+    set item = InternalName_"."
     set trackedFiles = ""
     for{
         set item = $order(@..#Storage@("items",item))
-        quit:item=""
-        
+        quit:item'[InternalName_"."
+
         if ..IsClassInPackage(item, InternalName) {
-            set trackedFiles = trackedFiles_item_","
+            if (trackedFiles = ""){
+                set trackedFiles = item
+            }
+            else {
+                set trackedFiles = trackedFiles_","_item
+            }
         }
     }
     Return sc
@@ -471,7 +489,12 @@ ClassMethod FindTrackedFilesInProjects(InternalName As %String, ByRef trackedFil
         quit:item=""
 
         if ..IsItemInProject(item, InternalName) {
-            set trackedFiles = trackedFiles_item_","
+            if (trackedFiles = ""){
+                set trackedFiles = item
+            }
+            else {
+                set trackedFiles = trackedFiles_","_item
+            }
         }
     }
     Return sc
@@ -480,14 +503,19 @@ ClassMethod FindTrackedFilesInProjects(InternalName As %String, ByRef trackedFil
 ClassMethod FindTrackedFilesInCSPFolders(InternalName As %String, ByRef trackedFiles As %String) As %Status
 {
     Set sc = $$$OK    
-    #dim item as %String = ""
+    set item = InternalName_"/"
     set trackedFiles = ""
     for  {
         set item = $order(@..#Storage@("items",item))
-        quit:item=""
+        quit:item'[InternalName_"/"
         
         if ..IsItemInCSPFolder(item, InternalName) {
-            set trackedFiles = trackedFiles_item_","
+            if (trackedFiles = ""){
+                set trackedFiles = item
+            }
+            else {
+                set trackedFiles = trackedFiles_","_item
+            }
         }
     }
     Return sc
@@ -500,12 +528,13 @@ ClassMethod FindTrackedFiles(InternalName As %String, ByRef trackedFiles As %Str
     set InternalName = ..NameWithoutExtension(InternalName)
 
     if (type = "pkg") {
-        do ..FindTrackedFilesInPackage(InternalName, .trackedFiles)
+        set sc = ..FindTrackedFilesInPackage(InternalName, .trackedFiles)
     } elseif (type ="prj") {
-        do ..FindTrackedFilesInProjects(InternalName, .trackedFiles)
+        set sc = ..FindTrackedFilesInProjects(InternalName, .trackedFiles)
     } elseif (type = "csp") {
-        do ..FindTrackedFilesInCSPFolders(InternalName, .trackedFiles)
+        set sc = ..FindTrackedFilesInCSPFolders(InternalName, .trackedFiles)
     }
+    return sc
 }
 
 /// Description
@@ -542,6 +571,10 @@ ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %B
 {
     write !
     #dim sc as %Status = $$$OK
+    if (InternalName = ""){
+        set sc = ..MakeError("Passed InternalName is empty!")
+        quit sc
+    }
     for i = 1:1:$length(InternalName, ",") {
         #dim tsc as %Status = $$$OK
         #dim type as %String = ..Type(InternalName)
@@ -553,6 +586,16 @@ ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %B
         
         if $data(@..#Storage@("items", item)) {
             kill @..#Storage@("items", item)
+
+            if (cascadeDelete) {        
+                if ((type="pkg") || (type="csp") || (type="prj")) {
+                    set tsc = $$$ADDSC(tsc, ..FindTrackedFiles(InternalName, .trackedFiles))
+                    if (trackedFiles '= ""){
+                        set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles, 0))
+                    }
+                }
+            }
+
             set tsc = ..DeleteExternalsForItem(item)
             do ..RemoveFolderIfEmpty(..TempFolder())
             set tsc = $$$ADDSC(tsc, ..ExportSCList())
@@ -566,15 +609,10 @@ ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %B
             }
         } elseif (type = "cls") {
             set tsc = ..MakeError(item _ " is not in SourceControl")
-        } elseif (cascadeDelete) {            
-            if ((type="pkj") || (type="csp") || (type="prj")) {
-                set tsc = $$$ADDSC(tsc, ..FindTrackedFiles(InternalName, .trackedFiles))
-                set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles))
-            }
-        }
+        } 
+        
         set sc = $$$ADDSC(tsc, sc)
     }
-
     quit sc
 }
 

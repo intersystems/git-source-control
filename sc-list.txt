@@ -1,3 +1,17 @@
+SourceControl.Git.API.CLS
+SourceControl.Git.Change.CLS
+SourceControl.Git.Extension.CLS
+SourceControl.Git.Modification.CLS
+SourceControl.Git.PackageManagerContext.CLS
+SourceControl.Git.PullEventHandler.CLS
+SourceControl.Git.PullEventHandler.Default.CLS
+SourceControl.Git.PullEventHandler.IncrementalLoad.CLS
+SourceControl.Git.PullEventHandler.PackageManager.CLS
+SourceControl.Git.Settings.CLS
+SourceControl.Git.StreamServer.CLS
+SourceControl.Git.Utils.CLS
+SourceControl.Git.WebUIDriver.CLS
 SourceControl.Git.inc
 SourceControl.Git.pkg
+SourceControl.pkg
 UnitTest.SourceControl.Git.pkg

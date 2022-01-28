@@ -53,7 +53,7 @@ hr {
  set settings = ##class(SourceControl.Git.Settings).%New()
  set ^test = settings
  if $Data(%request.Data("gitsettings",1)) {
-    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","gitUserName","gitUserEmail"{
+    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
     set i = 1
@@ -114,7 +114,6 @@ hr {
             <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
-                
             </div>
         </div>
 
@@ -125,6 +124,13 @@ hr {
                     <option value="SourceControl.Git.PullEventHandler.Default" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.Default":"selected",:""))#>Default</option>
                     <option value="SourceControl.Git.PullEventHandler.PackageManager" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.PackageManager":"selected",:""))#>PackageManager</option>
                 </select>
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="percentClassReplace" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace % with for percent classes">SSH Private Key File</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="percentClassReplace" name="percentClassReplace" value='#(..EscapeHTML(settings.percentClassReplace))#' placeholder="_, __, <empty>, etc."/>
             </div>
         </div>
 

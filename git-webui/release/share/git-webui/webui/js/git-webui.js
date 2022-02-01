@@ -410,7 +410,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     });
     
                     if(flag){
-                        var popup = self.addPopup('Create Branch <pre>'+refName+'<pre>', "confirm-branch-checkout", "modal-md")
+                        var popup = self.addPopup('Create Branch <pre>'+refName+'</pre>', "confirm-branch-checkout", "modal-md")
                     
                         $("body").append(popup); 
                         var popupContent = $(".modal-body", popup)[0];

@@ -17,6 +17,9 @@ Property privateKeyFile As %String [ InitialExpression = {##class(SourceControl.
 /// Event handler class for git pull
 Property pullEventClass As %String [ InitialExpression = {##class(SourceControl.Git.Utils).PullEventClass()}, Required ];
 
+/// Character to replace % symbol when importing %-classes into the file systems
+Property percentClassReplace As %String [ InitialExpression = {##class(SourceControl.Git.Utils).PercentClassReplace()} ];
+
 /// Attribution: Git username for user ${username}
 Property gitUserName As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()}, Required ];
 
@@ -54,6 +57,7 @@ Method %Save() As %Status
     set @storage@("settings","user",$username,"gitUserEmail") = ..gitUserEmail
     set @storage@("settings","ssh","privateKeyFile") = ..privateKeyFile
     set @storage@("settings","pullEventClass") = ..pullEventClass
+    set @storage@("settings", "percentClassReplace") = ..percentClassReplace
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -90,4 +94,3 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
-

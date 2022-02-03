@@ -15,6 +15,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..UserInfo()
         } elseif $extract(pagePath,6,*) = "uncommitted" {
             set responseJSON = ..Uncommitted()
+        } elseif $extract(pagePath,6,*) = "settings" {
+            set responseJSON = ..GetSettingsURL()
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -171,6 +173,11 @@ ClassMethod Uncommitted() As %SystemBase
         }
     }
     quit array
+}
+
+ClassMethod GetSettingsURL() As %SystemBase
+{
+    quit {"url": ("/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username)}
 }
 
 }

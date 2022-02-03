@@ -33,6 +33,9 @@ body {
     border-left: none;
     border-radius: 0 0.25rem 0.25rem 0;
 }
+#webuiURL {
+    display: none;
+}
 
 .custom-switch {
     padding: 0.4rem 0.5rem 0 2.75rem;
@@ -50,6 +53,8 @@ hr {
  new $namespace
  set namespace = %request.Data("NSpace",1)
  set $namespace = namespace
+
+ set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/?CSPSHARE=1"
  set settings = ##class(SourceControl.Git.Settings).%New()
  set ^test = settings
  if $Data(%request.Data("gitsettings",1)) {
@@ -78,7 +83,18 @@ hr {
         <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-1"></div>
-        <h1>Git Project Settings</h1><hr/>
+        <div class="row">
+            <div class="col-sm-8">
+                <h1>Git Project Settings</h1>
+            </div>
+            <div class="col-sm-2">
+                <button class="btn btn-lg btn-outline-dark" id="goToWebUI">Go to WebUI
+                </button>
+                <div id="webuiURL">
+                    #(webuiURL)#
+                </div>
+            </div>
+        </div>
         <br/>
         <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
 
@@ -284,6 +300,12 @@ $(function()
         e.preventDefault();
         return false;
     });
+
+    $(document).on('click', "#goToWebUI", function(e){
+        e.preventDefault();
+        console.log($("#webuiURL")[0].innerText);
+        window.location.replace($("#webuiURL")[0].innerText);
+    })
 });
 
 $('[id^=noFoldersSwitch]').click(function(e) {
@@ -319,3 +341,15 @@ $('[id^=noFoldersSwitch]').click(function(e) {
 </script>
 </body>
 </html>
+<script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
+	try {
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
+	quit 1
+</script>

@@ -59,6 +59,9 @@ webui.checkIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22
 webui.warningIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#dc3545" class="bi bi-exclamation-circle-fill" viewBox="0 0 16 16">'+
                         '<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"></path>'+
                     '</svg>'
+webui.settingsIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#eee" class="bi bi-gear-fill" viewBox="0 0 16 16">'+
+                        '<path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>'+
+                    '</svg>'
 
 
 webui.showSuccess = function(message) {
@@ -631,6 +634,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         webui.git("merge --no-commit --no-ff "+refName, "", self.upToDateHandler, callTestMergeHandler, callTestMergeHandler);
     }
 
+    self.goToSettingsPage = function() {
+        $.get("api/settings", function (settingsURL){
+            var url = JSON.parse(settingsURL);
+            window.location.replace(url.url);
+        });
+    }
+  
     self.fetchSection = function(section, title, id, gitCommand) {
         webui.git(gitCommand, function(data) {
             var refs = webui.splitLines(data);
@@ -699,6 +709,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
+                                '<section id="sidebar-settings">' +
+                                    '<h4>Settings</h4>' +
+                                '</section>' +
                             '</div>' +
                         '</div>')[0];
 
@@ -721,6 +734,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
+        $("#sidebar-settings", self.element).click(self.goToSettingsPage);
     }
 
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch");

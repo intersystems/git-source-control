@@ -108,7 +108,8 @@ body {
 }
 .btn-ok {
   float: right;
-  margin-top: -3%;
+  margin-top: -0.6rem;
+  margin-right: 0.8rem;
 }
 #error-modal .modal-body {
   margin-bottom: 0;

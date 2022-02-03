@@ -53,6 +53,11 @@ ClassMethod PullEventClass() As %String [ CodeMode = expression ]
 $Get(@..#Storage@("settings","pullEventClass"), ##class(SourceControl.Git.PullEventHandler.Default).%ClassName(1))
 }
 
+ClassMethod PercentClassReplace() As %Status [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","percentClassReplace"), "")
+}
+
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {
@@ -1450,7 +1455,7 @@ ClassMethod Name(InternalName As %String) As %String
         quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")
     
     } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
-        set nam=$translate(nam,"%")
+        set nam=$translate(nam,"%", ..PercentClassReplace())
         if '$$$GetSourceMapping(ext,"*","NoFolders"){
             set nam=$translate(nam,".","/")
         }

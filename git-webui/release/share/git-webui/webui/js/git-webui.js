@@ -640,7 +640,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             window.location.replace(url.url);
         });
     }
-
+  
     self.fetchSection = function(section, title, id, gitCommand) {
         webui.git(gitCommand, function(data) {
             var refs = webui.splitLines(data);
@@ -734,7 +734,6 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
-
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
     }
 

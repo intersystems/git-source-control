@@ -734,7 +734,6 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
-
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
     }
 

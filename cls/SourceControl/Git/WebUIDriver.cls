@@ -177,7 +177,7 @@ ClassMethod Uncommitted() As %SystemBase
 
 ClassMethod GetSettingsURL() As %SystemBase
 {
-    quit {"url": ("/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username)}
+    quit {"url": ("/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username)}
 }
 
 }

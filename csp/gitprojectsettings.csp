@@ -54,7 +54,7 @@ hr {
  set namespace = %request.Data("NSpace",1)
  set $namespace = namespace
 
- set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"
+ set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/?CSPSHARE=1"
  set settings = ##class(SourceControl.Git.Settings).%New()
  set ^test = settings
  if $Data(%request.Data("gitsettings",1)) {
@@ -335,3 +335,15 @@ $('[id^=noFoldersSwitch]').click(function(e) {
 </script>
 </body>
 </html>
+<script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
+	try {
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
+	quit 1
+</script>

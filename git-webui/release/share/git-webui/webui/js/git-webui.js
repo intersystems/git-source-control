@@ -640,7 +640,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             window.location.replace(url.url);
         });
     }
-  
+
     self.fetchSection = function(section, title, id, gitCommand) {
         webui.git(gitCommand, function(data) {
             var refs = webui.splitLines(data);

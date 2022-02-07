@@ -31,6 +31,9 @@
   animation-timing-function: linear;
   animation-play-state: running;
 }
+#help-modal .img-fluid {
+  max-width: 90%;
+}
 html,
 body {
   height: 100%;

@@ -52,18 +52,49 @@ limitations under the License.
                 <div class="modal-content">
                     <div class="modal-body">
                         <h4>History Viewing</h4>
-                        <p>The toolbar on the left shows your branches and tags. The log of the currently selected one is displayed.</p>
-                        <p>When selecting a revision the diff of this specific commit is displayed in the right panel.</p><br>
-                        <img alt="Image of log commit" src="img/doc/log-commit.png"><br>
-                        <p>On top of the right panel, you can choose 'Tree' to display the versioned content at the specific
-                            revision selected in the left panel. You can browse through directories and display file contents.</p><br>
-                        <img alt="Image of log tree" src="img/doc/log-tree.png">
-
-                        <h4>Commit</h4>
-                        <p>Commits can only be made from localhost.</p>
-                        <img alt="Image of the workspace" src="img/doc/workspace.png"><br>
+                        <hr>
+                        <h5>Overview</h5><br/>
+                        <img class="img-fluid" alt="Image of the Commit History View" src="img/doc/commit-history.png"><br>
+                        <p> The commit history view of the WebUI is comprised of three parts. 
+                            <ol>
+                                <li>
+                                    The sidebar contains navigation links to the Workspace, Stash and Settings. It also shows all the refs and tags in the repository.
+                                </li>
+                                <li>
+                                    The left panel displays the commit history of the current branch by default. Click on a different branch on the sidebar to view its commit history.
+                                </li>
+                                <li>
+                                    The right panel of the screen displays the diff of the latest commit of the selected or current branch. 
+                                    Select a different commit from the left panel to view its details.
+                                </li>
+                            </ol>
+                        </p>
+                        <h5>Tree View and Commit View</h5><br/>
+                        <!-- <img class="img-fluid" alt="Image of the Explore button in the Commit View of the Commit History" src="img/doc/commit-history-explore.png"><br> -->
+                        <img class="img-fluid" alt="Image of the Commit Explorer View of the Commit History" src="img/doc/commit-explorer.png"><br>
+                        <p> To see the commit in more detail, you can click the Explore button in the top-right corner to go to the Commit Explorer View.                                                  
+                        </p>
+                        <br/>
+                        <img class="img-fluid" alt="Image of the Tree View of the Commit History" src="img/doc/commit-history-tree-view.png"><br>
+                        <p>
+                            On top of the right panel in the Commit History View, you can choose 'Tree' to display the contents of the repository folder at the specific
+                            revision selected in the left panel. You can browse through directories and display file contents.
+                        </p>
+                        <h4>Workspace</h4>
+                        <img class="img-fluid" alt="Image of the workspace" src="img/doc/workspace.png"><br>
                         <ul>
                             <li><strong>Working copy</strong> lists the modified files (compared to the staging area) in your working directory</li>
+                            <ul>
+                                <li>
+                                    <strong>Stage</strong>: Stages the selected changes for a commit.
+                                </li>
+                                <li>
+                                    <strong>Stash</strong>: Stashes the selected changes.
+                                </li>
+                                <li>
+                                    <strong>Cancel</strong>: Discards the selected changes.
+                                </li>
+                            </ul>
                             <li><strong>Message</strong> lets you enter a commit message</li>
                             <li><strong>Staging area</strong> lists the modified files (compared to HEAD) in your staging area. These are the changes that will be committed</li>
                         </ul>
@@ -74,6 +105,33 @@ limitations under the License.
                         <ul>
                             <li>If the displayed diff is from the working copy, you may stage or cancel the selected lines.</li>
                             <li>If the displayed diff is from the staging area, you may unstage the selected lines.</li>
+                        </ul>
+                        <h4>Stash</h4>
+                        <img class="img-fluid" alt="Image of the Stash" src="img/doc/stash.png"><br>
+                        This tab shows all stashed changes and lets the user explore the changes in the Diff View in the right panel.
+                        <ul>
+                            <li><strong>Apply</strong> applies the selected stashed changes to the current branch. Changes will not be removed from the stash after applying them.</li>
+                            <li><strong>Pop</strong> applies the selected changes and removes the commit from the stash.</li>
+                            <li><strong>Drop</strong> removes the selected stashed changes without applying them.</li>
+                        </ul> 
+                        <h4>Branch Operations</h4>
+                        <img class="img-fluid" alt="Image of the Stash" src="img/doc/branch-operations.png"><br>
+                        <ul>
+                            <li>
+                                <strong>New Local Branch</strong>: Click the plus icon and enter the name of your branch in the text-box to create a new local branch from the current branch.
+                            </li>
+                            <li>
+                                <strong>Checkout Branch</strong>: Switch to an exisiting local or remote branch. Note that this will carry over any uncommitted changes to the new branch.
+                            </li>
+                            <li>
+                                <strong>Merge Branch</strong>: Incorporate changes from the selected local or remote branch into the current branch from the time their histories diverged.
+                            </li>
+                            <li>
+                                <strong>Delete Local Branch</strong>: Delete a local branch with the option to force delete it even if it is not fully merged.
+                            </li>
+                            <li>
+                                <strong>Prune Remote Branches</strong>: Click the refresh icon to prune stale refs to deleted remote branches.
+                            </li>
                         </ul>
                         <h4>License</h4>
                         This software is licensed under the <a href="http://www.apache.org/licenses/LICENSE-2.0.html" target="_blank">Apache 2.0</a> license

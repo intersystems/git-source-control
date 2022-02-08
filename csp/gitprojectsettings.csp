@@ -55,6 +55,15 @@ hr {
  set $namespace = namespace
 
  set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/?CSPSHARE=1"
+ set appBasePath = "/isc/studio/usertemplates/gitsourcecontrol/"
+
+ set locationOfAppPath = $LOCATE(%request.URL, appBasePath)
+
+ if (locationOfAppPath > 1) {
+    set beforeAppPath = $EXTRACT(%request.URL, 1, (locationOfAppPath-1))
+    set webuiURL = beforeAppPath_webuiURL
+ }
+     
  set settings = ##class(SourceControl.Git.Settings).%New()
  set ^test = settings
  if $Data(%request.Data("gitsettings",1)) {

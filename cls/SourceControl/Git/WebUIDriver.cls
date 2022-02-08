@@ -16,7 +16,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         } elseif $extract(pagePath,6,*) = "uncommitted" {
             set responseJSON = ..Uncommitted()
         } elseif $extract(pagePath,6,*) = "settings" {
-            set responseJSON = ..GetSettingsURL()
+            set responseJSON = ..GetSettingsURL(%request)
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -175,9 +175,19 @@ ClassMethod Uncommitted() As %SystemBase
     quit array
 }
 
-ClassMethod GetSettingsURL() As %SystemBase
+ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 {
-    quit {"url": ("/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username)}
+   
+    set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username
+    set appBasePath = "/isc/studio/usertemplates/gitsourcecontrol/"
+    
+    set locationOfAppPath = $LOCATE(%request.URL, appBasePath)
+
+    if (locationOfAppPath > 1) {
+        set beforeAppPath = $EXTRACT(%request.URL, 1, (locationOfAppPath-1))
+        set settingsURL = beforeAppPath_settingsURL
+    }
+    quit {"url": (settingsURL)}
 }
 
 }

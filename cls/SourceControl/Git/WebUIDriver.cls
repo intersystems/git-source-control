@@ -175,18 +175,22 @@ ClassMethod Uncommitted() As %SystemBase
     quit array
 }
 
-ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
+ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String
 {
-   
-    set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username
     set appBasePath = "/isc/studio/usertemplates/gitsourcecontrol/"
-    
     set locationOfAppPath = $LOCATE(%request.URL, appBasePath)
 
     if (locationOfAppPath > 1) {
         set beforeAppPath = $EXTRACT(%request.URL, 1, (locationOfAppPath-1))
-        set settingsURL = beforeAppPath_settingsURL
+        set URL = beforeAppPath_URL
     }
+    quit URL
+}
+
+ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
+{
+    set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username
+    set settingsURL = ..GetURLPrefix(%request, settingsURL)
     quit {"url": (settingsURL)}
 }
 

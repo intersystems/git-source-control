@@ -53,10 +53,12 @@ hr {
  new $namespace
  set namespace = %request.Data("NSpace",1)
  set $namespace = namespace
-
+     
  set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/?CSPSHARE=1"
+ set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
+ 
  set settings = ##class(SourceControl.Git.Settings).%New()
- set ^test = settings
+
  if $Data(%request.Data("gitsettings",1)) {
     for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
         set $Property(settings,param) = $Get(%request.Data(param,1))

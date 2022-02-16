@@ -10,8 +10,6 @@ Parameter InstallNamespace = "%SYS";
 Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 
 /// Name of the file with version controlled items
-Parameter SCListFilename = "sc-list.txt";
-
 Parameter GitMenuItems = ",Settings,Commit,Pull,Fetch,Push,Revert,";
 
 Parameter ImportAfterGitMenuItems = ",Commit,Pull,Fetch,Push,";
@@ -336,9 +334,14 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     while (outStream.AtEnd = 0) {
         set file = outStream.ReadLine()
         set modification = ##class(SourceControl.Git.Modification).%New()
-        set modification.changeType = $piece(file, " ", 1)
-        set modification.externalName = $zstrip($piece(file," ",2,*),"<W")
-        set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+        set modification.changeType = $piece(file, $c(9), 1)
+        set modification.externalName = $zstrip($piece(file, $c(9),2),"<W")
+        if (modification.changeType '= "A"){
+            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+        }
+        else {
+            set modification.internalName = ""
+        }
         set files($increment(files)) = modification
         write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
     }
@@ -347,7 +350,6 @@ ClassMethod Pull(remote As %String = "origin") As %Status
         write !, "Already up to date. Git Pull will not be executed."
         quit $$$OK
     }
-
 
     set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
@@ -358,6 +360,31 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !
     do outStream.OutputToDevice()
     write !
+
+    set key = $order(files(""))
+    set deletedFiles = ""
+    set addedFiles = ""
+    while(key '= "") {
+        set modification = files(key)
+        if (modification.changeType = "D"){
+            set deletedFiles = deletedFiles_","_modification.internalName
+        } elseif (modification.changeType = "A"){
+            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+            set addedFiles = addedFiles_","_modification.internalName
+            set files(key) = modification
+        }
+        set key = $order(files(key))
+    }
+
+    set deletedFiles = $extract(deletedFiles, 2, *)
+    set addedFiles = $extract(addedFiles, 2, *)
+    
+    if (deletedFiles '= ""){
+        set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
+    }
+    if (addedFiles '= ""){
+        set sc = ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(addedFiles)
+    }
 
     set event = $classmethod(..PullEventClass(),"%New")
     set event.LocalRoot = ..TempFolder()
@@ -386,15 +413,34 @@ ClassMethod ExternalName(InternalName As %String) As %String
     quit ..Name(InternalName)
 }
 
+ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
+{
+     #dim i as %Integer
+    #dim ec as %Status = $$$OK
+    for i = 1:1:$length(InternalName, ",") {
+        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        set @..#Storage@("items", item) = ""
+        #dim sc as %Status =  ..ImportItem(item, 1)
+        if 'sc {
+            set ec = $$$ADDSC(ec, sc)
+        }
+    }
+    quit ec
+}
+
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
 {
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
         #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
-        set @..#Storage@("items", item) = ""
+        #dim type as %String = ..Type(item)
+
+        if ((type '= "pkg") && (type '= "prj")){
+            set @..#Storage@("items", item) = ""
+        }
+
         #dim sc as %Status =  ..ExportItem(item,,,.filenames)
-        zwrite filenames
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
@@ -404,22 +450,14 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
             continue:..NormalizeExtension(FileInternalName)=item
-
-            if (FileType = "cls"){
-                set potentialMissingPackage = $case($piece(FileInternalName, ".", 1, *-2), "":"", :$piece(FileInternalName, ".", 1, *-2)_".pkg")
-                
-                if (potentialMissingPackage '= "") {
-                    set @..#Storage@("items", potentialMissingPackage) = ""
-                }
-            }
-
+            continue:$DATA(@..#Storage@("items", FileInternalName))
             set @..#Storage@("items", FileInternalName) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
+            write !, "Added ", FileInternalName, " to source control."
             do outStream.OutputToDevice()
             do errStream.OutputToDevice()
         }
     }
-    set ec = $$$ADDSC(ec, ..ExportSCList())
     quit ec
 }
 
@@ -572,6 +610,26 @@ ClassMethod FindTrackedParent(InternalName As %String, ByRef parentElement As %S
     quit isInSourceControl
 }
 
+ClassMethod RemoveFromServerSideSourceControl(InternalName As %String) As %Status
+{
+    #dim i as %Integer
+    #dim ec as %Status = $$$OK
+    for i = 1:1:$length(InternalName, ",") {
+        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim tsc as %Status = $$$OK
+        #dim type as %String = ..Type(InternalName)
+        
+        if $data(@..#Storage@("items", item)) {
+            kill @..#Storage@("items", item)
+            do ..RemoveFolderIfEmpty(..TempFolder())
+        } elseif (type = "cls") {
+            set tsc = ..MakeError(item _ " is not in SourceControl")
+        } 
+        set ec = $$$ADDSC(tsc, ec)
+    }
+    quit ec
+}
+
 ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %Boolean = 1) As %Status
 {
     write !
@@ -591,30 +649,21 @@ ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %B
         
         if $data(@..#Storage@("items", item)) {
             kill @..#Storage@("items", item)
+            set tsc = ..DeleteExternalsForItem(item)
+        } elseif ((type="cls") || (type="inc") || (type="mac")){
+             set tsc = ..MakeError(item _ " is not in SourceControl")
+        }
 
-            if (cascadeDelete) {        
-                if ((type="pkg") || (type="csp") || (type="prj")) {
-                    set tsc = $$$ADDSC(tsc, ..FindTrackedFiles(InternalName, .trackedFiles))
-                    if (trackedFiles '= ""){
-                        set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles, 0))
-                    }
+        if (cascadeDelete) {        
+            if ((type="pkg") || (type="csp") || (type="prj")) {
+                set tsc = $$$ADDSC(tsc, ..FindTrackedFiles(InternalName, .trackedFiles))
+                if (trackedFiles '= ""){
+                    set tsc = $$$ADDSC(tsc, ..RemoveFromSourceControl(trackedFiles, 0))
                 }
             }
+        }
+        do ..RemoveFolderIfEmpty(..TempFolder())
 
-            set tsc = ..DeleteExternalsForItem(item)
-            do ..RemoveFolderIfEmpty(..TempFolder())
-            set tsc = $$$ADDSC(tsc, ..ExportSCList())
-            
-            // remove the parent element if it exists
-            #dim parentElement as %String = ""
-            set found = ..FindTrackedParent(item, .parentElement)
-            
-            if (found){
-                do ..RemoveFromSourceControl(parentElement, 0)
-            }
-        } elseif (type = "cls") {
-            set tsc = ..MakeError(item _ " is not in SourceControl")
-        } 
         
         set sc = $$$ADDSC(tsc, sc)
     }
@@ -1179,14 +1228,12 @@ ClassMethod ExportProject(project As %String, force As %Boolean = 0, ByRef filen
 /// if <var>force</var> = 1 then we export item even if timestamp in system is older
 ClassMethod ExportAll(force As %Boolean = 0) As %Status
 {
-    $$$QuitOnError(..ExportRoutines(force))
-    quit ..ExportSCList()
+    quit ..ExportRoutines(force)
 }
 
 /// if <var>force</var> = 1 then we import item even if timestamp in system is newer
 ClassMethod ImportAll(force As %Boolean = 0) As %Status
 {
-    $$$QuitOnError(..ImportSCList())
     quit ..ImportRoutines(force)
 }
 
@@ -1201,58 +1248,6 @@ ClassMethod ExportRoutines(force As %Boolean = 0) As %Status
         quit:'ec
     }
     quit ec
-}
-
-ClassMethod ExportSCList() As %Status
-{
-    #dim filename = ..TempFolder()_..#SCListFilename
-    #dim file as %File = ##class(%File).%New(filename)
-    #dim item as %String = ""
-    #dim defaultCspApp as %String = $system.CSP.GetDefaultApp($znspace)
-    $$$QuitOnError(file.Open("WSN"))
-    
-    for  {
-        set item = $order(@..#Storage@("items",item))
-        quit:item=""
-        #dim fixedItem as %String = item
-        if $extract(fixedItem, 1, $length(defaultCspApp)) = defaultCspApp {
-            set $extract(fixedItem, 1, $length(defaultCspApp)) = "<cspapp>"
-        }
-        
-        do file.WriteLine(fixedItem)
-        
-    }
-    $$$QuitOnError(file.%Save())
-    do file.Close()
-    kill file
-
-    do ..RunGitWithArgs(.errStream, .outStream, "add", ..#SCListFilename)
-    do errStream.OutputToDevice()
-    do outStream.OutputToDevice()
-    quit $$$OK
-}
-
-ClassMethod ImportSCList() As %Status
-{
-    #dim filename = ..TempFolder()_..#SCListFilename
-    #dim file as %File = ##class(%File).%New(filename)
-    #dim defaultCspApp as %String = $system.CSP.GetDefaultApp($znspace)
-    #dim eol as %Boolean
-    
-    $$$QuitOnError(file.Open("R", 10))
-    
-    #dim a
-    while 'file.AtEnd  {
-        #dim s as %String = file.ReadLine(,,.eol)
-        continue:s=""
-        #dim item as %String = $replace(s, "<cspapp>", defaultCspApp)
-        set a(..NormalizeExtension(item)) = ""
-    }
-    kill @..#Storage("items")
-    merge @..#Storage("items") = a
-    do file.Close()
-    kill file
-    quit $$$OK
 }
 
 /// returns true if directory was deleted

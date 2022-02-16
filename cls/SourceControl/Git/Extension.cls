@@ -132,7 +132,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 {
     if (itemName = "") || '##class(Utils).IsNamespaceInGit() {
         set Enabled = -1
-    } elseif $find(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
+    } elseif (($find(itemName,",") > 0) || (##class(SourceControl.Git.Utils).Type(itemName) = "pkg")) { 
+        //if more than one item is selected, we can only add/remove, no diff or blame
+        // if a package is selected we should show options to add missing items and remove exisiting ones
         set Enabled = $case(menuItemName,"AddToSC":1,"RemoveFromSC":1,:-1)
     } elseif menuItemName = "Revert" {
         set Enabled = 1

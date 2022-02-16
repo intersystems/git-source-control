@@ -47,10 +47,7 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
     }
-    do $System.OBJ.GetPackageList(.files,InternalName)
-    if ($DATA(files) '= 0) {
-            set InternalName = ($piece($order(files("")), ".", 1)_".pkg")
-    }
+
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set ec = ##class(Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
@@ -135,7 +132,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 {
     if (itemName = "") || '##class(Utils).IsNamespaceInGit() {
         set Enabled = -1
-    } elseif $find(itemName,",") > 0 { //if more than one item is selected, we can only add/remove, no diff or blame
+    } elseif (($find(itemName,",") > 0) || (##class(SourceControl.Git.Utils).Type(itemName) = "pkg")) { 
+        //if more than one item is selected, we can only add/remove, no diff or blame
+        // if a package is selected we should show options to add missing items and remove exisiting ones
         set Enabled = $case(menuItemName,"AddToSC":1,"RemoveFromSC":1,:-1)
     } elseif menuItemName = "Revert" {
         set Enabled = 1
@@ -164,14 +163,6 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 /// this menu item from the list totally, 0 will gray the menu item out and the default 1 will display the menu item as normal.
 Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As %String, ByRef Enabled As %Boolean, ByRef DisplayName As %String) As %Status
 {
-    
-    if (InternalName '= ""){
-        do $System.OBJ.GetPackageList(.files,InternalName)
-        if ($DATA(files) '= 0) {
-                set InternalName = ($piece($order(files("")), ".", 1)_".pkg")
-        }
-    }
-
     set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 

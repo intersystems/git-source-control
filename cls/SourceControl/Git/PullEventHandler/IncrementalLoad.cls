@@ -15,7 +15,7 @@ Method OnPull() As %Status
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
-            write ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. ", !
+            write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } else {
             set compilelist(internalName) = ""
             set nFiles = nFiles + 1
@@ -24,7 +24,7 @@ Method OnPull() As %Status
     }
 
     if (nFiles = 0) {
-        write "Nothing to compile.",!
+        write !, "Nothing to compile."
         quit $$$OK
     }
     quit $system.OBJ.CompileList(.compilelist, "cukb")

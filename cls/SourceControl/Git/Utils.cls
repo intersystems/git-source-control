@@ -160,7 +160,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             kill @..#Storage@("items")
             kill @..#Storage@("TSH")
             do ..RunGitCommand("init",.errStream,.outStream)
+            write !
             do errStream.OutputToDevice()
+            write !
             do outStream.OutputToDevice()
         } else {
             set ec = ..MakeError("Unable to create folder "_..TempFolder())
@@ -169,7 +171,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 2
         set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
-        write "==export start==",!
+        write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
         if ec {
             write !,"==export done==",!
@@ -276,7 +278,9 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
+    write !
     do errStream.OutputToDevice()
+    write !
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -284,7 +288,9 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
+    write !
     do errStream.OutputToDevice()
+    write !
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -294,7 +300,9 @@ ClassMethod Push(remote As %String = "origin") As %Status
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
     do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
+    write !
     do errStream.OutputToDevice()
+    write !
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -310,6 +318,7 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
         set diffFiles = diffFiles_$listbuild(outStream.ReadLine())
     }
     do outStream.Rewind()
+    write !
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -323,6 +332,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 
     set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream, remote, branchName)
     if (sc=1){
+        write !
         do errStream.OutputToDevice()
         quit sc
     }
@@ -353,7 +363,9 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 
     set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
+        write !
         do errStream.OutputToDevice()
+        write !
         do outStream.OutputToDevice()
         quit $$$ERROR(5001, "Pull event handler not called. Fix errors before compiling.")
     }
@@ -444,7 +456,6 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
-
         for i=1:1:filenames{
             set FileInternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i))
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
@@ -454,7 +465,9 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set @..#Storage@("items", FileInternalName) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
             write !, "Added ", FileInternalName, " to source control."
+            write !
             do outStream.OutputToDevice()
+            write !
             do errStream.OutputToDevice()
         }
     }
@@ -465,6 +478,9 @@ ClassMethod RemoveFromGit(InternalName)
 {
     #dim fullName = ##class(Utils).FullExternalName(InternalName)
     do ..RunGitCommand("rm",.errStream,.outStream,"--cached", fullName)
+    write !
+    do errStream.OutputToDevice()
+    write !
     do errStream.OutputToDevice()
 }
 
@@ -949,7 +965,7 @@ ClassMethod DeleteExternalFile(InternalName As %String) As %Status
     if ##class(%File).Exists(fullName) {
         set ec = ##class(%File).Delete(fullName)
         do ..RemoveRoutineTSH(InternalName)
-        write fullName, " for ", InternalName, " deleted",!
+        write !, fullName, " for ", InternalName, " deleted"
     }
     quit ec
 }
@@ -1020,13 +1036,13 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             if ..Type(InternalName) = "prj" {
                 set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
             }
-            write InternalName," has been imported from ", filename,!
+            write !, InternalName," has been imported from ", filename
         } else {
-            write "ERROR importing" ,InternalName,!
+            write !, "ERROR importing" ,InternalName, !
             do $system.Status.DisplayError(sc)
         }
     } elseif verbose {
-        write InternalName, " is the same as on-disk version or newer, skipping import",!
+        write !, InternalName, " is the same as on-disk version or newer, skipping import",!
     }
     quit sc
 }
@@ -1061,9 +1077,9 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     }
     
     if $get(err) > 0 {
-        write "There were some errors while importing files",!
+        write !, "There were some errors while importing files"
         for i=1:1:err {
-            write err(i),!
+            write !, err(i)
         }
     }
     
@@ -1081,7 +1097,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 
 ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
 {
-    write "==import start==", !
+    write !, "==import start=="
     
     #dim err, itemList
     
@@ -1131,10 +1147,10 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
             
             if deleted && ec {
                 do ..RemoveRoutineTSH(item)
-                write item, " was deleted", !
+                write !, item, " was deleted"
             } else {
                 if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {
-                    write "Error: could not delete ", item, !
+                    write !, "Error: could not delete ", item
                 } else {
                     // if something we wanted to delete is already deleted -- good!
                     set ec = $$$OK
@@ -1143,7 +1159,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         }
     }
     
-    write "==import done==", !
+    write !, "==import done=="
     quit ec
 }
 
@@ -1197,7 +1213,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
         if ..IsTempFileOutdated(InternalName) || force {
             #dim filename as %String = ..FullExternalName(InternalName)
             set filenames($I(filenames)) = filename
-            write "exporting new version of ", InternalName, " to ", filename,!
+            write !, "exporting new version of ", InternalName, " to ", filename
             $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
             if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
@@ -1571,8 +1587,8 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
 ClassMethod OutputConfigureMessage()
 {
     if '..IsNamespaceInGit() {
-        write !!,"NOTE: To configure settings for git-source-control, run the following command: ",!
-        write "do ##class(SourceControl.Git.API).Configure()",!
+        write !!,"NOTE: To configure settings for git-source-control, run the following command: "
+        write !, "do ##class(SourceControl.Git.API).Configure()",!
     }
 }
 

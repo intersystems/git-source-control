@@ -160,9 +160,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             kill @..#Storage@("items")
             kill @..#Storage@("TSH")
             do ..RunGitCommand("init",.errStream,.outStream)
-            write !
+            $$$NewLineIfNonEmptyStream(errStream)
             do errStream.OutputToDevice()
-            write !
+            $$$NewLineIfNonEmptyStream(outStream)
             do outStream.OutputToDevice()
         } else {
             set ec = ..MakeError("Unable to create folder "_..TempFolder())
@@ -205,8 +205,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "Fetch") {
         $$$QuitOnError(..Fetch(.diffFiles))
         set pointer = 0
+        write !, !, "Changed Files: "
         while $listnext(diffFiles, pointer, item){
-            write !,item
+            write !,?4, item
         }
         write !
     } elseif (menuItemName = "Pull") {
@@ -266,9 +267,9 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     set email = ..GitUserEmail()
     set author = username_" <"_email_">"
     do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
-    write !
+    $$$NewLineIfNonEmptyStream(outStream)
     do outStream.OutputToDevice()
-    write !
+    $$$NewLineIfNonEmptyStream(errStream)
     do errStream.OutputToDevice()
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted())
@@ -278,9 +279,9 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
-    write !
+    $$$NewLineIfNonEmptyStream(errStream)
     do errStream.OutputToDevice()
-    write !
+    $$$NewLineIfNonEmptyStream(outStream)
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -288,9 +289,9 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
-    write !
+    $$$NewLineIfNonEmptyStream(errStream)
     do errStream.OutputToDevice()
-    write !
+    $$$NewLineIfNonEmptyStream(outStream)
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -300,9 +301,9 @@ ClassMethod Push(remote As %String = "origin") As %Status
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
     do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
-    write !
+    $$$NewLineIfNonEmptyStream(errStream)
     do errStream.OutputToDevice()
-    write !
+    $$$NewLineIfNonEmptyStream(outStream)
     do outStream.OutputToDevice()
     quit $$$OK
 }
@@ -310,16 +311,13 @@ ClassMethod Push(remote As %String = "origin") As %Status
 ClassMethod Fetch(ByRef diffFiles) As %Status
 {
     do ..RunGitCommand("fetch", .errStream, .outStream)
-    write !, "git fetch"
+    write !, "Fetch done"
     kill errStream, outStream
     do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
     set diffFiles = ""
     while (outStream.AtEnd = 0) {
         set diffFiles = diffFiles_$listbuild(outStream.ReadLine())
     }
-    do outStream.Rewind()
-    write !
-    do outStream.OutputToDevice()
     quit $$$OK
 }
 
@@ -332,7 +330,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 
     set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream, remote, branchName)
     if (sc=1){
-        write !
+        $$$NewLineIfNonEmptyStream(errStream)
         do errStream.OutputToDevice()
         quit sc
     }
@@ -363,13 +361,13 @@ ClassMethod Pull(remote As %String = "origin") As %Status
 
     set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
-        write !
+        $$$NewLineIfNonEmptyStream(errStream)
         do errStream.OutputToDevice()
-        write !
+        $$$NewLineIfNonEmptyStream(outStream)
         do outStream.OutputToDevice()
         quit $$$ERROR(5001, "Pull event handler not called. Fix errors before compiling.")
     }
-    write !
+    $$$NewLineIfNonEmptyStream(outStream)
     do outStream.OutputToDevice()
     write !
 
@@ -465,9 +463,9 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set @..#Storage@("items", FileInternalName) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
             write !, "Added ", FileInternalName, " to source control."
-            write !
+            $$$NewLineIfNonEmptyStream(outStream)
             do outStream.OutputToDevice()
-            write !
+            $$$NewLineIfNonEmptyStream(errStream)
             do errStream.OutputToDevice()
         }
     }
@@ -478,9 +476,9 @@ ClassMethod RemoveFromGit(InternalName)
 {
     #dim fullName = ##class(Utils).FullExternalName(InternalName)
     do ..RunGitCommand("rm",.errStream,.outStream,"--cached", fullName)
-    write !
+    $$$NewLineIfNonEmptyStream(errStream)
     do errStream.OutputToDevice()
-    write !
+    $$$NewLineIfNonEmptyStream(outStream)
     do errStream.OutputToDevice()
 }
 

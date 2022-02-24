@@ -455,7 +455,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set ec = $$$ADDSC(ec, sc)
         }
         for i=1:1:filenames{
-            set FileInternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i))
+            set FileInternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0)
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
             continue:..NormalizeExtension(FileInternalName)=item

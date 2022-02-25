@@ -1442,10 +1442,11 @@ ClassMethod Name(InternalName As %String) As %String
     for{
         set p=$order($$$SourceMapping(ext,p),-1) 
         quit:p=""  
-        if ($extract(nam,1,$length(p))=p) && ($data(^Sources(ext,p),found)){
+        if ($extract(nam,1,$length(p))=p) && ($data($$$SourceMapping(ext,p),found)){
             quit
         }
     }
+    
     if ($data(found)=0) && ($data($$$SourceMapping(ext,"*"),found)) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
         set default=0
 

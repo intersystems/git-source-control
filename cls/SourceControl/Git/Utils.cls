@@ -1504,39 +1504,28 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
         &sql(SELECT internalName into :InternalName FROM SourceControl_Git.Change where ItemFile = :Name)
         if (SQLCODE = 100) {
             set InternalName = ""
+        } else{
+            set Deleted = 1
         }
-        set Deleted = 1
     }
     if (InternalName="") {
-        if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
-            quit ""	// file is not in ^Sources so translation cannot occur
-
-            // this condition will never be satisfied because we are prepeding the temp folder at
-            // the beginning of the function if the passes Name does not contain it.
-        }
         set name=$extract(Name,$length($$$SourceRoot)+1,*)
         set name=$replace(name,"\","/")	// standardize slash direction
-        if (name["/") {
-            //file is in a subdirectory under the ^Sources root
-            set nam=$piece(name,"/",2,$length(name,"/")),extDir=$piece(name,"/")_"/"
-            if nam="" quit ""
-            
-            set queryary=$query($$$SourceMapping(""),-1,dir), subscript=$qsubscript(queryary,1)
-            while (queryary'="")&&(subscript'=0) {
-                if (dir["/")&&(dir=$extract(name, 1, $length(dir))) {
-                    set ext=subscript
-                    set nam = $extract(name, $length(dir)+1, *)
-                    quit
-                }
-                set queryary=$query(@queryary,-1,dir)
-                if (queryary="") {
-                    quit
-                }
-                set subscript=$qsubscript(queryary,1)
+        //file is in a subdirectory under the ^Sources root
+        set nam = name
+        
+        set queryary=$query($$$SourceMapping(""),-1,dir), mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5)
+        while (queryary'="")&&(mappingsSubscript="mappings") {
+            if (dir["/")&&(dir=$extract(name, 1, $length(dir))) {
+                set ext=subscript
+                set nam = $extract(name, $length(dir)+1, *)
+                quit
             }
-        } else {
-            //there is no leading directory to remove
-            set nam=name
+            set queryary=$query(@queryary,-1,dir)
+            if (queryary="") {
+                quit
+            }
+            set mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5)
         }
 
         if ($get(ext)="/CSP/") {
@@ -1561,14 +1550,14 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
             }
         }
         set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
-        #; if (InternalName="")&&('$data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
-        #;     //no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
-        #;     //so treat it as a non-mapped file
-        #;     kill ext
-        #; }
-        #; if $data(ext)=0 {
-        #;     quit ""
-        #; }
+        if (InternalName="")&&($data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
+            //no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
+            //so treat it as a non-mapped file
+            kill ext
+        }
+        if $data(ext)=0 {
+            quit ""
+        }
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
             set nam=$piece(nam,".",1,*-1)

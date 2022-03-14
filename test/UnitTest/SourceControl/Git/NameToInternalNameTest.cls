@@ -53,8 +53,8 @@ Method OnBeforeAllTests() As %Status
 {
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
-	set @$$$SourceMapping("CLS", "*") = "cls/"
-	set @$$$SourceMapping("HL7", "*", "NoFolders") = "nspace/hl7/"
+	set $$$SourceMapping("CLS", "*") = "cls/"
+	set $$$SourceMapping("HL7", "*", "NoFolders") = "nspace/hl7/"
 	quit $$$OK
 }
 

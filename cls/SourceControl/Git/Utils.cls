@@ -1358,12 +1358,12 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
     set list = $listfromstring(lines, $char(0))
     set pointer = 0
     while $listnext(list, pointer, item) {
-        set operation = $extract(item, 1, 2)
+        set operation = $zstrip($extract(item, 1, 2), "<W")
         set externalName = $extract(item, 4, *)
         set internalName = ..NameToInternalName(externalName)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
-        } elseif IncludeAllFiles {
+        } elseif ((IncludeAllFiles) && (externalName '= "")) {
             set externalName = $TRANSLATE(externalName, "\", "/")
             set files($I(files)) = $listbuild(operation, externalName)
         } 

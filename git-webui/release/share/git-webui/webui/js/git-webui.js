@@ -338,12 +338,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 
                 if (ref[0] == "*") {
                     $(button).addClass("branch-current");
-                    window.setTimeout(function() {
-                        var current = $(".branch-current", self.element)[0];
-                        if (current) {
-                            self.selectRef(current.innerHTML);
-                        }
-                    }, 0);
+                    // self.selectRef(refname);
                 }
             } else {
                 var refname = ref.replaceAll('/', '-');
@@ -2463,7 +2458,7 @@ function MainUi() {
 
                 self.sideBarView = new webui.SideBarView(self);
                 globalContainer.appendChild(self.sideBarView.element);
-
+                
                 self.mainView = $('<div id="main-view">')[0];
                 globalContainer.appendChild(self.mainView);
 
@@ -2472,6 +2467,7 @@ function MainUi() {
                     self.workspaceView = new webui.WorkspaceView(self);
                     self.stashView = new webui.StashView(self);
                 }
+                self.sideBarView.selectRef("HEAD");
             });
         });
     });
@@ -2481,7 +2477,7 @@ var MainUIObject;
 
 $(document).ready(function () {
    MainUIObject = new MainUi();
-   $('[data-toggle="tooltip"]').tooltip()
+   $('[data-toggle="tooltip"]').tooltip();
 });
 
 function updateSideBar () {
@@ -2489,6 +2485,7 @@ function updateSideBar () {
     var noEventHandlers = 1         
     MainUIObject.sideBarView = new webui.SideBarView(MainUIObject, noEventHandlers);
     $(sideBarView).replaceWith(MainUIObject.sideBarView.element);
+    MainUIObject.sideBarView.selectRef("HEAD");
 }
 
 function removeModal(id) {

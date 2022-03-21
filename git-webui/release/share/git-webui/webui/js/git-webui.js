@@ -781,7 +781,7 @@ webui.LogView = function(historyView) {
                     var len = undefined;
                 }
                 var entry = new Entry(self, data.substring(start, start+len));
-                if (count < maxCount) {
+                if (len!=undefined) {
                     content.appendChild(entry.element);
                     if (!self.lineHeight) {
                         self.lineHeight = Math.ceil($(entry.element).outerHeight() / 2) * 2;
@@ -790,11 +790,10 @@ webui.LogView = function(historyView) {
                     if (!currentSelection) {
                         entry.select();
                     }
-                } else {
+                } else if (count >= maxCount) {
                     self.nextRef = entry.commit;
                     break;
-                }
-                if (len == undefined) {
+                } else {
                     break;
                 }
                 start = end + 1;

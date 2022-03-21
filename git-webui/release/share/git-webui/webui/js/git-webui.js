@@ -273,7 +273,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
     self.addPopup = function(title, id, modalSize) {
         var popup = $(  '<div class="modal fade" id="' + id + '" role="dialog">' +
-                            '<div class="modal-dialog "'+modalSize+'>' +
+                            '<div class="modal-dialog '+modalSize+'">' +
                                 '<div class="modal-content">' +
                                     '<div class="modal-header">' +
                                         '<h4 class="modal-title">' + title + '</h4>' +

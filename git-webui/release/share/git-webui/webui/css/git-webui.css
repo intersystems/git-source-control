@@ -264,6 +264,20 @@ body {
   margin: 0%;
   border: none;
 }
+.modal .card-header {
+  padding: 1% 2% 0% 14%;
+  background-color: #fff;
+  color: inherit !important;
+  border: none !important;
+}
+.modal .custom-card,
+.modal .card {
+  background-color: inherit !important;
+  color: inherit !important;
+  padding-bottom: 1%;
+  margin: 0%;
+  border: none !important;
+}
 #main-view {
   display: flex;
   display: -webkit-flex;

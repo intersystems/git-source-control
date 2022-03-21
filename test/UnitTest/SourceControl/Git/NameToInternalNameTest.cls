@@ -20,13 +20,13 @@ Method TestRegularClassNames()
 Method TestPercentClassNames()
 {
 	// % class that exists but we ignore % classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\%Studio\Extension\Base.cls"),"")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\Base.cls"),"")
 	// % class that exists and we don't ignore % classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\%Studio\Extension\Base.cls", 0),"%Studio.Extension.Base.CLS")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\Base.cls", 0),"%Studio.Extension.Base.CLS")
 	// % class that doesn't exist and we ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\%Studio\Extension\DoesNotExist.cls", 0),"")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\DoesNotExist.cls", 0),"")
 	// % class that doesn't exist and we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\%Studio\Extension\DoesNotExist.cls", 0, 0),"%Studio.Extension.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\DoesNotExist.cls", 0, 0),"%Studio.Extension.DoesNotExist.CLS")
 }
 
 Method TestAbstractDocumentClassNames()
@@ -60,9 +60,9 @@ Method OnBeforeAllTests() As %Status
 
 Method %OnClose() As %Status
 {
+	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
 	quit $$$OK
 }
 
 }
-

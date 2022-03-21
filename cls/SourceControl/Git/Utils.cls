@@ -1466,7 +1466,7 @@ ClassMethod Name(InternalName As %String) As %String
         quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")
     
     } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
-        set nam=$translate(nam,"%", ..PercentClassReplace())
+        set nam=$replace(nam,"%", ..PercentClassReplace())
         if '$data($$$SourceMapping(ext,"*","NoFolders")){
             set nam=$translate(nam,".","/")
         }
@@ -1550,18 +1550,14 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
             }
         }
         set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
-        if (InternalName="")&&($data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
-            //no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
-            //so treat it as a non-mapped file
-            kill ext
-        }
         if $data(ext)=0 {
             quit ""
         }
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
             set nam=$piece(nam,".",1,*-1)
-            set nam=$translate(nam,"_/","%.")
+            set nam=$replace(nam, ..PercentClassReplace(), "%")
+            set nam=$translate(nam,"/",".")
             set InternalName=nam_"."_fileExt
             if (fileExt="cls") {
                 // special handling for possible collissions between % and non-% classes of the same name

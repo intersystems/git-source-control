@@ -450,7 +450,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set @..#Storage@("items", item) = ""
         }
 
-        #dim sc as %Status =  ..ExportItem(item,,,.filenames)
+        #dim sc as %Status =  ..ExportItem(item,,1,.filenames)
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
@@ -1409,7 +1409,12 @@ ClassMethod Name(InternalName As %String) As %String
 
     if (nam="")||(ext=""){
         quit ""
-    } 
+    }
+
+    if (ext="ZPM") {
+        // Don't try to do anything with package file
+        quit ""
+    }
 
     // Any CSP items should be matched against the "/CSP/" mapping in ^Sources
     if InternalName["/" {
@@ -1437,7 +1442,7 @@ ClassMethod Name(InternalName As %String) As %String
         quit ""
     } 
     
-    set default=1
+    set default=0
     set p=$order($$$SourceMapping(ext,nam))
     for{
         set p=$order($$$SourceMapping(ext,p),-1) 
@@ -1447,9 +1452,10 @@ ClassMethod Name(InternalName As %String) As %String
         }
     }
     
-    if ($data(found)=0) && ($data($$$SourceMapping(ext,"*"),found)) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
+    if ($data(found)=0) && ($data($$$SourceMapping(ext,"*"),found)=1) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
+        set default=1
+    } elseif ($data(found)=0) && ($data($$$SourceMapping(ext,"*","NoFolders"), found)){
         set default=0
-
     } elseif $data(found)=0{
         set found = $zconvert(ext,"L")_"/"
     }
@@ -1465,15 +1471,15 @@ ClassMethod Name(InternalName As %String) As %String
         quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")
     
     } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
-        set nam=$translate(nam,"%", ..PercentClassReplace())
-        if '$$$GetSourceMapping(ext,"*","NoFolders"){
+        set nam=$replace(nam,"%", ..PercentClassReplace())
+        if '$data($$$SourceMapping(ext,"*","NoFolders")){
             set nam=$translate(nam,".","/")
         }
         #; If match ends in '`' character use UDL/CLS format rather than XML format
         return $translate(found_nam_"."_$zconvert(ext, "l"),"\","/")
     }
 
-    if ('default){
+    if (default){
         quit $translate($get(found)_$translate(nam,"%.","_/")_"."_$zconvert(ext,"l"),"\","/")
     } else {
         quit $translate($get(found)_nam_"."_$zconvert(ext,"l"),"\","/")
@@ -1503,35 +1509,28 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
         &sql(SELECT internalName into :InternalName FROM SourceControl_Git.Change where ItemFile = :Name)
         if (SQLCODE = 100) {
             set InternalName = ""
+        } else{
+            set Deleted = 1
         }
-        set Deleted = 1
     }
     if (InternalName="") {
-        if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
-            quit ""	// file is not in ^Sources so translation cannot occur
-        }
         set name=$extract(Name,$length($$$SourceRoot)+1,*)
         set name=$replace(name,"\","/")	// standardize slash direction
-        if (name["/") {
-            //file is in a subdirectory under the ^Sources root
-            set nam=$piece(name,"/",2,$length(name,"/")),extDir=$piece(name,"/")_"/"
-            if nam="" quit ""
-            
-            set queryary=$query($$$SourceMapping(""),-1,dir), subscript=$qsubscript(queryary,1)
-            while (queryary'="")&&(subscript'=0) {
-                if (dir["/")&&(dir=extDir) {
-                    set ext=subscript
-                    quit
-                }
-                set queryary=$query(@queryary,-1,dir)
-                if (queryary="") {
-                    quit
-                }
-                set subscript=$qsubscript(queryary,1)
+        //file is in a subdirectory under the ^Sources root
+        set nam = name
+        
+        set queryary=$query($$$SourceMapping(""),-1,dir), mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5)
+        while (queryary'="")&&(mappingsSubscript="mappings") {
+            if (dir["/")&&(dir=$extract(name, 1, $length(dir))) {
+                set ext=subscript
+                set nam = $extract(name, $length(dir)+1, *)
+                quit
             }
-        } else {
-            //there is no leading directory to remove
-            set nam=name
+            set queryary=$query(@queryary,-1,dir)
+            if (queryary="") {
+                quit
+            }
+            set mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5)
         }
 
         if ($get(ext)="/CSP/") {
@@ -1555,19 +1554,15 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
                 set InternalName = ""
             }
         }
-        set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
-        if (InternalName="")&&('$data(ext)=0)&&('$listfind($listbuild("xml","rtn"),fileExt)) {
-            //no match found yet, and this is in a subdir for a specific document type (ext), however it is not in a typical export format
-            //so treat it as a non-mapped file
-            kill ext
-        }
         if $data(ext)=0 {
             quit ""
         }
+        set fileExt=$zconvert(ext,"L")
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
-            set nam=$piece(nam,".",1*-1)
-            set nam=$translate(nam,"_/","%.")
+            set nam=$piece(nam,".",1,*-1)
+            set nam=$replace(nam, ..PercentClassReplace(), "%")
+            set nam=$translate(nam,"/",".")
             set InternalName=nam_"."_fileExt
             if (fileExt="cls") {
                 // special handling for possible collissions between % and non-% classes of the same name
@@ -1608,3 +1603,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

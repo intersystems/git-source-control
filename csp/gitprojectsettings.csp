@@ -46,7 +46,6 @@ body {
     border: 1px solid #ced4da;
     border-left: 0px;
 }
-
 .neutral-feedback {
     width: 100%;
     margin-top: 0.25rem;
@@ -351,7 +350,6 @@ $(function()
 });
 
 function toggleNoFolders(e){
-
     $('[data-toggle="tooltip"]').tooltip('hide');
 
     $(this).siblings("label").empty()

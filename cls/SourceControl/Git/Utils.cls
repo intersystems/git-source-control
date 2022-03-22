@@ -1055,8 +1055,11 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
         set mappingCoverage = $order($$$SourceMapping(mappingFileType, ""))
 
         while (mappingCoverage '= ""){
-
-            set mappedRelativePath = $$$SourceMapping(mappingFileType, mappingCoverage)
+            if ($data($$$SourceMapping(mappingFileType, mappingCoverage)) = 1){
+                set mappedRelativePath = $$$SourceMapping(mappingFileType, mappingCoverage)
+            } else {
+                set mappedRelativePath = $$$SourceMapping(mappingFileType, mappingCoverage, "NoFolders")
+            } 
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
@@ -1603,4 +1606,3 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
-

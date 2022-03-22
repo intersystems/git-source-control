@@ -52,6 +52,7 @@ body {
     margin-top: 0.25rem;
     font-size: 80%;
 }
+
 </style>
 </head>
 <body>
@@ -379,7 +380,6 @@ $(function()
 function toggleNoFolders(e){
 
     $('[data-toggle="tooltip"]').tooltip('hide');
-
     $(this).siblings("label").empty()
 
     if (!$(this).hasClass("active")) {

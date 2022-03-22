@@ -631,6 +631,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
     self.goToSettingsPage = function() {
         $.get("api/settings", function (settingsURL){
+            if(settingsURL.indexOf("self.document.Login") != -1){
+                location.reload();
+            }
             var url = JSON.parse(settingsURL);
             window.location.replace(url.url);
         });

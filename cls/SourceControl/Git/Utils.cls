@@ -1409,7 +1409,12 @@ ClassMethod Name(InternalName As %String) As %String
 
     if (nam="")||(ext=""){
         quit ""
-    } 
+    }
+
+    if (ext="ZPM") {
+        // Don't try to do anything with package file
+        quit ""
+    }
 
     // Any CSP items should be matched against the "/CSP/" mapping in ^Sources
     if InternalName["/" {
@@ -1608,3 +1613,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

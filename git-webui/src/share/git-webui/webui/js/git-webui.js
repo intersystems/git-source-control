@@ -1218,29 +1218,34 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                 right.webuiPrevScrollTop = 0;
                 right.webuiPrevScrollLeft = 0;
             }
-            self.gitFile = file;
-        }
-        if (self.gitCmd) {
-            var fullCmd = self.gitCmd;
-            if (self.complete) {
-                fullCmd += " --unified=999999999";
-            } else {
-                fullCmd += " --unified=" + self.context.toString();
-            }
-            if (self.ignoreWhitespace) {
-                fullCmd += " --ignore-all-space --ignore-blank-lines";
-            }
-            if (self.gitDiffOpts) {
-                fullCmd += " " + self.gitDiffOpts.join(" ")
-            }
-            if (self.gitFile) {
-                fullCmd += " -- " + self.gitFile;
-            }
-            webui.git(fullCmd, function(diff) {
-                self.refresh(diff);
+            webui.git("ls-files "+file, function(path){
+                self.gitFile = file;
+                self.noIndex = ""
+                if(path.length == 0 && file != undefined){
+                    self.gitFile = " /dev/null " + file;
+                    self.noIndex = " --no-index "
+                }
+                if (self.gitCmd) {
+                    var fullCmd = self.gitCmd;
+                    if (self.complete) {
+                        fullCmd += " --unified=999999999";
+                    } else {
+                        fullCmd += " --unified=" + self.context.toString();
+                    }
+                    if (self.ignoreWhitespace) {
+                        fullCmd += " --ignore-all-space --ignore-blank-lines";
+                    }
+                    if (self.gitDiffOpts) {
+                        fullCmd += " " + self.gitDiffOpts.join(" ")
+                    }
+                    if (self.gitFile) {
+                        fullCmd += self.noIndex + " -- " + self.gitFile;
+                    }
+                    webui.git(fullCmd, self.refresh, self.refresh, self.refresh);
+                } else {
+                    self.refresh("");
+                }
             });
-        } else {
-            self.refresh("");
         }
     };
 

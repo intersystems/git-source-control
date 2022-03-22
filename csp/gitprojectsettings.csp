@@ -33,6 +33,10 @@ body {
     border-left: none;
     border-radius: 0 0.25rem 0.25rem 0;
 }
+
+#NoFolders {
+    display: none;
+}
 #webuiURL {
     display: none;
 }
@@ -41,10 +45,6 @@ body {
     padding: 0.4rem 0.5rem 0 2.75rem;
     border: 1px solid #ced4da;
     border-left: 0px;
-}
-
-hr {
-    opacity: 0.15
 }
 </style>
 </head>
@@ -64,14 +64,15 @@ hr {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
     set i = 1
-    set param = "MappingsPath"
+    set param = "NoFolders"
     kill settings.Mappings
-    while ( $Get(%request.Data(param,i)) '= "" ){
+    
+    while ( $Get(%request.Data("MappingsExt",i)) '= "" ){
         if ($Get(%request.Data(param,i)) = "NoFolders"){
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = $Get(%request.Data("MappingsPath",i))
         }
         else{
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data(param,i))
+            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
         }
         set i = i+1
     }
@@ -97,7 +98,7 @@ hr {
                 </div>
             </div>
         </div>
-        <br/>
+        <div class="col-md-10"><hr></div>
         <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
 
         <div class="form-group row mb-3">
@@ -180,22 +181,27 @@ hr {
                         if ($DATA(settings.Mappings(extKey, covKey)) = 1){
                             set checked = "checked"
                             set activated = " active"
-                            set readOnly = ""
+                            set readOnly = "readonly"
                             set mapPath = settings.Mappings(extKey, covKey)
+                            set noFolders = """"""
+                            set tooltipTitle = """Switch off to store files in a flat directory structure."""
                             
                         } else {
                             set checked = ""
                             set activated = ""
                             set readOnly = "readonly"
-                            set mapPath = "NoFolders"
+                            set mapPath = settings.Mappings(extKey, covKey, "NoFolders")
+                            set noFolders = """NoFolders"""
+                            set tooltipTitle = """Switch on to store files in folders split by '.'s in the name."""
                         }
 
                         &html<<div class="voca col-sm-7">
                             <div class = "input-group mb-1">
                                 <input type="text" class="form-control" id="MappingsExt" name="MappingsExt" value=#(extKey)# placeholder="Extension">
                                 <input type="text" class="form-control" id="MappingsCov" name="MappingsCov" value=#(covKey)# placeholder="Coverage">
-                                <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(mapPath)# placeholder="Relative path" #(readOnly)#>
-                                <div class="custom-control custom-switch" data-delay='{"show":"1000", "hide":"100"}' data-toggle="tooltip" data-placement="top" title="Switch off to store files in a flat directory structure.">
+                                <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(mapPath)# placeholder="Relative path">
+                                <input type="text" class="form-control" id="NoFolders" name="NoFolders" value=#(noFolders)# placeholder="To folder, or not to folder, that is the question." #(readOnly)#>
+                                <div class="custom-control custom-switch" data-delay='{"show":"1000", "hide":"100"}' data-toggle="tooltip" data-placement="top" title=#(tooltipTitle)#>
                                     <input type="checkbox" class="#("custom-control-input"_activated)#" id=#("noFoldersSwitch"_idx)# #(checked)#>
                                     <label class="custom-control-label" for=#("noFoldersSwitch"_idx)#>>
 
@@ -225,10 +231,7 @@ hr {
                         set idx = idx + 1
                     }
                 }
-            </script>
-            <!--<button type="button" class="btn-sm btn btn-success btn-add mx-auto d-block" >
-                <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>&nbsp&nbsp&nbspAdd&nbsp&nbsp&nbsp
-            </button>-->          
+            </script>        
         </div>
 
 
@@ -270,12 +273,11 @@ hr {
 <script src="js/bootstrap.min.js"></script>
 <script type="text/javascript">
 
-previous_path = new Array($(".voca").length);
 $(function () {
     $('[data-toggle="tooltip"]').tooltip({
         trigger: 'hover'
     });
-})
+});
 $(function()
 {
     $(document).on('click', '.btn-add', function(e)
@@ -285,15 +287,20 @@ $(function()
         var controlForm = $('.mapping-input-group');
         $('<div class="col-sm-3" id="indent-div"> </div>').appendTo(controlForm);
 
-        var currentEntry = $(this).parent().siblings('.voca:first');
-        var newEntry = $(currentEntry.clone()).appendTo(controlForm);
+        var currentEntry = $(this).parent().siblings('.voca:last');
+        var newEntry = $(currentEntry.clone())
 
+        var currentID = newEntry.children().children(".custom-control").children()[0].id
+        var idx = parseInt(currentID.split("noFoldersSwitch")[1]);
+        var newID = "noFoldersSwitch"+(idx+1);
+
+        $(newEntry.children().children(".custom-control").children()[1]).attr("for", newID)
+        newEntry.children().children(".custom-control").children()[0].id = newID
         newEntry.find('input').val('');
-        //controlForm.find('.btn-add:not(:last)')
-            //.removeClass('btn-default').addClass('btn-danger')
-            //.removeClass('btn-add').addClass('btn-remove')
-            
-            //.html('<span class="glyphicon glyphicon-minus" aria-hidden="true"></span> Remove   ');
+
+        newEntry.appendTo(controlForm);
+        $(("#"+newID)).click(toggleNoFolders);
+        
     }).on('click', '.btn-remove', function(e)
     {
         $(this).parent().parent().parent().prev('#indent-div').remove();
@@ -310,10 +317,8 @@ $(function()
     })
 });
 
-$('[id^=noFoldersSwitch]').click(function(e) {
-
+function toggleNoFolders(e){
     $(this).siblings("label").empty()
-    var idx = parseInt($(this)[0].id.split("noFoldersSwitch")[1]);
 
     if (!$(this).hasClass("active")) {
         $(this).addClass("active");
@@ -321,12 +326,8 @@ $('[id^=noFoldersSwitch]').click(function(e) {
                                         '<path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139z"/>'+
                                     '</svg>');
         
-        if(!previous_path[idx-1]){
-            previous_path[idx-1] = "";
-        }
-        $(this).parent().siblings("#MappingsPath")[0].value = previous_path[idx-1];
-        $(this).parent().siblings("#MappingsPath")[0].readOnly = false;
-
+        $(this).parent().siblings("#NoFolders")[0].value = ""
+        $(this).parent().attr('data-original-title', 'Switch off to store files in a flat directory structure.');
     } else {
         $(this).removeClass("active");
         $(this).siblings("label").append('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">'+
@@ -334,11 +335,12 @@ $('[id^=noFoldersSwitch]').click(function(e) {
                                         '<path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293l-1.146-1.147z"/>'+
                                     '</svg>');  
 
-        previous_path[idx-1] = $(this).parent().siblings("#MappingsPath").val()
-        $(this).parent().siblings("#MappingsPath")[0].value = "NoFolders";
-        $(this).parent().siblings("#MappingsPath")[0].readOnly = true;
+        $(this).parent().siblings("#NoFolders")[0].value = "NoFolders";
+         $(this).parent().attr('data-original-title', "Switch on to store files in folders split by the '.' s in the name.");
     }
-});
+}
+
+$('[id^=noFoldersSwitch]').click(toggleNoFolders);
 
 </script>
 </body>

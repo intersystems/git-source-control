@@ -1639,7 +1639,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     $(".diff-explore", self.element).click(function() { self.switchToExploreView(); });
     $(".apply-stash", self.element).click(function() { self.applySelectedStash(); });
     $(".pop-stash", self.element).click(function() { self.popSelectedStash(); });
-    $(".drop-stash", self.element).click(function() { self.popSelectedStash(); });
+    $(".drop-stash", self.element).click(function() { self.dropSelectedStash(); });
 
     self.context = 3;
     self.complete = false;

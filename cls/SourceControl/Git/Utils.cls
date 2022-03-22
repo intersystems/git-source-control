@@ -1549,10 +1549,10 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
                 set InternalName = ""
             }
         }
-        set fileExt=$zconvert($piece(nam,".",$length(nam,".")),"L")
         if $data(ext)=0 {
             quit ""
         }
+        set fileExt=$zconvert(ext,"L")
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
             set nam=$piece(nam,".",1,*-1)
@@ -1598,3 +1598,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

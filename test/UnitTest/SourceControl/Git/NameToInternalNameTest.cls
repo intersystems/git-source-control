@@ -32,13 +32,11 @@ Method TestPercentClassNames()
 Method TestAbstractDocumentClassNames()
 {
 	// %Studio.AbstractDocument type that exists
-	do $$$AssertEquals(##class(Utils).NameToInternalName("nspace\hl7\TestSchema.hl7"),"TestSchema.HL7")
-	// %Studio.AbstractDocument type that exists with '.' in the name
-	do $$$AssertEquals(##class(Utils).NameToInternalName("nspace\hl7\2.1.1.1.1.hl7"),"2.1.1.1.1.HL7")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\dfi\test2.pivot.xml"),"test2.pivot.DFI")
 	// %Studio.AbstractDocument type that does not exist and we ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("nspace\hl7\DoesNotExist.hl7"),"")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\dfi\DoesNotExist.xml"),"")
 	//  %Studio.AbstractDocument type that doesn't exist and we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("nspace\hl7\DoesNotExist.hl7", 1, 0),"DoesNotExist.HL7")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\dfi\DoesNotExist.xml", 1, 0),"DoesNotExist.DFI")
 }
 
 Method TestStaticFileNames()
@@ -54,7 +52,7 @@ Method OnBeforeAllTests() As %Status
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	set $$$SourceMapping("CLS", "*") = "cls/"
-	set $$$SourceMapping("HL7", "*", "NoFolders") = "nspace/hl7/"
+	set $$$SourceMapping("DFI", "*", "NoFolders") = "test/dfi/"
 	quit $$$OK
 }
 

@@ -46,11 +46,13 @@ body {
     border: 1px solid #ced4da;
     border-left: 0px;
 }
+
 .neutral-feedback {
     width: 100%;
     margin-top: 0.25rem;
     font-size: 80%;
 }
+
 </style>
 </head>
 <body>
@@ -84,14 +86,13 @@ body {
     do settings.%Save()
 }
 </server>
-<div class = 'container'>
-    <div class="col-sm-1"><br/></div>
-    
+<div class = 'container'>    
     <form method='post'>
         <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
-        <div class="col-sm-1"></div>
+        <div class="col-sm-12"><br></div>
         <div class="row">
+            <div class="col-sm-1"></div>
             <div class="col-sm-8">
                 <h1>Git Project Settings</h1>
             </div>
@@ -103,10 +104,19 @@ body {
                 </div>
             </div>
         </div>
-        <div class="col-md-10"><hr></div>
-        <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
+        <div class="row">
+            <div class="col-md-1"><br/></div>
+            <div class="col-md-10"><hr></div>
+        </div>
+        <div class="row">
+            <div class="col-sm-1"></div>
+            <div class="col-sm-11">
+                <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
+            </div>
+        </div>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="gitBinPath" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
             <div class="col-sm-7">
                 <server>
@@ -140,6 +150,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="namespaceTemp" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
@@ -147,6 +158,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <server>
@@ -169,6 +181,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="pullEventClass" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
@@ -179,6 +192,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="percentClassReplace" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed.">'%' Replacement on Export</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="percentClassReplace" name="percentClassReplace" value='#(..EscapeHTML(settings.percentClassReplace))#' placeholder="_, __, <empty>, etc."/>
@@ -186,6 +200,7 @@ body {
         </div>
 
         <div class="form-group row mb-3 mapping-input-group">
+            <div class="col-sm-1"></div>
             <div class="col-sm-3">
                 <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project">Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
@@ -206,7 +221,7 @@ body {
                         quit:covKey=""
 
                         if (idx '= 1) {
-                            &html<<div class="col-sm-3" id="indent-div">
+                            &html<<div class="col-sm-4" id="indent-div">
                             </div>>
                         }                        
 
@@ -266,13 +281,25 @@ body {
             </script>        
         </div>
 
+        <br/>
+        <div class="row">
+            <div class="col-sm-1"></div>
+            <div class="col-sm-11">
+                <h3>Settings for user '#(..EscapeHTML($Username))#'</h3>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-1"></div>
+            <div class="col-sm-11">
+                <em>Git settings - if empty, will default to repository/global settings</em>
+            </div>
+        </div>
 
         <br/>
-        <h3>Settings for user '#(..EscapeHTML($Username))#'</h3>
-        <em>Git settings - if empty, will default to repository/global settings</em>
-        <br/><br/><br/>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="gitUserName" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
@@ -280,13 +307,14 @@ body {
         </div>
 
         <div class="form-group row mb-3">
+            <div class="col-sm-1"></div>
             <label for="gitUserEmail" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>
         </div>
 
-        <br/><br/>
+        <br/>
 
         <div class="form-group row mb-3">
             <div class="col-sm-12 text-center">
@@ -317,7 +345,7 @@ $(function()
         e.preventDefault();
 
         var controlForm = $('.mapping-input-group');
-        $('<div class="col-sm-3" id="indent-div"> </div>').appendTo(controlForm);
+        $('<div class="col-sm-4" id="indent-div"> </div>').appendTo(controlForm);
 
         var currentEntry = $(this).parent().siblings('.voca:last');
         var newEntry = $(currentEntry.clone())
@@ -350,8 +378,8 @@ $(function()
 });
 
 function toggleNoFolders(e){
-    $('[data-toggle="tooltip"]').tooltip('hide');
 
+    $('[data-toggle="tooltip"]').tooltip('hide');
     $(this).siblings("label").empty()
 
     if (!$(this).hasClass("active")) {

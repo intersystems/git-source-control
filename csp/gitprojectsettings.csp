@@ -69,11 +69,9 @@ body {
     
     while ( $Get(%request.Data("MappingsExt",i)) '= "" ){
         if ($Get(%request.Data(param,i)) = "NoFolders"){
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = $Get(%request.Data("MappingsPath",i))
+            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
         }
-        else{
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
-        }
+        set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
         set i = i+1
     }
     do settings.%Save()
@@ -178,21 +176,18 @@ body {
                             </div>>
                         }                        
 
-                        if ($DATA(settings.Mappings(extKey, covKey)) = 1){
+                        if ($data(settings.Mappings(extKey, covKey, "NoFolders")) = 1){
+                            set checked = ""
+                            set activated = ""
+                            set mapPath = settings.Mappings(extKey, covKey)
+                            set noFolders = """NoFolders"""
+                            set tooltipTitle = """Switch on to store files in folders split by '.'s in the name."""                            
+                        } else {
                             set checked = "checked"
                             set activated = " active"
-                            set readOnly = "readonly"
                             set mapPath = settings.Mappings(extKey, covKey)
                             set noFolders = """"""
                             set tooltipTitle = """Switch off to store files in a flat directory structure."""
-                            
-                        } else {
-                            set checked = ""
-                            set activated = ""
-                            set readOnly = "readonly"
-                            set mapPath = settings.Mappings(extKey, covKey, "NoFolders")
-                            set noFolders = """NoFolders"""
-                            set tooltipTitle = """Switch on to store files in folders split by '.'s in the name."""
                         }
 
                         &html<<div class="voca col-sm-7">
@@ -200,7 +195,7 @@ body {
                                 <input type="text" class="form-control" id="MappingsExt" name="MappingsExt" value=#(extKey)# placeholder="Extension">
                                 <input type="text" class="form-control" id="MappingsCov" name="MappingsCov" value=#(covKey)# placeholder="Coverage">
                                 <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(mapPath)# placeholder="Relative path">
-                                <input type="text" class="form-control" id="NoFolders" name="NoFolders" value=#(noFolders)# placeholder="To folder, or not to folder, that is the question." #(readOnly)#>
+                                <input type="text" class="form-control" id="NoFolders" name="NoFolders" value=#(noFolders)# placeholder="To folder, or not to folder, that is the question." readonly>
                                 <div class="custom-control custom-switch" data-delay='{"show":"1000", "hide":"100"}' data-toggle="tooltip" data-placement="top" title=#(tooltipTitle)#>
                                     <input type="checkbox" class="#("custom-control-input"_activated)#" id=#("noFoldersSwitch"_idx)# #(checked)#>
                                     <label class="custom-control-label" for=#("noFoldersSwitch"_idx)#>>

@@ -1454,7 +1454,7 @@ ClassMethod Name(InternalName As %String) As %String
     
     if ($data(found)=0) && ($data($$$SourceMapping(ext,"*"),found)=1) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
         set default=1
-    } elseif $data($$$SourceMapping(ext,"*","NoFolders")){
+    } elseif ($data(found)=0) && ($data($$$SourceMapping(ext,"*","NoFolders"), found)){
         set default=0
     } elseif $data(found)=0{
         set found = $zconvert(ext,"L")_"/"
@@ -1603,3 +1603,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

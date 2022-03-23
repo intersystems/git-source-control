@@ -226,7 +226,11 @@ body {
                         if ($data(settings.Mappings(extKey, covKey, "NoFolders")) = 1){
                             set checked = ""
                             set activated = ""
-                            set mapPath = settings.Mappings(extKey, covKey)
+                            if ($data(settings.Mappings(extKey, covKey))#2 '= 1){
+                                set mapPath = $zconvert(extKey,"l")_"/"
+                            } else {
+                                set mapPath = settings.Mappings(extKey, covKey)
+                            }
                             set noFolders = """NoFolders"""
                             set tooltipTitle = """Switch on to store files in folders split by '.'s in the name."""                            
                         } else {

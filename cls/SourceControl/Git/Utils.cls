@@ -1145,6 +1145,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
             
             if deleted && ec {
                 do ..RemoveRoutineTSH(item)
+                kill $$$TrackedItems(..NormalizeExtension(item))
                 write !, item, " was deleted"
             } else {
                 if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {

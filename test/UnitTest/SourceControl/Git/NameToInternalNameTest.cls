@@ -52,7 +52,8 @@ Method OnBeforeAllTests() As %Status
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	set $$$SourceMapping("CLS", "*") = "cls/"
-	set $$$SourceMapping("DFI", "*", "NoFolders") = "test/dfi/"
+	set $$$SourceMapping("DFI", "*", "NoFolders") = 1
+	set $$$SourceMapping("DFI", "*") = "test/dfi/"
 	quit $$$OK
 }
 

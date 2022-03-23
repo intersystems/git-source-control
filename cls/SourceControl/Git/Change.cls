@@ -1,3 +1,5 @@
+Include SourceControl.Git
+
 Class SourceControl.Git.Change Extends %Studio.SourceControl.Change
 {
 
@@ -79,13 +81,21 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
 ClassMethod RefreshUncommitted(Display = 1, IncludeRevert = 0) As %Status
 {
+    // files from the uncommitted queue
     set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
     if $$$ISERR(sc) quit sc
+
+    // files from git status
+    do ##class(Utils).GitStatus(.gitFiles)
+
     set filename="", filename=$order(tFileList(filename),1,action)
-    while (filename'="") {
+    while (filename'="") {        
         set examine=$select(action="add":1,action="edit":1,IncludeRevert&&(action="revert"):1,1:0)
         if 'examine set filename=$order(tFileList(filename),1,action) continue
-        if ('##class(%File).Exists(filename)) {
+
+        set InternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filename,0,0)
+
+        if (('##class(%File).Exists(filename)) || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && ($data($$$TrackedItems(InternalName)))))  {
             set sc=..RemoveUncommitted(filename,Display,0,0)
             if $$$ISERR(sc) set filename="" continue
         }

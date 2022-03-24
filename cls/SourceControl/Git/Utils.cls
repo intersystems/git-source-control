@@ -1449,16 +1449,23 @@ ClassMethod Name(InternalName As %String) As %String
         set p=$order($$$SourceMapping(ext,p),-1) 
         quit:p=""  
         if ($extract(nam,1,$length(p))=p) && ($data($$$SourceMapping(ext,p),found)){
+            if $data($$$SourceMapping(ext,p,"NoFolders")){
+                set default=0
+            } else {
+                set default=1
+            }
             quit
         }
     }
     
-    if ($data(found)=0) && ($data($$$SourceMapping(ext,"*"),found)=1) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
-        set default=1
-    } elseif $data($$$SourceMapping(ext,"*","NoFolders")){
-        set default=0
-    } elseif $data(found)=0{
-        set found = $zconvert(ext,"L")_"/"
+    if ($data(found)=0){
+        if ($data($$$SourceMapping(ext,"*"),found)=1) && ('$$$GetSourceMapping(ext,"*","NoFolders")){
+            set default=1
+        } elseif $data($$$SourceMapping(ext,"*","NoFolders")){
+            set default=0
+        } elseif $data(found)=0{
+            set found = $zconvert(ext,"L")_"/"
+        }
     }
 
     if InternalName["/" {
@@ -1473,7 +1480,7 @@ ClassMethod Name(InternalName As %String) As %String
     
     } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
         set nam=$replace(nam,"%", ..PercentClassReplace())
-        if '$data($$$SourceMapping(ext,"*","NoFolders")){
+        if default{
             set nam=$translate(nam,".","/")
         }
         #; If match ends in '`' character use UDL/CLS format rather than XML format

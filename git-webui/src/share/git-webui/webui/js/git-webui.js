@@ -2090,7 +2090,13 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         } else {
                             model = line;
                         }
-                        var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        var isForCurrentUser;
+                        if(model.indexOf(" ") > -1){
+                            model = model.substring(1, model.length-1)
+                            isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        } else {
+                            isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        }
                         var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
 
                         if(isForCurrentUser){

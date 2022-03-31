@@ -256,7 +256,7 @@ ClassMethod Revert(InternalName As %String) As %Status
     do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
-    $$$QuitOnError(..ImportItem(InternalName))
+    $$$QuitOnError(..ImportItem(InternalName,1))
     quit $$$OK
 }
 

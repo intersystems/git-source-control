@@ -36,7 +36,7 @@ Method TestAbstractDocumentClassNames()
 	// %Studio.AbstractDocument type that exists
 	do ##class(%RoutineMgr).Delete("test2.pivot.DFI")
 	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"")
-	do $$$AssertStatusOK(##class(Utils).ImportItem("test2.pivot.DFI"))
+	do $$$AssertStatusOK(##class(Utils).ImportItem("test2.pivot.DFI",1))
 	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"test2.pivot.DFI")
 	// %Studio.AbstractDocument type that does not exist and we ignore non-existent classes
 	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi"),"")
@@ -77,3 +77,4 @@ Method %OnClose() As %Status
 }
 
 }
+

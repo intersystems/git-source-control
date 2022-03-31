@@ -40,7 +40,7 @@ Method TestBasicMappings()
 	// File corresponding to a specific mapping with foldering enabled
 	do $$$AssertEquals(##class(Utils).Name("UnitTest.SourceControl.Git.NameTest.cls"),"test/UnitTest/SourceControl/Git/NameTest.cls")
 	// File corresponding to a universal mapping with special handling
-	do $$$AssertEquals(##class(Utils).Name("test2.pivot.dfi"),"test/dfi/test2.pivot.xml")
+	do $$$AssertEquals(##class(Utils).Name("test2.pivot.dfi"),"test/_resources/dfi/test2.pivot.dfi")
 }
 
 Method TestOnlyNoFolders()
@@ -73,7 +73,8 @@ Method OnBeforeAllTests() As %Status
 
     set $$$SourceMapping("CLS", "*") = "cls/"
     set $$$SourceMapping("CLS", "UnitTest") = "test/"
-    set $$$SourceMapping("DFI", "test") = "test/dfi/"
+    set $$$SourceMapping("DFI", "*", "NoFolders") = 1
+	set $$$SourceMapping("DFI", "*") = "test/_resources/dfi/"
 
     set $$$SourceMapping("NF", "*", "NoFolders") = 1
     set $$$SourceMapping("NF", "*") = "nf/sf/"
@@ -96,3 +97,4 @@ Method %OnClose() As %Status
 }
 
 }
+

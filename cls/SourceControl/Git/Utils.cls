@@ -256,7 +256,7 @@ ClassMethod Revert(InternalName As %String) As %Status
     do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
-    $$$QuitOnError(..ImportItem(InternalName))
+    $$$QuitOnError(..ImportItem(InternalName,1))
     quit $$$OK
 }
 
@@ -1028,7 +1028,17 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     #dim sc as %Status = $$$OK
     
     if ..IsRoutineOutdated(InternalName) || force {
-        set sc = $system.OBJ.Load(filename,"-l-d")
+        if ##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+            set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
+            do routineMgr.Code.Rewind()
+            set source = ##class(%Stream.FileCharacter).%OpenId(filename,,.sc)
+            if $$$ISOK(sc) {
+                do routineMgr.Code.CopyFrom(source)
+                set sc = routineMgr.%Save()
+            }
+        } else {
+            set sc = $system.OBJ.Load(filename,"-l-d")
+        }
         if sc {
             set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
             if ..Type(InternalName) = "prj" {
@@ -1473,11 +1483,6 @@ ClassMethod Name(InternalName As %String) As %String
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
     
-    } elseif (ext="DFI") {
-        // expected format is <folderName>-<itemName>.<itemType>.DFI; will map to an external file named <folderName>/<itemName>.<itemType>.xml
-        // replace the first '-' with '/' to translate Item Folder into subfolder on disk and leave the other dashes as dashes; converts spaces to '_'
-        quit $translate(found_$replace($translate(nam,"% ","__"),"-","/",1,1)_".xml","\","/")
-    
     } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{
@@ -1611,3 +1616,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

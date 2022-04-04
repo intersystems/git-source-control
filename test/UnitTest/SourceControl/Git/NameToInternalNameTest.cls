@@ -7,6 +7,8 @@ Class UnitTest.SourceControl.Git.NameToInternalNameTest Extends %UnitTest.TestCa
 
 Property Mappings [ MultiDimensional ];
 
+Property OldNamespaceTemp As %String;
+
 Method TestRegularClassNames()
 {
 	// Regular class that exists
@@ -32,11 +34,14 @@ Method TestPercentClassNames()
 Method TestAbstractDocumentClassNames()
 {
 	// %Studio.AbstractDocument type that exists
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\dfi\test2.pivot.xml"),"test2.pivot.DFI")
+	do ##class(%RoutineMgr).Delete("test2.pivot.DFI")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"")
+	do $$$AssertStatusOK(##class(Utils).ImportItem("test2.pivot.DFI",1))
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"test2.pivot.DFI")
 	// %Studio.AbstractDocument type that does not exist and we ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\dfi\DoesNotExist.xml"),"")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi"),"")
 	//  %Studio.AbstractDocument type that doesn't exist and we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\dfi\DoesNotExist.xml", 1, 0),"DoesNotExist.DFI")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi", 1, 0),"DoesNotExist.DFI")
 }
 
 Method TestStaticFileNames()
@@ -49,19 +54,27 @@ Method TestStaticFileNames()
 
 Method OnBeforeAllTests() As %Status
 {
+	set settings = ##class(SourceControl.Git.Settings).%New()
+	set ..OldNamespaceTemp = settings.namespaceTemp
+	set settings.namespaceTemp = $Piece(..Manager.CurrentDir,"test",1)
+	$$$ThrowOnError(settings.%Save())
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	set $$$SourceMapping("CLS", "*") = "cls/"
 	set $$$SourceMapping("DFI", "*", "NoFolders") = 1
-	set $$$SourceMapping("DFI", "*") = "test/dfi/"
+	set $$$SourceMapping("DFI", "*") = "test/_resources/dfi/"
 	quit $$$OK
 }
 
 Method %OnClose() As %Status
 {
+	set settings = ##class(SourceControl.Git.Settings).%New()
+	set settings.namespaceTemp = ..OldNamespaceTemp
+	do settings.%Save()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
 	quit $$$OK
 }
 
 }
+

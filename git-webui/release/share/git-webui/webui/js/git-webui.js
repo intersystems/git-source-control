@@ -390,7 +390,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var refName = $('#newBranchName').val()
     
             var flag = 0;
-            webui.git("status --porcelain", function(data) {
+            webui.git("status -u --porcelain", function(data) {
                 $.get("api/uncommitted", function (uncommitted) {
                     var uncommittedItems = JSON.parse(uncommitted);
                     var col = 1
@@ -463,7 +463,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var branchName = refName.split("/")[1];
 
         var flag = 0;
-        webui.git("status --porcelain", function(data) {
+        webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted);
                 var col = 1
@@ -2074,7 +2074,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
     self.update = function() {
         $(fileList).empty()
         var col = type == "working-copy" ? 1 : 0;
-        webui.git("status --porcelain", function(data) {
+        webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted);
                 self.filesCount = 0;

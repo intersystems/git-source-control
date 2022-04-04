@@ -405,7 +405,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                             } else {
                                 model = line;
                             }
-                            var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                            var isForCurrentUser;
+                            if(model.indexOf(" ") > -1){
+                                isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
+                            } else {
+                                isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                            }
                             if(!isForCurrentUser) {
                                 flag = 1;
                             }
@@ -478,7 +483,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         } else {
                             model = line;
                         }
-                        var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        var isForCurrentUser;
+                        if(model.indexOf(" ") > -1){
+                            isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
+                        } else {
+                            isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        }
                         if(!isForCurrentUser) {
                             flag = 1;
                         }
@@ -2090,7 +2100,12 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         } else {
                             model = line;
                         }
-                        var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        var isForCurrentUser;
+                        if(model.indexOf(" ") > -1){
+                            isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
+                        } else {
+                            isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                        }
                         var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
 
                         if(isForCurrentUser){
@@ -2259,7 +2274,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
             var excluded = excluding != undefined && excluding.indexOf(child.status) != -1;
             if ($(child).hasClass("active") && ($(child).hasClass("available")^onlyUnavailable) && included && !excluded) {   
                 if(stringifyFilenames)
-                    files += '"' + (child.model) + '" ';
+                    files += ((child.model) + ' ');
                 else
                     files.push(child);
             }

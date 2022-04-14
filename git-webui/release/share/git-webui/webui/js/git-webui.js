@@ -290,7 +290,6 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '</div>' +
                             '</div>' +
                         '</div>')[0];
-        // self.element.appendChild(popup);
         return popup;
     };
 
@@ -343,7 +342,6 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 
                 if (ref[0] == "*") {
                     $(button).addClass("branch-current");
-                    // self.selectRef(refname);
                 }
             } else {
                 var refname = ref.replaceAll('/', '-');
@@ -787,25 +785,24 @@ webui.LogView = function(historyView) {
             self.nextRef = undefined;
             while (true) {
                 var end = data.indexOf("\ncommit ", start);
-                if (end != -1) {
-                    var len = end - start;
-                } else {
-                    var len = undefined;
+                if(end == -1){
+                    if(start>=data.length) {
+                        break
+                    }
+                    var end = data.length;
                 }
-                var entry = new Entry(self, data.substring(start, start+len));
-                if (len!=undefined) {
-                    content.appendChild(entry.element);
-                    if (!self.lineHeight) {
-                        self.lineHeight = Math.ceil($(entry.element).outerHeight() / 2) * 2;
-                    }
-                    entry.element.setAttribute("style", "height:" + self.lineHeight + "px");
-                    if (!currentSelection) {
-                        entry.select();
-                    }
-                } else if (count >= maxCount) {
+                
+                var entry = new Entry(self, data.substring(start, end));
+                content.appendChild(entry.element);
+                if (!self.lineHeight) {
+                    self.lineHeight = Math.ceil($(entry.element).outerHeight() / 2) * 2;
+                }
+                entry.element.setAttribute("style", "height:" + self.lineHeight + "px");
+                if (!currentSelection) {
+                    entry.select();
+                }
+                if (count >= maxCount) {
                     self.nextRef = entry.commit;
-                    break;
-                } else {
                     break;
                 }
                 start = end + 1;
@@ -1169,9 +1166,6 @@ webui.StashListView = function(stashView) {
     var svg = self.element.children[0];
     var content = self.element.children[1];
     var currentSelection = null;
-    // var lineHeight = null;
-    // var streams = [];
-    // var streamColor = 0;
     self.stashView = stashView
 }
 

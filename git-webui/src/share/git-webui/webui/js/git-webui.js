@@ -2238,7 +2238,9 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
             }
             removeUnavailableModal(popup);
             if(action == 'discard'){
-                self.cancel()
+                self.cancel();
+            } else if(action == 'stash'){
+                self.stash();
             }
             else{
                 self.process();
@@ -2345,18 +2347,17 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
 
         if(combinedFiles.length>0)
             confirmActionForUnavailableFile(combinedFiles, action);
-            workspaceView.update("stash");
-
     }
 
     self.stash = function() {
         var files = self.getFileList(undefined, "D", 0, 1);
         var rmFiles = self.getFileList("D", undefined, 0, 1);
-        var combinedFiles = files+" "+rmFiles;
+        var combinedFiles = files.concat(rmFiles);
 
         if(combinedFiles.length != 0){
             webui.git("stash push -- " + combinedFiles, function(output){
                 webui.showSuccess(output);
+                workspaceView.update("stash");
             });
         }
     }

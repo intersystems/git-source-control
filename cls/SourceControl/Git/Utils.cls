@@ -418,9 +418,9 @@ ClassMethod NormalizeFolder(folder As %String) As %String
     quit folder
 }
 
-ClassMethod ExternalName(InternalName As %String) As %String
+ClassMethod ExternalName(InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
-    quit ..Name(InternalName)
+    quit ..Name(InternalName,.MappingExists)
 }
 
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
@@ -446,10 +446,6 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
         #dim type as %String = ..Type(item)
 
-        if ((type '= "pkg") && (type '= "prj")){
-            set @..#Storage@("items", item) = ""
-        }
-
         #dim sc as %Status =  ..ExportItem(item,,1,.filenames)
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
@@ -458,8 +454,6 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set FileInternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0)
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
-            continue:..NormalizeExtension(FileInternalName)=item
-            continue:$DATA(@..#Storage@("items", FileInternalName))
             set @..#Storage@("items", FileInternalName) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
             write !, "Added ", FileInternalName, " to source control."
@@ -890,9 +884,9 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
     quit isInSourceControl
 }
 
-ClassMethod FullExternalName(InternalName As %String) As %String [ CodeMode = expression ]
+ClassMethod FullExternalName(InternalName As %String, ByRef MappingExists As %Boolean) As %String [ CodeMode = expression ]
 {
-##class(%File).NormalizeFilename(..TempFolder()_..ExternalName(InternalName))
+##class(%File).NormalizeFilename(..TempFolder()_..ExternalName(InternalName, .MappingExists))
 }
 
 ClassMethod NormalizeInternalName(name As %String) As %String
@@ -1220,7 +1214,11 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
         $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force, .filenames))
     }else {
         if ..IsTempFileOutdated(InternalName) || force {
-            #dim filename as %String = ..FullExternalName(InternalName)
+            #dim filename as %String = ..FullExternalName(InternalName, .MappingExists)
+            if (MappingExists = 0){
+                write "Did not find a matching mapping for """_InternalName_""". Skipping export."
+                quit $$$OK
+            }
             set filenames($I(filenames)) = filename
             write !, "exporting new version of ", InternalName, " to ", filename
             $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
@@ -1387,8 +1385,10 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
 	Name(InternalName): returns Unix-style slash path relative to repo root cooresponding to internal name 
 	(e.g., cls/SourceControl/Git/Utils.cls)
 */
-ClassMethod Name(InternalName As %String) As %String
+ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
+   
+    set MappingExists = -1
     set InternalName=##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
     if (context.IsInGitEnabledPackage) && (InternalName = context.InternalName) && $isobject(context.ResourceReference) {
@@ -1475,7 +1475,12 @@ ClassMethod Name(InternalName As %String) As %String
             set default=0
         } elseif $data(found)=0{
             set found = $zconvert(ext,"L")_"/"
+            set MappingExists = 0
         }
+    }
+
+    if (MappingExists '= 0){
+        set MappingExists = 1
     }
 
     if InternalName["/" {
@@ -1513,7 +1518,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
     if (##class(%File).Exists(Name)) {
         new %SourceControl //don't trigger source hooks with this test load to get the Name
         set sc=$system.OBJ.Load(Name,"-d",,.outName,1)
-        if ($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName("")))) {
+        if (($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName(""))))) && ($zconvert(..Type(outName),"U") '= "CSP") {
             //only set if a single Name was returned ... ignore multi-item files
             set InternalName=outName
         }
@@ -1616,4 +1621,3 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
-

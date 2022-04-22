@@ -289,6 +289,7 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
     if '$$$FileExists(filename) {
         set IsCheckedOut=0
     }
+    do ##class(SourceControl.Git.Change).RefreshUncommitted()
     do ##class(SourceControl.Git.Utils).GitStatus(.files)
     if $get(files(InternalName)) '= "" {
         ///it's in source control, checked out, and should be locked to editing by other users

@@ -451,7 +451,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set ec = $$$ADDSC(ec, sc)
         }
         for i=1:1:filenames{
-            set FileInternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0)
+            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0))
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
@@ -836,6 +836,7 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 {
     #dim isInSourceControl as %Boolean = 1
     set sourceControlItem = ""
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(InternalName)
     if (InternalName = "") {
         quit 0
     }

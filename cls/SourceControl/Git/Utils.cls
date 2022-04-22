@@ -1032,7 +1032,11 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 set sc = routineMgr.%Save()
             }
         } else {
-            set sc = $system.OBJ.Load(filename,"-l-d")
+            if ($extract(InternalName, 1) = "/"){
+                set sc = ..ImportCSPFile(InternalName)
+            } else{
+                set sc = $system.OBJ.Load(filename,"-l-d")
+            }
         }
         if sc {
             set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
@@ -1048,6 +1052,23 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
         write !, InternalName, " is the same as on-disk version or newer, skipping import",!
     }
     quit sc
+}
+
+ClassMethod ImportCSPFile(InternalName As %String) As %Status
+{
+    set cspFile = $System.CSP.GetFileName(InternalName)
+    set srcFile = ..FullExternalName(InternalName)
+    set sc = $$$OK
+
+    if (cspFile=srcFile)||($$$isWINDOWS&&($ZCVT(cspFile,"l")=$ZCVT(srcFile,"l"))) {
+        Quit $$$OK
+    }
+
+    if '(##class(%File).Delete(cspFile) && ##class(%File).CopyFile(srcFile, cspFile)) {
+        set sc = $$$ERROR($$$GeneralError, "Unable to import '"_srcFile_"'")
+    }
+
+    Quit sc
 }
 
 ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status

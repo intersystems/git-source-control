@@ -17,6 +17,9 @@ Method TestRegularClassNames()
 	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\SourceControl\Git\DoesNotExist.cls"),"")
 	// Regular class that doesn't exist and we don't ignore non-existent classes
 	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\SourceControl\Git\DoesNotExist.cls", 1, 0),"SourceControl.Git.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("test\UnitTest\Git\DoesNotExist.cls", 1, 0),"UnitTest.Git.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("foo\UnitTest\Foo\Git\DoesNotExist.cls", 1, 0),"UnitTest.Foo.Git.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(Utils).NameToInternalName("foo\UnitTest\Foo\Git\DoesNotExist.foo", 1, 0),"UnitTest.Foo.Git.DoesNotExist.FOO")
 }
 
 Method TestPercentClassNames()
@@ -61,6 +64,9 @@ Method OnBeforeAllTests() As %Status
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	set $$$SourceMapping("CLS", "*") = "cls/"
+	set $$$SourceMapping("CLS", "UnitTest") = "test/"
+	set $$$SourceMapping("CLS", "UnitTest.Foo") = "foo/"
+	set $$$SourceMapping("FOO", "*") = "foo/"
 	set $$$SourceMapping("DFI", "*", "NoFolders") = 1
 	set $$$SourceMapping("DFI", "*") = "test/_resources/dfi/"
 	quit $$$OK
@@ -77,4 +83,3 @@ Method %OnClose() As %Status
 }
 
 }
-

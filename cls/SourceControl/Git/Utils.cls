@@ -451,7 +451,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set ec = $$$ADDSC(ec, sc)
         }
         for i=1:1:filenames{
-            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0))
+            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,,1))
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
@@ -1649,13 +1649,13 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         if $data(ext)=0 {
             if (Verbose){
                 if (bestScore#100 = 0){
-                    w "No mapping with a matching coverage found for file "_name, !
+                    write "No mapping with a matching coverage found for file "_name, !
                 }
                 if (((bestScore\10)#10) = 0){
-                    w "No mapping with a matching path found for file "_name, !
+                    write "No mapping with a matching path found for file "_name, !
                 }
                 if (((bestScore\100)#10) = 0){
-                    w "No mapping with a matching extension found for file "_name, !
+                    write "No mapping with a matching extension found for file "_name, !
                 }
             }
             quit ""

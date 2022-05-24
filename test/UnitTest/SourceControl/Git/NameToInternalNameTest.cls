@@ -12,47 +12,66 @@ Property OldNamespaceTemp As %String;
 Method TestRegularClassNames()
 {
 	// Regular class that exists
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\SourceControl\Git\Utils.cls"),"SourceControl.Git.Utils.CLS")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\SourceControl\Git\Utils.cls"),"SourceControl.Git.Utils.CLS")
 	// Regular class that doesn't exist and we ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\SourceControl\Git\DoesNotExist.cls"),"")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\SourceControl\Git\DoesNotExist.cls"),"")
 	// Regular class that doesn't exist and we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\SourceControl\Git\DoesNotExist.cls", 1, 0),"SourceControl.Git.DoesNotExist.CLS")
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\UnitTest\Git\DoesNotExist.cls", 1, 0),"UnitTest.Git.DoesNotExist.CLS")
-	do $$$AssertEquals(##class(Utils).NameToInternalName("foo\UnitTest\Foo\Git\DoesNotExist.cls", 1, 0),"UnitTest.Foo.Git.DoesNotExist.CLS")
-	do $$$AssertEquals(##class(Utils).NameToInternalName("foo\UnitTest\Foo\Git\DoesNotExist.foo", 1, 0),"UnitTest.Foo.Git.DoesNotExist.FOO")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\SourceControl\Git\DoesNotExist.cls", 1, 0),"SourceControl.Git.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("test\UnitTest\Git\DoesNotExist.cls", 1, 0),"UnitTest.Git.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("foo\UnitTest\Foo\Git\DoesNotExist.cls", 1, 0),"UnitTest.Foo.Git.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("foo\UnitTest\Foo\Git\DoesNotExist.foo", 1, 0),"UnitTest.Foo.Git.DoesNotExist.FOO")
 }
 
 Method TestPercentClassNames()
 {
 	// % class that exists but we ignore % classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\Base.cls"),"")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\Base.cls"),"")
 	// % class that exists and we don't ignore % classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\Base.cls", 0),"%Studio.Extension.Base.CLS")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\Base.cls", 0),"%Studio.Extension.Base.CLS")
 	// % class that doesn't exist and we ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\DoesNotExist.cls", 0),"")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\DoesNotExist.cls", 0),"")
 	// % class that doesn't exist and we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\DoesNotExist.cls", 0, 0),"%Studio.Extension.DoesNotExist.CLS")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("cls\"_##class(SourceControl.Git.Utils).PercentClassReplace()_"Studio\Extension\DoesNotExist.cls", 0, 0),"%Studio.Extension.DoesNotExist.CLS")
 }
 
 Method TestAbstractDocumentClassNames()
 {
 	// %Studio.AbstractDocument type that exists
 	do ##class(%RoutineMgr).Delete("test2.pivot.DFI")
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"")
-	do $$$AssertStatusOK(##class(Utils).ImportItem("test2.pivot.DFI",1))
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"test2.pivot.DFI")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"")
+	do $$$AssertStatusOK(##class(SourceControl.Git.Utils).ImportItem("test2.pivot.DFI",1))
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("test\_resources\dfi\test2.pivot.dfi"),"test2.pivot.DFI")
 	// %Studio.AbstractDocument type that does not exist and we ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi"),"")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi"),"")
 	//  %Studio.AbstractDocument type that doesn't exist and we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi", 1, 0),"DoesNotExist.DFI")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("test\_resources\dfi\DoesNotExist.dfi", 1, 0),"DoesNotExist.DFI")
 }
 
 Method TestStaticFileNames()
 {
 	// Static file that shouldn't be on the server
-	do $$$AssertEquals(##class(Utils).NameToInternalName("git-webui\src\js\git-webui.js"),"")
-	// Static file that shouldn't be on the server but we don't ignore non-existent classes
-	do $$$AssertEquals(##class(Utils).NameToInternalName("git-webui\src\js\git-webui.js", 1, 0),"")
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("git-webui\src\js\git-webui.js"),"")
+	// Static file that shouldn't be on the server but we don't ignore non-existent classes (000 composite score)
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("git-webui\src\js\git-webui.js", 1, 0, 1),"")
+}
+
+Method TestNegative()
+{
+	// Based on composite scores
+	 
+	// 000 is covered in TestStaticFileNames()
+	// 001 and 002
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("barq\MyBarFile1.barq", 1, 0, 1),"")
+	// 010
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("bar\NotMyBarFile1.barq", 1, 0, 1),"")
+	// 011 and 012
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("bar\MyBarFile1.barq", 1, 0, 1),"")
+	// 100
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("barq\NotMyBarFile1.bar", 1, 0, 1),"")
+	// 101 and 102
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("barq\MyBarFile1.bar", 1, 0, 1),"")
+	// 110
+	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("bar\NotMyBarFile1.bar", 1, 0, 1),"")
 }
 
 Method OnBeforeAllTests() As %Status
@@ -67,6 +86,7 @@ Method OnBeforeAllTests() As %Status
 	set $$$SourceMapping("CLS", "UnitTest") = "test/"
 	set $$$SourceMapping("CLS", "UnitTest.Foo") = "foo/"
 	set $$$SourceMapping("FOO", "*") = "foo/"
+	set $$$SourceMapping("BAR", "MyBarFile") = "bar/"
 	set $$$SourceMapping("DFI", "*", "NoFolders") = 1
 	set $$$SourceMapping("DFI", "*") = "test/_resources/dfi/"
 	quit $$$OK

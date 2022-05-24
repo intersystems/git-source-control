@@ -1648,14 +1648,15 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         }
         if $data(ext)=0 {
             if (Verbose){
+                write !
                 if (bestScore#100 = 0){
-                    write "No mapping with a matching coverage found for file "_name, !
+                    write !, "No mapping with a matching coverage found for file "_name
                 }
                 if (((bestScore\10)#10) = 0){
-                    write "No mapping with a matching path found for file "_name, !
+                    write !, "No mapping with a matching path found for file "_name
                 }
-                if (((bestScore\100)#10) = 0){
-                    write "No mapping with a matching extension found for file "_name, !
+                if ((bestScore\100) = 0){
+                    write !, "No mapping with a matching extension found for file "_name
                 }
             }
             quit ""

@@ -451,7 +451,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set ec = $$$ADDSC(ec, sc)
         }
         for i=1:1:filenames{
-            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0))
+            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,,1))
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
@@ -1530,7 +1530,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
 	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
 */
-ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) As %String
+ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, Verbose As %Boolean = 0) As %String
 {
     set InternalName=""
     set Deleted = 0
@@ -1556,21 +1556,73 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
     if (InternalName="") {
         set name=$extract(Name,$length($$$SourceRoot)+1,*)
         set name=$replace(name,"\","/")	// standardize slash direction
-        //file is in a subdirectory under the ^Sources root
+
         set nam = name
         
-        set queryary=$query($$$SourceMapping(""),-1,dir), mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5)
+        set queryary=$query($$$SourceMapping(""),-1,dir), mappingsSubscript = $qsubscript(queryary,4)
+        set subscript=$qsubscript(queryary,5), coverage = $qsubscript(queryary, 6)
+        set bestMatch = $lb(subscript, coverage, dir)
+        set bestScore = 0
+        set currScore = 0
         while (queryary'="")&&(mappingsSubscript="mappings") {
-            if (dir["/")&&(dir=$extract(name, 1, $length(dir))) {
-                set ext=subscript
-                set nam = $extract(name, $length(dir)+1, *)
-                quit
+            set nam = $extract(name, $length(dir)+1, *)
+            if ($zconvert(subscript, "U") = $zconvert($piece(name, ".", *), "U")){
+                set extScore = 1
+            } else {
+                set extScore = 0
             }
+
+            if ((dir["/")&&(dir=$extract(name, 1, $length(dir)))){
+                set pathScore = 1
+            } else {
+                set pathScore = 0  
+            }
+
+            if (coverage = "*"){
+                set covScore = 1
+            } elseif ($extract($translate(nam, "/", "."), 1, ($length(coverage)+1)) = (coverage_".")) {
+                set covScore = 2
+            } else {
+                set covScore = 0
+            }
+
+            set currScore = (extScore*100) + (pathScore*10) + covScore
+
+            if (currScore > bestScore){
+                set bestScore = currScore
+                set bestMatch = $lb(subscript, coverage, dir)
+            } elseif ((currScore = bestScore) && currScore>=111) {
+                // There are 4 cases here - 
+                // 1. Coverage is more specific in one and Path is the same.
+                // 2. Path is more specific in one and Coverage is the same.
+                // 3. Coverage is more specific in one while Path is more specific in the other.
+                // 4. Both are more specific in one. 
+                // Coverage has higher priority.
+                // Note that a file extension has no notion of specificity. 
+                // Specificity, for both Coverage and Path, is defined as being directly proportional to the length of the string.
+
+                set covSpecific = 0, pathSpecific = 0
+                
+                if ($length(coverage) > $length($listget(bestMatch, 2))){
+                    set bestMatch = $lb(subscript, coverage, dir)
+                } elseif ($length(coverage) = $length($listget(bestMatch, 2))){
+                    if ($length(dir) > $length($listget(bestMatch, 3))){
+                        set bestMatch = $lb(subscript, coverage, dir)
+                    }
+                }
+            }
+
             set queryary=$query(@queryary,-1,dir)
             if (queryary="") {
                 quit
             }
-            set mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5)
+            set mappingsSubscript = $qsubscript(queryary,4), subscript=$qsubscript(queryary,5), coverage = $qsubscript(queryary, 6)
+        }
+
+        if (bestScore >= 111){
+            set ext = $listget(bestMatch,1)
+            set dir = $listget(bestMatch, 3)
+            set nam = $extract(name, $length(dir)+1, *)
         }
 
         if ($get(ext)="/CSP/") {
@@ -1595,6 +1647,18 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1) A
             }
         }
         if $data(ext)=0 {
+            if (Verbose){
+                write !
+                if (bestScore#100 = 0){
+                    write !, "No mapping with a matching coverage found for file "_name
+                }
+                if (((bestScore\10)#10) = 0){
+                    write !, "No mapping with a matching path found for file "_name
+                }
+                if ((bestScore\100) = 0){
+                    write !, "No mapping with a matching extension found for file "_name
+                }
+            }
             quit ""
         }
         set fileExt=$zconvert(ext,"L")

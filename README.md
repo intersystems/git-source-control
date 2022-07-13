@@ -42,6 +42,23 @@ The same right click menus as in Studio live under "Server Source Control..." wh
 ### Security
 If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
 
+### Setting up multiple GitHub deploy keys on one machine
+
+Assuming you have the local and remote repositories created,
+
+1. Create your key pair using `ssh-keygen`.
+2. Add the public key to GitHub.
+3. You can try setting remotes with the URL your remote repository provides, but sometimes your firewall might cause issues and refuse the SSH connection. In that case, I've found that changing the remote URL to the following is helpful:
+   `ssh://git@ssh.github.com:443/<repo_owner>/<repo_name>.git`
+4. Copy the private key into 2 locations
+   1. `<path to IRIS Instance storage>\mgr\<private key>`
+   2. `~/.ssh/<private key>`
+5. Make sure to set the owner and permissions for the private key correctly. For Windows, go to where the private key is stored in IRIS and edit the owner to be the admin, disable inheritance and remove all access to the key to every user except the admin.
+6. In git source control settings, set the path to the private key as the one in IRIS.
+7. Change the default `ssh` command in the git config for **your repository** as:
+   `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
+8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
+
 ## During Development
 
 :warning: Whenever any code in this project is updated outside the server (e.g. after every `git pull`), you _have_ to run `zpm "load <absolute path to git-source-control>"`. Otherwise, the changes won't be reflected on the server. However, if you load git-source-control via the InterSystems package manager and run `git pull` via the extension itself with the default pull event handler configured, it'll just work.

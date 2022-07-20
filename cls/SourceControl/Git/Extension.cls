@@ -289,8 +289,18 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
     if '$$$FileExists(filename) {
         set IsCheckedOut=0
     }
-    do ##class(SourceControl.Git.Change).RefreshUncommitted()
-    do ##class(SourceControl.Git.Utils).GitStatus(.files)
+    // %MenuName and %InternalName set up by %Studio.SourceControl.Interface:MenuItems class query
+    if $Data(%MenuName)#2 && $Data(%InternalName)#2 {
+        if $Data(%MenuName(%InternalName)) {
+            merge files = %MenuName(%InternalName)
+        } else {
+            do ##class(SourceControl.Git.Change).RefreshUncommitted(,,.files)
+            // Cache to optimize rendering menu with multiple items dependent on status
+            merge %MenuName(%InternalName) = files
+        }
+    } else {
+        do ##class(SourceControl.Git.Change).RefreshUncommitted(,,.files)
+    }
     if $get(files(InternalName)) '= "" {
         ///it's in source control, checked out, and should be locked to editing by other users
         ///find out who has it edited
@@ -319,3 +329,4 @@ Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, B
 }
 
 }
+

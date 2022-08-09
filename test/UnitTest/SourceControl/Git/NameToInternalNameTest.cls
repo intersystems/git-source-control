@@ -55,6 +55,21 @@ Method TestStaticFileNames()
 	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("git-webui\src\js\git-webui.js", 1, 0, 1),"")
 }
 
+Method TestWebFileNames()
+{
+	// Get namespace-default web application and create a fake CSP file there
+	set app = $System.CSP.GetDefaultApp($Namespace)
+	if (app '= "") {
+		set filename = app_"/unittest.csp"
+		set routine = ##class(%CSP.Routine).%New(filename)
+		do routine.Write("<html><head><title>Unit Test</title></head><body>It's a unit test page!</body></html>")
+		do $$$AssertStatusOK(routine.%Save())
+		do $$$AssertStatusOK(##class(SourceControl.Git.Utils).AddToSourceControl(filename))
+		do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("csp\unittest.csp"),filename)
+		do $$$AssertStatusOK(##class(SourceControl.Git.Utils).RemoveFromSourceControl(filename))
+	}
+}
+
 Method TestNegative()
 {
 	// Based on composite scores
@@ -82,6 +97,10 @@ Method OnBeforeAllTests() As %Status
 	$$$ThrowOnError(settings.%Save())
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
+	Set app = $System.CSP.GetDefaultApp($Namespace)
+	If (app '= "") {
+		set $$$SourceMapping("/CSP/", app) = "csp/"
+	}
 	set $$$SourceMapping("CLS", "*") = "cls/"
 	set $$$SourceMapping("CLS", "UnitTest") = "test/"
 	set $$$SourceMapping("CLS", "UnitTest.Foo") = "foo/"

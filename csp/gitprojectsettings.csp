@@ -160,8 +160,12 @@ body {
             <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <server>
-                    Set fileExists=##class(%File).Exists(settings.privateKeyFile)
-                    if (fileExists) {
+                    Set fileExists = ##class(%File).Exists(settings.privateKeyFile)
+                    if (settings.privateKeyFile = "") {
+                        set class = "form-control"
+                        set divClass = "neutral-feedback"
+                        set feedbackText = "You must configure an SSH private key to be able to work with remotes. This should be set up as a deploy key / equivalent, authenticating the server, not a specific user."
+                    } elseif (fileExists) {
                         set class = "form-control is-valid"
                         set divClass = ""
                         set feedbackText = ""
@@ -200,7 +204,7 @@ body {
         <div class="form-group row mb-3 mapping-input-group">
             <div class="col-sm-1"></div>
             <div class="col-sm-3">
-                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project">Mappings</label>
+                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
                         <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"></path>

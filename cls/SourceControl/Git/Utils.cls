@@ -450,8 +450,11 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
-        for i=1:1:filenames{
+        for i=1:1:$Get(filenames) {
             set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,,1))
+            if (FileInternalName = "") {
+                continue
+            }
             set FileType = ##class(SourceControl.Git.Utils).Type(FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
@@ -1566,22 +1569,28 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         set currScore = 0
         while (queryary'="")&&(mappingsSubscript="mappings") {
             set nam = $extract(name, $length(dir)+1, *)
-            if ($zconvert(subscript, "U") = $zconvert($piece(name, ".", *), "U")){
+            if ($zconvert(subscript, "U") = $zconvert($piece(name, ".", *), "U")) {
+                set extScore = 1
+            } elseif (subscript = "/CSP/") {
                 set extScore = 1
             } else {
                 set extScore = 0
             }
 
-            if ((dir["/")&&(dir=$extract(name, 1, $length(dir)))){
+            if ((dir["/")&&(dir=$extract(name, 1, $length(dir)))) {
                 set pathScore = 1
             } else {
                 set pathScore = 0  
             }
 
-            if (coverage = "*"){
+            if (coverage = "*") {
                 set covScore = 1
             } elseif ($extract($translate(nam, "/", "."), 1, ($length(coverage)+1)) = (coverage_".")) {
                 set covScore = 2
+            } elseif (subscript = "/CSP/") {
+                // Normalize coverage to start/end with slash
+                set coverage = $case($extract(coverage),"/":"",:"/")_coverage_$case($extract(coverage,*),"/":"",:"/")
+                set covScore = pathScore
             } else {
                 set covScore = 0
             }

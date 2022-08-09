@@ -46,6 +46,7 @@ To specify where files should go relative to your repository root, add mappings 
 * The folder relative to the repo root that contains the item. This controls behavior for import and export.
 
 This might look like:
+
 ![Example of mapping configuration](docs/images/settings.PNG "Example of mapping configuration")
 
 ### Security

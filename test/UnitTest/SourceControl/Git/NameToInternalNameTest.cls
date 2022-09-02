@@ -9,6 +9,8 @@ Property Mappings [ MultiDimensional ];
 
 Property OldNamespaceTemp As %String;
 
+Property OldPercentClassReplace As %String;
+
 Method TestRegularClassNames()
 {
 	// Regular class that exists
@@ -93,7 +95,9 @@ Method OnBeforeAllTests() As %Status
 {
 	set settings = ##class(SourceControl.Git.Settings).%New()
 	set ..OldNamespaceTemp = settings.namespaceTemp
+	set ..OldPercentClassReplace = settings.percentClassReplace
 	set settings.namespaceTemp = $Piece(..Manager.CurrentDir,"test",1)
+	set settings.percentClassReplace = "_"
 	$$$ThrowOnError(settings.%Save())
 	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
@@ -115,6 +119,7 @@ Method %OnClose() As %Status
 {
 	set settings = ##class(SourceControl.Git.Settings).%New()
 	set settings.namespaceTemp = ..OldNamespaceTemp
+	set settings.percentClassReplace = ..OldPercentClassReplace
 	do settings.%Save()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -122,3 +127,4 @@ Method %OnClose() As %Status
 }
 
 }
+

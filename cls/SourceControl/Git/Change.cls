@@ -79,8 +79,10 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 }
 
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
-ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0) As %Status
+ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) As %Status
 {
+    kill gitFiles
+    
     // files from the uncommitted queue
     set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
     if $$$ISERR(sc) quit sc
@@ -127,3 +129,4 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0) As %Status
 }
 
 }
+

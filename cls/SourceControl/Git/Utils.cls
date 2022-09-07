@@ -853,7 +853,7 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
     if isInSourceControl {
         // Direct reference to namespace-default project
         set sourceControlItem = InternalName
-    } elseif context.IsInGitEnabledPackage && (InternalName = context.InternalName) {
+    } elseif context.IsInGitEnabledPackage && (InternalName = ..NormalizeExtension(context.InternalName)) {
         // Next thing to check is if we're in a package manager-based package
         set isInSourceControl = 1
         set sourceControlItem = context.ResourceReference.Name
@@ -1537,7 +1537,12 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
 {
     set InternalName=""
     set Deleted = 0
-    if ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
+    set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    if (context.IsInGitEnabledPackage) {
+        if ($zconvert(Name,"U")'[$zconvert(context.Package.Root,"U")) {
+            set Name = ##class(%File).NormalizeFilename(context.Package.Root_Name)
+        }
+    } elseif ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
         set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
     }
     if (##class(%File).Exists(Name)) {
@@ -1546,6 +1551,10 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         if (($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName(""))))) && ($zconvert(..Type(outName),"U") '= "CSP") {
             //only set if a single Name was returned ... ignore multi-item files
             set InternalName=outName
+            if (context.IsInGitEnabledPackage) {
+                // Don't need mappings!
+                return ..NormalizeInternalName(InternalName)
+            }
         }
     } else {
         // check for file in uncommitted queue
@@ -1716,3 +1725,4 @@ ClassMethod GetSourceControlInclude() As %String
 }
 
 }
+

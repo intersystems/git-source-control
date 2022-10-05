@@ -1379,6 +1379,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
+    set outStream.TranslateTable="UTF8"
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }

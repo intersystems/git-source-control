@@ -37,9 +37,28 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             */
             if (pathStart = "git") {
                 if $piece(pagePath,"/",3) = "cat-file" {
-                    set file = $piece(pagePath,"/",4,*)
-                    do ##class(SourceControl.Git.Utils).RunGitCommand("-c",,.%data,"color.ui=false","cat-file","-p",file)
-                    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                    set blob = $piece(pagePath,"/",4)
+                    set name = $Piece(pagePath,"/",*)
+                    do ##class(SourceControl.Git.Utils).RunGitCommand("-c",,.rawData,"color.ui=false","cat-file","-p",blob)
+                    // TODO: Support binary file types properly.
+                    /*
+                    do ##class(%CSP.StreamServer).FileClassify($Piece(name,".",*),.type,.bin,.charset)
+                    set %response.ContentType = type
+                    if ($Get(charset) = "") {
+                        set %response.NoCharSetConvert = 1
+                    }
+                    if bin {
+                        set %data = rawData
+                    } else {
+                    */
+                    set %data = ##class(%Stream.TmpBinary).%New()
+                    do %data.Write("<html><body><pre>")
+                    do rawData.Rewind()
+                    while 'rawData.AtEnd {
+                        do %data.Write($ZConvert(rawData.Read(),"O","HTML"))
+                    }
+                    do %data.Write("</pre></body></html>")
+                    //}
                     set handled = 1
                 }
             } elseif (pathStart = "hostname") {
@@ -198,3 +217,4 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 }
 
 }
+

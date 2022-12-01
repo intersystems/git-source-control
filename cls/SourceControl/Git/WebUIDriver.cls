@@ -40,7 +40,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     set blob = $piece(pagePath,"/",4)
                     set name = $Piece(pagePath,"/",*)
                     do ##class(SourceControl.Git.Utils).RunGitCommand("-c",,.rawData,"color.ui=false","cat-file","-p",blob)
-                    // TODO: Support binary file types properly.
+                    // TODO: Support binary file types properly. This will need some deeper client-side changes.
                     /*
                     do ##class(%CSP.StreamServer).FileClassify($Piece(name,".",*),.type,.bin,.charset)
                     set %response.ContentType = type
@@ -51,6 +51,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                         set %data = rawData
                     } else {
                     */
+                    // Render HTML stream in a <pre> with text file contents HTML-escaped.
                     set %data = ##class(%Stream.TmpBinary).%New()
                     do %data.Write("<html><body><pre>")
                     do rawData.Rewind()

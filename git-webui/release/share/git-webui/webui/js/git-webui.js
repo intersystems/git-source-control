@@ -236,7 +236,7 @@ webui.TabBox = function(buttons) {
 
     for (var i = 0; i < buttons.length; ++i) {
         var item = buttons[i];
-        var li = $('<li class="nav-item"><a class="nav-link" href="#">' + item[0] + '</a></li>');
+        var li = $('<li class="nav-item"><a class="nav-link" href="#" onclick="return false;">' + item[0] + '</a></li>');
         li.appendTo(self.element);
         li.click(self.itemClicked);
         li[0].callback = item[1];
@@ -1710,9 +1710,14 @@ webui.TreeView = function(commitView) {
 
     self.createBreadcrumb = function() {
         $(breadcrumb).empty();
+        var slash = self.stack[0].name.indexOf('/') > -1 ? '/' : '\\';
         for (var i = 0; i < self.stack.length; ++i) {
             var last = i == self.stack.length - 1;
+            var first = i == 0;
             var name = self.stack[i].name;
+            if (!first && !last) {
+                name += slash;
+            }
             if (!last) {
                 name = '<a href="#" onclick="return false;">' + name + '</a>';
             }
@@ -1800,7 +1805,7 @@ webui.TreeView = function(commitView) {
         self.createBreadcrumb();
         $(self.element.lastElementChild).remove();
         $(  '<div id="tree-view-blob-content">' +
-                '<iframe src="git/cat-file/' + self.stack[self.stack.length - 1].object + '"></iframe>' +
+                '<iframe src="git/cat-file/' + self.stack[self.stack.length - 1].object + '/' + self.stack[self.stack.length - 1].name + '"></iframe>' +
             '</div>').appendTo(self.element);
     }
 

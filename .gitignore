@@ -1,4 +1,3 @@
 .vscode/
 .gitattributes
 *.code-workspace
-package-lock.json

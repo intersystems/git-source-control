@@ -1729,16 +1729,17 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 {
     #define sourcedir $System.Util.InstallDirectory()_"devuser/studio/templates/gitsourcecontrol/"
     #define sourcedirstr ##Quote($$$sourcedir)
-    #define exportGBLString "GitSourceControlProjectExport"
+    #define exportGBLString "||GitSourceControlProjectExport"
     #define exportGBLDoc $$$exportGBLString_".GBL"
-    #define exportGBL ##Expression("^||"_$$$exportGBLString)
+    #define exportGBL ##Expression("^"_$$$exportGBLString)
     #define exportGBLName $Name($$$exportGBL)
-    #define exportGBLNameQ ##Quote("^||"_$$$exportGBLString)
+    #define exportGBLNameQ ##Quote("^"_$$$exportGBLString)
 
     new %sourcedirstr
     set sc = $$$OK
     try {
         set projectName = "GitSourceControl_CE"
+        set exportSpec = "/keepsource/exportversion=2016.2/diffexport"
 
         // Main project
         set destination = $Get(destination,##class(%Library.File).NormalizeFilename(projectName_".xml"))
@@ -1763,50 +1764,42 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
         do archive.AddToProject(project)
 
         kill $$$exportGBL
-        $$$ThrowOnError(project.ExportToStream("/exportversion=2016.2/diffexport",0))
-        Set gblStream = ##class(%Stream.GlobalCharacter).%New($$$exportGBLName)
-        $$$ThrowOnError(gblStream.CopyFromAndSave(project.Stream))
+        $$$ThrowOnError(project.ExportToStream(exportSpec,0))
 
         // Installer automation
-        set code($i(code)) = "#include %occInclude"
-        set code($i(code)) = " Set stream = ##class(%Stream.GlobalCharacter).%Open($ListBuild(1,"""","_$$$exportGBLNameQ_"),,.sc)"
+        set code($i(code)) = " New %ISCName set %ISCName = ""GitSourceControlInstaller"""
+        set code($i(code)) = " Set xdata = ##class(%Dictionary.XDataDefinition).IDKEYOpen(""SourceControl.Git.Installer"",""Payload"",,.sc)"
         set code($i(code)) = " $$$ThrowOnError(sc)"
-        set code($i(code)) = " $$$ThrowOnError($System.OBJ.LoadStream(stream,""ck""))"
+        set code($i(code)) = " $$$ThrowOnError($System.OBJ.LoadStream(xdata.Data,""ck/nomulticompile""))"
         do archive.GenerateInstallerCode($$$sourcedirstr,.code)
         set code($i(code)) = " Do ##class(SourceControl.Git.Utils).Localize()"
         set code($i(code)) = " Write !!"
         set code($i(code)) = " Do ##class(SourceControl.Git.Utils).OutputConfigureMessage()"
-
-        // Wrapper project
-        if ##class(%Studio.Project).%ExistsId(projectName_"Wrapper") {
-            $$$ThrowOnError(##class(%Studio.Project).%DeleteId(projectName_"Wrapper"))
-        }
-        set wrapper = ##class(%Studio.Project).%New()
-        set wrapper.Name = projectName_"Wrapper"
-
-        // Export of main project
-        do wrapper.AddItem($$$exportGBLDoc)
-
-        // Installer routine
-        if ##class(%Library.Routine).Exists("INSTALL.MAC") {
-		    $$$ThrowOnError(##class(%Library.Routine).Delete("INSTALL.MAC"))
-        }
-        set routine = ##class(%Routine).%New("INSTALL.MAC")
+        
+        // Put installer automation in class
+        do $System.OBJ.Delete("SourceControl.Git.Installer.CLS","-d")
+        set class = ##class(%Dictionary.ClassDefinition).%New()
+        set class.Name = "SourceControl.Git.Installer"
+        set class.IncludeGenerator = "%occInclude"
+        set method = ##class(%Dictionary.MethodDefinition).%New()
+        set method.Name = "Run"
+        set method.CodeMode = "objectgenerator"
         for i=1:1:code {
-            do routine.WriteLine(" "_code(i))
+            do method.Implementation.WriteLine(code(i))
         }
-        $$$ThrowOnError(routine.Save())
-        $$$ThrowOnError(routine.Compile("-d"))
-        do wrapper.AddItem("INSTALL.MAC")
+        do method.Implementation.WriteLine(" job ##class(%SYSTEM.OBJ).Delete(""SourceControl.Git.Installer.CLS"")")
+        do class.Methods.Insert(method)
 
-        // Deploy to a file
-        $$$ThrowOnError(wrapper.%Save())
-        kill ^||%pkg
-        set minVersion = "2016.2"
-        set spec = "/keepsource/exportversion="_minVersion_"/diffexport"
-        $$$ThrowOnError(wrapper.Deploy("",spec,,,"^||%pkg",0))
-        set ^||%pkg("VERSION") = minVersion
-        $$$ThrowOnError($$ExportXMLList^%apiOBJ("^||%pkg.gbl",destination,spec))
+        // Put payload in XData block
+        set xdata = ##class(%Dictionary.XDataDefinition).%New()
+        set xdata.Name = "Payload"
+        do xdata.Data.CopyFrom(project.Stream)
+        do class.XDatas.Insert(xdata)
+
+        $$$ThrowOnError(class.%Save())
+
+        $$$ThrowOnError($System.OBJ.Export(class.Name_".CLS,"_$$$exportGBLDoc,destination,exportSpec))
+        $$$ThrowOnError($System.OBJ.Delete("SourceControl.Git.Installer.CLS"))
     } catch e {
         set sc = e.AsStatus()
     }

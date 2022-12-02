@@ -1725,5 +1725,96 @@ ClassMethod GetSourceControlInclude() As %String
         1: "")
 }
 
+ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
+{
+    #define sourcedir $System.Util.InstallDirectory()_"devuser/studio/templates/gitsourcecontrol/"
+    #define sourcedirstr ##Quote($$$sourcedir)
+    #define exportGBLString "GitSourceControlProjectExport"
+    #define exportGBLDoc $$$exportGBLString_".GBL"
+    #define exportGBL ##Expression("^||"_$$$exportGBLString)
+    #define exportGBLName $Name($$$exportGBL)
+    #define exportGBLNameQ ##Quote("^||"_$$$exportGBLString)
+
+    new %sourcedirstr
+    set sc = $$$OK
+    try {
+        set projectName = "GitSourceControl_CE"
+
+        // Main project
+        set destination = $Get(destination,##class(%Library.File).NormalizeFilename(projectName_".xml"))
+        if ##class(%Studio.Project).%ExistsId(projectName) {
+            $$$ThrowOnError(##class(%Studio.Project).%DeleteId(projectName))
+        }
+        set project = ##class(%Studio.Project).%New()
+        set project.Name = projectName
+        $$$ThrowOnError($System.OBJ.GetPackageList(.classes,"SourceControl.Git"))
+        set key = ""
+        for {
+            set key = $Order(classes(key))
+            quit:key=""
+            $$$ThrowOnError(project.AddItem(key_".CLS"))
+        }
+        $$$ThrowOnError(project.AddItem("SourceControl.Git.INC"))
+        $$$ThrowOnError(project.AddItem("%ZPM.PackageManager.Core.Singleton.CLS"))
+
+        // /isc/studio/usertemplates project
+        set sourcedir = ##class(%Library.File).NormalizeDirectory($$$sourcedir)
+        set archive = ##class(%ZPM.PackageManager.Core.XDataArchive).%New(sourcedir)
+        do archive.AddToProject(project)
+
+        kill $$$exportGBL
+        $$$ThrowOnError(project.ExportToStream("/exportversion=2016.2/diffexport",0))
+        Set gblStream = ##class(%Stream.GlobalCharacter).%New($$$exportGBLName)
+        $$$ThrowOnError(gblStream.CopyFromAndSave(project.Stream))
+
+        // Installer automation
+        set code($i(code)) = "#include %occInclude"
+        set code($i(code)) = " Set stream = ##class(%Stream.GlobalCharacter).%Open($ListBuild(1,"""","_$$$exportGBLNameQ_"),,.sc)"
+        set code($i(code)) = " $$$ThrowOnError(sc)"
+        set code($i(code)) = " $$$ThrowOnError($System.OBJ.LoadStream(stream,""ck""))"
+        do archive.GenerateInstallerCode($$$sourcedirstr,.code)
+        set code($i(code)) = " Do ##class(SourceControl.Git.Utils).Localize()"
+        set code($i(code)) = " Write !!"
+        set code($i(code)) = " Do ##class(SourceControl.Git.Utils).OutputConfigureMessage()"
+
+        // Wrapper project
+        if ##class(%Studio.Project).%ExistsId(projectName_"Wrapper") {
+            $$$ThrowOnError(##class(%Studio.Project).%DeleteId(projectName_"Wrapper"))
+        }
+        set wrapper = ##class(%Studio.Project).%New()
+        set wrapper.Name = projectName_"Wrapper"
+
+        // Export of main project
+        do wrapper.AddItem($$$exportGBLDoc)
+
+        // Installer routine
+        if ##class(%Library.Routine).Exists("INSTALL.MAC") {
+		    $$$ThrowOnError(##class(%Library.Routine).Delete("INSTALL.MAC"))
+        }
+        set routine = ##class(%Routine).%New("INSTALL.MAC")
+        for i=1:1:code {
+            do routine.WriteLine(" "_code(i))
+        }
+        $$$ThrowOnError(routine.Save())
+        $$$ThrowOnError(routine.Compile("-d"))
+        do wrapper.AddItem("INSTALL.MAC")
+
+        // Deploy to a file
+        $$$ThrowOnError(wrapper.%Save())
+        kill ^||%pkg
+        set minVersion = "2016.2"
+        set spec = "/keepsource/exportversion="_minVersion_"/diffexport"
+        $$$ThrowOnError(wrapper.Deploy("",spec,,,"^||%pkg",0))
+        set ^||%pkg("VERSION") = minVersion
+        $$$ThrowOnError($$ExportXMLList^%apiOBJ("^||%pkg.gbl",destination,spec))
+    } catch e {
+        set sc = e.AsStatus()
+    }
+    if $$$ISERR(sc) && '$quit {
+        write !,$System.Status.GetErrorText(sc)
+    }
+    quit sc
+}
+
 }
 

@@ -38,6 +38,11 @@ ClassMethod TempFolder() As %String
     if context.IsInGitEnabledPackage {
         quit context.Package.Root
     }
+    quit ..DefaultTempFolder()
+}
+
+ClassMethod DefaultTempFolder() As %String
+{
     quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$translate($znspace,"%")_..#Slash)
 }
 
@@ -1124,6 +1129,9 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 
 ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
 {
+    set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    set refPackage = refContext.Package
+    
     write !, "==import start=="
     
     #dim err, itemList
@@ -1138,9 +1146,8 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
-        if '..IsInSourceControl(internalName) {
-            continue
-        }
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
+        continue:context.Package'=refPackage
         #dim sc as %Status = ..ImportItem(internalName, force)
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
@@ -1152,8 +1159,13 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     for  {
         set item = $order(@..#Storage@("TSH", item))
         quit:item=""
-
-        if '##class(%File).Exists(..FullExternalName(item)) {
+        
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
+        continue:context.Package'=refPackage
+            
+        set fullExternalName = ..FullExternalName(item)
+        if '##class(%File).Exists(fullExternalName) {
+            write !,fullExternalName," does not exist - deleting ",item
             #dim type as %String = ..Type(item)
             #dim name as %String = ..NameWithoutExtension(item)
             #dim deleted as %Boolean = 1
@@ -1287,11 +1299,16 @@ ClassMethod ImportAll(force As %Boolean = 0) As %Status
 
 ClassMethod ExportRoutines(force As %Boolean = 0) As %Status
 {
+    set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    set refPackage = refContext.Package
+    
     #dim item as %String = ""
     #dim ec as %Status = $$$OK
     for  {
         set item = $order(@..#Storage@("items",item))
         quit:item=""
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
+        continue:context.Package'=refPackage
         set ec = ..ExportItem(item, 1, force)
         quit:'ec
     }
@@ -1398,6 +1415,7 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
         set internalName = ..NameToInternalName(externalName)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
+            set @..#Storage@("items",..NormalizeInternalName(internalName)) = ""
         } elseif ((IncludeAllFiles) && (externalName '= "")) {
             set externalName = $TRANSLATE(externalName, "\", "/")
             set files($I(files)) = $listbuild(operation, externalName)

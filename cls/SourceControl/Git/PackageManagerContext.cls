@@ -16,6 +16,7 @@ Property ResourceReference As %RegisteredObject [ InitialExpression = {$$$NULLOR
 
 Method InternalNameSet(InternalName As %String = "") As %Status
 {
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     if (InternalName '= i%InternalName) {
         set i%InternalName = InternalName
         if '$$$comClassDefined("%ZPM.PackageManager.Developer.Extension.Utils") {
@@ -24,7 +25,7 @@ Method InternalNameSet(InternalName As %String = "") As %Status
         set ..Package = ##class(%ZPM.PackageManager.Developer.Extension.Utils).FindHomeModule(InternalName,,.resourceReference)
         set ..ResourceReference = resourceReference
         set ..IsInGitEnabledPackage = $isobject(..Package) && ##class(%Library.File).DirectoryExists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))
-        set ..IsInDefaultPackage = $isobject(..Package) && (##class(%Library.File).NormalizeDirectory(..Package.Root) = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).TempFolder()))
+        set ..IsInDefaultPackage = $isobject(..Package) && (##class(%Library.File).NormalizeDirectory(..Package.Root) = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).DefaultTempFolder()))
     }
     quit $$$OK
 }

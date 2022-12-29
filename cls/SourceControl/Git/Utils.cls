@@ -1725,5 +1725,89 @@ ClassMethod GetSourceControlInclude() As %String
         1: "")
 }
 
+ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
+{
+    #define sourcedir $System.Util.InstallDirectory()_"devuser/studio/templates/gitsourcecontrol/"
+    #define sourcedirstr ##Quote($$$sourcedir)
+    #define exportGBLString "||GitSourceControlProjectExport"
+    #define exportGBLDoc $$$exportGBLString_".GBL"
+    #define exportGBL ##Expression("^"_$$$exportGBLString)
+    #define exportGBLName $Name($$$exportGBL)
+    #define exportGBLNameQ ##Quote("^"_$$$exportGBLString)
+
+    new %sourcedirstr
+    set sc = $$$OK
+    try {
+        set projectName = "GitSourceControl_CE"
+        set exportSpec = "/keepsource/exportversion=2016.2/diffexport"
+
+        // Main project
+        set destination = $Get(destination,##class(%Library.File).NormalizeFilename(projectName_".xml"))
+        if ##class(%Studio.Project).%ExistsId(projectName) {
+            $$$ThrowOnError(##class(%Studio.Project).%DeleteId(projectName))
+        }
+        set project = ##class(%Studio.Project).%New()
+        set project.Name = projectName
+        $$$ThrowOnError($System.OBJ.GetPackageList(.classes,"SourceControl.Git"))
+        set key = ""
+        for {
+            set key = $Order(classes(key))
+            quit:key=""
+            $$$ThrowOnError(project.AddItem(key_".CLS"))
+        }
+        $$$ThrowOnError(project.AddItem("SourceControl.Git.INC"))
+        $$$ThrowOnError(project.AddItem("%ZPM.PackageManager.Core.Singleton.CLS"))
+
+        // /isc/studio/usertemplates project
+        set sourcedir = ##class(%Library.File).NormalizeDirectory($$$sourcedir)
+        set archive = ##class(%ZPM.PackageManager.Core.XDataArchive).%New(sourcedir)
+        do archive.AddToProject(project)
+
+        kill $$$exportGBL
+        $$$ThrowOnError(project.ExportToStream(exportSpec,0))
+
+        // Installer automation
+        set code($i(code)) = " New %ISCName set %ISCName = ""GitSourceControlInstaller"""
+        set code($i(code)) = " Set xdata = ##class(%Dictionary.XDataDefinition).IDKEYOpen(""SourceControl.Git.Installer"",""Payload"",,.sc)"
+        set code($i(code)) = " $$$ThrowOnError(sc)"
+        set code($i(code)) = " $$$ThrowOnError($System.OBJ.LoadStream(xdata.Data,""ck/nomulticompile""))"
+        do archive.GenerateInstallerCode($$$sourcedirstr,.code)
+        set code($i(code)) = " Do ##class(SourceControl.Git.Utils).Localize()"
+        set code($i(code)) = " Write !!"
+        set code($i(code)) = " Do ##class(SourceControl.Git.Utils).OutputConfigureMessage()"
+        
+        // Put installer automation in class
+        do $System.OBJ.Delete("SourceControl.Git.Installer.CLS","-d")
+        set class = ##class(%Dictionary.ClassDefinition).%New()
+        set class.Name = "SourceControl.Git.Installer"
+        set class.IncludeGenerator = "%occInclude"
+        set method = ##class(%Dictionary.MethodDefinition).%New()
+        set method.Name = "Run"
+        set method.CodeMode = "objectgenerator"
+        for i=1:1:code {
+            do method.Implementation.WriteLine(code(i))
+        }
+        do method.Implementation.WriteLine(" job ##class(%SYSTEM.OBJ).Delete(""SourceControl.Git.Installer.CLS"")")
+        do class.Methods.Insert(method)
+
+        // Put payload in XData block
+        set xdata = ##class(%Dictionary.XDataDefinition).%New()
+        set xdata.Name = "Payload"
+        do xdata.Data.CopyFrom(project.Stream)
+        do class.XDatas.Insert(xdata)
+
+        $$$ThrowOnError(class.%Save())
+
+        $$$ThrowOnError($System.OBJ.Export(class.Name_".CLS,"_$$$exportGBLDoc,destination,exportSpec))
+        $$$ThrowOnError($System.OBJ.Delete("SourceControl.Git.Installer.CLS"))
+    } catch e {
+        set sc = e.AsStatus()
+    }
+    if $$$ISERR(sc) && '$quit {
+        write !,$System.Status.GetErrorText(sc)
+    }
+    quit sc
+}
+
 }
 

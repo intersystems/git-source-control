@@ -1,6 +1,6 @@
 Include SourceControl.Git
 
-Class SourceControl.Git.Change Extends %Studio.SourceControl.Change
+Class SourceControl.Git.Change Extends (%Persistent, %Studio.SourceControl.Change)
 {
 
 /// Returns the name of the backup file for this Item in the file system
@@ -10,10 +10,9 @@ Property BackupName As %String [ Calculated, SqlComputeCode = {s {*} = ""}, SqlC
 /// Returns the name of this Item in the file system
 Property ExternalName As %String [ Calculated, SqlComputeCode = {S {*} = "" }, SqlComputed ];
 
-Storage Default
-{
-<Type>%Storage.Persistent</Type>
-}
+Index CommittedMap On Committed [ Type = bitmap ];
+
+Index ChangeList On (ItemFile, CommittedTime) [ Data = Action, Unique ];
 
 /// Removes one or more Uncommitted items from the Uncommitted queue and changes the exported file to Readonly (except for reverts of Adds, or new CSP files within the Perforce root)
 /// <P> Default assumed behavior is that the the change was not reverted, and that it was actively committed to Perforce
@@ -126,6 +125,57 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) 
         set filename=$order(gitFiles(filename),1,details)
     }
     quit sc
+}
+
+Storage Default
+{
+<Data name="ChangeDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>Action</Value>
+</Value>
+<Value name="3">
+<Value>Committed</Value>
+</Value>
+<Value name="4">
+<Value>CommittedTime</Value>
+</Value>
+<Value name="5">
+<Value>CCR</Value>
+</Value>
+<Value name="6">
+<Value>InternalName</Value>
+</Value>
+<Value name="7">
+<Value>ItemFile</Value>
+</Value>
+<Value name="8">
+<Value>Name</Value>
+</Value>
+<Value name="10">
+<Value>Source</Value>
+</Value>
+<Value name="11">
+<Value>UpdatedTime</Value>
+</Value>
+<Value name="12">
+<Value>ChangedBy</Value>
+</Value>
+<Value name="13">
+<Value>ActivelyCommitted</Value>
+</Value>
+<Value name="14">
+<Value>P4Issued</Value>
+</Value>
+</Data>
+<DataLocation>^Studio.SourceControl.ChangeD</DataLocation>
+<DefaultData>ChangeDefaultData</DefaultData>
+<IdLocation>^Studio.SourceControl.ChangeD</IdLocation>
+<IndexLocation>^Studio.SourceControl.ChangeI</IndexLocation>
+<StreamLocation>^Studio.SourceControl.ChangeS</StreamLocation>
+<Type>%Storage.Persistent</Type>
 }
 
 }

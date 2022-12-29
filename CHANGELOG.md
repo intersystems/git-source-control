@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.6] - 2022-12-06
+
+### Added
+- Support for Caché/Ensemble 2016.2.3, 2017.1.2, 2017.2.1, 2018.1.0 and later. (Treated as patch version bump because no compatibility impact for existing users.)
+
+### Changed
+- Various minor things under the hood to support use without the package manager and/or on older platforms
+
 ## [2.0.5] - 2022-12-02
 
 ### Fixed

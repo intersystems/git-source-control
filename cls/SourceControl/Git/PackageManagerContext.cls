@@ -7,14 +7,20 @@ Property IsInDefaultPackage As %Boolean [ InitialExpression = 0 ];
 
 Property IsInGitEnabledPackage As %Boolean [ InitialExpression = 0 ];
 
-Property Package As %ZPM.PackageManager.Developer.Module [ InitialExpression = {$$$NULLOREF} ];
+/// Really is a %ZPM.PackageManager.Developer.Module
+Property Package As %RegisteredObject [ InitialExpression = {$$$NULLOREF} ];
 
-Property ResourceReference As %ZPM.PackageManager.Developer.ResourceReference [ InitialExpression = {$$$NULLOREF} ];
+// Really is a %ZPM.PackageManager.Developer.ResourceReference
+
+Property ResourceReference As %RegisteredObject [ InitialExpression = {$$$NULLOREF} ];
 
 Method InternalNameSet(InternalName As %String = "") As %Status
 {
     if (InternalName '= i%InternalName) {
         set i%InternalName = InternalName
+        if '$$$comClassDefined("%ZPM.PackageManager.Developer.Extension.Utils") {
+            quit $$$OK
+        }
         set ..Package = ##class(%ZPM.PackageManager.Developer.Extension.Utils).FindHomeModule(InternalName,,.resourceReference)
         set ..ResourceReference = resourceReference
         set ..IsInGitEnabledPackage = $isobject(..Package) && ##class(%Library.File).DirectoryExists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))

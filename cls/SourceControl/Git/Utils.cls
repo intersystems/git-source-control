@@ -1138,10 +1138,12 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
-        if '..IsInSourceControl(internalName) {
-            continue
+        #dim sc as %Status
+        if ..IsInSourceControl(internalName) {
+            set sc = ..ImportItem(internalName, force)            
+        } else {
+            set sc = ..AddToServerSideSourceControl(internalName)
         }
-        #dim sc as %Status = ..ImportItem(internalName, force)
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }

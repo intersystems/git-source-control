@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Various minor things under the hood to support use without the package manager and/or on older platforms
 
+### Internal
+- Added CI script and tweaked unit tests to run properly in a container and bootstrap their own extension configuration
+
 ## [2.0.5] - 2022-12-02
 
 ### Fixed

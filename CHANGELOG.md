@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - "Import All" will properly recognize new files
 - "Import All" and "Export All" apply only to the current package manager context and disregard items outside that context
+- "Import All" treats "Other" document types (DFI, LUT, etc.) properly
 
 ### Changed
 - Various minor things under the hood to support use without the package manager and/or on older platforms

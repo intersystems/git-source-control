@@ -1094,8 +1094,17 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
-                merge itemList = tempItemList
+                if ##class(%Library.RoutineMgr).UserType("foo."_mappingFileType) {
+                    set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
+                    set files = ##class(%Library.File).FileSetFunc(mappedFilePath,fileSpec)
+                    while files.%Next() {
+                        // Assumes flat file structure
+                        set itemList(files.ItemName) = ""
+                    }
+                } else {
+                    set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
+                    merge itemList = tempItemList
+                }
             }
 
             set mappingCoverage = $order($$$SourceMapping(mappingFileType, mappingCoverage))
@@ -1148,7 +1157,11 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         quit:internalName=""
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
-        #dim sc as %Status = ..ImportItem(internalName, force)
+        if ..IsInSourceControl(internalName) {
+            set sc = ..ImportItem(internalName, force)            
+        } else {
+            set sc = ..AddToServerSideSourceControl(internalName)
+        }
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }
@@ -1173,13 +1186,15 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
                 set ec = $$$ADDSC(ec, $system.OBJ.DeleteProject(name))
             }elseif type = "cls" {
                 set ec = $$$ADDSC(ec, $system.OBJ.Delete(item))
-            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
+            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
                 set ec = $$$ADDSC(ec, ##class(%Routine).Delete(item))
             }elseif type = "csp" {
                 #dim filename = $system.CSP.GetFileName(item)
                 if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
                     set ec = $$$ADDSC(ec, ..MakeError("Error while removing "_item))
                 }
+            }elseif ##class(%Library.RoutineMgr).UserType(item) {
+                set ec = $$$ADDSC(ec, ##class(%Library.RoutineMgr).Delete(item))
             } else {
                 set deleted = 0
             }
@@ -1828,4 +1843,3 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
-

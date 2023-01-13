@@ -67,20 +67,19 @@ jobs:
       - name: Build and Test
         run: |
           # Run build
-          echo "zpm \"load /source $build_flags\":1:1" > build
+          echo "zpm \"load /source $build_flags\":1:1" > build.script
           # Test package is compiled first as a workaround for some dependency issues.
-          echo "do \$System.OBJ.CompilePackage(\"$test_package\",\"ckd\") " > test
+          echo "do \$System.OBJ.CompilePackage(\"$test_package\",\"ckd\") " > test.script
           # Run tests
-          echo "zpm \"$package test -only $test_flags\":1:1" >> test
-          docker exec --interactive $instance iris session $instance -B < build && docker exec --interactive $instance iris session $instance -B < test &&bash <(curl -s https://codecov.io/bash)
+          echo "zpm \"$package test -only $test_flags\":1:1" >> test.script
+          docker exec --interactive $instance iris session $instance -B < build.script && docker exec --interactive $instance iris session $instance -B < test.script &&bash <(curl -s https://codecov.io/bash)
           
       - name: Produce CE Artifact
         run: |
-          # 
-          echo "set version=##class(%ZPM.PackageManager.Developer.Module).NameOpen(\"git-source-control\").Version" > package
-          echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(\"$artifact_dir/git-source-control-\"_version_\".xml\")" >> package
-          echo "halt" >> package
-          docker exec --interactive $instance iris session $instance -B < package
+          echo "set version=##class(%ZPM.PackageManager.Developer.Module).NameOpen(\"git-source-control\").Version" > package.script
+          echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(\"$artifact_dir/git-source-control-\"_version_\".xml\")" >> package.script
+          echo "halt" >> package.script
+          docker exec --interactive $instance iris session $instance -B < package.script
           
       - name: Attach CE Artifact
         uses: actions/upload-artifact@v1

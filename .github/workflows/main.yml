@@ -1,0 +1,110 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  [push, pull_request]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    env:
+      #Environment variables usable throughout the "build" job, e.g. in OS-level commands
+      
+      # ** FOR GENERAL USE, LIKELY NEED TO CHANGE **
+      package: git-source-control
+      container_image: intersystemsdc/iris-community:latest
+      
+      # ** FOR GENERAL USE, MAY NEED TO CHANGE **
+      build_flags: -dev -verbose
+      test_package: UnitTest
+      
+      # ** FOR GENERAL USE, SHOULD NOT NEED TO CHANGE **
+      instance: iris
+      artifact_dir: build-artifacts
+      
+      # Note: test_reports value is duplicated in test_flags environment variable
+      test_reports: test-reports
+      test_flags: >-
+        -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/test-reports/junit.xml
+        -DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager
+        -DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator
+        -DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml
+      
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      
+      - name: Run Container
+        run: |
+          # Create test_reports directory to share test results before running container
+          mkdir $test_reports
+          chmod 777 $test_reports
+          
+          # Same for artifact directory
+          mkdir $artifact_dir
+          chmod 777 $artifact_dir
+          
+          # Run InterSystems IRIS Instance
+          docker pull $container_image
+          docker run -d -h $instance --name $instance -v $GITHUB_WORKSPACE:/source:rw -v $GITHUB_WORKSPACE/$test_reports:/$test_reports:rw -v $GITHUB_WORKSPACE/$artifact_dir:/$artifact_dir:rw --init $container_image
+          echo halt > wait
+          # Wait for instance to be ready
+          until docker exec --interactive $instance iris session $instance < wait; do sleep 1; done
+      
+      - name: Install TestCoverage
+        run: |
+          echo "zpm \"install testcoverage\":1:1" > install-testcoverage
+          docker exec --interactive $instance iris session $instance -B < install-testcoverage
+          
+      - name: Build and Test
+        run: |
+          # Run build
+          echo "zpm \"load /source $build_flags\":1:1" > build.script
+          # Test package is compiled first as a workaround for some dependency issues.
+          echo "do \$System.OBJ.CompilePackage(\"$test_package\",\"ckd\") " > test.script
+          # Run tests
+          echo "zpm \"$package test -only $test_flags\":1:1" >> test.script
+          docker exec --interactive $instance iris session $instance -B < build.script && docker exec --interactive $instance iris session $instance -B < test.script &&bash <(curl -s https://codecov.io/bash)
+          
+      - name: Produce CE Artifact
+        run: |
+          echo "set version=##class(%ZPM.PackageManager.Developer.Module).NameOpen(\"git-source-control\").VersionString" > package.script
+          echo "set file=\"/$artifact_dir/git-source-control-\"_version_\".xml\" write !,file,!" >> package.script
+          echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(file)" >> package.script
+          echo "halt" >> package.script
+          docker exec --interactive $instance iris session $instance -B < package.script
+          echo $GITHUB_WORKSPACE/$artifact_dir
+          ls $GITHUB_WORKSPACE/$artifact_dir
+          
+      - name: Attach CE Artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: "PreIRISInstallationPackage"
+          path: ${{ github.workspace }}/${{ env.artifact_dir }}/*.xml
+          if-no-files-found: error
+        
+      - name: XUnit Viewer
+        id: xunit-viewer
+        uses: AutoModality/action-xunit-viewer@v1
+        if: always()
+        with:
+          # With -DUnitTest.FailuresAreFatal=1 a failed unit test will fail the build before this point.
+          # This action would otherwise misinterpret our xUnit style output and fail the build even if
+          # all tests passed.
+          fail: false
+          
+      - name: Attach the report
+        uses: actions/upload-artifact@v1
+        if: always()
+        with:
+          name: ${{ steps.xunit-viewer.outputs.report-name }}
+          path: ${{ steps.xunit-viewer.outputs.report-dir }}

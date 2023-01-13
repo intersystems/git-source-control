@@ -27,7 +27,8 @@ jobs:
       
       # ** FOR GENERAL USE, SHOULD NOT NEED TO CHANGE **
       instance: iris
-      artifacts: artifacts
+      artifact_dir: build-artifacts
+      
       # Note: test_reports value is duplicated in test_flags environment variable
       test_reports: test-reports
       test_flags: >-
@@ -47,9 +48,12 @@ jobs:
           mkdir $test_reports
           chmod 777 $test_reports
           
+          mkdir $artifact_dir
+          chmod 777 $artifact_dir
+          
           # Run InterSystems IRIS Instance
           docker pull $container_image
-          docker run -d -h $instance --name $instance -v $GITHUB_WORKSPACE:/source:rw -v $GITHUB_WORKSPACE/$test_reports:/$test_reports -v $GITHUB_WORKSPACE/$artifacts:/$artifacts --init $container_image
+          docker run -d -h $instance --name $instance -v $GITHUB_WORKSPACE:/source:rw -v $GITHUB_WORKSPACE/$test_reports:/$test_reports -v $GITHUB_WORKSPACE/$artifact_dir:/$artifact_dir --init $container_image
           echo halt > wait
           # Wait for instance to be ready
           until docker exec --interactive $instance iris session $instance < wait; do sleep 1; done
@@ -77,7 +81,7 @@ jobs:
         run: |
           # 
           echo "set version=##class(%ZPM.PackageManager.Developer.Module).NameOpen(\"git-source-control\").Version" > package
-          echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(\"$artifacts/git-source-control-\"_version_\".xml\")" >> package
+          echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(\"$artifact_dir/git-source-control-\"_version_\".xml\")" >> package
           echo "halt" >> package
           docker exec --interactive $instance iris session $instance -B < package
           
@@ -86,7 +90,7 @@ jobs:
         if: always()
         with:
           name: "PreIRISInstallationPackage"
-          path: ${{ artifacts }}
+          path: ${{ env.artifact_dir }}
         
       - name: XUnit Viewer
         id: xunit-viewer

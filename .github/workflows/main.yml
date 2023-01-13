@@ -48,6 +48,7 @@ jobs:
           mkdir $test_reports
           chmod 777 $test_reports
           
+          # Same for artifact directory
           mkdir $artifact_dir
           chmod 777 $artifact_dir
           
@@ -62,10 +63,6 @@ jobs:
         run: |
           echo "zpm \"install testcoverage\":1:1" > install-testcoverage
           docker exec --interactive $instance iris session $instance -B < install-testcoverage
-          # WOrkaround for permissions issues in TestCoverage (creating directory for source export)
-          chmod 777 $GITHUB_WORKSPACE
-          chmod -R 777 $GITHUB_WORKSPACE/tests/_reference/compare
-          
           
       - name: Build and Test
         run: |
@@ -85,7 +82,7 @@ jobs:
           echo "halt" >> package
           docker exec --interactive $instance iris session $instance -B < package
           
-      - name: Attache CE Artifact
+      - name: Attach CE Artifact
         uses: actions/upload-artifact@v1
         if: always()
         with:

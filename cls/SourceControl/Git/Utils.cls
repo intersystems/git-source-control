@@ -1779,6 +1779,10 @@ ClassMethod CheckInitialization()
             write !,"and answering the prompts."
         }
     }
+    If '$System.Security.Check("%System_Callout","USE") {
+        write !,"WARNING: You do not have USE privilege on %System_Callout, which is needed to invoke git.",
+            "Unless this privilege is granted to users of the extension, it won't work."
+    }
 }
 
 ClassMethod GetSourceControlInclude() As %String

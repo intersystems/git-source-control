@@ -50,9 +50,8 @@ This might look like:
 ![Example of mapping configuration](docs/images/settings.PNG "Example of mapping configuration")
 
 ### Security
-If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
 
-### Git Security Features
+#### Dubious Ownership
 Newer git versions may produce output like:
 ```
 fatal: detected dubious ownership in repository at 'C:/Your/Repo/Root'
@@ -64,6 +63,12 @@ Set the environment variable GIT_TEST_DEBUG_UNSAFE_DIRECTORIES=true and run
 again for more information.
 ```
 It is important for the namespace temp folder to be owned by the user IRIS runs as. (On Unix, commonly irisusr; on Windows, generally a designated service account or SYSTEM.) Setting this config flag is unlikely to actually help; just make sure the ownership is correct.
+
+#### Interacting with Remotes
+If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
+
+#### IRIS Privileges
+For developers to be able to run this extension, they'll need the USE privilege on %System_Callout.
 
 ### Setting up multiple GitHub deploy keys on one machine
 

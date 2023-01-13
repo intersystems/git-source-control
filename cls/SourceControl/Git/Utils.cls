@@ -38,6 +38,11 @@ ClassMethod TempFolder() As %String
     if context.IsInGitEnabledPackage {
         quit context.Package.Root
     }
+    quit ..DefaultTempFolder()
+}
+
+ClassMethod DefaultTempFolder() As %String
+{
     quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$translate($znspace,"%")_..#Slash)
 }
 
@@ -1089,8 +1094,17 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
-                merge itemList = tempItemList
+                if ##class(%Library.RoutineMgr).UserType("foo."_mappingFileType) {
+                    set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
+                    set files = ##class(%Library.File).FileSetFunc(mappedFilePath,fileSpec)
+                    while files.%Next() {
+                        // Assumes flat file structure
+                        set itemList(files.ItemName) = ""
+                    }
+                } else {
+                    set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
+                    merge itemList = tempItemList
+                }
             }
 
             set mappingCoverage = $order($$$SourceMapping(mappingFileType, mappingCoverage))
@@ -1124,6 +1138,9 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 
 ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
 {
+    set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    set refPackage = refContext.Package
+    
     write !, "==import start=="
     
     #dim err, itemList
@@ -1138,10 +1155,13 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
-        if '..IsInSourceControl(internalName) {
-            continue
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
+        continue:context.Package'=refPackage
+        if ..IsInSourceControl(internalName) {
+            set sc = ..ImportItem(internalName, force)            
+        } else {
+            set sc = ..AddToServerSideSourceControl(internalName)
         }
-        #dim sc as %Status = ..ImportItem(internalName, force)
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }
@@ -1152,8 +1172,13 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     for  {
         set item = $order(@..#Storage@("TSH", item))
         quit:item=""
-
-        if '##class(%File).Exists(..FullExternalName(item)) {
+        
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
+        continue:context.Package'=refPackage
+            
+        set fullExternalName = ..FullExternalName(item)
+        if '##class(%File).Exists(fullExternalName) {
+            write !,fullExternalName," does not exist - deleting ",item
             #dim type as %String = ..Type(item)
             #dim name as %String = ..NameWithoutExtension(item)
             #dim deleted as %Boolean = 1
@@ -1161,13 +1186,15 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
                 set ec = $$$ADDSC(ec, $system.OBJ.DeleteProject(name))
             }elseif type = "cls" {
                 set ec = $$$ADDSC(ec, $system.OBJ.Delete(item))
-            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi","dfi"), type) > 0 {
+            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
                 set ec = $$$ADDSC(ec, ##class(%Routine).Delete(item))
             }elseif type = "csp" {
                 #dim filename = $system.CSP.GetFileName(item)
                 if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
                     set ec = $$$ADDSC(ec, ..MakeError("Error while removing "_item))
                 }
+            }elseif ##class(%Library.RoutineMgr).UserType(item) {
+                set ec = $$$ADDSC(ec, ##class(%Library.RoutineMgr).Delete(item))
             } else {
                 set deleted = 0
             }
@@ -1287,11 +1314,16 @@ ClassMethod ImportAll(force As %Boolean = 0) As %Status
 
 ClassMethod ExportRoutines(force As %Boolean = 0) As %Status
 {
+    set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
+    set refPackage = refContext.Package
+    
     #dim item as %String = ""
     #dim ec as %Status = $$$OK
     for  {
         set item = $order(@..#Storage@("items",item))
         quit:item=""
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
+        continue:context.Package'=refPackage
         set ec = ..ExportItem(item, 1, force)
         quit:'ec
     }
@@ -1398,6 +1430,7 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
         set internalName = ..NameToInternalName(externalName)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
+            set @..#Storage@("items",..NormalizeInternalName(internalName)) = ""
         } elseif ((IncludeAllFiles) && (externalName '= "")) {
             set externalName = $TRANSLATE(externalName, "\", "/")
             set files($I(files)) = $listbuild(operation, externalName)
@@ -1810,4 +1843,3 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
-

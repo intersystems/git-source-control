@@ -53,7 +53,8 @@ Method %Save() As %Status
     }
     kill ^||GitVersion
     
-    set @storage@("settings","namespaceTemp") = ##class(%Library.File).NormalizeDirectory(..namespaceTemp)
+    set ..namespaceTemp = ##class(%Library.File).NormalizeDirectory(..namespaceTemp)
+    set @storage@("settings","namespaceTemp") = ..namespaceTemp
     if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){
         do ##class(%Library.File).CreateDirectoryChain(@storage@("settings","namespaceTemp"))
     }

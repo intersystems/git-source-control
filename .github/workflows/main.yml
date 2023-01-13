@@ -81,6 +81,7 @@ jobs:
           echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(file)" >> package.script
           echo "halt" >> package.script
           docker exec --interactive $instance iris session $instance -B < package.script
+          echo $GITHUB_WORKSPACE/$artifact_dir
           ls $GITHUB_WORKSPACE/$artifact_dir
           
       - name: Attach CE Artifact

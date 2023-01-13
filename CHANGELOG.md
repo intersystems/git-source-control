@@ -5,21 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.6] - Unreleased
+## [2.1.0] - Unreleased
 
 ### Added
-- Support for Caché/Ensemble 2016.2.3, 2017.1.2, 2017.2.1, 2018.1.0 and later. (Treated as patch version bump because no compatibility impact for existing users.)
+- Support for Caché/Ensemble 2016.2.3, 2017.1.2, 2017.2.1, 2018.1.0 and later.
+- Installation adds a Management Portal favorite for all users (#209)
+- Improved configuration and defaults to simplify initial configuration (#213)
+  - If no name/email is specified, defaults to `$username` and `$username@<hostname>`
 
 ### Fixed
 - "Import All" will properly recognize new files
 - "Import All" and "Export All" apply only to the current package manager context and disregard items outside that context
 - "Import All" treats "Other" document types (DFI, LUT, etc.) properly
 
-### Changed
-- Various minor things under the hood to support use without the package manager and/or on older platforms
-
 ### Internal
 - Added CI script and tweaked unit tests to run properly in a container and bootstrap their own extension configuration
+- Tweaked various minor things under the hood to support use without the package manager and/or on older platforms
 
 ## [2.0.5] - 2022-12-02
 

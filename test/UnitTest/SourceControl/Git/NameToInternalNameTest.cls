@@ -96,10 +96,10 @@ Method OnBeforeAllTests() As %Status
 	set settings = ##class(SourceControl.Git.Settings).%New()
 	set ..OldNamespaceTemp = settings.namespaceTemp
 	set ..OldPercentClassReplace = settings.percentClassReplace
+	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	set settings.namespaceTemp = $Piece(..Manager.CurrentDir,"test",1)
 	set settings.percentClassReplace = "_"
 	$$$ThrowOnError(settings.%Save())
-	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	Set app = $System.CSP.GetDefaultApp($Namespace)
 	If (app '= "") {

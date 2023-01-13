@@ -52,6 +52,19 @@ This might look like:
 ### Security
 If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
 
+### Git Security Features
+Newer git versions may produce output like:
+```
+fatal: detected dubious ownership in repository at 'C:/Your/Repo/Root'
+To add an exception for this directory, call:
+
+   git config --global --add safe.directory C:/Your/Repo/Root
+
+Set the environment variable GIT_TEST_DEBUG_UNSAFE_DIRECTORIES=true and run
+again for more information.
+```
+It is important for the namespace temp folder to be owned by the user IRIS runs as. (On Unix, commonly irisusr; on Windows, generally a designated service account or SYSTEM.) Setting this config flag is unlikely to actually help; just make sure the ownership is correct.
+
 ### Setting up multiple GitHub deploy keys on one machine
 
 Assuming you have the local and remote repositories created,

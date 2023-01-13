@@ -88,7 +88,7 @@ jobs:
         if: always()
         with:
           name: "PreIRISInstallationPackage"
-          path: ${{ env.GITHUB_WORKSPACE }}/${{ env.artifact_dir }}/*.xml
+          path: ${{ github.workspace }}/${{ env.artifact_dir }}/*.xml
         
       - name: XUnit Viewer
         id: xunit-viewer

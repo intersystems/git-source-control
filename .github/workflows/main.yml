@@ -85,11 +85,12 @@ jobs:
           ls $GITHUB_WORKSPACE/$artifact_dir
           
       - name: Attach CE Artifact
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: "PreIRISInstallationPackage"
           path: ${{ github.workspace }}/${{ env.artifact_dir }}/*.xml
+          if-no-files-found: error
         
       - name: XUnit Viewer
         id: xunit-viewer

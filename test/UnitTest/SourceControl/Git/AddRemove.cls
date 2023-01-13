@@ -8,8 +8,6 @@ Method TestInit()
 	new %SourceControl
 	do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
 	set sc = %SourceControl.UserAction(0,"%SourceMenu,Init","","",.action,.target,.msg,.reload)
-	zw sc
-	break
 	do $$$AssertStatusOK(sc)
 }
 

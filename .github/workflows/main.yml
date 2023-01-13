@@ -86,7 +86,7 @@ jobs:
         if: always()
         with:
           name: "PreIRISInstallationPackage"
-          path: ${{ env.artifact_dir }}
+          path: ${{ env.artifact_dir }}/*.xml
         
       - name: XUnit Viewer
         id: xunit-viewer

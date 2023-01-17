@@ -1465,7 +1465,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         }
     }
     
-    if $$CheckProtect^%qccServer(InternalName) {
+    if '##class(%Library.RoutineMgr).UserType(InternalName) && $$CheckProtect^%qccServer(InternalName) {
         quit ""
     }
        
@@ -1881,4 +1881,3 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
-

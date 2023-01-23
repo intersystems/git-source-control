@@ -50,9 +50,10 @@ Method %OnNew(initvalue) As %Status
 {
 	Merge ..SourceControlGlobal = ^SYS("SourceControl")
 	Kill ^SYS("SourceControl")
-	Set folder = ##class(%Library.File).NormalizeFilename(##class(%Library.File).TempFilename()_"dir/")
-	Set ^SYS("SourceControl","Git","settings","namespaceTemp") = folder
-	Set ^SYS("SourceControl","Git","settings","mappings","MAC","*")="rtn/"
+	Set settings = ##class(SourceControl.Git.Settings).%New()
+	Set settings.namespaceTemp = ##class(%Library.File).TempFilename()_"dir"
+	Set settings.Mappings("MAC","*")="rtn/"
+	Do settings.%Save()
 	Do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("SourceControl.Git.Extension")
 	Quit ##super(initvalue)
 }

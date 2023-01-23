@@ -96,12 +96,12 @@ Method OnBeforeAllTests() As %Status
 	set settings = ##class(SourceControl.Git.Settings).%New()
 	set ..OldNamespaceTemp = settings.namespaceTemp
 	set ..OldPercentClassReplace = settings.percentClassReplace
+	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	set folder = ##class(%File).NormalizeDirectory(##class(%Library.File).TempFilename()_"dir/")
 	set settings.namespaceTemp = folder
 	set settings.percentClassReplace = "_"
 	$$$ThrowOnError(settings.%Save())
 	do ##class(%Library.File).CopyDir($Piece(..Manager.CurrentDir,"test"),folder,1)
-	merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	Set app = $System.CSP.GetDefaultApp($Namespace)
 	If (app '= "") {

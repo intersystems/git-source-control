@@ -1,4 +1,4 @@
-Include (%occStatus, %occErrors, SourceControl.Git)
+Include (%occStatus, %occErrors, SourceControl.Git, %sySecurity)
 
 Class SourceControl.Git.Utils [ Abstract, ProcedureBlock ]
 {
@@ -99,12 +99,12 @@ ClassMethod GitBinPath(Output isDefault) As %String
 
 ClassMethod GitUserName() As %String
 {
-    quit $get(@..#Storage@("settings","user",$username,"gitUserName"))
+    quit $get(@..#Storage@("settings","user",$username,"gitUserName"),$username)
 }
 
 ClassMethod GitUserEmail() As %String
 {
-    quit $get(@..#Storage@("settings","user",$username,"gitUserEmail"))
+    quit $get(@..#Storage@("settings","user",$username,"gitUserEmail"),$username_"@"_$zconvert(##class(%SYS.System).GetNodeName(),"L"))
 }
 
 ClassMethod PrivateKeyFile() As %String
@@ -120,14 +120,6 @@ ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 ClassMethod InstallNamespace() As %String [ CodeMode = expression ]
 {
 ..#InstallNamespace
-}
-
-ClassMethod AddSlash(path As %String) As %String
-{
-    if path'="" && ($extract(path,*)'=..#Slash) {
-        set path = path_..#Slash
-    }
-    quit path
 }
 
 ClassMethod IsMenuGitCommand(menuItemName As %String) As %Boolean [ CodeMode = expression ]
@@ -1373,27 +1365,30 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
-    set newArgs($increment(newArgs)) = "-C"
-    set newArgs($increment(newArgs)) = ..TempFolder()
+    // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
+    if (command '= "--version") {
+        set newArgs($increment(newArgs)) = "-C"
+        set newArgs($increment(newArgs)) = ..TempFolder()
 
-    set privateKeyFile = ..PrivateKeyFile()
-    if (privateKeyFile '= "") {
-        if $$$isWINDOWS {
-            // Escape slashes
-            set privateKeyFile = $replace(privateKeyFile,"\","\\")
+        set privateKeyFile = ..PrivateKeyFile()
+        if (privateKeyFile '= "") {
+            if $$$isWINDOWS {
+                // Escape slashes
+                set privateKeyFile = $replace(privateKeyFile,"\","\\")
+            }
+            set newArgs($increment(newArgs)) = "-c"
+            // StrictHostKeyChecking=accept-new for good behavior on first connection
+            set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
         }
+
+        set username = ..GitUserName()
+        set email = ..GitUserEmail()
+
         set newArgs($increment(newArgs)) = "-c"
-        // StrictHostKeyChecking=accept-new for good behavior on first connection
-        set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
+        set newArgs($increment(newArgs)) = "user.name="_username
+        set newArgs($increment(newArgs)) = "-c"
+        set newArgs($increment(newArgs)) = "user.email="_email
     }
-
-    set username = ..GitUserName()
-    set email = ..GitUserEmail()
-
-    set newArgs($increment(newArgs)) = "-c"
-    set newArgs($increment(newArgs)) = "user.name="_username
-    set newArgs($increment(newArgs)) = "-c"
-    set newArgs($increment(newArgs)) = "user.email="_email
 
     set newArgs($increment(newArgs)) = command
 
@@ -1470,7 +1465,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         }
     }
     
-    if $$CheckProtect^%qccServer(InternalName) {
+    if '##class(%Library.RoutineMgr).UserType(InternalName) && $$CheckProtect^%qccServer(InternalName) {
         quit ""
     }
        
@@ -1751,6 +1746,45 @@ ClassMethod Localize()
     }
 }
 
+ClassMethod ConfigureWeb()
+{
+    set installNamespace = $Namespace
+    new $Namespace
+    set $Namespace = "%SYS"
+    write !,"Adding favorite for all users... "
+    set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
+        "select ID,?,? from Security.Users"
+    set caption = "Git: "_installNamespace
+    set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
+    do ##class(%SQL.Statement).%ExecDirect(,sql,caption,link).%Display()
+    write !,"Setting GroupById to %ISCMgtPortal for /isc/studio/usertemplates... "
+    set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
+    do ##class(%SQL.Statement).%ExecDirect(,sql).%Display()
+}
+
+ClassMethod CheckInitialization()
+{
+    if ##class(SourceControl.Git.Utils).GitBinExists(.version) {
+        // Note: version includes "git"
+        write !,"Will use "_version_" (already installed and on the PATH)."
+    } else {
+        set path = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
+        if isDefault {
+            write !,"WARNING: Could not find git on the PATH. Confirm that git is installed, then add it to the PATH or point to its path by running: "
+            write !,?5,"do ##class(SourceControl.Git.API).Configure()"
+            write !,"and answering the prompts."
+        } else {
+            write !,path," is not a valid path to a Git executable. Confirm that git is installed, then update the path to it by running: "
+            write !,?5,"do ##class(SourceControl.Git.API).Configure()"
+            write !,"and answering the prompts."
+        }
+    }
+    If '$System.Security.Check("%System_Callout","USE") {
+        write !,"WARNING: You do not have USE privilege on %System_Callout, which is needed to invoke git.",
+            "Unless this privilege is granted to users of the extension, it won't work."
+    }
+}
+
 ClassMethod GetSourceControlInclude() As %String
 {
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
@@ -1808,6 +1842,10 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
         set code($i(code)) = " Do ##class(SourceControl.Git.Utils).Localize()"
         set code($i(code)) = " Write !!"
         set code($i(code)) = " Do ##class(SourceControl.Git.Utils).OutputConfigureMessage()"
+        set code($i(code)) = " Write !!"
+        set code($i(code)) = " Do ##class(SourceControl.Git.Utils).ConfigureWeb()"
+        set code($i(code)) = " Write !!"
+        set code($i(code)) = " Do ##class(SourceControl.Git.Utils).CheckInitialization()"
         
         // Put installer automation in class
         do $System.OBJ.Delete("SourceControl.Git.Installer.CLS","-d")

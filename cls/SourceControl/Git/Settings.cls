@@ -6,25 +6,25 @@ Class SourceControl.Git.Settings Extends %RegisteredObject
 {
 
 /// Path to git executable
-Property gitBinPath As %String;
+Property gitBinPath As %String(MAXLEN = "");
 
 /// Local git repo root folder
-Property namespaceTemp As %String [ InitialExpression = {##class(SourceControl.Git.Utils).TempFolder()}, Required ];
+Property namespaceTemp As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).TempFolder()}, Required ];
 
 /// Path to private key file (for ssh remotes)
-Property privateKeyFile As %String [ InitialExpression = {##class(SourceControl.Git.Utils).PrivateKeyFile()} ];
+Property privateKeyFile As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).PrivateKeyFile()} ];
 
 /// Event handler class for git pull
-Property pullEventClass As %String [ InitialExpression = {##class(SourceControl.Git.Utils).PullEventClass()}, Required ];
+Property pullEventClass As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).PullEventClass()}, Required ];
 
 /// Character to replace % symbol when importing %-classes into the file systems
 Property percentClassReplace As %String [ InitialExpression = {##class(SourceControl.Git.Utils).PercentClassReplace()} ];
 
 /// Attribution: Git username for user ${username}
-Property gitUserName As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()}, Required ];
+Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()} ];
 
 /// Attribution: Email address for user ${username}
-Property gitUserEmail As %String [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()}, Required ];
+Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()} ];
 
 Property Mappings [ MultiDimensional ];
 
@@ -40,6 +40,11 @@ Method %OnNew() As %Status
 
 Method %Save() As %Status
 {
+    set sc = ..%ValidateObject()
+    if $$$ISERR(sc) {
+        quit sc
+    }
+
     set sysStorage = ##class(SourceControl.Git.Utils).InstallNamespaceStorage()
     set storage = ##class(SourceControl.Git.Utils).#Storage
     kill @sysStorage@("%gitBinPath")
@@ -48,7 +53,8 @@ Method %Save() As %Status
     }
     kill ^||GitVersion
     
-    set @storage@("settings","namespaceTemp") = ##class(SourceControl.Git.Utils).AddSlash(..namespaceTemp)
+    set ..namespaceTemp = ##class(%Library.File).NormalizeDirectory(..namespaceTemp)
+    set @storage@("settings","namespaceTemp") = ..namespaceTemp
     if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){
         do ##class(%Library.File).CreateDirectoryChain(@storage@("settings","namespaceTemp"))
     }
@@ -94,3 +100,4 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 }
 
 }
+

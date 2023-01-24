@@ -148,9 +148,22 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set InternalName = "/" _ InternalName
     }
 
+    set externalBrowser = 0
+    set urlPrefix = ""
+    set urlPostfix = ""
+    if $IsObject($Get(%request)) && (%request.Application = "/api/atelier/") && '%request.Secure {
+        // In this case, won't work in an iframe. Need to launch in an external browser.
+        set externalBrowser = 1
+        set urlPrefix = "http://"_%request.CgiEnvs("HTTP_HOST")
+        set token = $Get(%session.Data("WebCSPToken"))
+        set token = ##class(%Atelier.v1.Utils.General).GetCSPToken("/isc/studio/usertemplates/dummy.csp",token)
+        set %session.Data("WebCSPToken") = token
+        set urlPostfix = "CSPCHD="_token
+    }
+
     if (menuItemName = "Settings") {
-        set Action = 2
-        set Target = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?NSpace="_$namespace_"&Username="_$username
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?Namespace="_$namespace_"&Username="_$username_"&"_urlPostfix
     } elseif (menuItemName = "Init") {
         if ##class(%File).CreateDirectoryChain(..TempFolder()) {
             // cleanup items info
@@ -165,8 +178,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             set ec = ..MakeError("Unable to create folder "_..TempFolder())
         }
     } elseif (menuItemName = "GitWebUI") {
-        set Action = 2
-        set Target = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -1881,3 +1894,4 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
+

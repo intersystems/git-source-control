@@ -57,13 +57,10 @@ body {
 </head>
 <body>
 <server>
- new $namespace
- set namespace = %request.Data("NSpace",1)
- set $namespace = namespace
-     
- set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/?CSPSHARE=1"
+ set namespace = $namespace
+ set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
- 
+
  set settings = ##class(SourceControl.Git.Settings).%New()
 
  if $Data(%request.Data("gitsettings",1)) {
@@ -86,7 +83,7 @@ body {
 </server>
 <div class = 'container'>    
     <form method='post'>
-        <input type="hidden" name="NSpace" value="#(..EscapeHTML(namespace))#" />
+        <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">

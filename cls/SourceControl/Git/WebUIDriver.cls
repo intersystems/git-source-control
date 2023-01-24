@@ -212,7 +212,7 @@ ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String
 
 ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 {
-    set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&NSpace="_$namespace_"&Username="_$username
+    set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&Namespace="_$namespace_"&Username="_$username
     set settingsURL = ..GetURLPrefix(%request, settingsURL)
     quit {"url": (settingsURL)}
 }

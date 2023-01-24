@@ -51,6 +51,9 @@ This might look like:
 
 ### Security
 
+#### Unsecured (http) connections
+You really should be connecting to IRIS over a secured (https) connection. If you're not, web pages in this extension will launch in an external browser, because constraints around session cookies keep them from working properly in VSCode.
+
 #### Dubious Ownership
 Newer git versions may produce output like:
 ```

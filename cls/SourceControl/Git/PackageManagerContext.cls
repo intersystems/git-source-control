@@ -34,6 +34,7 @@ ClassMethod ForInternalName(InternalName As %String = "") As SourceControl.Git.P
 {
     set instance = ..%Get()
     set instance.InternalName = InternalName
+    set InternalName = instance.InternalName
     quit instance
 }
 

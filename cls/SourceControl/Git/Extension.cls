@@ -138,13 +138,13 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
         set Enabled = $case(menuItemName,"AddToSC":1,"RemoveFromSC":1,:-1)
     } elseif menuItemName = "Revert" {
         set Enabled = 1
-        do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+        do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
         if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
         }
     } elseif menuItemName = "Commit" {
         set Enabled = 1
-        do ..GetStatus(itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+        do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
         if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
         }
@@ -210,7 +210,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 {
     set sc = $$$OK
     try {
-        set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+        set InternalName = ##class(Utils).NormalizeInternalName(.InternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
         if ##class(Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
             set filename = ##class(Utils).FullExternalName(InternalName)
@@ -277,11 +277,11 @@ Method IsReadOnly(InternalName As %String) As %Boolean
 /// Check the status of the given item
 /// User should be able to edit the item if it is not locked by another user
 /// Check if another user has committed any changes to the item and return the status
-Method GetStatus(InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
+Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
-    set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
+    set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(.InternalName)
     set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
-    set filename=##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+    set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
     set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
     if filename="" quit $$$OK
     if InternalName="" quit $$$OK

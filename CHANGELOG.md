@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Link from WebUI to Settings page works properly (#230)
 - VSCode Web Views launch in external browser when connecting over unsecured connections (#227)
+- DTL/BPL editing through Studio reflected properly in source control
 
 ## [2.1.0] - 2023-01-23
 

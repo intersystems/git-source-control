@@ -45,11 +45,19 @@ Method %Save() As %Status
         quit sc
     }
 
-    set sysStorage = ##class(SourceControl.Git.Utils).InstallNamespaceStorage()
     set storage = ##class(SourceControl.Git.Utils).#Storage
-    kill @sysStorage@("%gitBinPath")
-    if (..gitBinPath '= "") {
-        set @sysStorage@("%gitBinPath") = ..gitBinPath
+    try {
+        set sysStorage = ##class(SourceControl.Git.Utils).%SYSNamespaceStorage()
+        kill @sysStorage@("%gitBinPath")
+        if (..gitBinPath '= "") {
+            set @sysStorage@("%gitBinPath") = ..gitBinPath
+        }
+
+        // Also put in local namespace storage to avoid permissions issues
+        set @storage@("settings","gitBinPath") = ..gitBinPath
+        kill @storage@("settings","gitBinPath")
+    } catch e {
+        // no-op; user might not have privileges.
     }
     kill ^||GitVersion
     
@@ -63,7 +71,7 @@ Method %Save() As %Status
     set @storage@("settings","user",$username,"gitUserEmail") = ..gitUserEmail
     set @storage@("settings","ssh","privateKeyFile") = ..privateKeyFile
     set @storage@("settings","pullEventClass") = ..pullEventClass
-    set @storage@("settings", "percentClassReplace") = ..percentClassReplace
+    set @storage@("settings","percentClassReplace") = ..percentClassReplace
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings

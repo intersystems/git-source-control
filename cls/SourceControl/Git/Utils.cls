@@ -16,15 +16,21 @@ Parameter ImportAfterGitMenuItems = ",Commit,Pull,Fetch,Push,";
 
 Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
-ClassMethod InstallNamespaceStorage() As %String [ CodeMode = expression ]
+ClassMethod %SYSNamespaceStorage() As %String [ CodeMode = expression ]
 {
 $Replace(..#Storage,"^","^["""_..#InstallNamespace_"""]")
 }
 
 /// Returns root temp folder
-ClassMethod DefaultTemp() As %String [ CodeMode = expression ]
+ClassMethod DefaultTemp() As %String
 {
-$Get(@..InstallNamespaceStorage()@("%defaultTemp"), "c:\temp\")
+    set defaultTemp = "c:\temp\"
+    try {
+        set defaultTemp = $Get(@..%SYSNamespaceStorage()@("%defaultTemp"), defaultTemp)
+    } catch e {
+        // no-op
+    }
+    quit defaultTemp
 }
 
 ClassMethod MakeError(msg As %String) As %Status [ CodeMode = expression, Private ]
@@ -91,8 +97,13 @@ ClassMethod GitBinPath(Output isDefault) As %String
 {
     set isDefault = 0
     set binPath = "git"
-    if '$data(@..InstallNamespaceStorage()@("%gitBinPath"),binPath)#2 {
-        set isDefault = 1
+    try {
+        if '$data(@..%SYSNamespaceStorage()@("%gitBinPath"),binPath)#2 {
+            set isDefault = 1
+        }
+    } catch e {
+        // no-op; requires git to be on path in this case.
+        // (can't easily change storage location for backward compatibility)
     }
     quit $case($extract(binPath),"""":binPath,:""""_binPath_"""")
 }
@@ -1907,4 +1918,3 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
-

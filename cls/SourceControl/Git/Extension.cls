@@ -1,7 +1,7 @@
 Import SourceControl.Git
 
 /// Main source control extension class, configured namespace-wide to enable use via VSCode and Studio
-Class SourceControl.Git.Extension Extends %Studio.Extension.Base
+Class SourceControl.Git.Extension Extends %Studio.SourceControl.Base
 {
 
 Parameter DOMAIN = "Studio";
@@ -328,5 +328,10 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
     quit $$$OK
 }
 
+/// Called to add an item to source control.
+Method AddToSourceControl(InternalName As %String, Description As %String = "") As %Status
+{
+	Quit ##class(SourceControl.Git.Utils).AddToSourceControl(InternalName)
 }
 
+}

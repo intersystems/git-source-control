@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Link from WebUI to Settings page works properly (#230)
+- No longer get a "permission denied" message on Linux (#231)
 - VSCode Web Views launch in external browser when connecting over unsecured connections (#227)
 - DTL/BPL editing through Studio reflected properly in source control (#241)
 - Plays nicely with interoperability "Deployment" features (#236)

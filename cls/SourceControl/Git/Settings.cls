@@ -54,8 +54,8 @@ Method %Save() As %Status
         }
 
         // Also put in local namespace storage to avoid permissions issues
-        set @storage@("settings","gitBinPath") = ..gitBinPath
         kill @storage@("settings","gitBinPath")
+        set @storage@("settings","gitBinPath") = ..gitBinPath
     } catch e {
         // no-op; user might not have privileges.
     }

@@ -740,7 +740,7 @@ ClassMethod Type(InternalName As %String) As %String
 	// For an abstract document, use the GetOther() method to try to determine its "real" class
 	If ##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
 		// Check for a real abstract document subclass (or GetOther() may not work)
-		If $classmethod(docclass,"%IsA","%Studio.AbstractDocument") {
+		If $classmethod(docclass,"%IsA","%Studio.AbstractDocument") && $classmethod(docclass,"%Extends","Ens.Util.AbstractDocument") {
 			// Grab the actual name
 			Set actualName = $classmethod(docclass,"GetOther",InternalName)
 			// The actualName is only valid if we get a single .cls as a result
@@ -1492,7 +1492,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
     // For an abstract document, use the GetOther() method to try to determine its "real" class
     if usertype,##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
         // Check for a real abstract document subclass (or GetOther() may not work)
-        if $classmethod(docclass,"%IsA","%Studio.AbstractDocument") {
+        if $classmethod(docclass,"%IsA","%Studio.AbstractDocument") && $classmethod(docclass,"%Extends","Ens.Util.AbstractDocument") {
             // Grab the actual name
             set actualName = $classmethod(docclass,"GetOther",InternalName)
             // The actualName is only valid if we get a single .cls as a result
@@ -1919,3 +1919,4 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
+

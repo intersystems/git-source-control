@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git Fetch, Git Pull, and Load to IRIS</title>
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+<link rel="stylesheet" type="text/css" href="css/git-webui.css" />
+</head>
+<body>
+<pre id="preview" style="white-space: pre-wrap;">
+</pre>
+<button id="execute" onclick="execute()" disabled="true">Pull and Load Changes</button>
+<pre id="pull" style="white-space: pre-wrap;">
+</pre>
+<script type="text/javascript">
+function preview() {
+    var socketURL = window.location.href.replace('http','ws').replace('pull.csp','socket.csp');
+    socketURL += "&method=preview"
+	var ws = new WebSocket(socketURL);
+	ws.onmessage = function(event) {
+		// IE retains the newlines that $System.Encryption.Base64Encode adds after every 76 characters;
+		// these are therefore removed.
+		var msg = JSON.parse(atob(event.data.split('\r\n').join('')));
+		document.getElementById('preview').innerHTML += msg.content;
+	}
+    ws.onclose = function(event) {
+        document.getElementById('execute').disabled = false;
+    }
+}
+
+function execute() {
+    var socketURL = window.location.href.replace('http','ws').replace('pull.csp','socket.csp');
+    socketURL += "&method=pull"
+	var ws = new WebSocket(socketURL);
+	ws.onmessage = function(event) {
+		// IE retains the newlines that $System.Encryption.Base64Encode adds after every 76 characters;
+		// these are therefore removed.
+		var msg = JSON.parse(atob(event.data.split('\r\n').join('')));
+		document.getElementById('pull').innerHTML += msg.content;
+	}
+    ws.onclose = function(event) {
+        // TODO: detect errors
+    }
+}
+
+preview();
+</script>
+</body>
+</html>

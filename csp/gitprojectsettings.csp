@@ -147,11 +147,34 @@ body {
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
             <label for="namespaceTemp" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
+            <server>
+                set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
+                if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
+                    set class = "form-control is-valid"
+                } else {
+                    set class = "form-control"
+                }
+            </server>
             <div class="col-sm-7">
-                <input type="text" class="form-control" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
+                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
             </div>
         </div>
-
+        <server>
+            set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
+            if (settings.namespaceTemp '= "") && '##class(%File).DirectoryExists(dir_".git") {
+                &html<
+                <div class="form-group row mb-3">
+                    <div class="col-sm-4"></div>
+                    <div class="col-sm-8 neutral-feedback">
+                        <span id="initMsg">Git has not been not initialized for folder.</span>
+                        <button id="initBtn" onclick="init(); return false;" class="btn btn-sm btn-outline-dark">Initialize</button>
+                        <button id="cloneBtn" onclick="clone(); return false;" class="btn btn-sm btn-outline-dark">Clone...</button>
+                        <pre id="initOutput"></pre>
+                    </div>
+                </div>
+                >
+            }
+        </server>
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
             <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
@@ -169,15 +192,43 @@ body {
                     } else {
                         set class = "form-control is-invalid"
                         set divClass = "invalid-feedback"
-                        set feedbackText = "File not found"
+                        set feedbackText = "<button class='btn btn-sm btn-outline-dark' onclick='genSSH(); return false;'>"_
+                            "File not found - generate a new key pair?"_
+                            "</button>"
                     }
                 </server>
                 <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
                 <div class = "#(divClass)#">
                     #(feedbackText)#
+                    <pre id="sshOutput"></pre>
                 </div>
             </div>
         </div>
+
+        <server>
+        if (settings.privateKeyFile '= "") && fileExists {
+            set pubKeyName = settings.privateKeyFile_".pub"
+            if ##class(%File).Exists(pubKeyName) {
+                set pubStream = ##class(%Stream.FileCharacter).%OpenId(pubKeyName)
+                set pubKeyText = ""
+                while 'pubStream.AtEnd {
+                    set pubKeyText = pubKeyText_pubStream.Read()
+                }
+                &html<
+                    <div class="form-group row mb-3">
+                        <div class="col-sm-1"></div>
+                        <div class="col-sm-3">Public key:</div>
+                        <div class="col-sm-5">
+                            <pre id="publicKey">#(pubKeyText)#</pre>
+                        </div>
+                        <div class="col-sm-1">
+                            <button class='btn btn-sm btn-outline-dark' onclick="copyToClipboard('publicKey'); return false;">Copy</button>
+                        </div>
+                    </div>
+                >
+            }
+        }
+        </server>
 
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
@@ -332,6 +383,50 @@ body {
 <script src="js/popper.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script type="text/javascript">
+function getSocket(urlPostfix) {
+    var socketURL = window.location.href.replace('http','ws').replace('gitprojectsettings.csp','socket.csp') + "&" + urlPostfix;
+	return new WebSocket(socketURL);
+}
+
+function init() {
+    disableActionButtons();
+	var ws = getSocket("method=init");
+	ws.onmessage = showOutput('initOutput');
+}
+
+function clone() {
+    var remote = prompt("Enter URL for repository to clone:");
+    if ((remote == null) || (remote == "")) {
+        return;
+    }
+    disableActionButtons();
+	var ws = getSocket("method=clone&remote=" + encodeURIComponent(remote));
+	ws.onmessage = showOutput('initOutput');
+}
+
+function genSSH() {
+	var ws = getSocket("method=sshkeygen");
+	ws.onmessage = showOutput('sshOutput');
+}
+
+function copyToClipboard(elementId) {
+  navigator.clipboard.writeText(document.getElementById(elementId).innerText);
+}
+
+function disableActionButtons()
+{
+    document.getElementById('initBtn').disabled = true;
+    document.getElementById('cloneBtn').disabled = true;
+}
+
+function showOutput(target) {
+    return function(event) {
+        // IE retains the newlines that $System.Encryption.Base64Encode adds after every 76 characters;
+        // these are therefore removed.
+        var msg = JSON.parse(atob(event.data.split('\r\n').join('')));
+        document.getElementById(target).innerHTML += msg.content;
+    }
+}
 
 $(function () {
     $('[data-toggle="tooltip"]').tooltip({

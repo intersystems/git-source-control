@@ -16,7 +16,7 @@
 </pre>
 <script type="text/javascript">
 function preview() {
-    var socketURL = window.location.href.replace('http','ws').replace('pull.csp','socket.csp');
+    var socketURL = window.location.href.replace('http','ws').replace('pull.csp','_zpkg.isc.sc.git.Socket.cls');
     socketURL += "&method=preview"
 	var ws = new WebSocket(socketURL);
 	ws.onmessage = function(event) {
@@ -31,7 +31,7 @@ function preview() {
 }
 
 function execute() {
-    var socketURL = window.location.href.replace('http','ws').replace('pull.csp','socket.csp');
+    var socketURL = window.location.href.replace('http','ws').replace('pull.csp','_zpkg.isc.sc.git.Socket.cls');
     socketURL += "&method=pull"
 	var ws = new WebSocket(socketURL);
 	ws.onmessage = function(event) {

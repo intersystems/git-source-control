@@ -384,7 +384,7 @@ body {
 <script src="js/bootstrap.min.js"></script>
 <script type="text/javascript">
 function getSocket(urlPostfix) {
-    var socketURL = window.location.href.replace('http','ws').replace('gitprojectsettings.csp','socket.csp') + "&" + urlPostfix;
+    var socketURL = window.location.href.replace('http','ws').replace('gitprojectsettings.csp','_zpkg.isc.sc.git.Socket.cls') + "&" + urlPostfix;
 	return new WebSocket(socketURL);
 }
 

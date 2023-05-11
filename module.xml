@@ -11,6 +11,7 @@
       <!-- Extension source (classes/include) -->
       <Resource Name="SourceControl.Git.PKG" Directory="cls" />
       <Resource Name="SourceControl.Git.INC" Directory="inc" />
+      <Resource Name="%zpkg.isc.sc.git.PKG" Directory="cls" FilenameTranslateIdentifier="%." FilenameTranslateAssociator="_/" />
 
       <!-- Unit tests -->
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
@@ -19,7 +20,6 @@
       <!-- Can't call the folder git-source-control because this causes errors in CSP compliation! -->
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
       <FileCopy Name="csp/pull.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/pull.csp" />
-      <FileCopy Name="csp/socket.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/socket.csp" />
       <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 

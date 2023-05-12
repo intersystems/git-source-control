@@ -446,18 +446,14 @@ ClassMethod Clone(remote As %String)
 ClassMethod GenerateSSHKeyPair()
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
-    set file = ##class(%Stream.FileCharacter).%New()
     set dir = ##class(%File).GetDirectory(settings.privateKeyFile)
-    if (file = "") {
-        Throw ##class(%Exception.General).%New("File "_file_" already exists")
-    }
     if ##class(%File).Exists(settings.privateKeyFile) {
-        Throw ##class(%Exception.General).%New("File "_file_" already exists")
+        Throw ##class(%Exception.General).%New("File "_settings.privateKeyFile_" already exists")
     }
     do ##class(%File).CreateDirectoryChain(dir)
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
-    do $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_" /STDIN="_$$$QUOTE(file.Filename),
+    do $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
         "ssh-keygen",
         "-t","ed25519",
         "-C",settings.gitUserEmail,

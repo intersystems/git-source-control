@@ -19,7 +19,7 @@ jobs:
       
       # ** FOR GENERAL USE, LIKELY NEED TO CHANGE **
       package: git-source-control
-      container_image: intersystemsdc/iris-community:2023.1.0.229.0-zpm #TODO: switch back to latest when stable
+      container_image: intersystemsdc/iris-community:latest
       
       # ** FOR GENERAL USE, MAY NEED TO CHANGE **
       build_flags: -dev -verbose

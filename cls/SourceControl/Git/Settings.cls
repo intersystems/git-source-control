@@ -119,6 +119,7 @@ Method OnAfterConfigure() As %Boolean
         }
         if value {
             #dim workMgr As %SYSTEM.AbstractWorkMgr
+             // using work queue manager ensures proper OS user context when running ssh-keygen
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).GenerateSSHKeyPair"))
             $$$ThrowOnError(workMgr.Sync())
@@ -146,6 +147,7 @@ Method OnAfterConfigure() As %Boolean
             }
         }
         if (value = 1) {
+             // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.Sync())
@@ -157,6 +159,7 @@ Method OnAfterConfigure() As %Boolean
             if (remote = "") {
                 quit
             }
+             // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.Sync())

@@ -441,7 +441,7 @@ ClassMethod NormalizeFolder(folder As %String) As %String
 
 ClassMethod ExternalName(InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
-    quit ..Name(.InternalName,.MappingExists)
+    quit $Replace(..Name(.InternalName,.MappingExists),"/",..#Slash)
 }
 
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status

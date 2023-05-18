@@ -267,13 +267,14 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     quit $$$OK
 }
 
-ClassMethod Init()
+ClassMethod Init() As %Status
 {
     do ..RunGitCommand("init",.errStream,.outStream)
     $$$NewLineIfNonEmptyStream(errStream)
     do errStream.OutputToDevice()
     $$$NewLineIfNonEmptyStream(outStream)
     do outStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod Revert(InternalName As %String) As %Status
@@ -433,22 +434,30 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
     quit event.OnPull()
 }
 
-ClassMethod Clone(remote As %String)
+ClassMethod Clone(remote As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
+    // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
     set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
     $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
+    while 'errStream.AtEnd {
+        write errStream.ReadLine(),!
+    }
     $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
+    while 'outStream.AtEnd {
+        write outStream.ReadLine(),!
+    }
+    quit $$$OK
 }
 
-ClassMethod GenerateSSHKeyPair()
+ClassMethod GenerateSSHKeyPair() As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
-    set dir = ##class(%File).GetDirectory(settings.privateKeyFile)
-    if ##class(%File).Exists(settings.privateKeyFile) {
-        Throw ##class(%Exception.General).%New("File "_settings.privateKeyFile_" already exists")
+    set filename = settings.privateKeyFile
+    set email = settings.gitUserEmail
+    set dir = ##class(%File).GetDirectory(filename)
+    if ##class(%File).Exists(filename) {
+        Throw ##class(%Exception.General).%New("File "_filename_" already exists")
     }
     do ##class(%File).CreateDirectoryChain(dir)
     set outLog = ##class(%Library.File).TempFilename()
@@ -456,8 +465,8 @@ ClassMethod GenerateSSHKeyPair()
     do $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
         "ssh-keygen",
         "-t","ed25519",
-        "-C",settings.gitUserEmail,
-        "-f",settings.privateKeyFile,
+        "-C",email,
+        "-f",filename,
         "-N","")
     
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
@@ -468,6 +477,7 @@ ClassMethod GenerateSSHKeyPair()
     }
     do outStream.OutputToDevice()
     do errStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]
@@ -1973,4 +1983,3 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
-

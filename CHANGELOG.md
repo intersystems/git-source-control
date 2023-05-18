@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - Unreleased
+
+### Added
+- Page to support deployment (git pull and run pull event handler) with verbose output
+- Support for git clone to initialize namespace via Settings page and `##class(SourceControl.Git.API).Configure()` (#234, #237)
+- Support for automatically creating SSH keys for use as deploy keys via Settings page and `Configure()` (#33)
+
+### Fixed
+- Protect against Favorites links containing control characters (#254)
+- Green checks for valid paths shown consistently (#229)
+
 ## [2.1.1] - 2023-02-24
 
 ### Fixed

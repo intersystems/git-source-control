@@ -40,9 +40,9 @@ ClassMethod Configure()
 }
 
 /// API for git pull - just wraps Utils
-ClassMethod Pull()
+ClassMethod Pull(preview As %Boolean = 0)
 {
-    quit ##class(SourceControl.Git.Utils).Pull()
+    quit ##class(SourceControl.Git.Utils).Pull(,.preview)
 }
 
 /// Locks the environment to prevent changes to code other than through git pull.

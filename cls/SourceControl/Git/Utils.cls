@@ -180,11 +180,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             // cleanup items info
             kill @..#Storage@("items")
             kill @..#Storage@("TSH")
-            do ..RunGitCommand("init",.errStream,.outStream)
-            $$$NewLineIfNonEmptyStream(errStream)
-            do errStream.OutputToDevice()
-            $$$NewLineIfNonEmptyStream(outStream)
-            do outStream.OutputToDevice()
+            do ..Init()
         } else {
             set ec = ..MakeError("Unable to create folder "_..TempFolder())
         }
@@ -271,6 +267,16 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     quit $$$OK
 }
 
+ClassMethod Init() As %Status
+{
+    do ..RunGitCommand("init",.errStream,.outStream)
+    $$$NewLineIfNonEmptyStream(errStream)
+    do errStream.OutputToDevice()
+    $$$NewLineIfNonEmptyStream(outStream)
+    do outStream.OutputToDevice()
+    quit $$$OK
+}
+
 ClassMethod Revert(InternalName As %String) As %Status
 {
     set filename = ..FullExternalName(.InternalName)
@@ -342,7 +348,7 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
     quit $$$OK
 }
 
-ClassMethod Pull(remote As %String = "origin") As %Status
+ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Status
 {
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
@@ -376,7 +382,12 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     }
     if ('$data(files)) {
         write !, ?4, "None"
-        write !, "Already up to date. Git Pull will not be executed."
+        if preview {
+            quit $$$OK
+        }
+        write !, "Already up to date."
+        quit $$$OK
+    } elseif preview {
         quit $$$OK
     }
 
@@ -421,6 +432,52 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set event.LocalRoot = ..TempFolder()
     merge event.ModifiedFiles = files
     quit event.OnPull()
+}
+
+ClassMethod Clone(remote As %String) As %Status
+{
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
+    set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
+    $$$NewLineIfNonEmptyStream(errStream)
+    while 'errStream.AtEnd {
+        write errStream.ReadLine(),!
+    }
+    $$$NewLineIfNonEmptyStream(outStream)
+    while 'outStream.AtEnd {
+        write outStream.ReadLine(),!
+    }
+    quit $$$OK
+}
+
+ClassMethod GenerateSSHKeyPair() As %Status
+{
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    set filename = settings.privateKeyFile
+    set email = settings.gitUserEmail
+    set dir = ##class(%File).GetDirectory(filename)
+    if ##class(%File).Exists(filename) {
+        Throw ##class(%Exception.General).%New("File "_filename_" already exists")
+    }
+    do ##class(%File).CreateDirectoryChain(dir)
+    set outLog = ##class(%Library.File).TempFilename()
+    set errLog = ##class(%Library.File).TempFilename()
+    do $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
+        "ssh-keygen",
+        "-t","ed25519",
+        "-C",email,
+        "-f",filename,
+        "-N","")
+    
+    set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
+    set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
+    set outStream.TranslateTable="UTF8"
+    for stream=errStream,outStream {
+        set stream.RemoveOnClose = 1
+    }
+    do outStream.OutputToDevice()
+    do errStream.OutputToDevice()
+    quit $$$OK
 }
 
 ClassMethod IsNamespaceInGit() As %Boolean [ CodeMode = expression ]
@@ -1789,15 +1846,22 @@ ClassMethod ConfigureWeb()
     set installNamespace = $Namespace
     new $Namespace
     set $Namespace = "%SYS"
-    write !,"Adding favorite for all users... "
+    write !,"Adding favorites for all users:"
     set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
         "select ID,?,? from Security.Users"
     set caption = "Git: "_installNamespace
     set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
-    do ##class(%SQL.Statement).%ExecDirect(,sql,caption,link).%Display()
+    write !,"Adding Git favorite... "
+    set statement = ##class(%SQL.Statement).%New()
+    set statement.%SelectMode = 0
+    do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link).%Display()
+    set caption = "Git Pull: "_installNamespace
+    set link = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE="_installNamespace
+    write !,"Adding Git Pull favorite... "
+    do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link).%Display()
     write !,"Setting GroupById to %ISCMgtPortal for /isc/studio/usertemplates... "
     set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
-    do ##class(%SQL.Statement).%ExecDirect(,sql).%Display()
+    do ##class(%SQL.Statement).%ExecDirect(statement,sql).%Display()
 }
 
 ClassMethod CheckInitialization()
@@ -1919,4 +1983,3 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
-

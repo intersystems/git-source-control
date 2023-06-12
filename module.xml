@@ -3,7 +3,7 @@
   <Document name="git-source-control.ZPM">
     <Module>
       <Name>git-source-control</Name>
-      <Version>2.1.1</Version>
+      <Version>2.2.0</Version>
       <Description>Server-side source control extension for use of Git on InterSystems platforms</Description>
       <Keywords>git source control studio vscode</Keywords>
       <Packaging>module</Packaging>
@@ -11,6 +11,7 @@
       <!-- Extension source (classes/include) -->
       <Resource Name="SourceControl.Git.PKG" Directory="cls" />
       <Resource Name="SourceControl.Git.INC" Directory="inc" />
+      <Resource Name="%zpkg.isc.sc.git.PKG" Directory="cls" FilenameTranslateIdentifier="%." FilenameTranslateAssociator="_/" />
 
       <!-- Unit tests -->
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
@@ -18,6 +19,7 @@
       <!-- Pages for the Git menu in Studio/VSCode - moved to /isc/studio/usertemplates -->
       <!-- Can't call the folder git-source-control because this causes errors in CSP compliation! -->
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
+      <FileCopy Name="csp/pull.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/pull.csp" />
       <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 

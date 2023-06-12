@@ -11,7 +11,7 @@ Property gitBinPath As %String(MAXLEN = "");
 /// Local git repo root folder
 Property namespaceTemp As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).TempFolder()}, Required ];
 
-/// Path to private key file (for ssh remotes)
+/// Path to private key file for SSH remotes; if file does not exist, later prompts will help set it up with proper ownership
 Property privateKeyFile As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).PrivateKeyFile()} ];
 
 /// Event handler class for git pull
@@ -104,8 +104,67 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     }
     do %code.WriteLine(" $$$ThrowOnError(inst.%Save())")
     do %code.WriteLine(" write !,""Settings saved.""")
+    do %code.WriteLine(" do inst.OnAfterConfigure()")
     do %code.WriteLine(" quit 1")
 }
 
+Method OnAfterConfigure() As %Boolean
+{
+    set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
+    if (..privateKeyFile '= "") && '##class(%File).Exists(..privateKeyFile) {
+        set value = 1
+        set response = ##class(%Library.Prompt).GetYesNo("Do you wish to create a new SSH key pair?",.value,,defaultPromptFlag)
+        if (response '= $$$SuccessResponse) {
+            quit
+        }
+        if value {
+            #dim workMgr As %SYSTEM.AbstractWorkMgr
+             // using work queue manager ensures proper OS user context when running ssh-keygen
+            set workMgr = $System.WorkMgr.%New("")
+            $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).GenerateSSHKeyPair"))
+            $$$ThrowOnError(workMgr.Sync())
+            set pubKeyName = ..privateKeyFile_".pub"
+            if ##class(%File).Exists(pubKeyName) {
+                set pubStream = ##class(%Stream.FileCharacter).%OpenId(pubKeyName,,.sc)
+                $$$ThrowOnError(sc)
+                Write !,"Public key (for use as ""deploy key"", etc.):",!
+                do pubStream.OutputToDevice()
+                Write !
+            }
+        }
+    }
+
+    set gitDir = ##class(%File).NormalizeDirectory(..namespaceTemp)_".git"
+    if '##class(%File).DirectoryExists(gitDir) {
+        set list(1) = "Initialize empty repo"
+        set list(2) = "Clone..."
+        set list(3) = "Do nothing"
+        set value = ""
+        while ('+$get(value)) {
+            set response = ##class(%Library.Prompt).GetMenu("No git repo exists in "_..namespaceTemp_". Choose an option:",.value,.list,,defaultPromptFlag + $$$InitialDisplayMask)
+            if (response '= $$$SuccessResponse) && (response '= $$$BackupResponse) {
+                return
+            }
+        }
+        if (value = 1) {
+             // using work queue manager ensures proper OS user context/file ownership
+            set workMgr = $System.WorkMgr.%New("")
+            $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
+            $$$ThrowOnError(workMgr.Sync())
+        } elseif (value = 2) {
+            set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
+            if (response '= $$$SuccessResponse) {
+                quit
+            }
+            if (remote = "") {
+                quit
+            }
+             // using work queue manager ensures proper OS user context/file ownership
+            set workMgr = $System.WorkMgr.%New("")
+            $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
+            $$$ThrowOnError(workMgr.Sync())
+        }
+    }
 }
 
+}

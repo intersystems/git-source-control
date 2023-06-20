@@ -266,7 +266,7 @@ Method OnAfterDelete(InternalName As %String) As %Status
 /// the routine/class/csp item. This is often a filename to write the file out to.
 Method ExternalName(InternalName As %String) As %String
 {
-    quit ##class(Utils).Name(InternalName)
+    quit ##class(Utils).ExternalName(InternalName)
 }
 
 Method IsReadOnly(InternalName As %String) As %Boolean

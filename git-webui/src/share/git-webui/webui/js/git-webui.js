@@ -322,26 +322,35 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             }
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
-                var refname = ref.substring(2);
+                // parses the output of git branch --verbose --verbose
+                var branchInfo = /^\*?\s*(?<branch_name>[\w-]+)\s+(?<hash>[^\s]+)\s+(?<remote>\[.*\])?.*/.exec(ref).groups;
+                var refname = branchInfo.branch_name;
+                var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.includes("ahead")) // either no upstream or ahead of upstream
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + refname
                             + '</button>').appendTo(cardHeader);
                 
+                var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-parent="#accordion-'+id+'-'+idPostfix+'">').appendTo(cardDiv);
                 if(ref[0] != "*") {
-                    var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-parent="#accordion-'+id+'-'+idPostfix+'">').appendTo(cardDiv);
                     var cardBody = $('<div class="card-body">' +
                                     '<div class="d-grid gap-2 col-12 mx-auto">'+
                                         '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-warning btn-block btn-merge-branch">Merge Branch</button>'+
+                                        (canPush ? '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>' : '')+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);
-                }
-                
-                if (ref[0] == "*") {
+                } else {
                     $(button).addClass("branch-current");
+                    if (canPush) {
+                        var cardBody = $('<div class="card-body">' +
+                                        '<div class="d-grid gap-2 col-12 mx-auto">'+
+                                            '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>'+
+                                        '</div>'+
+                                    '</div>').appendTo(collapseDiv);
+                    }
                 }
             } else {
                 var refname = ref.replaceAll('/', '-');
@@ -642,6 +651,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         webui.git("merge --no-commit --no-ff "+refName, "", self.upToDateHandler, callTestMergeHandler, callTestMergeHandler);
     }
 
+    /// pushes the selected local branch to "origin"
+    self.pushBranch = function(e){
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+        webui.git(`push -u origin ${refName}`, "", self.upToDateHandler)
+    }
+
     self.goToSettingsPage = function() {
         window.location.replace(webui.settingsURL);
     }
@@ -667,7 +684,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     $(self.buildAccordion(section, refs, id, undefined, "popup")).appendTo(popupContent);
                     // Hide popup when the user selects a branch operation 
                     // Then execute the required operation with other even listeners
-                    $(popupContent).find(".btn-delete-branch, .btn-checkout-local-branch, .btn-checkout-remote-branch, .btn-merge-remote-branch, .btn-merge-branch").click(function() {
+                    $(popupContent).find(".btn-delete-branch, .btn-checkout-local-branch, .btn-checkout-remote-branch, .btn-merge-remote-branch, .btn-merge-branch, .btn-push-branch").click(function() {
                         $(popup).modal('hide');
                     });
                 }
@@ -742,12 +759,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
     }
 
-    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch");
+    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
     self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
 
     if(!noEventHandlers){
         $(document).on('click', '.btn-checkout-local-branch', self.checkoutBranch);
+        $(document).on('click', '.btn-push-branch', self.pushBranch);
         $(document).on('click', '.btn-checkout-remote-branch', self.checkoutBranch);
 
         $(document).on('click', '.btn-delete-branch', self.deleteLocalBranch);

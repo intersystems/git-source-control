@@ -329,19 +329,23 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 + refname
                             + '</button>').appendTo(cardHeader);
                 
+                var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-parent="#accordion-'+id+'-'+idPostfix+'">').appendTo(cardDiv);
                 if(ref[0] != "*") {
-                    var collapseDiv = $('<div id="collapse-'+ itemId +'" class="accordion-collapse collapse" aria-labelledby="heading-' + itemId +'" data-parent="#accordion-'+id+'-'+idPostfix+'">').appendTo(cardDiv);
                     var cardBody = $('<div class="card-body">' +
                                     '<div class="d-grid gap-2 col-12 mx-auto">'+
                                         '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-warning btn-block btn-merge-branch">Merge Branch</button>'+
+                                        '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>'+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);
-                }
-                
-                if (ref[0] == "*") {
+                } else {
                     $(button).addClass("branch-current");
+                    var cardBody = $('<div class="card-body">' +
+                                    '<div class="d-grid gap-2 col-12 mx-auto">'+
+                                        '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>'+
+                                    '</div>'+
+                                '</div>').appendTo(collapseDiv);
                 }
             } else {
                 var refname = ref.replaceAll('/', '-');
@@ -642,6 +646,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         webui.git("merge --no-commit --no-ff "+refName, "", self.upToDateHandler, callTestMergeHandler, callTestMergeHandler);
     }
 
+    /// pushes the selected local branch to "origin"
+    self.pushBranch = function(e){
+        e.preventDefault();
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+        webui.git(`push -u origin ${refName}`, "", self.upToDateHandler)
+    }
+
     self.goToSettingsPage = function() {
         window.location.replace(webui.settingsURL);
     }
@@ -667,7 +679,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     $(self.buildAccordion(section, refs, id, undefined, "popup")).appendTo(popupContent);
                     // Hide popup when the user selects a branch operation 
                     // Then execute the required operation with other even listeners
-                    $(popupContent).find(".btn-delete-branch, .btn-checkout-local-branch, .btn-checkout-remote-branch, .btn-merge-remote-branch, .btn-merge-branch").click(function() {
+                    $(popupContent).find(".btn-delete-branch, .btn-checkout-local-branch, .btn-checkout-remote-branch, .btn-merge-remote-branch, .btn-merge-branch, .btn-push-branch").click(function() {
                         $(popup).modal('hide');
                     });
                 }
@@ -748,6 +760,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
     if(!noEventHandlers){
         $(document).on('click', '.btn-checkout-local-branch', self.checkoutBranch);
+        $(document).on('click', '.btn-push-branch', self.pushBranch);
         $(document).on('click', '.btn-checkout-remote-branch', self.checkoutBranch);
 
         $(document).on('click', '.btn-delete-branch', self.deleteLocalBranch);

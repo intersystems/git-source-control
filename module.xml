@@ -3,7 +3,7 @@
   <Document name="git-source-control.ZPM">
     <Module>
       <Name>git-source-control</Name>
-      <Version>2.2.2</Version>
+      <Version>2.3.0</Version>
       <Description>Server-side source control extension for use of Git on InterSystems platforms</Description>
       <Keywords>git source control studio vscode</Keywords>
       <Packaging>module</Packaging>

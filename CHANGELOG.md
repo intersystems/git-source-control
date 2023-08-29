@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Studio export path doesn't get weird mixed slahes on Windows (#252)
+- Fixed bug with adding mappings through the Settings page (#270)
 - Pulling add/delete of multiple non-IRIS files no longer causes error (#273)
 
 ## [2.2.0] - 2023-06-05

@@ -67,6 +67,11 @@ ClassMethod PercentClassReplace() As %Status [ CodeMode = expression ]
 $Get(@..#Storage@("settings","percentClassReplace"), "")
 }
 
+ClassMethod SettingsUIReadOnly() As %Status [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
+}
+
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {
@@ -1983,3 +1988,4 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 }
 
 }
+

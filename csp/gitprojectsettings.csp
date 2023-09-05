@@ -62,34 +62,35 @@ body {
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
 
  set settings = ##class(SourceControl.Git.Settings).%New()
-
- if $Data(%request.Data("gitsettings",1)) {
-    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
-        set $Property(settings,param) = $Get(%request.Data(param,1))
-    }
-    set i = 1
-    set param = "NoFolders"
-    kill settings.Mappings
-    
-    while ( $Get(%request.Data("MappingsExt",i)) '= "" ){
-        if ($Get(%request.Data(param,i)) = "NoFolders"){
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+ if ('settings.settingsUIReadOnly) {
+    if $Data(%request.Data("gitsettings",1)) {
+        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
+            set $Property(settings,param) = $Get(%request.Data(param,1))
         }
-        set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
-        set i = i+1
+        set i = 1
+        set param = "NoFolders"
+        kill settings.Mappings
+        
+        while ( $Get(%request.Data("MappingsExt",i)) '= "" ){
+            if ($Get(%request.Data(param,i)) = "NoFolders"){
+                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+            }
+            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+            set i = i+1
+        }
+        do settings.%Save()
     }
-    do settings.%Save()
 }
 </server>
 <div class = 'container'>    
-    <form method='post'>
+    <form id="settingsForm" method='post'>
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">
             <div class="col-sm-1"></div>
             <div class="col-sm-8">
-                <h1>Git Project Settings</h1>
+                <h1>Git Project Settings #($select(settings.settingsUIReadOnly:"(Read-Only)",1:""))#</h1>
             </div>
             <div class="col-sm-2">
                 <button class="btn btn-lg btn-outline-dark" id="goToWebUI">Go to WebUI
@@ -367,11 +368,13 @@ body {
 
         <br/>
 
-        <div class="form-group row mb-3">
-            <div class="col-sm-12 text-center">
-                <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
+        <csp:if condition="'settings.settingsUIReadOnly">
+            <div class="form-group row mb-3">
+                <div class="col-sm-12 text-center">
+                    <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
+                </div>
             </div>
-        </div>
+        </csp:if>
         
     </form>
     <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
@@ -435,6 +438,11 @@ $(function () {
 });
 $(function()
 {
+    if (#(settings.settingsUIReadOnly)#) {
+        $(document).ready( function() {
+            $("#settingsForm input, select").attr("disabled",true);
+        })
+    }
     $(document).on('click', '.btn-add', function(e)
     {
         e.preventDefault();

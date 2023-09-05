@@ -71,11 +71,13 @@ body {
         set param = "NoFolders"
         kill settings.Mappings
         
-        while ( $Get(%request.Data("MappingsExt",i)) '= "" ){
-            if ($Get(%request.Data(param,i)) = "NoFolders"){
-                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
-            }
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+        while ( $Data(%request.Data("MappingsExt",i)) ){
+        if ($get(%request.Data("MappingsExt",i)) '= "") {
+                if ($Get(%request.Data(param,i)) = "NoFolders"){
+                    set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+                }
+                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+        }
             set i = i+1
         }
         do settings.%Save()
@@ -260,7 +262,43 @@ body {
                     </svg>
                 </button>
             </div>
+            <script language="cache" method="MakeMappingRow" arguments="extKey,covKey,mapPath,noFolders,checked,activated,tooltipTitle,idx,isTemplate">
+                &html<<div class="voca col-sm-7" #($select(isTemplate:"hidden",1:""))#>
+                    <div class = "input-group mb-1">
+                        <input type="text" class="form-control required" id="MappingsExt" name="MappingsExt" value="#(extKey)#" placeholder="Extension" #($select(isTemplate:"",1:"required"))#>
+                        <input type="text" class="form-control required" id="MappingsCov" name="MappingsCov" value="#(covKey)#" placeholder="Coverage" #($select(isTemplate:"",1:"required"))#>
+                        <input type="text" class="form-control required" id="MappingsPath" name="MappingsPath" value="#(mapPath)#" placeholder="Relative path" #($select(isTemplate:"",1:"required"))#>
+                        <input type="text" class="form-control" id="NoFolders" name="NoFolders" value="#(noFolders)#" placeholder="To folder, or not to folder, that is the question." readonly>
+                        <div class="custom-control custom-switch" data-delay='{"show":"1000", "hide":"100"}' data-toggle="tooltip" data-placement="top" title="#(tooltipTitle)#">
+                            <input type="checkbox" class="#("custom-control-input"_activated)#" id="#("noFoldersSwitch"_idx)#" #(checked)#>
+                            <label class="custom-control-label" for="#("noFoldersSwitch"_idx)#">>
+
+                            if (checked '= ""){
+                                &html<<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#007bff" class="bi bi-folder-fill" viewBox="0 0 16 16">
+                                    <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139z"/>
+                                </svg>>                                        
+                            } else{
+                                &html<<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">
+                                    <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+                                    <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293l-1.146-1.147z"/>
+                                </svg>>
+                            }
+                            
+                            &html<</label>
+                        </div>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-remove" >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#dc3545" class="bi bi-dash-circle-fill" viewBox="0 0 16 16">
+                                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>>
+            </script>
             <script language="cache" runat=server>
+                // make a hidden template row
+                do ..MakeMappingRow("","","","","checked"," active","","",1)
                 set extKey = ""
                 set idx = 1
                 for {
@@ -293,40 +331,7 @@ body {
                             set noFolders = """"""
                             set tooltipTitle = """Switch off to store files in a flat directory structure."""
                         }
-
-                        &html<<div class="voca col-sm-7">
-                            <div class = "input-group mb-1">
-                                <input type="text" class="form-control" id="MappingsExt" name="MappingsExt" value=#(extKey)# placeholder="Extension" required>
-                                <input type="text" class="form-control" id="MappingsCov" name="MappingsCov" value=#(covKey)# placeholder="Coverage" required>
-                                <input type="text" class="form-control" id="MappingsPath" name="MappingsPath" value=#(mapPath)# placeholder="Relative path" required>
-                                <input type="text" class="form-control" id="NoFolders" name="NoFolders" value=#(noFolders)# placeholder="To folder, or not to folder, that is the question." readonly>
-                                <div class="custom-control custom-switch" data-delay='{"show":"1000", "hide":"100"}' data-toggle="tooltip" data-placement="top" title=#(tooltipTitle)#>
-                                    <input type="checkbox" class="#("custom-control-input"_activated)#" id=#("noFoldersSwitch"_idx)# #(checked)#>
-                                    <label class="custom-control-label" for=#("noFoldersSwitch"_idx)#>>
-
-                                    if (checked '= ""){
-                                        &html<<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#007bff" class="bi bi-folder-fill" viewBox="0 0 16 16">
-                                            <path d="M9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.825a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31L.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3zm-8.322.12C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139z"/>
-                                        </svg>>                                        
-                                    } else{
-                                        &html<<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-folder-x" viewBox="0 0 16 16">
-                                            <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181L15.546 8H14.54l.265-2.91A1 1 0 0 0 13.81 4H2.19a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91H9v1H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zm6.339-1.577A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
-                                            <path d="M11.854 10.146a.5.5 0 0 0-.707.708L12.293 12l-1.146 1.146a.5.5 0 0 0 .707.708L13 12.707l1.146 1.147a.5.5 0 0 0 .708-.708L13.707 12l1.147-1.146a.5.5 0 0 0-.707-.708L13 11.293l-1.146-1.147z"/>
-                                        </svg>>
-                                    }
-                                    
-                                    &html<</label>
-                                </div>
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-remove" >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#dc3545" class="bi bi-dash-circle-fill" viewBox="0 0 16 16">
-                                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7z"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>>
-
+                        do ..MakeMappingRow(extKey,covKey,mapPath,noFolders,checked,activated,tooltipTitle,idx,0)
                         set idx = idx + 1
                     }
                 }
@@ -460,6 +465,8 @@ $(function()
         $(newEntry.children().children(".custom-control").children()[1]).attr("for", newID)
         newEntry.children().children(".custom-control").children()[0].id = newID
         newEntry.find('input').val('');
+        newEntry.attr('hidden',false);
+        newEntry.children().children(".required").attr("required","required");
 
         newEntry.appendTo(controlForm);
         $(("#"+newID)).click(toggleNoFolders);

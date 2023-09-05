@@ -414,11 +414,15 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
     while(key '= "") {
         set modification = files(key)
         if (modification.changeType = "D"){
-            set deletedFiles = deletedFiles_","_modification.internalName
+            if (modification.internalName '= "") {
+                set deletedFiles = deletedFiles_","_modification.internalName
+            }
         } elseif (modification.changeType = "A"){
             set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-            set addedFiles = addedFiles_","_modification.internalName
-            set files(key) = modification
+            if (modification.internalName '= "") {
+                set addedFiles = addedFiles_","_modification.internalName
+                set files(key) = modification
+            }
         }
         set key = $order(files(key))
     }

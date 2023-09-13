@@ -233,7 +233,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
-    } elseif (menuItemName = "Commit") {
+    } // is there any reason this code block is repeated?
+    elseif (menuItemName = "Commit") {
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
@@ -1984,6 +1985,14 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
         write !,$System.Status.GetErrorText(sc)
     }
     quit sc
+}
+
+ClassMethod SetDefaultMappings(mappingsNode As %String)
+{
+    set @mappingsNode@("CLS","*")="cls/"
+    set @mappingsNode@("CLS","UnitTest")="test/"
+    set @mappingsNode@("INC","*")="inc/"
+    set @mappingsNode@("MAC","*")="rtn/"
 }
 
 }

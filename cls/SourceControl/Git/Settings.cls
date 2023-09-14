@@ -30,7 +30,11 @@ Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
 {
-    merge ..Mappings = @##class(SourceControl.Git.Utils).MappingsNode()
+    set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
+    if '$data(@mappingsNode) {
+        do ##class(SourceControl.Git.Utils).SetDefaultMappings(mappingsNode)
+    }
+    merge ..Mappings = @mappingsNode
     set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
     if ('isDefault) {
         set ..gitBinPath = gitBinPath
@@ -168,3 +172,4 @@ Method OnAfterConfigure() As %Boolean
 }
 
 }
+

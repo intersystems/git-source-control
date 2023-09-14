@@ -233,11 +233,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
-    } // is there any reason this code block is repeated?
-    elseif (menuItemName = "Commit") {
-        set Target = "Please enter a commit message"
-        set Action = 7
-        quit $$$OK
     }
     quit ec
 }

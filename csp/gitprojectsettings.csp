@@ -62,9 +62,12 @@ body {
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
 
  set settings = ##class(SourceControl.Git.Settings).%New()
- if ('settings.settingsUIReadOnly) {
-    if $Data(%request.Data("gitsettings",1)) {
-        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
+ if $Data(%request.Data("gitsettings",1)) {
+    for param="gitUserName","gitUserEmail" {
+        set $Property(settings,param) = $Get(%request.Data(param,1))
+    }
+    if ('settings.settingsUIReadOnly) {
+        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace" {
             set $Property(settings,param) = $Get(%request.Data(param,1))
         }
         set i = 1
@@ -80,8 +83,8 @@ body {
         }
             set i = i+1
         }
-        do settings.%Save()
     }
+    do settings.%Save()
 }
 </server>
 <div class = 'container'>    
@@ -92,7 +95,7 @@ body {
         <div class="row">
             <div class="col-sm-1"></div>
             <div class="col-sm-8">
-                <h1>Git Project Settings #($select(settings.settingsUIReadOnly:"(Read-Only)",1:""))#</h1>
+                <h1>Git Project Settings</h1>
             </div>
             <div class="col-sm-2">
                 <button class="btn btn-lg btn-outline-dark" id="goToWebUI">Go to WebUI
@@ -109,10 +112,11 @@ body {
         <div class="row">
             <div class="col-sm-1"></div>
             <div class="col-sm-11">
-                <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
+                <h3>Settings for namespace #(..EscapeHTML(namespace))# #($select(settings.settingsUIReadOnly:"(read-only)",1:""))#</h3><br/>
             </div>
         </div>
 
+        <fieldset id="namespaceSettings">
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
             <label for="gitBinPath" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
@@ -337,6 +341,7 @@ body {
                 }
             </script>        
         </div>
+        </fieldset>
 
         <br/>
         <div class="row">
@@ -355,6 +360,7 @@ body {
 
         <br/>
 
+        <fieldset id="userSettings">
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
             <label for="gitUserName" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
@@ -372,14 +378,13 @@ body {
         </div>
 
         <br/>
+        </fieldset>
 
-        <csp:if condition="'settings.settingsUIReadOnly">
-            <div class="form-group row mb-3">
-                <div class="col-sm-12 text-center">
-                    <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
-                </div>
+        <div class="form-group row mb-3">
+            <div class="col-sm-12 text-center">
+                <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
             </div>
-        </csp:if>
+        </div>
         
     </form>
     <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
@@ -445,7 +450,7 @@ $(function()
 {
     if (#(settings.settingsUIReadOnly)#) {
         $(document).ready( function() {
-            $("#settingsForm input, select").attr("disabled",true);
+            $("#namespaceSettings input, select").attr("disabled",true);
         })
     }
     $(document).on('click', '.btn-add', function(e)

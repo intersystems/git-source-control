@@ -43,8 +43,14 @@ XData Menu
 
 Method UserAction(Type As %Integer, Name As %String, InternalName As %String, SelectedText As %String, ByRef Action As %String, ByRef Target As %String, ByRef Msg As %String, ByRef Reload As %Boolean) As %Status
 {
+    // If namespace change event
+    if Type = 1, Name = 5 {
+        // reroute to Status menu option
+        set Name = "%SourceMenu,Status"
+    }
+
     #dim ec as %Status = $$$OK
-    #dim menu as %Status = $piece(Name, ",", 1)    
+    #dim menu as %Status = $piece(Name, ",", 1)
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
     }
@@ -94,7 +100,7 @@ Method LocalizeName(name As %String) As %String
 Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
     if name = "Settings" {
-        // what is `Enabled` set to here? 0?
+        set Enabled = 1
         quit $$$OK
     }
     if ##class(Utils).NeedSettings() {

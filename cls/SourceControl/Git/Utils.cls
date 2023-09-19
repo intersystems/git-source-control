@@ -1995,4 +1995,9 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("MAC","*")="rtn/"
 }
 
+ClassMethod ResetSourceControlClass()
+{
+    do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("")
+}
+
 }

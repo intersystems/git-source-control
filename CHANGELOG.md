@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Web UI includes a "Push Branch" button for local branches that are ahead of upstream
+- Added "Status" menu item to editor menu (#285)
 
 ### Fixed
 - Fixed empty mappings when SourceControl.Git.Settings is instantiated (#250)

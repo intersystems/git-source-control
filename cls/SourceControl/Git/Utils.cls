@@ -151,7 +151,7 @@ $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean) As %Status
 {
     #define Force 1
-    #dim menuName as %String = $piece(MenuName,",")
+    // MenuName = "<Name of menu>,<Name of menu item>"
     #dim menuItemName as %String = $piece(MenuName,",",2)
     #dim ec as %Status = $$$OK
     
@@ -233,6 +233,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
+    } elseif (menuItemName = "Status") {
+        do ..RunGitCommand("status", .errStream, .outStream)
+        write !, !, "Git Status: "
+        do outStream.OutputToDevice()
+        do errStream.OutputToDevice()
     }
     quit ec
 }
@@ -1991,4 +1996,3 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
 }
 
 }
-

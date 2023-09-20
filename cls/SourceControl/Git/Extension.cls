@@ -10,6 +10,7 @@ XData Menu
 {
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
+<MenuItem Name="Status" />
 <MenuItem Name="Settings" />
 <MenuItem Name="Init" />
 <MenuItem Name="GitWebUI" />
@@ -42,6 +43,12 @@ XData Menu
 
 Method UserAction(Type As %Integer, Name As %String, InternalName As %String, SelectedText As %String, ByRef Action As %String, ByRef Target As %String, ByRef Msg As %String, ByRef Reload As %Boolean) As %Status
 {
+    // If namespace change event
+    if Type = 1, Name = 5 {
+        // reroute to Status menu option
+        set Name = "%SourceMenu,Status"
+    }
+
     #dim ec as %Status = $$$OK
     #dim menu as %Status = $piece(Name, ",", 1)
     if menu '= "%SourceMenu", menu'="%SourceContext" {
@@ -86,37 +93,41 @@ Method LocalizeName(name As %String) As %String
         "Push":$$$Text("@Push@Push to remote branch"),
         "Fetch":$$$Text("@Fetch@Fetch from remote"),
         "Pull":$$$Text("@Pull@Pull changes from remote branch"),
+        "Status": $$$Text("@Status@Status"),
         :name)
 }
 
 Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
     if name = "Settings" {
+        set Enabled = 1
         quit $$$OK
     }
     if ##class(Utils).NeedSettings() {
         set Enabled = -1
         quit $$$OK
     }
-    set Enabled = 1
     if ##class(Utils).IsNamespaceInGit() {
-        if name = "GitWebUI" {
-        } elseif name = "Export" {
-        } elseif name = "ExportForce" {
-        } elseif name = "Import" {
-        } elseif name = "ImportForce" {
-        } elseif $listfind($listbuild("AddToSC","RemoveFromSC","Revert","Commit"),name) {
-            quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
-        } elseif name = "NewBranch" {
-        } elseif name = "SwitchBranch" {
-        } elseif name = "Push" {
-        } elseif name = "Fetch" {
-        } elseif name = "Pull" {
-        } elseif name = "" {
-            // enable separators if namespace is in git
-        } else {
-            set Enabled = -1
-        }
+    if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit"), name) {
+        quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
+    }
+    set Enabled = $CASE(name, 
+        // cases
+        "Status": 1,
+        "GitWebUI" : 1,
+        "Export": 1,
+        "ExportForce": 1,
+        "Import": 1,
+        "ImportForce": 1,
+        "NewBranch": 1,
+        "SwitchBranch": 1,
+        "Push": 1,
+        "Fetch": 1,
+        "Pull": 1,
+        "": 1,
+        :-1 // default
+    )
+        
     } elseif ##class(Utils).GitBinExists() {
         if name = "Init" {
         } else {

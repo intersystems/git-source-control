@@ -2378,7 +2378,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var combinedFiles = files.concat(rmFiles);
 
         if(combinedFiles.length != 0){
-            webui.git("stash push -- " + combinedFiles, function(output){
+            webui.git("stash push --include-untracked -- " + combinedFiles, function(output){
                 webui.showSuccess(output);
                 workspaceView.update("stash");
             });

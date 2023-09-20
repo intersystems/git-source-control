@@ -155,6 +155,7 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.Sync())
+            do ##class(SourceControl.Git.Utils).EmptyInitialCommit()
         } elseif (value = 2) {
             set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
             if (response '= $$$SuccessResponse) {
@@ -172,4 +173,3 @@ Method OnAfterConfigure() As %Boolean
 }
 
 }
-

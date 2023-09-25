@@ -237,8 +237,14 @@ body {
             <label for="pullEventClass" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
-                    <option value="SourceControl.Git.PullEventHandler.Default" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.Default":"selected",:""))#>Default</option>
-                    <option value="SourceControl.Git.PullEventHandler.PackageManager" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.PackageManager":"selected",:""))#>PackageManager</option>
+                    <server>
+                        set rs = ##class(%Dictionary.ClassDefinition).SubclassOfFunc("SourceControl.Git.PullEventHandler")
+                        while rs.%Next() {
+                            set subclass = rs.%GetData(1)
+                            // create option with subclass, set selected if subclass == current pullEventClass
+                            &html<<option value=#(subclass)# #($CASE(subclass, settings.pullEventClass: "selected", :""))#>#($PIECE(subclass, ".", *-0))# </option>>
+                        }
+                    </server>
                 </select>
             </div>
         </div>

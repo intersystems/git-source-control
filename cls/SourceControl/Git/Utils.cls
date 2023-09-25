@@ -1001,6 +1001,10 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
     #dim type = ..Type(InternalName)
     //for csp-files (csp,js,html,css, all that stored in csp/...) we always check for changes in external file
     #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ..NormalizeExtension(InternalName))))
+    
+    // in case an OS level error is returned
+    set:(($$$isUNIX & (tsh = -2)) || ($$$isWINDOWS & (tsh = -3))) tsh = 0
+
     if tsh = "" {
         #dim ts as %String = ##class(%RoutineMgr).TS(InternalName)
         if ts '= "" {

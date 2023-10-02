@@ -1,3 +1,6 @@
 .vscode/
 .gitattributes
 *.code-workspace
+
+# using TestClass.cls for objecscript functionality exploration / convince myself that things work the way I expect them to
+cls/SourceControl/Git/TestClass.cls

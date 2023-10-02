@@ -10,15 +10,17 @@ Property offset [ InitialExpression = 0, Internal, Private ];
 
 Property size [ Internal, Private ];
 
-Property defaultSize [ InitialExpression = 128, Internal, Private ];
+Parameter defaultSize = 128;
 
-Method %OnNew(size As %Integer) As %Status [ Private, ServerOnly = 1 ]
+Method %OnNew(size) As %Status [ Private, ServerOnly = 1 ]
 {
-        if size <= 0 {
-            set size = i%defaultSize
+        if $DATA(size) && $ISVALIDNUM(size) && (size >= 0) {
+            set i%size = size
+        } else {
+            set i%size = ..#defaultSize
         }
-        set i%size = size
-        set i%buffer = $zu(106,1,size)
+        w !, "Size set to ", i%size, !
+        set i%buffer = $zu(106,1,i%size)
         quit $$$OK
 }
 
@@ -27,18 +29,20 @@ Method Store(key, value)
         set length = $length(value)
         // this will clear it if it exists
         do ..Clear(key)
-        
-        if (length + i%offset > i%size) {
+        set requiredSize = length + i%offset
+        if (requiredSize > i%size) {
             // TODO: there is definitely a better way to find the appropriate next size
-            // using log but won't do that right now
+            // using log_2() but won't do that right now
+
             if i%size=0 {
                 set newSize = i%defaultSize
             } else {
                 set newSize = i%size*2
             }
-            do {
+            
+            while requiredSize > newSize {
                 set newSize = newSize*2
-            } while (length + i%offset > newSize)
+            }
             set newBuffer = $zu(106,1,newSize)
 
             // move values from buffer to newBuffer
@@ -53,7 +57,7 @@ Method Store(key, value)
             set i%offset = newOffset
             merge i%map = newMap
         }
-        // add mapping for the 
+        // add mapping for the key
         set i%map(key) = $lb(i%offset,length)
         set i%offset = ..insertIntoMemoryStore(value, i%buffer, i%offset)
 }
@@ -89,26 +93,9 @@ Method KeyExists(key) As %Boolean
     return '($Get(i%map(key)) = "")
 }
 
-ClassMethod Test()
-{
-        set inst = ..%New(-2)
-        do inst.Store("foo","bar")
-        write !,"foo: ",inst.Retrieve("foo")
-        do inst.Store("foo2","Hello World!")
-        write !,"foo: ",inst.Retrieve("foo")
-        write !,"foo2: ",inst.Retrieve("foo2")
-        zw inst
-        break
-        do inst.Store("foo2","Bye World!")
-        do inst.Clear("foo")
-        do inst.Store("foo3","This is actually quite fun")
-        write !,"foo: ",inst.Retrieve("foo")
-        write !,"foo2: ",inst.Retrieve("foo2")
-        write !,"foo3: ",inst.Retrieve("foo3"), !
-        zw inst
-}
-
 // PRIVATE METHODS ====>
+
+// Writes to Buffer and returns new offset
 
 Method insertIntoMemoryStore(value, buffer, offset) As %Integer [ Private ]
 {
@@ -149,7 +136,6 @@ Method compactBuffer(buffer, Output newMap, Output newOffset) [ Private ]
 
 Method deallocateBuffer() [ Private ]
 {
-    w !, "deallocating ", i%buffer, " of size ", i%size, !
     do ..clearBuffer()
     set i%size = 0
     kill i%map

@@ -7,10 +7,17 @@ Property pvtStore [ Internal, Private ];
 ClassMethod Test()
 {
 	Do ##class(SourceControl.Git.Util.CredentialManager).Stop()
-	Set response = ##class(SourceControl.Git.Util.CredentialManager).Signal("getUsername",$job,.code)
-	Write ! zw response,code
-	Set response = ##class(SourceControl.Git.Util.CredentialManager).Signal("fakeType",$job,.code)
-	Write ! zw response,code
+
+	set username = "testUser"
+	set token = ..GetToken(username, .err, .code)
+	zw token, err, code
+
+	set token = "testToken"
+	do ..SetToken(username, token, .err, .code)
+	zw err, code
+
+	set token = ..GetToken(username, .err, .code)
+	zw token, err, code
 }
 
 Method Run()
@@ -21,10 +28,10 @@ Method Run()
 	set code = 0
 	while (code '= -1) {
 		try {
-			set code = ..Wait(.msgType, .senderPID)
+			set code = ..Wait(.msgType, .msgContent)
 			if (code = 1) {
-				do ..DaemonLogger("Code: "_code_" "_"Received "_msgType_" && "_ " "_senderPID)
-				do ..HandleMessage(msgType, senderPID)
+				do ..LogForDaemon("Code: "_code_" "_"Received "_msgType_" && "_ " "_msgContent)
+				do ..HandleMessage(msgType, msgContent)
 			}
 		} catch err {
 			do err.Log()
@@ -32,17 +39,65 @@ Method Run()
 	}
 }
 
-ClassMethod HandleMessage(msgType, senderPID)
+ClassMethod GetToken(gitUsername As %String, Output error As %String, Output code As %String) As %String
 {
-	set username = $System.Process.UserName(senderPID)
+	set $lb(token, error) = ..Signal("GET", $lb($JOB, gitUsername), .code)
+	quit token
+}
+
+ClassMethod SetToken(gitUsername As %String, gitToken As %String, Output error As %String, Output code)
+{
+	set $lb(, error) = ..Signal("SET", $lb($JOB, gitUsername, gitToken), .code)
+}
+
+ClassMethod SendResponse(toPID As %Integer, message As %String, error As %String)
+{
+	if $System.Event.Signal(toPID, $lb(message, error)) '= 1 {
+		do ..LogForDaemon("Unable to send message: """_message_""" to: "_toPID)
+	}
+}
+
+Method HandleMessage(msgType As %String, msgContent)
+{
+	try {
+		// make sure the message is appropriately formatted
+		set $lb(senderPID, gitUsername, gitToken) = msgContent
+	} catch err {
+		do err.Log()
+		quit
+	}
+		
+	if '$data(senderPID) {
+		do ..LogForDaemon("No source PID provided")
+		quit
+	}
+
+	if '$data(gitUsername) {
+		do ..SendResponse(senderPID, "", "provide username")
+		quit
+	}
+
+	if msgType = "GET" {
+		if i%pvtStore.KeyExists(gitUsername) {
+			do ..SendResponse(senderPID, i%pvtStore.Retrieve(gitUsername), "")
+		} else {
+			// what is a good way to indicate that key does not exist?
+			do ..SendResponse(senderPID, "", "key does not exist")
+		}
+	} elseif msgType = "SET"  {
+		if '$data(gitToken) {
+			do ..SendResponse(senderPID, "", "provide git token")
+			quit
+		}
+		do i%pvtStore.Store(gitUsername, gitToken)
+		do ..SendResponse(senderPID, gitToken, "")
+	}
 }
 
 ClassMethod Signal(msgType As %String, msgContent As %String, Output responseCode) As %String
 {
 	// Make sure the daemon is running
 	do ..Start()
-
-	write "Event defined? ",$System.Event.Defined(..GetEventName()),!
 
 	// Clear any pending messages for this process' resource
 	do $System.Event.Clear($Job)
@@ -53,12 +108,12 @@ ClassMethod Signal(msgType As %String, msgContent As %String, Output responseCod
 	quit msg
 }
 
-Method Wait(Output msgType As %String, Output senderPID As %String) As %Integer
+Method Wait(Output msgType As %String, Output msgContent As %String) As %Integer
 {
-	set (msg,msgType,senderPID) = ""
+	set (msg,msgType,msgContent) = ""
 	set $listbuild(code,msg) = ##class(%SYSTEM.Event).WaitMsg(..GetEventName(),1)
 	if $listvalid(msg) {
-		set $listbuild(msgType,senderPID) = msg
+		set $listbuild(msgType,msgContent) = msg
 	}
 	quit code
 }
@@ -94,14 +149,13 @@ ClassMethod StartInternal()
 		set daemon = ..%New()
 		do daemon.Run()
 	} catch err {
-		do err.Log()
+		do LogForDaemon(err.DisplayString())
 	}
 }
 
 ClassMethod Stop()
 {
-	set deleted = ##class(%SYSTEM.Event).Delete(..GetEventName())
-	w "deleted the event? ", deleted, !
+	do ##class(%SYSTEM.Event).Delete(..GetEventName())
 	set pid = ^$LOCK(..GetEventName(), "OWNER")
 	if (pid > 0) {
 		do $System.Process.Terminate(pid)
@@ -129,10 +183,15 @@ Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
 	quit $$$OK
 }
 
-Method DaemonLogger(msg) As %Status
+ClassMethod LogForDaemon(msg) As %Status
+{
+	do ..LogToApplicationErrors("!!!Credential Manager Deamon!!!"_$c(13,10)_msg)
+}
+
+ClassMethod LogToApplicationErrors(msg) As %Status
 {
 	try {
-		do LOG^%ETN("!!!Daemon Message!!!"_msg)
+		do LOG^%ETN(msg)
 		set sc=$$$OK
 	} catch err {
 		set sc=err.AsStatus()

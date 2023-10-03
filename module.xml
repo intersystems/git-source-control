@@ -15,7 +15,6 @@
 
       <!-- Unit tests -->
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
-      <UnitTest Name="/testUtils" Package="UnitTest.SourceControl.Git.Utils" />
 
       <!-- If building in developer mode, this will build the web UI. -->
       <Invoke Class="SourceControl.Git.Build" Method="BuildUIForDevMode" Phase="Compile">

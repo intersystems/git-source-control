@@ -88,7 +88,8 @@ Method HandleMessage(msgType As %String, msgContent)
 	}
 	
 
-	set irisUsername = $System.Process.UserName(senderPID)
+
+	set irisUsername = ##class(%SYS.ProcessQuery).%OpenId(senderPID).UserName
 	// key that the token would be mapped from 
 	set key = $lb(irisUsername, gitUsername)
 	if msgType = "GET" {

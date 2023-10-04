@@ -9,13 +9,23 @@ ClassMethod Test()
 	Do ##class(SourceControl.Git.Util.CredentialManager).Stop()
 
 	set username = "testUser"
+	w "Getting token for user """_username_""", expect error", !
 	set token = ..GetToken(username, .err, .code)
 	zw token, err, code
 
 	set token = "testToken"
+	w !, "Setting token """_token_""" for user """_username_"""", !
 	do ..SetToken(username, token, .err, .code)
 	zw err, code
 
+	w !, "Getting token for user "_username_", expect to get token """_token_"""", !
+	set token = ..GetToken(username, .err, .code)
+	zw token, err, code
+}
+
+ClassMethod Test2()
+{
+	set username = "testUser"
 	set token = ..GetToken(username, .err, .code)
 	zw token, err, code
 }
@@ -42,7 +52,7 @@ Method Run()
 ClassMethod GetToken(gitUsername As %String, Output error As %String, Output code As %String) As %String
 {
 	set $lb(token, error) = ..Signal("GET", $lb($JOB, gitUsername), .code)
-	quit token
+	return token
 }
 
 ClassMethod SetToken(gitUsername As %String, gitToken As %String, Output error As %String, Output code)
@@ -78,8 +88,9 @@ Method HandleMessage(msgType As %String, msgContent)
 	}
 	
 
-	// key that the token would be mapped from
-	set key = $lb(senderPID, gitUsername)
+	set irisUsername = $System.Process.UserName(senderPID)
+	// key that the token would be mapped from 
+	set key = $lb(irisUsername, gitUsername)
 	if msgType = "GET" {
 		if i%pvtStore.KeyExists(key) {
 			do ..SendResponse(senderPID, i%pvtStore.Retrieve(key), "")
@@ -107,7 +118,7 @@ ClassMethod Signal(msgType As %String, msgContent As %String, Output responseCod
 	// Signal the daemon
 	do ##class(%SYSTEM.Event).Signal(..GetEventName(),$ListBuild(msgType,msgContent))
 	set $listbuild(responseCode,msg) = $System.Event.WaitMsg("",5)
-	quit msg
+	return msg
 }
 
 Method Wait(Output msgType As %String, Output msgContent As %String) As %Integer
@@ -117,7 +128,7 @@ Method Wait(Output msgType As %String, Output msgContent As %String) As %Integer
 	if $listvalid(msg) {
 		set $listbuild(msgType,msgContent) = msg
 	}
-	quit code
+	return code
 }
 
 ClassMethod GetEventName() As %String
@@ -182,7 +193,7 @@ ClassMethod CheckStatus() As %Boolean
 Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
 {
 	do ##class(%SYSTEM.Event).Delete(..GetEventName())
-	quit $$$OK
+	return $$$OK
 }
 
 ClassMethod LogForDaemon(msg) As %Status
@@ -198,7 +209,7 @@ ClassMethod LogToApplicationErrors(msg) As %Status
 	} catch err {
 		set sc=err.AsStatus()
 	}
-	quit sc
+	return sc
 }
 
 }

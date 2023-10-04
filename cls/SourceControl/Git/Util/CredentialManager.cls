@@ -76,12 +76,14 @@ Method HandleMessage(msgType As %String, msgContent)
 		do ..SendResponse(senderPID, "", "provide username")
 		quit
 	}
+	
 
+	// key that the token would be mapped from
+	set key = $lb(senderPID, gitUsername)
 	if msgType = "GET" {
-		if i%pvtStore.KeyExists(gitUsername) {
-			do ..SendResponse(senderPID, i%pvtStore.Retrieve(gitUsername), "")
+		if i%pvtStore.KeyExists(key) {
+			do ..SendResponse(senderPID, i%pvtStore.Retrieve(key), "")
 		} else {
-			// what is a good way to indicate that key does not exist?
 			do ..SendResponse(senderPID, "", "key does not exist")
 		}
 	} elseif msgType = "SET"  {
@@ -89,7 +91,7 @@ Method HandleMessage(msgType As %String, msgContent)
 			do ..SendResponse(senderPID, "", "provide git token")
 			quit
 		}
-		do i%pvtStore.Store(gitUsername, gitToken)
+		do i%pvtStore.Store(key, gitToken)
 		do ..SendResponse(senderPID, gitToken, "")
 	}
 }

@@ -12,7 +12,7 @@ Property size [ Internal, Private ];
 
 Parameter defaultSize = 128;
 
-Method %OnNew(size) As %Status [ Private, ServerOnly = 1 ]
+Method %OnNew(size as %Integer) As %Status [ Private, ServerOnly = 1 ]
 {
         if $DATA(size) && $ISVALIDNUM(size) && (size >= 0) {
             set i%size = size
@@ -104,7 +104,7 @@ Method KeyExists(key) As %Boolean
 
 // Writes to Buffer and returns new offset
 
-Method insertIntoMemoryStore(value, buffer, offset) As %Integer [ Private ]
+Method insertIntoMemoryStore(value, buffer, offset As %Integer) As %Integer [ Private ]
 {
     set length = $length(value)
     view buffer+offset:-3:-length:value
@@ -151,8 +151,11 @@ Method deallocateBuffer() [ Private ]
 
 // using this method to iterate by sorted offset
 
+// inverseMap is of array type
+
 Method getInverseMap(Output inverseMap) [ Private ]
 {
+    kill inverseMap
     set iterKey = ""
     for {
         set iterKey = $order(i%map(iterKey))

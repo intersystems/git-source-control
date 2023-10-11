@@ -67,7 +67,7 @@ ClassMethod SendResponse(toPID As %Integer, message As %String, error As %String
 	}
 }
 
-Method HandleMessage(msgType As %String, msgContent)
+Method HandleMessage(msgType As %String, msgContent As %String)
 {
 	try {
 		// make sure the message is appropriately formatted

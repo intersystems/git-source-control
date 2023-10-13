@@ -12,10 +12,7 @@ ClassMethod Configure()
         write !,"Configured SourceControl.Git.Extension as source control class for namespace ",$namespace
         set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
         if '$data(@mappingsNode) {
-            set @mappingsNode@("CLS","*")="cls/"
-            set @mappingsNode@("CLS","UnitTest")="test/"
-            set @mappingsNode@("INC","*")="inc/"
-            set @mappingsNode@("MAC","*")="rtn/"
+            do ##class(SourceControl.Git.Utils).SetDefaultMappings(mappingsNode)
             write !,"Configured default mappings for classes, routines, and include files. You can customize these in the global:",!?5,mappingsNode
         }
         set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)

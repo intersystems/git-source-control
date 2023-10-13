@@ -16,6 +16,12 @@
       <!-- Unit tests -->
       <UnitTest Name="/test" Package="UnitTest.SourceControl.Git" />
 
+      <!-- If building in developer mode, this will build the web UI. -->
+      <Invoke Class="SourceControl.Git.Build" Method="BuildUIForDevMode" Phase="Compile">
+        <Arg>#{..DeveloperMode}</Arg>
+        <Arg>#{..Root}</Arg>
+      </Invoke>
+
       <!-- Pages for the Git menu in Studio/VSCode - moved to /isc/studio/usertemplates -->
       <!-- Can't call the folder git-source-control because this causes errors in CSP compliation! -->
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
@@ -27,6 +33,8 @@
       <Invoke Class="SourceControl.Git.Utils" Method="Localize" />
       <Invoke Class="SourceControl.Git.Utils" Method="ConfigureWeb" />
       <Invoke Class="SourceControl.Git.Utils" Method="CheckInitialization" />
+      
+      <Invoke Class="SourceControl.Git.Utils" Method="ResetSourceControlClass" Phase="Unconfigure" />
     </Module>
   </Document>
 </Export>

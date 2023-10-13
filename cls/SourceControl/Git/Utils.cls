@@ -156,7 +156,7 @@ $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean) As %Status
 {
     #define Force 1
-    #dim menuName as %String = $piece(MenuName,",")
+    // MenuName = "<Name of menu>,<Name of menu item>"
     #dim menuItemName as %String = $piece(MenuName,",",2)
     #dim ec as %Status = $$$OK
     
@@ -238,10 +238,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
-    } elseif (menuItemName = "Commit") {
-        set Target = "Please enter a commit message"
-        set Action = 7
-        quit $$$OK
+    } elseif (menuItemName = "Status") {
+        do ..RunGitCommand("status", .errStream, .outStream)
+        write !, !, "Git Status: "
+        do ..PrintStreams(outStream, errStream)
     }
     quit ec
 }
@@ -275,10 +275,8 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
 ClassMethod Init() As %Status
 {
     do ..RunGitCommand("init",.errStream,.outStream)
-    $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
-    $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
+    do ..PrintStreams(outStream, errStream)
+    
     quit $$$OK
 }
 
@@ -299,10 +297,7 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     set email = ..GitUserEmail()
     set author = username_" <"_email_">"
     do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
-    $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
-    $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
+    do ..PrintStreams(outStream, outStream)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted())
     quit $$$OK
@@ -311,20 +306,14 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
-    $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
-    $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
+    do ..PrintStreams(errStream, outStream)
     quit $$$OK
 }
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
-    $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
-    $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
+    do ..PrintStreams(errStream, outStream)
     quit $$$OK
 }
 
@@ -333,10 +322,7 @@ ClassMethod Push(remote As %String = "origin") As %Status
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
     do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
-    $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
-    $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
+    do ..PrintStreams(errStream, outStream)
     quit $$$OK
 }
 
@@ -362,8 +348,7 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
 
     set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream, remote, branchName)
     if (sc=1){
-        $$$NewLineIfNonEmptyStream(errStream)
-        do errStream.OutputToDevice()
+        do ..PrintStreams(errStream)
         quit sc
     }
 
@@ -398,14 +383,10 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
 
     set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     if (sc=1){
-        $$$NewLineIfNonEmptyStream(errStream)
-        do errStream.OutputToDevice()
-        $$$NewLineIfNonEmptyStream(outStream)
-        do outStream.OutputToDevice()
+        do ..PrintStreams(errStream, outStream)
         quit $$$ERROR(5001, "Pull event handler not called. Fix errors before compiling.")
     }
-    $$$NewLineIfNonEmptyStream(outStream)
-    do outStream.OutputToDevice()
+    do ..PrintStreams(outStream)
     write !
 
     set key = $order(files(""))
@@ -448,6 +429,7 @@ ClassMethod Clone(remote As %String) As %Status
     set settings = ##class(SourceControl.Git.Settings).%New()
     // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
     set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
+    // can I substitute this with the new print method?
     $$$NewLineIfNonEmptyStream(errStream)
     while 'errStream.AtEnd {
         write errStream.ReadLine(),!
@@ -484,8 +466,7 @@ ClassMethod GenerateSSHKeyPair() As %Status
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-    do outStream.OutputToDevice()
-    do errStream.OutputToDevice()
+    do ..PrintStreams(outStream, errStream)
     quit $$$OK
 }
 
@@ -547,10 +528,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set @..#Storage@("items", FileInternalName) = ""
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
             write !, "Added ", FileInternalName, " to source control."
-            $$$NewLineIfNonEmptyStream(outStream)
-            do outStream.OutputToDevice()
-            $$$NewLineIfNonEmptyStream(errStream)
-            do errStream.OutputToDevice()
+            do ..PrintStreams(outStream, errStream)
         }
     }
     quit ec
@@ -560,10 +538,7 @@ ClassMethod RemoveFromGit(InternalName)
 {
     #dim fullName = ##class(Utils).FullExternalName(InternalName)
     do ..RunGitCommand("rm",.errStream,.outStream,"--cached", fullName)
-    $$$NewLineIfNonEmptyStream(errStream)
-    do errStream.OutputToDevice()
-    $$$NewLineIfNonEmptyStream(outStream)
-    do errStream.OutputToDevice()
+    do ..PrintStreams(errStream, outStream)
 }
 
 ClassMethod DeleteExternalsForItem(InternalName As %String) As %Status
@@ -1031,6 +1006,10 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
     #dim type = ..Type(InternalName)
     //for csp-files (csp,js,html,css, all that stored in csp/...) we always check for changes in external file
     #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ..NormalizeExtension(InternalName))))
+    
+    // in case an OS level error is returned
+    set:(($$$isUNIX & (tsh = -2)) || ($$$isWINDOWS & (tsh = -3))) tsh = 0
+
     if tsh = "" {
         #dim ts as %String = ##class(%RoutineMgr).TS(InternalName)
         if ts '= "" {
@@ -1538,6 +1517,12 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
     }
 }
 
+ClassMethod EmptyInitialCommit()
+{
+    set ret = ..RunGitCommandWithInput("commit",, .errStream, .outStream, "--allow-empty", "-m", "empty initial commit")
+    do ..PrintStreams(errStream, outStream)
+}
+
 /*
     Internal name: e.g. SourceControl.Git.Utils.CLS
     External name e.g. cls/SourceControl/Git/Utils.cls
@@ -1991,5 +1976,26 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
     quit sc
 }
 
+ClassMethod SetDefaultMappings(mappingsNode As %String)
+{
+    set @mappingsNode@("CLS","*")="cls/"
+    set @mappingsNode@("CLS","UnitTest")="test/"
+    set @mappingsNode@("INC","*")="inc/"
+    set @mappingsNode@("MAC","*")="rtn/"
 }
 
+ClassMethod PrintStreams(streams... As %Stream.FileCharacter)
+{
+    for i=1:1:$get(streams, 0) {
+        set stream = streams(i)
+        $$$NewLineIfNonEmptyStream(stream)
+        do stream.OutputToDevice()
+    }
+}
+
+ClassMethod ResetSourceControlClass()
+{
+    do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("")
+}
+
+}

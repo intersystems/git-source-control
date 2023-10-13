@@ -322,7 +322,10 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             }
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
-                var refname = ref.substring(2);
+                // parses the output of git branch --verbose --verbose
+                var branchInfo = /^\*?\s*(?<branch_name>[\w-]+)\s+(?<hash>[^\s]+)\s+(?<remote>\[.*\])?.*/.exec(ref).groups;
+                var refname = branchInfo.branch_name;
+                var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.includes("ahead")) // either no upstream or ahead of upstream
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
@@ -335,17 +338,19 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                     '<div class="d-grid gap-2 col-12 mx-auto">'+
                                         '<button class="btn btn-xs btn-primary btn-block btn-checkout-local-branch mt-1">Checkout Branch</button>'+
                                         '<button class="btn btn-xs btn-warning btn-block btn-merge-branch">Merge Branch</button>'+
-                                        '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>'+
+                                        (canPush ? '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>' : '')+
                                         '<button class="btn btn-xs btn-danger btn-block btn-delete-branch">Delete Branch</button>'+
                                     '</div>'+
                                 '</div>').appendTo(collapseDiv);
                 } else {
                     $(button).addClass("branch-current");
-                    var cardBody = $('<div class="card-body">' +
-                                    '<div class="d-grid gap-2 col-12 mx-auto">'+
-                                        '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>'+
-                                    '</div>'+
-                                '</div>').appendTo(collapseDiv);
+                    if (canPush) {
+                        var cardBody = $('<div class="card-body">' +
+                                        '<div class="d-grid gap-2 col-12 mx-auto">'+
+                                            '<button class="btn btn-xs btn-warning btn-block btn-push-branch">Push Branch</button>'+
+                                        '</div>'+
+                                    '</div>').appendTo(collapseDiv);
+                    }
                 }
             } else {
                 var refname = ref.replaceAll('/', '-');
@@ -754,7 +759,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
     }
 
-    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch");
+    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
     self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
 
@@ -2373,7 +2378,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var combinedFiles = files.concat(rmFiles);
 
         if(combinedFiles.length != 0){
-            webui.git("stash push -- " + combinedFiles, function(output){
+            webui.git("stash push --include-untracked -- " + combinedFiles, function(output){
                 webui.showSuccess(output);
                 workspaceView.update("stash");
             });

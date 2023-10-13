@@ -10,11 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Web UI includes a "Push Branch" button for local branches that are ahead of upstream
 - Support for making the Settings UI read-only through `##class(SourceControl.Git.API).Configure()` (#258)
+- Stash option in the Web UI now includes untracked files
+- Added "Status" menu item to editor menu (#285)
 
 ### Fixed
+- Fatal: bad revision HEAD fixed using an empty commmit (#228)
+- Fixed empty mappings when SourceControl.Git.Settings is instantiated (#250)
 - Studio export path doesn't get weird mixed slahes on Windows (#252)
+- Fixed custom PullHandlers not visible on settings UI (now all subclasses are visible) (#267)
 - Fixed bug with adding mappings through the Settings page (#270)
 - Pulling add/delete of multiple non-IRIS files no longer causes error (#273)
+- Fixed -2 timestamp for some items (#275)
+- Reset SourceControlClass during module uninstall to prevent "Class does not exist error" (#285)
 
 ## [2.2.0] - 2023-06-05
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Web UI includes a "Push Branch" button for local branches that are ahead of upstream
+- Support for making the Settings UI read-only through `##class(SourceControl.Git.API).Configure()` (#258)
 - Stash option in the Web UI now includes untracked files
 - Added "Status" menu item to editor menu (#285)
 

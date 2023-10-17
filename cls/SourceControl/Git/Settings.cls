@@ -20,6 +20,9 @@ Property pullEventClass As %String(MAXLEN = 255) [ InitialExpression = {##class(
 /// Character to replace % symbol when importing %-classes into the file systems
 Property percentClassReplace As %String [ InitialExpression = {##class(SourceControl.Git.Utils).PercentClassReplace()} ];
 
+/// Git project settings are read-only in the web user interface
+Property settingsUIReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SettingsUIReadOnly()} ];
+
 /// Attribution: Git username for user ${username}
 Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()} ];
 
@@ -76,6 +79,7 @@ Method %Save() As %Status
     set @storage@("settings","ssh","privateKeyFile") = ..privateKeyFile
     set @storage@("settings","pullEventClass") = ..pullEventClass
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
+    set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -173,3 +177,4 @@ Method OnAfterConfigure() As %Boolean
 }
 
 }
+

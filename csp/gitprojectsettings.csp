@@ -62,29 +62,33 @@ body {
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
 
  set settings = ##class(SourceControl.Git.Settings).%New()
-
  if $Data(%request.Data("gitsettings",1)) {
-    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
+    for param="gitUserName","gitUserEmail" {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
-    set i = 1
-    set param = "NoFolders"
-    kill settings.Mappings
-    
-    while ( $Data(%request.Data("MappingsExt",i)) ){
-        if ($get(%request.Data("MappingsExt",i)) '= "") {
-            if ($Get(%request.Data(param,i)) = "NoFolders"){
-                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
-            }
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+    if ('settings.settingsUIReadOnly) {
+        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace" {
+            set $Property(settings,param) = $Get(%request.Data(param,1))
         }
-        set i = i+1
+        set i = 1
+        set param = "NoFolders"
+        kill settings.Mappings
+        
+        while ( $Data(%request.Data("MappingsExt",i)) ){
+        if ($get(%request.Data("MappingsExt",i)) '= "") {
+                if ($Get(%request.Data(param,i)) = "NoFolders"){
+                    set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+                }
+                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+        }
+            set i = i+1
+        }
     }
     do settings.%Save()
 }
 </server>
 <div class = 'container'>    
-    <form method='post'>
+    <form id="settingsForm" method='post'>
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
@@ -108,10 +112,11 @@ body {
         <div class="row">
             <div class="col-sm-1"></div>
             <div class="col-sm-11">
-                <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
+                <h3>Settings for namespace #(..EscapeHTML(namespace))# #($select(settings.settingsUIReadOnly:"(read-only)",1:""))#</h3><br/>
             </div>
         </div>
 
+        <fieldset id="namespaceSettings">
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
             <label for="gitBinPath" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
@@ -342,6 +347,7 @@ body {
                 }
             </script>        
         </div>
+        </fieldset>
 
         <br/>
         <div class="row">
@@ -360,6 +366,7 @@ body {
 
         <br/>
 
+        <fieldset id="userSettings">
         <div class="form-group row mb-3">
             <div class="col-sm-1"></div>
             <label for="gitUserName" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
@@ -377,6 +384,7 @@ body {
         </div>
 
         <br/>
+        </fieldset>
 
         <div class="form-group row mb-3">
             <div class="col-sm-12 text-center">
@@ -446,6 +454,11 @@ $(function () {
 });
 $(function()
 {
+    if (#(settings.settingsUIReadOnly)#) {
+        $(document).ready( function() {
+            $("#namespaceSettings input, select").attr("disabled",true);
+        })
+    }
     $(document).on('click', '.btn-add', function(e)
     {
         e.preventDefault();

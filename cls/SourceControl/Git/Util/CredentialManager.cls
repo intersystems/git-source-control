@@ -163,7 +163,7 @@ ClassMethod StartInternal()
 		set daemon = ..%New()
 		do daemon.Run()
 	} catch err {
-		do LogForDaemon(err.DisplayString())
+		do ..LogForDaemon(err.DisplayString())
 	}
 }
 

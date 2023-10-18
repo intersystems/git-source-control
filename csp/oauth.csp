@@ -1,0 +1,63 @@
+<script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>
+
+	if $Data(%request.Data("state",1),state)#2 {
+		// Look for namespace in state
+		set namespace = $Piece(state,"_",1)
+	} else {
+		// Look for namespace in the URL
+		set url = $Piece($Get(%request.CgiEnvs("REQUEST_URI"),$Get(%request.CgiEnvs("HTTP_URL"))),"?")
+		set pagePath = $Piece(url,..#CSPURL,2,*)
+		set namespace = $Piece(pagePath,"/",2)
+	}
+
+	new $Namespace
+	set $Namespace = namespace
+	
+    if '$Data(%request.Data("code",1),code)#2 {
+		set %response.Redirect = ##class(SourceControl.Git.OAuth).AuthCodeURLForGithub(namespace,.state,.verifier)
+		set %session.Data("state") = state
+        set %session.Data("verifier") = verifier
+
+		do ##class(SourceControl.Git.Utils).WriteLineToFile("c:\Users\rsaptars\Desktop\firstSessionId.txt", %session.SessionId)
+		do ##class(SourceControl.Git.Utils).WriteLineToFile("c:\Users\rsaptars\Desktop\initialState.txt", %session.Data("state"))
+    }
+	quit 1
+</script>
+<server>
+	if $Data(%request.Data("state",1),state)#2 {
+
+		if '$Data(%session.Data("state"))#2 {
+			w "1 sessId: "_%session.SessionId
+			w "<br>"_$Get(%session.Data("state"))
+			quit 1
+		} elseif (%session.Data("state") '= state){
+			w "2"
+			quit 1
+		}
+
+		if '$Data(%request.Data("code",1),code)#2 {
+			w "Bad request: Invalid parameters"
+			quit 1
+		}
+
+		set verifier = $select($Data(%request.Data("verifier",1),verifier)#2: verifier, 1: "")
+		
+		// switch to the namespace that the extension is installed to
+		set namespace = $Piece(state,"_",1)
+		new $Namespace
+		set $Namespace = namespace
+		
+		set result = ##class(SourceControl.Git.OAuth).ExchangeForGithub(code, verifier, .sc)
+		if sc '= $$$OK {
+			do SYSTEM.Status.DisplayError(sc) 
+			w "<br>"
+			w "Unable to retreive access token"
+		}
+
+
+		// https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GNET_http
+		
+	} else {
+		w "no state lol"
+	}
+</server>

@@ -11,6 +11,7 @@ XData Menu
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
 <MenuItem Name="Status" />
+<MenuItem Name="Authenticate" />
 <MenuItem Name="Settings" />
 <MenuItem Name="Init" />
 <MenuItem Name="GitWebUI" />
@@ -115,6 +116,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
         // cases
         "Status": 1,
         "GitWebUI" : 1,
+        "Authenticate": 1, //TODO: not always
         "Export": 1,
         "ExportForce": 1,
         "Import": 1,
@@ -346,4 +348,3 @@ Method AddToSourceControl(InternalName As %String, Description As %String = "") 
 }
 
 }
-

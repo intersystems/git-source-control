@@ -187,6 +187,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "GitWebUI") {
         set Action = 2 + externalBrowser
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
+    } elseif (menuItemName = "Authenticate") {
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth.csp/"_$namespace_"/?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -1987,6 +1990,13 @@ ClassMethod PrintStreams(streams... As %Stream.FileCharacter)
 ClassMethod ResetSourceControlClass()
 {
     do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("")
+}
+
+ClassMethod WriteLineToFile(filePath As %String, line As %String)
+{
+    Set file=##class(%File).%New(filePath)
+    Do file.Open("WSN")
+	Do file.WriteLine(line)
 }
 
 }

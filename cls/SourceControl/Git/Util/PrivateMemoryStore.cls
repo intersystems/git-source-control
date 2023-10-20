@@ -12,7 +12,7 @@ Property size [ Internal, Private ];
 
 Parameter defaultSize = 128;
 
-Method %OnNew(size as %Integer) As %Status [ Private, ServerOnly = 1 ]
+Method %OnNew(size As %Integer) As %Status [ Private, ServerOnly = 1 ]
 {
         if $DATA(size) && $ISVALIDNUM(size) && (size >= 0) {
             set i%size = size
@@ -24,7 +24,9 @@ Method %OnNew(size as %Integer) As %Status [ Private, ServerOnly = 1 ]
         return $$$OK
 }
 
-Method Store(key, value)
+/// Store `key`: `value` to the map
+/// throws an exception if key = ""
+Method Store(key As %String, value As %String)
 {
     if key = "" {
         // TODO: throw a better exception
@@ -66,7 +68,9 @@ Method Store(key, value)
     set i%offset = ..insertIntoMemoryStore(value, i%buffer, i%offset)
 }
 
-Method Retrieve(key) As %RawString
+/// Retreives the value associated with `key`
+/// Returns `""` if key does not exist
+Method Retrieve(key As %String) As %RawString
 {
         return:('..KeyExists(key)) ""
 
@@ -74,7 +78,9 @@ Method Retrieve(key) As %RawString
         return $view(i%buffer+offset,-3,-length)
 }
 
-Method Clear(key)
+/// Deletes the key and its associated value from the map
+/// Returns silently if key does not exist
+Method Clear(key As %String)
 {
         quit:('..KeyExists(key))
 
@@ -92,12 +98,14 @@ Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
     do ..deallocateBuffer()
 }
 
-Method KeyExists(key) As %Boolean
+/// Returns true if `key` exists in the map
+/// Returns false otherwise
+Method KeyExists(key As %String) As %Boolean
 {
     if key = "" {
         return 0
     }
-    return '($Get(i%map(key)) = "")
+    return $Get(i%map(key)) '= ""
 }
 
 // PRIVATE METHODS ====>

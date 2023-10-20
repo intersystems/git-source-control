@@ -24,7 +24,7 @@
 
       <!-- Pages for the Git menu in Studio/VSCode - moved to /isc/studio/usertemplates -->
       <!-- Can't call the folder git-source-control because this causes errors in CSP compliation! -->
-      <FileCopy Name="csp/oauth.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/oauth.csp" />
+      <FileCopy Name="csp/oauth2.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/oauth2.csp" />
       <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
       <FileCopy Name="csp/pull.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/pull.csp" />
       <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />

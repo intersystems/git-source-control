@@ -189,7 +189,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
     } elseif (menuItemName = "Authenticate") {
         set Action = 2 + externalBrowser
-        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth.csp/"_$namespace_"/?"_urlPostfix
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp/"_$namespace_"/?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))

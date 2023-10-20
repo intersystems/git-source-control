@@ -1,32 +1,32 @@
 Class SourceControl.Git.OAuth2.Config Extends %RegisteredObject
 {
 
-// ClientID is the OAuth Application ID
+/// Name is the identifier for this configuration
+Property Name As %String(MAXLEN = 127);
 
-Property ClientID As %String;
+/// ClientID is the OAuth Application ID
+Property ClientID As %String(MAXLEN = "");
 
-// ClientSecret is the OAuth Application secret
+/// ClientSecret is the OAuth Application secret
+Property ClientSecret As %String(MAXLEN = "");
 
-Property ClientSecret As %String;
-
-// Endpoint contains the resource server's token endpoint
-
+/// Endpoint contains the resource server's token endpoint
 Property Endpoint As Endpoint;
 
-// RedirectURL is the URL to redirect the auth token
+/// RedirectURL is the URL to redirect the auth token
+/// to after authenticating with the resource owner
+Property RedirectURL As %String(MAXLEN = "");
 
-// to after authenticating with the resource owner
-
-Property RedirectURL;
-
-// Scopes specifies the list of scopes we are requesting access to
-
+/// Scopes specifies the list of scopes we are requesting access to
 Property Scopes;
+
+Index NameID On Name [ IdKey ];
 
 // TODO: We will need a authStyleCache when we use autodetect for Endpoint.AuthStyle in the future
 
-Method %OnNew(clientID As %String, clientSecret As %String, authEndpoint As %String, tokenEndpoint As %String, redirectURL As %String, scopes As %String) As %Status
+Method %OnNew(configName As %String, clientID As %String, clientSecret As %String, authEndpoint As %String, tokenEndpoint As %String, redirectURL As %String, scopes As %String) As %Status
 {
+    set ..Name = configName
     set ..ClientID = clientID
     set ..ClientSecret = clientSecret
     set ..Endpoint = ##class(Endpoint).%New()
@@ -121,4 +121,56 @@ ClassMethod GetURLWithParams(url As %String, ByRef params As %String) As %String
     return url
 }
 
+Storage Default
+{
+<Data name="ConfigDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>ClientID</Value>
+</Value>
+<Value name="3">
+<Value>ClientSecret</Value>
+</Value>
+<Value name="4">
+<Value>Endpoint</Value>
+</Value>
+<Value name="5">
+<Value>RedirectURL</Value>
+</Value>
+<Value name="6">
+<Value>Scopes</Value>
+</Value>
+</Data>
+<Data name="ConfigState">
+<Value name="1">
+<Value>Name</Value>
+</Value>
+<Value name="2">
+<Value>ClientID</Value>
+</Value>
+<Value name="3">
+<Value>ClientSecret</Value>
+</Value>
+<Value name="4">
+<Value>Endpoint</Value>
+</Value>
+<Value name="5">
+<Value>RedirectURL</Value>
+</Value>
+<Value name="6">
+<Value>Scopes</Value>
+</Value>
+</Data>
+<DataLocation>^SourceControl.Git.O7826.ConfigD</DataLocation>
+<DefaultData>ConfigDefaultData</DefaultData>
+<IdLocation>^SourceControl.Git.O7826.ConfigD</IdLocation>
+<IndexLocation>^SourceControl.Git.O7826.ConfigI</IndexLocation>
+<State>ConfigState</State>
+<StreamLocation>^SourceControl.Git.O7826.ConfigS</StreamLocation>
+<Type>%Storage.Serial</Type>
 }
+
+}
+

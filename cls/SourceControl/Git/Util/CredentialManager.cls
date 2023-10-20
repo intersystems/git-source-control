@@ -4,7 +4,7 @@ Class SourceControl.Git.Util.CredentialManager Extends %RegisteredObject
 /// Description
 Property pvtStore [ Internal, Private ];
 
-ClassMethod Test()
+ClassMethod Test() [ Private ]
 {
 	Do ##class(SourceControl.Git.Util.CredentialManager).Stop()
 
@@ -23,14 +23,16 @@ ClassMethod Test()
 	zw token, err, code
 }
 
-ClassMethod Test2()
+ClassMethod Test2() [ Private ]
 {
 	set username = "testUser"
 	set token = ..GetToken(username, .err, .code)
 	zw token, err, code
 }
 
-Method Run()
+/// Creates the `..GetEventName()` named event
+/// Waits on signals and services request
+Method Run() [ Private ]
 {
 	do ##class(%SYSTEM.Event).Create(..GetEventName())
 
@@ -40,34 +42,42 @@ Method Run()
 		try {
 			set code = ..Wait(.msgType, .msgContent)
 			if (code = 1) {
-				do ..LogForDaemon("Code: "_code_" "_"Received "_msgType_" && "_ " "_msgContent)
 				do ..HandleMessage(msgType, msgContent)
 			}
 		} catch err {
-			do err.Log()
+			do err.Log() 
 		}
 	}
 }
 
-ClassMethod GetToken(gitUsername As %String, Output error As %String, Output code As %String) As %String
+/// GetToken is used to retreive the access token for a particular git user
+/// gitUsername (optional) default: `""` -- username for which token is to be retreived
+/// error -- pass by reference -- returns error: if error '= "" we got an error from the daemon process
+/// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
+/// Returns fetched token
+ClassMethod GetToken(gitUsername As %String = "", Output error As %String, Output code As %String) As %String
 {
 	set $lb(token, error) = ..Signal("GET", $lb($JOB, gitUsername), .code)
 	return token
 }
 
-ClassMethod SetToken(gitUsername As %String, gitToken As %String, Output error As %String, Output code)
+/// SetToken is used to retreive the access token for a particular git user
+/// gitUsername (optional) default: `""` -- username for which token is to be set
+/// error -- pass by reference -- returns error: if (error '= "") we got an error from the daemon process
+/// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
+ClassMethod SetToken(gitUsername As %String = "", gitToken As %String, Output error As %String, Output code)
 {
 	set $lb(, error) = ..Signal("SET", $lb($JOB, gitUsername, gitToken), .code)
 }
 
-ClassMethod SendResponse(toPID As %Integer, message As %String, error As %String)
+ClassMethod SendResponse(toPID As %Integer, message As %String, error As %String) [ Private ]
 {
 	if $System.Event.Signal(toPID, $lb(message, error)) '= 1 {
-		do ..LogForDaemon("Unable to send message: """_message_""" to: "_toPID)
+		#; do ..LogForDaemon("Unable to send message: """_message_""" to: "_toPID)
 	}
 }
 
-Method HandleMessage(msgType As %String, msgContent As %String)
+Method HandleMessage(msgType As %String, msgContent As %String) [ Private ]
 {
 	try {
 		// make sure the message is appropriately formatted
@@ -78,7 +88,7 @@ Method HandleMessage(msgType As %String, msgContent As %String)
 	}
 		
 	if '$data(senderPID) {
-		do ..LogForDaemon("No source PID provided")
+		#; do ..LogForDaemon("No source PID provided")
 		quit
 	}
 
@@ -108,7 +118,7 @@ Method HandleMessage(msgType As %String, msgContent As %String)
 	}
 }
 
-ClassMethod Signal(msgType As %String, msgContent As %String, Output responseCode) As %String
+ClassMethod Signal(msgType As %String, msgContent As %String, Output responseCode) As %String [ Private ]
 {
 	// Make sure the daemon is running
 	do ..Start()
@@ -132,12 +142,12 @@ Method Wait(Output msgType As %String, Output msgContent As %String) As %Integer
 	return code
 }
 
-ClassMethod GetEventName() As %String
+ClassMethod GetEventName() As %String [ Private ]
 {
 	return $Name(^isc.git.sc("Daemon")) //^"_$classname()
 }
 
-ClassMethod Start()
+ClassMethod Start() [ Private ]
 {
 	if ..CheckStatus() {
 		quit
@@ -156,18 +166,18 @@ ClassMethod Start()
 	}
 }
 
-ClassMethod StartInternal()
+ClassMethod StartInternal() [ Private ]
 {
 	try {
 		set lock = $System.AutoLock.Lock(..GetEventName(), , 2)
 		set daemon = ..%New()
 		do daemon.Run()
 	} catch err {
-		do LogForDaemon(err.DisplayString())
+		#; do LogForDaemon(err.DisplayString())
 	}
 }
 
-ClassMethod Stop()
+ClassMethod Stop() [ Private ]
 {
 	do ##class(%SYSTEM.Event).Delete(..GetEventName())
 	set pid = ^$LOCK(..GetEventName(), "OWNER")
@@ -176,13 +186,13 @@ ClassMethod Stop()
 	}
 }
 
-ClassMethod Restart()
+ClassMethod Restart() [ Private ]
 {
 	do ..Stop()
 	do ..Start()
 }
 
-ClassMethod CheckStatus() As %Boolean
+ClassMethod CheckStatus() As %Boolean [ Private ]
 {
 	return ($data(^$LOCK(..GetEventName())) = 10)
 }
@@ -195,22 +205,6 @@ Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
 {
 	do ##class(%SYSTEM.Event).Delete(..GetEventName())
 	return $$$OK
-}
-
-ClassMethod LogForDaemon(msg) As %Status
-{
-	do ..LogToApplicationErrors("!!!Credential Manager Deamon!!!"_$c(13,10)_msg)
-}
-
-ClassMethod LogToApplicationErrors(msg) As %Status
-{
-	try {
-		do LOG^%ETN(msg)
-		set sc=$$$OK
-	} catch err {
-		set sc=err.AsStatus()
-	}
-	return sc
 }
 
 }

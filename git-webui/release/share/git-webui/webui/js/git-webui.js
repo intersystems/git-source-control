@@ -323,9 +323,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var branchInfo = /^\*?\s*(?<branch_name>[\w-]+)\s+(?<hash>[^\s]+)\s+(?<remote>\[.*\])?.*/.exec(ref).groups;
+                var matches = /^\*?\s*([\w-]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                var branchInfo = {
+                    "branch_name": matches[1],
+                    "hash": matches[2],
+                    "remote": matches[3]
+                }
                 var refname = branchInfo.branch_name;
-                var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.includes("ahead")) // either no upstream or ahead of upstream
+                var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.indexOf("ahead") > -1) // either no upstream or ahead of upstream
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
@@ -656,7 +661,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();
-        webui.git(`push -u origin ${refName}`, "", self.upToDateHandler)
+        webui.git('push -u origin '+refName, "", self.upToDateHandler)
     }
 
     self.goToSettingsPage = function() {

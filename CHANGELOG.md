@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pulling add/delete of multiple non-IRIS files no longer causes error (#273)
 - Fixed -2 timestamp for some items (#275)
 - Reset SourceControlClass during module uninstall to prevent "Class does not exist error" (#285)
+- Unreleased bug breaking Git WebUI from Studio (#297)
 
 ## [2.2.0] - 2023-06-05
 

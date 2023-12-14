@@ -24,7 +24,7 @@ Method InternalNameSet(InternalName As %String = "") As %Status
         }
         set ..Package = ##class(%ZPM.PackageManager.Developer.Extension.Utils).FindHomeModule(InternalName,,.resourceReference)
         set ..ResourceReference = resourceReference
-        set ..IsInGitEnabledPackage = $isobject(..Package) && ##class(%Library.File).DirectoryExists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))
+        set ..IsInGitEnabledPackage = $isobject(..Package) && ##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))
         set ..IsInDefaultPackage = $isobject(..Package) && (##class(%Library.File).NormalizeDirectory(..Package.Root) = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).DefaultTempFolder()))
     }
     quit $$$OK

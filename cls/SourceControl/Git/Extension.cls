@@ -47,7 +47,7 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     if Type = 1, Name = 5 {
         // reroute to Status menu option
         set Name = "%SourceMenu,Status"
-    }
+    } 
 
     #dim ec as %Status = $$$OK
     #dim menu as %Status = $piece(Name, ",", 1)
@@ -253,13 +253,21 @@ InternalName'="" && ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInt
 /// Called before an item is deleted.
 Method OnBeforeDelete(InternalName As %String) As %Status
 {
-    set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-    set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
-    set Filename = ##class(Utils).FullExternalName(InternalName)
-    if ##class(Utils).IsInSourceControl(InternalName) {
-        quit ##class(Change).AddDeletedToUncommitted(Filename, InternalName)
+    if ..IsReadOnly(InternalName) {
+        set ^mtempVG("dbg",$i(^mtempVG)) = "readonly"
+        // throw error if deleting readonly item
+        Throw ##class(%Exception.General).%New("Can't delete in locked environment")
+    } else {
+        set ^mtempVG("dbg",$i(^mtempVG)) = "not readonly"
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
+        set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+        set Filename = ##class(Utils).FullExternalName(InternalName)
+        if ##class(Utils).IsInSourceControl(InternalName) {
+            quit ##class(Change).AddDeletedToUncommitted(Filename, InternalName)
+        }
+        quit $$$OK
     }
-    quit $$$OK
+    set ^mtempVG("dbg",$i(^mtempVG)) = "outside, after if readonly"
 }
 
 /// Called after an item is deleted.

@@ -254,11 +254,9 @@ InternalName'="" && ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInt
 Method OnBeforeDelete(InternalName As %String) As %Status
 {
     if ..IsReadOnly(InternalName) {
-        set ^mtempVG("dbg",$i(^mtempVG)) = "readonly"
         // throw error if deleting readonly item
         Throw ##class(%Exception.General).%New("Can't delete in locked environment")
     } else {
-        set ^mtempVG("dbg",$i(^mtempVG)) = "not readonly"
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
         set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
         set Filename = ##class(Utils).FullExternalName(InternalName)
@@ -267,7 +265,6 @@ Method OnBeforeDelete(InternalName As %String) As %Status
         }
         quit $$$OK
     }
-    set ^mtempVG("dbg",$i(^mtempVG)) = "outside, after if readonly"
 }
 
 /// Called after an item is deleted.

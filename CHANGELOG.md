@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for git submodules in package manager-aware setting (#305)
 - Web UI's 'More ...' view shows longer branch names (#294)
 - Deletion of files in locked environment is now suppressed (#302)
+- Failed to import file VS Code popup no longer shows up after overwriting file on server once (#264)
 
 ## [2.3.0] - 2023-12-06
 

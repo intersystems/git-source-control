@@ -362,7 +362,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId +'">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
-                                + ref //IMPORTANT: This has to be the original ref for selectRef to work 
+                            + ref //IMPORTANT: This has to be the original ref for selectRef to work 
                             + '</button>').appendTo(cardHeader)
 
                 var collapseDiv = $('<div id="collapse-' + itemId + '" class="collapse" aria-labelledby="heading-' + itemId + '" data-parent="#accordion-'+id+'-'+idPostfix+'">').appendTo(cardDiv);
@@ -377,6 +377,16 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 self.selectRef(event.target.innerHTML);
             });
         }
+
+        if (id === "remote-branches" && idPostfix === "popup") {
+            const remoteBranchBtns = $("#accordion-remote-branches-popup button").filter((i, span) => jQuery.inArray($(span).text(),refs) != -1);
+            const widest = Math.max(...remoteBranchBtns.map((i, span) => $(span).width()));
+            if (remoteBranchBtns.length > 0) {
+                remoteBranchBtns.css("padding", ".25rem .5rem");
+                remoteBranchBtns.css("border", 0);
+                remoteBranchBtns.width(widest);
+            }
+        } 
         return accordionDiv;
     }
 

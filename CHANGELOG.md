@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Support for git submodules in package manager-aware setting (#305)
+- Web UI's 'More ...' view shows longer branch names (#294)
 - Deletion of files in locked environment is now suppressed (#302)
 
 ## [2.3.0] - 2023-12-06

@@ -3,6 +3,20 @@ Import SourceControl.Git
 Class UnitTest.SourceControl.Git.AddRemove Extends %UnitTest.TestCase
 {
 
+Method TestReadonlyDelete()
+{
+	new %SourceControl
+	do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+	do ##class(API).Lock()
+	try {
+		do %SourceControl.OnBeforeDelete("")
+		do $$$AssertFailure("No error thrown when deleting in locked environment")
+	}  catch e {
+		do $$$AssertEquals(e.Name,"Can't delete in locked environment")
+	}
+    do ##class(API).Unlock()
+}
+
 Method TestInit()
 {
 	new %SourceControl

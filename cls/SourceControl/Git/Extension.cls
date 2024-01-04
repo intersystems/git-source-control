@@ -210,6 +210,21 @@ Method OnBeforeLoad(InternalName As %String, verbose As %Boolean) As %Status
 /// Called before Studio checks for the timestamp of an item.
 Method OnBeforeTimestamp(InternalName As %String)
 {
+    set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
+    if $IsObject($Get(%request)) {
+        set clientServerHash = ##class(%Atelier.REST).GetClientServerHash()
+        if (clientServerHash '= "") {
+            // suppress load / timestamp update if file on server was modified an extremely short time ago
+            set file = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+            if (file '= "") {
+                set lastModifiedTime = ##class(%Library.File).GetFileDateModified(file)
+                set diff = $System.SQL.Functions.DATEDIFF("ms",lastModifiedTime,$h)
+                if (diff < 1000) {
+                    quit
+                }
+            }
+        }
+    }
     quit ..OnBeforeLoad(InternalName,0)
 }
 
@@ -346,4 +361,3 @@ Method AddToSourceControl(InternalName As %String, Description As %String = "") 
 }
 
 }
-

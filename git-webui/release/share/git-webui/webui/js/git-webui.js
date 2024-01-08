@@ -2120,18 +2120,25 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted);
                 self.filesCount = 0;
+                var filePaths = [];
                 webui.splitLines(data).forEach(function(line) {
+                    var indexStatus = line[0];
+                    var workingTreeStatus = line[1];
                     var status = line[col];
-                    if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
+                    line = line.substring(3);
+                    var splitted = line.split(" -> ");
+                    var model;
+                    if (splitted.length > 1) {
+                        model = splitted[1];
+                    } else {
+                        model = line;
+                    }
+                    filePaths.push(model);
+                    if (workingTreeStatus === "D") {
+                        localStorage.removeItem(model);
+                    }
+                    if (col == 0 && indexStatus != " " && indexStatus != "?" && localStorage.getItem(model) !== null || col == 1 && workingTreeStatus != " " && workingTreeStatus != "D" && localStorage.getItem(model) === null) {
                         ++self.filesCount;
-                        line = line.substring(3);
-                        var splitted = line.split(" -> ");
-                        var model;
-                        if (splitted.length > 1) {
-                            model = splitted[1];
-                        } else {
-                            model = line;
-                        }
                         var isForCurrentUser;
                         if(model.indexOf(" ") > -1){
                             isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
@@ -2155,6 +2162,11 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                             $(item).dblclick(self.process);
                         }
                     }
+                });
+                Object.keys(localStorage).filter(function (key) {
+                    return !filePaths.includes(key);
+                }).map(function (key) {
+                    localStorage.removeItem(key);
                 });
                 if (selectedIndex !== null && selectedIndex >= fileList.childElementCount) {
                     selectedIndex = fileList.childElementCount - 1;
@@ -2320,6 +2332,12 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var action = type == "working-copy" ? "stage" : "unstage"
         var files = self.getFileList(undefined, "D", 0);
         var rmFiles = self.getFileList("D", undefined, 0);
+
+        if (action === "stage") {
+            localStorage.setItem(files.trim(), "staged");
+        } else {
+            localStorage.removeItem(files.trim());
+        }
 
         if (files.length != 0) {
             var cmd = type == "working-copy" ? "add" : "reset";

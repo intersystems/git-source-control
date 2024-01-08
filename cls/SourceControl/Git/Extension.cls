@@ -216,7 +216,7 @@ Method OnBeforeTimestamp(InternalName As %String)
         if (clientServerHash '= "") {
             // suppress load / timestamp update if file on server was modified an extremely short time ago
             set file = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
-            if (file '= "") {
+            if (file '= "" && ##class(%File).Exists(file)) {
                 set lastModifiedTime = ##class(%Library.File).GetFileDateModified(file)
                 set diff = $System.SQL.Functions.DATEDIFF("ms",lastModifiedTime,$h)
                 if (diff < 1000) {
@@ -366,3 +366,4 @@ Method AddToSourceControl(InternalName As %String, Description As %String = "") 
 }
 
 }
+

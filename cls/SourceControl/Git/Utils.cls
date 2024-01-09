@@ -285,7 +285,7 @@ ClassMethod Revert(InternalName As %String) As %Status
     set filename = ..FullExternalName(.InternalName)
     do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
-    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1,,1))
     $$$QuitOnError(..ImportItem(InternalName,1))
     quit $$$OK
 }
@@ -299,7 +299,7 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
     do ..PrintStreams(outStream, outStream)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
-    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted())
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
     quit $$$OK
 }
 
@@ -453,7 +453,7 @@ ClassMethod GenerateSSHKeyPair() As %Status
     do ##class(%File).CreateDirectoryChain(dir)
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
-    do $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
+    do $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
         "ssh-keygen",
         "-t","ed25519",
         "-C",email,
@@ -1485,8 +1485,20 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set errLog = ##class(%Library.File).TempFilename()
 
     set command = $extract(..GitBinPath(),2,*-1)
-    // Need /SHELL on Linux to avoid permissions errors trying to use root's config
-    set returnCode = $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile)),command,newArgs...)
+    set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
+    try {
+        // Inject instance manager directory as global git config home directory
+        // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
+        set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
+        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,command,newArgs...)
+    } catch e {
+        if $$$isWINDOWS {
+            set returnCode = $zf(-100,baseArgs,command,newArgs...)
+        } else {
+            // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
+            set returnCode = $zf(-100,"/SHELL "_baseArgs,command,newArgs...)
+        }
+    }
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1999,3 +2011,4 @@ ClassMethod ResetSourceControlClass()
 }
 
 }
+

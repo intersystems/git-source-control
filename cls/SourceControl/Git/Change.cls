@@ -78,8 +78,15 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 }
 
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
-ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) As %Status
+ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
 {
+    if 'Force {
+        // 10-second throttle on RefreshUncommitted
+        if $zdatetime($ztimestamp,-2) - $Get(^IRIS.Temp.gitsourcecontrol("Refresh"),0) < 10 {
+            merge gitFiles = ^IRIS.Temp.gitsourcecontrol("LastUncommitted")
+            quit $$$OK
+        }
+    }
     kill gitFiles
     
     // files from the uncommitted queue
@@ -124,6 +131,8 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) 
         }
         set filename=$order(gitFiles(filename),1,details)
     }
+    set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
+    merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles
     quit sc
 }
 

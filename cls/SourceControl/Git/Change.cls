@@ -80,6 +80,10 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
 ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
 {
+    set lock = $System.AutoLock.Lock("^SourceControl.Git.Refresh",,10)
+    if lock = $$$NULLOREF {
+        quit $$$ERROR($$$GeneralError,"Unable to get exclusive lock for refresh of uncommitted changes.")
+    }
     if 'Force {
         // 10-second throttle on RefreshUncommitted
         if $zdatetime($ztimestamp,-2) - $Get(^IRIS.Temp.gitsourcecontrol("Refresh"),0) < 10 {

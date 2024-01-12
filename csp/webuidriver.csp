@@ -19,6 +19,7 @@
 	} catch e {
 		// ignore; may occur on platform versions without the above properties
 	}
+	do %session.Unlock()
 
 	// Serve static content when appropriate.
 	// index.html

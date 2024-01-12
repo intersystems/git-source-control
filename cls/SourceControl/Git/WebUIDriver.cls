@@ -3,6 +3,7 @@ Class SourceControl.Git.WebUIDriver
 
 ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
+    do %session.Unlock()
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     kill %data
     #dim %response as %CSP.Response
@@ -99,6 +100,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     set stdin = $piece(args(1),$char(10),2,*)
                     set args(1) = $piece(args(1),$char(10))
                 }
+                set readOnlyCommands = $listbuild("branch","tag","log","ls-files","ls-tree","show","status","diff")
+                set baseCommand = $Piece(args(1)," ")
 
                 set gitArgs($increment(gitArgs)) = "color.ui=true"
 
@@ -154,7 +157,9 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
-                do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                if '$listfind(readOnlyCommands,baseCommand) {
+                    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                }
                 set handled = 1
             }
         }
@@ -218,4 +223,3 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 }
 
 }
-

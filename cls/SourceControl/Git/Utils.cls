@@ -776,6 +776,9 @@ ClassMethod Type(InternalName As %String) As %String
         } else {
             set type ="csp"
         }
+        if (type = "csp") {
+            quit type
+        }
     }
     
 	// For an abstract document, use the GetOther() method to try to determine its "real" class
@@ -966,7 +969,7 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 
 ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists As %Boolean) As %String [ CodeMode = expression ]
 {
-##class(%File).NormalizeFilename(..TempFolder()_..ExternalName(.InternalName, .MappingExists))
+..TempFolder()_..ExternalName(.InternalName, .MappingExists)
 }
 
 ClassMethod NormalizeInternalName(ByRef name As %String) As %String
@@ -1564,9 +1567,11 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
                 set InternalName = actualName
             }
         }
+    } else {
+        set usertype = 0
     }
     
-    if '##class(%Library.RoutineMgr).UserType(InternalName) && $$CheckProtect^%qccServer(InternalName) {
+    if 'usertype && $$CheckProtect^%qccServer(InternalName) {
         quit ""
     }
        
@@ -1643,7 +1648,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
     
-    } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
+    } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{
             set nam=$translate(nam,".","/")
@@ -1670,21 +1675,16 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
     if (context.IsInGitEnabledPackage) {
         if ($zconvert(Name,"U")'[$zconvert(context.Package.Root,"U")) {
-            set Name = ##class(%File).NormalizeFilename(context.Package.Root_Name)
+            set Name = context.Package.Root_Name
         }
     } elseif ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
-        set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
+        set Name = ..TempFolder()_Name
     }
     if (##class(%File).Exists(Name)) {
-        new %SourceControl //don't trigger source hooks with this test load to get the Name
-        set sc=$system.OBJ.Load(Name,"-d",,.outName,1)
-        if (($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName(""))))) && ($zconvert(..Type(outName),"U") '= "CSP") {
-            //only set if a single Name was returned ... ignore multi-item files
-            set InternalName=outName
-            if (context.IsInGitEnabledPackage) {
-                // Don't need mappings!
-                return ..NormalizeInternalName(InternalName)
-            }
+        set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)
+        if (InternalName '= "") && (context.IsInGitEnabledPackage) {
+            // Don't need mappings!
+            return ..NormalizeInternalName(InternalName)
         }
     } else {
         // check for file in uncommitted queue
@@ -2011,4 +2011,3 @@ ClassMethod ResetSourceControlClass()
 }
 
 }
-

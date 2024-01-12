@@ -323,7 +323,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                var matches = /^\*?\s*([\w-\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
                 var branchInfo = {
                     "branch_name": matches[1],
                     "hash": matches[2],
@@ -331,7 +331,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
                 var refname = branchInfo.branch_name;
                 var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.indexOf("ahead") > -1) // either no upstream or ahead of upstream
-                var itemId = refname + idPostfix;
+                var itemId = refname.replaceAll('/', '-') + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + refname
@@ -479,16 +479,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         webui.git("fetch --prune",updateSideBar);
     }
 
-    self.checkoutBranch = function(e) {
-        e.preventDefault();
-        $("#confirm-branch-checkout").remove();
     
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
+    self.checkoutBranch = function(branchType, refName) {
+        $("#confirm-branch-checkout").remove();
 
         var remoteName = refName.split("/")[0];
-        var branchName = refName.split("/")[1];
-
+        var branchName = refName.split("/").slice(1).join("/");
         var flag = 0;
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
@@ -534,12 +530,18 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     $("#confirm-branch-checkout").on('click', '#confirm-checkout', function(e){
                         e.preventDefault();
                         var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
-                        var remoteName = refName.split("/")[0];
-                        var branchName = refName.split("/")[1];
 
-                        if(branchName){
+                        if(branchType === "remote"){
+                            var remoteName = refName.split("/")[0];
+                            var branchName = refName.split("/")[1];
                             webui.git("fetch "+remoteName+" "+branchName);
-                            webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                            webui.git("branch -l "+branchName, function(existingBranch) {
+                                if (existingBranch.length > 0) {
+                                    webui.git("checkout " +branchName, updateSideBar);
+                                } else {
+                                    webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                                }
+                            });
                         }
                         else{
                             webui.git("checkout " + refName, updateSideBar, "", "", webui.showSuccess);
@@ -552,17 +554,40 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     });
                 }
                 else{
-                    if(branchName){
+                    if(branchType === "remote"){
                         webui.git("fetch "+remoteName+" "+branchName);
-                        webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                        webui.git("branch -l "+branchName, function(existingBranch) {
+                            if (existingBranch.length > 0) {
+                                webui.git("checkout " +branchName, updateSideBar);
+                            } else {
+                                webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                            }
+                        });
                     }
-
                     else{
                         webui.git("checkout " + refName, updateSideBar, "", "", webui.showSuccess);
                     }
                 }
             });
         });
+    }
+
+    self.checkoutLocalBranch = function(e) {
+        e.preventDefault();
+
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+
+        self.checkoutBranch("local", refName);
+    }
+
+    self.checkoutRemoteBranch = function(e) {
+        e.preventDefault();
+    
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+
+        self.checkoutBranch("remote", refName);
     }
 
     self.deleteLocalBranch = function(e) {
@@ -779,9 +804,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
 
     if(!noEventHandlers){
-        $(document).on('click', '.btn-checkout-local-branch', self.checkoutBranch);
+        $(document).on('click', '.btn-checkout-local-branch', self.checkoutLocalBranch);
         $(document).on('click', '.btn-push-branch', self.pushBranch);
-        $(document).on('click', '.btn-checkout-remote-branch', self.checkoutBranch);
+        $(document).on('click', '.btn-checkout-remote-branch', self.checkoutRemoteBranch);
 
         $(document).on('click', '.btn-delete-branch', self.deleteLocalBranch);
 

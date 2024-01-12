@@ -1667,26 +1667,26 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 /// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.
 ClassMethod UserTypeCached(Name As %String, ByRef Class As %String, ByRef StudioType As %String, ByRef Schema As %String, ByRef StudioIcon As %Integer) As %Boolean
 {
-	Set ext=$zconvert($piece(Name,".",*),"U") If ext="" Quit 0
+    Set ext=$zconvert($piece(Name,".",*),"U") If ext="" Quit 0
     If $Data(^||UserTypeCache(ext,"NotUserType"))#2 {
         Quit 0
     }
     If $Data(^||UserTypeCache(ext),data)#2 {
         Set Class = $Get(^||UserTypeCache(ext,"Class"))
-	    Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
+        Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
         Quit 1
     }
-	Do StudioDocument^%SYS.cspServer2(.document)
-	Set Class="",StudioType="",Schema=""
-	For  Set Class=$order(document(Class)) Quit:Class=""||($data(document(Class,ext),data))
-	If Class="" {
+    Do StudioDocument^%SYS.cspServer2(.document)
+    Set Class="",StudioType="",Schema=""
+    For  Set Class=$order(document(Class)) Quit:Class=""||($data(document(Class,ext),data))
+    If Class="" {
         Set ^||UserTypeCache(ext,"NotUserType") = 1
         Quit 0
     }
-	Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
+    Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
     Set ^||UserTypeCache(ext) = data
     Set ^||UserTypeCache(ext,"Class") = Class
-	Quit 1
+    Quit 1
 }
 
 /*

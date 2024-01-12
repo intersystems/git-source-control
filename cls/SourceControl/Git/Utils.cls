@@ -782,7 +782,7 @@ ClassMethod Type(InternalName As %String) As %String
     }
     
 	// For an abstract document, use the GetOther() method to try to determine its "real" class
-	If ##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+	If ..UserTypeCached(InternalName,.docclass,.doctype) {
 		// Check for a real abstract document subclass (or GetOther() may not work)
 		If $classmethod(docclass,"%IsA","%Studio.AbstractDocument") && $classmethod(docclass,"%Extends","Ens.Util.AbstractDocument") {
 			// Grab the actual name
@@ -1109,7 +1109,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     #dim sc as %Status = $$$OK
     
     if ..IsRoutineOutdated(InternalName) || force {
-        if ##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+        if ..UserTypeCached(InternalName,.docclass,.doctype) {
             set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
             do routineMgr.Code.Rewind()
             set source = ##class(%Stream.FileCharacter).%OpenId(filename,,.sc)
@@ -1172,7 +1172,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                if ##class(%Library.RoutineMgr).UserType("foo."_mappingFileType) {
+                if ..UserTypeCached("foo."_mappingFileType) {
                     set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
                     set files = ##class(%Library.File).FileSetFunc(mappedFilePath,fileSpec)
                     while files.%Next() {
@@ -1271,7 +1271,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
                 if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
                     set ec = $$$ADDSC(ec, ..MakeError("Error while removing "_item))
                 }
-            }elseif ##class(%Library.RoutineMgr).UserType(item) {
+            }elseif ..UserTypeCached(item) {
                 set ec = $$$ADDSC(ec, ##class(%Library.RoutineMgr).Delete(item))
             } else {
                 set deleted = 0
@@ -1553,10 +1553,10 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
         quit relativePath
     }
-    set usertype=$system.CLS.IsMthd("%Library.RoutineMgr","UserType")
     
     // For an abstract document, use the GetOther() method to try to determine its "real" class
-    if usertype,##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+    if ..UserTypeCached(InternalName,.docclass,.doctype) {
+        set usertype = 1
         // Check for a real abstract document subclass (or GetOther() may not work)
         if $classmethod(docclass,"%IsA","%Studio.AbstractDocument") && $classmethod(docclass,"%Extends","Ens.Util.AbstractDocument") {
             // Grab the actual name
@@ -1662,6 +1662,31 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
     } else {
         quit $translate($get(found)_nam_"."_$zconvert(ext,"l"),"\","/")
     }
+}
+
+/// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.
+ClassMethod UserTypeCached(Name As %String, ByRef Class As %String, ByRef StudioType As %String, ByRef Schema As %String, ByRef StudioIcon As %Integer) As %Boolean
+{
+	Set ext=$zconvert($piece(Name,".",*),"U") If ext="" Quit 0
+    If $Data(^||UserTypeCache(ext,"NotUserType"))#2 {
+        Quit 0
+    }
+    If $Data(^||UserTypeCache(ext),data)#2 {
+        Set Class = $Get(^||UserTypeCache(ext,"Class"))
+	    Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
+        Quit 1
+    }
+	Do StudioDocument^%SYS.cspServer2(.document)
+	Set Class="",StudioType="",Schema=""
+	For  Set Class=$order(document(Class)) Quit:Class=""||($data(document(Class,ext),data))
+	If Class="" {
+        Set ^||UserTypeCache(ext,"NotUserType") = 1
+        Quit 0
+    }
+	Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
+    Set ^||UserTypeCache(ext) = data
+    Set ^||UserTypeCache(ext,"Class") = Class
+	Quit 1
 }
 
 /*

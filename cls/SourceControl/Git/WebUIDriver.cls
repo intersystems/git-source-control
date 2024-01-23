@@ -178,24 +178,26 @@ ClassMethod Uncommitted() As %SystemBase
     set output = ""
     set key = ""
 
-    set array = []
-    set key = ""
+    set editedByCurrentUser = []
+    set fileToOtherDevelopers = {}
     for {
         set key = $order(files(key),1,fileData)
         quit:key=""
         // Check that current user has files(key) uncommitted and only %Push if they do
         set filename = ##class(Utils).FullExternalName(key)
         if (($ISVALIDNUM(key)) && (files(key) '= "")){
-            do array.%Push($listget(fileData,2))
+            do editedByCurrentUser.%Push($listget(fileData,2))
         }
         else{
             set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
             if ($$$ISOK(sc)) && ($data(tAction)&&(UncommittedUser=$username)) {
-                do array.%Push($listget(fileData,2))
+                do editedByCurrentUser.%Push($listget(fileData,2))
             }
         }
     }
-    quit array
+    do fileToOtherDevelopers.%Set("current user's changes", editedByCurrentUser)
+    do fileToOtherDevelopers.%Set("other users' changes", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
+    quit fileToOtherDevelopers
 }
 
 ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String
@@ -218,4 +220,3 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 }
 
 }
-

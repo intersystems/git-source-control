@@ -98,6 +98,7 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
         do otherDevelopers.%Push(rset.ChangedBy)
         do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
     }
+    $$$ThrowOnError(sc)
     return fileToOtherDevelopers
 }
 

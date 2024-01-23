@@ -44,7 +44,9 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
             set changeSourceClass=##class(%Studio.SourceControl.Interface).SourceControlClassGet()
         }
         if ('$get(^SYS("SourceControl","ChangeConfig","KeepHistory")))||(Revert) {
-            set sc=..%DeleteId(obj.%Id())
+            if (obj.ChangedBy = $username) {
+                set sc=..%DeleteId(obj.%Id())
+            }
         } else {
             if $get(CommitCCR)'="" set obj.CCR=CommitCCR
             set obj.P4Issued=$zdatetime($h,3)
@@ -75,6 +77,29 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
         set ID=""
         quit 0
     }
+}
+
+ClassMethod GetOtherDeveloperChanges() As %Boolean
+{
+    set numEntries = 0
+    set fileToOtherDevelopers = {}
+    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE CHARINDEX('SourceControl.Git', Name)>0 AND Committed = '0' AND ChangedBy <> ?"
+    set statement = ##class(%SQL.Statement).%New()
+    set status = statement.%Prepare(query)
+    $$$ThrowOnError(status)
+    set rset = statement.%Execute($username)
+    if (rset.%SQLCODE < 0) {
+        throw ##class(%Exception.SQL).CreateFromSQLCODE(rset.%SQLCODE,rset.%Message)
+    }
+    while rset.%Next(.sc) {
+        $$$ThrowOnError(sc)
+        set filePath = "cls\"_$EXTRACT(rset.ItemFile, $FIND(rset.ItemFile,"cls\"),$LENGTH(rset.ItemFile))
+        set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
+        do otherDevelopers.%Push(rset.ChangedBy)
+        do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
+    }
+    $$$ThrowOnError(sc)
+    return fileToOtherDevelopers
 }
 
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
@@ -192,4 +217,3 @@ Storage Default
 }
 
 }
-

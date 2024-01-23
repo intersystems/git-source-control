@@ -285,7 +285,7 @@ ClassMethod Revert(InternalName As %String) As %Status
     set filename = ..FullExternalName(.InternalName)
     do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
-    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1))
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1,,1))
     $$$QuitOnError(..ImportItem(InternalName,1))
     quit $$$OK
 }
@@ -299,7 +299,7 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
     do ..PrintStreams(outStream, outStream)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
-    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted())
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
     quit $$$OK
 }
 
@@ -453,7 +453,7 @@ ClassMethod GenerateSSHKeyPair() As %Status
     do ##class(%File).CreateDirectoryChain(dir)
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
-    do $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
+    do $zf(-100,"/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog),
         "ssh-keygen",
         "-t","ed25519",
         "-C",email,
@@ -776,10 +776,13 @@ ClassMethod Type(InternalName As %String) As %String
         } else {
             set type ="csp"
         }
+        if (type = "csp") {
+            quit type
+        }
     }
     
 	// For an abstract document, use the GetOther() method to try to determine its "real" class
-	If ##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+	If ..UserTypeCached(InternalName,.docclass,.doctype) {
 		// Check for a real abstract document subclass (or GetOther() may not work)
 		If $classmethod(docclass,"%IsA","%Studio.AbstractDocument") && $classmethod(docclass,"%Extends","Ens.Util.AbstractDocument") {
 			// Grab the actual name
@@ -966,7 +969,7 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 
 ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists As %Boolean) As %String [ CodeMode = expression ]
 {
-##class(%File).NormalizeFilename(..TempFolder()_..ExternalName(.InternalName, .MappingExists))
+..TempFolder()_..ExternalName(.InternalName, .MappingExists)
 }
 
 ClassMethod NormalizeInternalName(ByRef name As %String) As %String
@@ -1106,7 +1109,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     #dim sc as %Status = $$$OK
     
     if ..IsRoutineOutdated(InternalName) || force {
-        if ##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+        if ..UserTypeCached(InternalName,.docclass,.doctype) {
             set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
             do routineMgr.Code.Rewind()
             set source = ##class(%Stream.FileCharacter).%OpenId(filename,,.sc)
@@ -1169,7 +1172,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                if ##class(%Library.RoutineMgr).UserType("foo."_mappingFileType) {
+                if ..UserTypeCached("foo."_mappingFileType) {
                     set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
                     set files = ##class(%Library.File).FileSetFunc(mappedFilePath,fileSpec)
                     while files.%Next() {
@@ -1268,7 +1271,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
                 if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
                     set ec = $$$ADDSC(ec, ..MakeError("Error while removing "_item))
                 }
-            }elseif ##class(%Library.RoutineMgr).UserType(item) {
+            }elseif ..UserTypeCached(item) {
                 set ec = $$$ADDSC(ec, ##class(%Library.RoutineMgr).Delete(item))
             } else {
                 set deleted = 0
@@ -1485,8 +1488,20 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set errLog = ##class(%Library.File).TempFilename()
 
     set command = $extract(..GitBinPath(),2,*-1)
-    // Need /SHELL on Linux to avoid permissions errors trying to use root's config
-    set returnCode = $zf(-100,"/SHELL /STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile)),command,newArgs...)
+    set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
+    try {
+        // Inject instance manager directory as global git config home directory
+        // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
+        set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
+        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,command,newArgs...)
+    } catch e {
+        if $$$isWINDOWS {
+            set returnCode = $zf(-100,baseArgs,command,newArgs...)
+        } else {
+            // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
+            set returnCode = $zf(-100,"/SHELL "_baseArgs,command,newArgs...)
+        }
+    }
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
@@ -1538,10 +1553,10 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
         quit relativePath
     }
-    set usertype=$system.CLS.IsMthd("%Library.RoutineMgr","UserType")
     
     // For an abstract document, use the GetOther() method to try to determine its "real" class
-    if usertype,##class(%RoutineMgr).UserType(InternalName,.docclass,.doctype) {
+    if ..UserTypeCached(InternalName,.docclass,.doctype) {
+        set usertype = 1
         // Check for a real abstract document subclass (or GetOther() may not work)
         if $classmethod(docclass,"%IsA","%Studio.AbstractDocument") && $classmethod(docclass,"%Extends","Ens.Util.AbstractDocument") {
             // Grab the actual name
@@ -1552,9 +1567,11 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
                 set InternalName = actualName
             }
         }
+    } else {
+        set usertype = 0
     }
     
-    if '##class(%Library.RoutineMgr).UserType(InternalName) && $$CheckProtect^%qccServer(InternalName) {
+    if 'usertype && $$CheckProtect^%qccServer(InternalName) {
         quit ""
     }
        
@@ -1631,7 +1648,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
     
-    } elseif ext="CLS"||(ext="PRJ")||(usertype&&(##class(%RoutineMgr).UserType(InternalName))) {
+    } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{
             set nam=$translate(nam,".","/")
@@ -1647,6 +1664,31 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
     }
 }
 
+/// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.
+ClassMethod UserTypeCached(Name As %String, ByRef Class As %String, ByRef StudioType As %String, ByRef Schema As %String, ByRef StudioIcon As %Integer) As %Boolean
+{
+    Set ext=$zconvert($piece(Name,".",*),"U") If ext="" Quit 0
+    If $Data(^||UserTypeCache(ext,"NotUserType"))#2 {
+        Quit 0
+    }
+    If $Data(^||UserTypeCache(ext),data)#2 {
+        Set Class = $Get(^||UserTypeCache(ext,"Class"))
+        Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
+        Quit 1
+    }
+    Do StudioDocument^%SYS.cspServer2(.document)
+    Set Class="",StudioType="",Schema=""
+    For  Set Class=$order(document(Class)) Quit:Class=""||($data(document(Class,ext),data))
+    If Class="" {
+        Set ^||UserTypeCache(ext,"NotUserType") = 1
+        Quit 0
+    }
+    Set StudioType=$list(data),Schema=$listget(data,3),StudioIcon=+$listget(data,4)
+    Set ^||UserTypeCache(ext) = data
+    Set ^||UserTypeCache(ext,"Class") = Class
+    Quit 1
+}
+
 /*
 	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
 	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
@@ -1658,21 +1700,16 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
     if (context.IsInGitEnabledPackage) {
         if ($zconvert(Name,"U")'[$zconvert(context.Package.Root,"U")) {
-            set Name = ##class(%File).NormalizeFilename(context.Package.Root_Name)
+            set Name = context.Package.Root_Name
         }
     } elseif ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
-        set Name = ##class(%File).NormalizeFilename(..TempFolder()_Name)
+        set Name = ..TempFolder()_Name
     }
     if (##class(%File).Exists(Name)) {
-        new %SourceControl //don't trigger source hooks with this test load to get the Name
-        set sc=$system.OBJ.Load(Name,"-d",,.outName,1)
-        if (($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName(""))))) && ($zconvert(..Type(outName),"U") '= "CSP") {
-            //only set if a single Name was returned ... ignore multi-item files
-            set InternalName=outName
-            if (context.IsInGitEnabledPackage) {
-                // Don't need mappings!
-                return ..NormalizeInternalName(InternalName)
-            }
+        set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)
+        if (InternalName '= "") && (context.IsInGitEnabledPackage) {
+            // Don't need mappings!
+            return ..NormalizeInternalName(InternalName)
         }
     } else {
         // check for file in uncommitted queue

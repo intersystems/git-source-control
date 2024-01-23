@@ -130,7 +130,7 @@ Method OnAfterConfigure() As %Boolean
              // using work queue manager ensures proper OS user context when running ssh-keygen
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).GenerateSSHKeyPair"))
-            $$$ThrowOnError(workMgr.Sync())
+            $$$ThrowOnError(workMgr.WaitForComplete())
             set pubKeyName = ..privateKeyFile_".pub"
             if ##class(%File).Exists(pubKeyName) {
                 set pubStream = ##class(%Stream.FileCharacter).%OpenId(pubKeyName,,.sc)
@@ -158,7 +158,7 @@ Method OnAfterConfigure() As %Boolean
              // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
-            $$$ThrowOnError(workMgr.Sync())
+            $$$ThrowOnError(workMgr.WaitForComplete())
             do ##class(SourceControl.Git.Utils).EmptyInitialCommit()
         } elseif (value = 2) {
             set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
@@ -171,7 +171,7 @@ Method OnAfterConfigure() As %Boolean
              // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
-            $$$ThrowOnError(workMgr.Sync())
+            $$$ThrowOnError(workMgr.WaitForComplete())
         }
     }
 }

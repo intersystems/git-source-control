@@ -83,19 +83,16 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
 {
     set numEntries = 0
     set fileToOtherDevelopers = {}
-    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE CHARINDEX('SourceControl.Git', Name)>0 AND Committed = '0' AND ChangedBy != '"_$username_"'"
+    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE CHARINDEX('SourceControl.Git', Name)>0 AND Committed = '0' AND ChangedBy <> ?"
     set statement = ##class(%SQL.Statement).%New()
     set status = statement.%Prepare(query)
-    if $$$ISERR(status) {
-        write "%Prepare failed:" do $SYSTEM.Status.DisplayError(status)
-        quit
+    $$$ThrowOnError(status)
+    set rset = statement.%Execute($username)
+    if (rset.%SQLCODE < 0) {
+        throw ##class(%Exception.SQL).CreateFromSQLCODE(rset.%SQLCODE,rset.%Message)
     }
-    set rset = statement.%Execute()
-    if (rset.%SQLCODE '= 0) {
-        write "%Execute failed:", !, "SQLCODE ", rset.%SQLCODE, ": ", rset.%Message
-        quit
-    }
-    while rset.%Next() {
+    while rset.%Next(.sc) {
+        $$$ThrowOnError(sc)
         set filePath = "cls\"_$EXTRACT(rset.ItemFile, $FIND(rset.ItemFile,"cls\"),$LENGTH(rset.ItemFile))
         set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
         do otherDevelopers.%Push(rset.ChangedBy)

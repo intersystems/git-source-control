@@ -14,12 +14,13 @@ Method OnPull() As %Status
 
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
-        if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
+        if (((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) || (..ModifiedFiles(i).changeType = "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } else {
             set compilelist(internalName) = ""
             set nFiles = nFiles + 1
             set loadSC = $$$ADDSC(loadSC,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+            $$$ThrowOnError(loadSC)
         }
     }
 

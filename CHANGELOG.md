@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance improvements (#269, #315)
 - Checkout of branches whose names contain slashes via Web UI no longer fails (#295)
 - Display other developer's username in Web UI's Workspace when hovering over the name of a file they changed (#304)
+- Incremental load PullEventHandler now handles file deletion (#299)
+- Incremental load PullEventHandler no longer returns a Success Status if an error was thrown during the pull process (#300)
 
 ## [2.3.0] - 2023-12-06
 

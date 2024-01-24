@@ -355,7 +355,7 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
     write !, "Fetch done"
     write !, "Files that will be modified by git pull: "
 
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, (branchName_"..."_(remote_"/"_branchName)), "--name-status")
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, remote_"/"_branchName, "--name-status")
     while (outStream.AtEnd = 0) {
         set file = outStream.ReadLine()
         set modification = ##class(SourceControl.Git.Modification).%New()

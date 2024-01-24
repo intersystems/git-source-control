@@ -414,7 +414,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var flag = 0;
             webui.git("status -u --porcelain", function(data) {
                 $.get("api/uncommitted", function (uncommitted) {
-                    var uncommittedItems = JSON.parse(uncommitted);
+                    var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                     var col = 1
                     webui.splitLines(data).forEach(function(line) {
                         var status = line[col];
@@ -488,7 +488,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var flag = 0;
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
-                var uncommittedItems = JSON.parse(uncommitted);
+                var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 var col = 1
                 webui.splitLines(data).forEach(function(line) {
                     var status = line[col];
@@ -2143,13 +2143,30 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var col = type == "working-copy" ? 1 : 0;
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
-                var uncommittedItems = JSON.parse(uncommitted);
+                var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
+                var otherDeveloperUncommittedItems = JSON.parse(uncommitted)["other users' changes"];
                 self.filesCount = 0;
                 var filePaths = [];
+                function addItemToFileList(fileList, otherDeveloperUsername, model) {
+                    var isForCurrentUser = otherDeveloperUsername === ""? true : false;
+                    var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
+                    if(isForCurrentUser){
+                        var item = $('<a class="'+cssClass+'">').prependTo(fileList)[0];
+                    }
+                    else{
+                        var item = $('<a class="'+cssClass+'" data-toggle="tooltip" title='+otherDeveloperUsername+'>'+
+                                    webui.peopleIcon).appendTo(fileList)[0];
+                    }
+                    item.model = model;
+                    item.appendChild(document.createTextNode(model));
+                    if (isForCurrentUser) {
+                        $(item).click(self.select);
+                        $(item).dblclick(self.process);
+                    }
+                }
                 webui.splitLines(data).forEach(function(line) {
                     var indexStatus = line[0];
                     var workingTreeStatus = line[1];
-                    var status = line[col];
                     line = line.substring(3);
                     var splitted = line.split(" -> ");
                     var model;
@@ -2164,7 +2181,10 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         localStorage.removeItem(model);
                     }
 
-                    if (col == 0 && indexStatus != " " && indexStatus != "?" && localStorage.getItem(model) !== null || col == 1 && workingTreeStatus != " " && workingTreeStatus != "D" && localStorage.getItem(model) === null) {
+                    var isNotStaged= workingTreeStatus != "D" && workingTreeStatus != " " && localStorage.getItem(model) === null;
+                    var addUnstagedFile = col == 1 && isNotStaged;
+                    var addStagedFile = col == 0 && indexStatus != " " && indexStatus != "?" && localStorage.getItem(model) !== null;
+                    if (addUnstagedFile || addStagedFile) {
                         ++self.filesCount;
                         var isForCurrentUser;
                         if(model.indexOf(" ") > -1){
@@ -2172,23 +2192,23 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         } else {
                             isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                         }
-                        var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
-
-                        if(isForCurrentUser){
-                            var item = $('<a class="'+cssClass+'">').prependTo(fileList)[0];
-                        }
-                        else{
-                            var item = $('<a class="'+cssClass+'">'+
-                                        webui.peopleIcon).appendTo(fileList)[0];
-                        }
-                        item.model = model;
-                        item.status = status;
-                        item.appendChild(document.createTextNode(line));
-                        $(item).click(self.select);
+                        
                         if (isForCurrentUser) {
-                            $(item).dblclick(self.process);
+                            addItemToFileList(fileList, "", model);
                         }
                     }
+                });
+
+                for (const otherDeveloperItem of Object.keys(otherDeveloperUncommittedItems)) {
+                    for (const otherDeveloperUsername of otherDeveloperUncommittedItems[otherDeveloperItem]) {
+                        if (col==1) {
+                            addItemToFileList(fileList, otherDeveloperUsername, otherDeveloperItem);
+                        }
+                    }
+                }
+                
+                $(function () {
+                    $('[data-toggle="tooltip"]').tooltip()
                 });
 
                 Object.keys(localStorage).filter(function (key) {

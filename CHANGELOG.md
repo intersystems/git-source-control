@@ -13,7 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deletion of files in locked environment is now suppressed (#302)
 - Failed to import file VS Code popup no longer shows up after overwriting file on server once (#264)
 - Don't automatically stage files added to source control (#303)
+- Performance improvements (#269, #315)
 - Checkout of branches whose names contain slashes via Web UI no longer fails (#295)
+- Display other developer's username in Web UI's Workspace when hovering over the name of a file they changed (#304)
 
 ## [2.3.0] - 2023-12-06
 

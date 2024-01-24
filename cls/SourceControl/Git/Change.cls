@@ -44,7 +44,9 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
             set changeSourceClass=##class(%Studio.SourceControl.Interface).SourceControlClassGet()
         }
         if ('$get(^SYS("SourceControl","ChangeConfig","KeepHistory")))||(Revert) {
-            set sc=..%DeleteId(obj.%Id())
+            if (obj.ChangedBy = $username) {
+                set sc=..%DeleteId(obj.%Id())
+            }
         } else {
             if $get(CommitCCR)'="" set obj.CCR=CommitCCR
             set obj.P4Issued=$zdatetime($h,3)
@@ -77,9 +79,43 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
     }
 }
 
-/// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
-ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) As %Status
+ClassMethod GetOtherDeveloperChanges() As %Boolean
 {
+    set numEntries = 0
+    set fileToOtherDevelopers = {}
+    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE CHARINDEX('SourceControl.Git', Name)>0 AND Committed = '0' AND ChangedBy <> ?"
+    set statement = ##class(%SQL.Statement).%New()
+    set status = statement.%Prepare(query)
+    $$$ThrowOnError(status)
+    set rset = statement.%Execute($username)
+    if (rset.%SQLCODE < 0) {
+        throw ##class(%Exception.SQL).CreateFromSQLCODE(rset.%SQLCODE,rset.%Message)
+    }
+    while rset.%Next(.sc) {
+        $$$ThrowOnError(sc)
+        set filePath = "cls\"_$EXTRACT(rset.ItemFile, $FIND(rset.ItemFile,"cls\"),$LENGTH(rset.ItemFile))
+        set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
+        do otherDevelopers.%Push(rset.ChangedBy)
+        do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
+    }
+    $$$ThrowOnError(sc)
+    return fileToOtherDevelopers
+}
+
+/// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
+ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
+{
+    set lock = $System.AutoLock.Lock("^SourceControl.Git.Refresh",,10)
+    if lock = $$$NULLOREF {
+        quit $$$ERROR($$$GeneralError,"Unable to get exclusive lock for refresh of uncommitted changes.")
+    }
+    if 'Force {
+        // 10-second throttle on RefreshUncommitted
+        if $zdatetime($ztimestamp,-2) - $Get(^IRIS.Temp.gitsourcecontrol("Refresh"),0) < 10 {
+            merge gitFiles = ^IRIS.Temp.gitsourcecontrol("LastUncommitted")
+            quit $$$OK
+        }
+    }
     kill gitFiles
     
     // files from the uncommitted queue
@@ -124,6 +160,8 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) 
         }
         set filename=$order(gitFiles(filename),1,details)
     }
+    set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
+    merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles
     quit sc
 }
 
@@ -179,4 +217,3 @@ Storage Default
 }
 
 }
-

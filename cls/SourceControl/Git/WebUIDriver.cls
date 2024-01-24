@@ -3,6 +3,7 @@ Class SourceControl.Git.WebUIDriver
 
 ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
+    do %session.Unlock()
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     kill %data
     #dim %response as %CSP.Response
@@ -99,6 +100,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     set stdin = $piece(args(1),$char(10),2,*)
                     set args(1) = $piece(args(1),$char(10))
                 }
+                set readOnlyCommands = $listbuild("branch","tag","log","ls-files","ls-tree","show","status","diff")
+                set baseCommand = $Piece(args(1)," ")
 
                 set gitArgs($increment(gitArgs)) = "color.ui=true"
 
@@ -154,7 +157,9 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
-                do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                if '$listfind(readOnlyCommands,baseCommand) {
+                    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                }
                 set handled = 1
             }
         }
@@ -178,24 +183,26 @@ ClassMethod Uncommitted() As %SystemBase
     set output = ""
     set key = ""
 
-    set array = []
-    set key = ""
+    set editedByCurrentUser = []
+    set fileToOtherDevelopers = {}
     for {
         set key = $order(files(key),1,fileData)
         quit:key=""
         // Check that current user has files(key) uncommitted and only %Push if they do
         set filename = ##class(Utils).FullExternalName(key)
         if (($ISVALIDNUM(key)) && (files(key) '= "")){
-            do array.%Push($listget(fileData,2))
+            do editedByCurrentUser.%Push($listget(fileData,2))
         }
         else{
             set sc=##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction,.tInternalName,.UncommittedUser,.tSource,.UncommittedLastUpdated)
             if ($$$ISOK(sc)) && ($data(tAction)&&(UncommittedUser=$username)) {
-                do array.%Push($listget(fileData,2))
+                do editedByCurrentUser.%Push($listget(fileData,2))
             }
         }
     }
-    quit array
+    do fileToOtherDevelopers.%Set("current user's changes", editedByCurrentUser)
+    do fileToOtherDevelopers.%Set("other users' changes", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
+    quit fileToOtherDevelopers
 }
 
 ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String
@@ -218,4 +225,3 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 }
 
 }
-

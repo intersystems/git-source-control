@@ -14,8 +14,11 @@ Method OnPull() As %Status
 
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
-        if (((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) || (..ModifiedFiles(i).changeType = "D")) {
+        if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
+        } elseif (..ModifiedFiles(i).changeType = "D") {
+            $$$ThrowOnError(..DeleteFile(internalName))
+            write !, ..ModifiedFiles(i).externalName, " was deleted."
         } else {
             set compilelist(internalName) = ""
             set nFiles = nFiles + 1
@@ -31,5 +34,17 @@ Method OnPull() As %Status
     quit $system.OBJ.CompileList(.compilelist, "cukb")
 }
 
+Method DeleteFile(item As %String)
+{
+    set type = ##class(SourceControl.Git.Utils).Type(item)
+    if (type = "cls") {
+        do $System.OBJ.Delete(item)
+    } elseif (type = "csp") {
+        do $System.CSP.DeletePage(item)
+    } else {
+        do ##class(%Library.RoutineMgr).Delete(item)
+    }
+    Quit $$$OK
 }
 
+}

@@ -21,7 +21,7 @@ Method OnPull() As %Status
             if sc {
                 write !, ..ModifiedFiles(i).externalName, " was deleted."
             } else {
-                write !, "Deletion of ", ..ModifiedFiles(i).externalName, " failed."
+                write !, "WARNING: Deletion of ", ..ModifiedFiles(i).externalName, " failed."
             }
         } else {
             set compilelist(internalName) = ""

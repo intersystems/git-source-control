@@ -17,8 +17,12 @@ Method OnPull() As %Status
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } elseif (..ModifiedFiles(i).changeType = "D") {
-            $$$ThrowOnError(..DeleteFile(internalName))
-            write !, ..ModifiedFiles(i).externalName, " was deleted."
+            set sc = ..DeleteFile(internalName)
+            if sc {
+                write !, ..ModifiedFiles(i).externalName, " was deleted."
+            } else {
+                write !, "Deletion of ", ..ModifiedFiles(i).externalName, " failed."
+            }
         } else {
             set compilelist(internalName) = ""
             set nFiles = nFiles + 1
@@ -38,13 +42,12 @@ Method DeleteFile(item As %String)
 {
     set type = ##class(SourceControl.Git.Utils).Type(item)
     if (type = "cls") {
-        do $System.OBJ.Delete(item)
+        quit $System.OBJ.Delete(item)
     } elseif (type = "csp") {
-        do $System.CSP.DeletePage(item)
+        quit $System.CSP.DeletePage(item)
     } else {
-        do ##class(%Library.RoutineMgr).Delete(item)
+        quit ##class(%Library.RoutineMgr).Delete(item)
     }
-    Quit $$$OK
 }
 
 }

@@ -275,7 +275,7 @@ Method OnBeforeDelete(InternalName As %String) As %Status
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
         set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
         set Filename = ##class(Utils).FullExternalName(InternalName)
-        if ##class(Utils).IsInSourceControl(InternalName) {
+        if ##class(Utils).IsInSourceControl(InternalName) && ##class(%File).Exists(Filename) {
             quit ##class(Change).AddDeletedToUncommitted(Filename, InternalName)
         }
         quit $$$OK

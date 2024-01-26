@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Display other developer's username in Web UI's Workspace when hovering over the name of a file they changed (#304)
 - Incremental load PullEventHandler now handles file deletion (#299)
 - Incremental load PullEventHandler no longer returns a Success Status if an error was thrown during the pull process (#300)
+- CSP applications can now be added to Git successfully (#308)
 
 ## [2.3.0] - 2023-12-06
 

@@ -379,8 +379,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         }
 
         if (id === "remote-branches" && idPostfix === "popup") {
-            const remoteBranchBtns = $("#accordion-remote-branches-popup button").filter((i, span) => jQuery.inArray($(span).text(),refs) != -1);
-            const widest = Math.max(...remoteBranchBtns.map((i, span) => $(span).width()));
+            var remoteBranchBtns = $("#accordion-remote-branches-popup button").filter(function (i, span) {
+                return jQuery.inArray($(span).text(), refs) != -1;
+            });
+            var widest = Math.max.apply(Math, remoteBranchBtns.map(function (i, span) {
+                return $(span).width();
+            }));
             if (remoteBranchBtns.length > 0) {
                 remoteBranchBtns.css("padding", ".25rem .5rem");
                 remoteBranchBtns.css("border", 0);
@@ -2199,8 +2203,10 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                     }
                 });
 
-                for (const otherDeveloperItem of Object.keys(otherDeveloperUncommittedItems)) {
-                    for (const otherDeveloperUsername of otherDeveloperUncommittedItems[otherDeveloperItem]) {
+                for (var i = 0, otherDeveloperUncommittedItemsKeys = Object.keys(otherDeveloperUncommittedItems); i < otherDeveloperUncommittedItemsKeys.length; i++) {
+                    var otherDeveloperItem = otherDeveloperUncommittedItemsKeys[i];
+                    for (var j = 0, otherDeveloperUncommittedItem = otherDeveloperUncommittedItems[otherDeveloperItem]; j < otherDeveloperUncommittedItem.length; j++) {
+                        var otherDeveloperUsername = otherDeveloperUncommittedItem[j];
                         if (col==1) {
                             addItemToFileList(fileList, otherDeveloperUsername, otherDeveloperItem);
                         }
@@ -2212,7 +2218,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                 });
 
                 Object.keys(localStorage).filter(function (key) {
-                    return !filePaths.includes(key);
+                    return (filePaths.indexOf(key) === -1);
                 }).map(function (key) {
                     localStorage.removeItem(key);
                 });

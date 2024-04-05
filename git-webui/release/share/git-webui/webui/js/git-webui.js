@@ -2218,7 +2218,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                 });
 
                 Object.keys(localStorage).filter(function (key) {
-                    return !filePaths.includes(key);
+                    return (filePaths.indexOf(key) === -1);
                 }).map(function (key) {
                     localStorage.removeItem(key);
                 });

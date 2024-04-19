@@ -526,7 +526,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             set FileType = ##class(SourceControl.Git.Utils).Type(.FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
-            do ..RunGitCommand("add",.errStream,.outStream,filenames(i))
+            do ..RunGitCommand("add",.errStream,.outStream,filenames(i),"--intent-to-add")
             write !, "Added ", FileInternalName, " to source control."
             do ..PrintStreams(outStream, errStream)
         }

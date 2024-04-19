@@ -2150,7 +2150,6 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 var otherDeveloperUncommittedItems = JSON.parse(uncommitted)["other users' changes"];
                 self.filesCount = 0;
-                var filePaths = [];
                 function addItemToFileList(fileList, otherDeveloperUsername, model) {
                     var isForCurrentUser = otherDeveloperUsername === ""? true : false;
                     var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
@@ -2179,15 +2178,10 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                     } else {
                         model = line;
                     }
-                    filePaths.push(model);
 
-                    if (workingTreeStatus === "D") {
-                        localStorage.removeItem(model);
-                    }
-
-                    var isNotStaged= workingTreeStatus != "D" && workingTreeStatus != " " && localStorage.getItem(model) === null;
+                    var isNotStaged= workingTreeStatus != "D" && workingTreeStatus != " "
                     var addUnstagedFile = col == 1 && isNotStaged;
-                    var addStagedFile = col == 0 && indexStatus != " " && indexStatus != "?" && localStorage.getItem(model) !== null;
+                    var addStagedFile = col == 0 && indexStatus != " " && indexStatus != "?"
                     if (addUnstagedFile || addStagedFile) {
                         ++self.filesCount;
                         var isForCurrentUser;
@@ -2217,12 +2211,6 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                     $('[data-toggle="tooltip"]').tooltip()
                 });
 
-                Object.keys(localStorage).filter(function (key) {
-                    return (filePaths.indexOf(key) === -1);
-                }).map(function (key) {
-                    localStorage.removeItem(key);
-                });
-                
                 if (selectedIndex !== null && selectedIndex >= fileList.childElementCount) {
                     selectedIndex = fileList.childElementCount - 1;
                     if (selectedIndex == -1) {
@@ -2387,12 +2375,6 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var action = type == "working-copy" ? "stage" : "unstage"
         var files = self.getFileList(undefined, "D", 0);
         var rmFiles = self.getFileList("D", undefined, 0);
-
-        if (action === "stage") {
-            localStorage.setItem(files.trim(), "staged");
-        } else {
-            localStorage.removeItem(files.trim());
-        }
 
         if (files.length != 0) {
             var cmd = type == "working-copy" ? "add" : "reset";

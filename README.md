@@ -14,6 +14,11 @@
     ```
     zpm "install git-source-control"
     ```
+    To install on an environment without access to the internet, download the tar.gz file from the [releases](https://github.com/intersystems/git-source-control/releases) page. Copy the archive onto a file system the IRIS instance has access to and extract it. Use the package manager to load the release from that directory.
+    ```
+    tar -xf /path/to/archive/git-source-control-release.tar.gz
+    zpm "load /path/to/archive/git-source-control-release"
+    ```
 2. Configure settings by running the following method and answering the prompts:
    ```
    d ##class(SourceControl.Git.API).Configure()

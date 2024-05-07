@@ -72,6 +72,11 @@ ClassMethod SettingsUIReadOnly() As %Status [ CodeMode = expression ]
 $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 }
 
+ClassMethod DecomposeProductions() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","decomposeProductions"), 0)
+}
+
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {

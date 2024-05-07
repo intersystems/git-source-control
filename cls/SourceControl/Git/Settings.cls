@@ -23,6 +23,9 @@ Property percentClassReplace As %String [ InitialExpression = {##class(SourceCon
 /// Git project settings are read-only in the web user interface
 Property settingsUIReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SettingsUIReadOnly()} ];
 
+/// Interoperability productions are source-controlled under separate files for each configuration item
+Property decomposeProductions As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).DecomposeProductions()} ];
+
 /// Attribution: Git username for user ${username}
 Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()} ];
 
@@ -80,6 +83,7 @@ Method %Save() As %Status
     set @storage@("settings","pullEventClass") = ..pullEventClass
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
+    set @storage@("settings","decomposeProductions") = ..decomposeProductions
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -177,4 +181,3 @@ Method OnAfterConfigure() As %Boolean
 }
 
 }
-

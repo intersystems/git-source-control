@@ -1485,7 +1485,12 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
     }elseif (type = "csp") && ..IsCspFolder(InternalName) {
         $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force, .filenames))
     }else {
-        if ..IsTempFileOutdated(InternalName) || force {
+        // for now, if this is a production class and production decomposition is enabled, don't worry about timestamps.
+        if ..ItemIsProductionToDecompose(InternalName) {
+            write !, "exporting decomposed production ", InternalName
+            set name = 	$piece(InternalName,".",1,*-1)
+            $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportProduction(name, "FullExternalName"))
+        } elseif ..IsTempFileOutdated(InternalName) || force {
             #dim filename as %String = ..FullExternalName(InternalName, .MappingExists)
             if (MappingExists = 0){
                 write "Did not find a matching mapping for """_InternalName_""". Skipping export."
@@ -1507,6 +1512,18 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
         }
     }
     quit $$$OK
+}
+
+ClassMethod ItemIsProductionToDecompose(InternalName)
+{
+    set settings = ##class(SourceControl.Git.Settings).%New()
+	set name = $piece(InternalName,".",1,*-1)
+	set ext = $zconvert($piece(InternalName,".",*),"U")
+    return settings.decomposeProductions 
+        && ((ext = "PTD") 
+            || ((ext = "CLS") 
+                && ##class(%Dictionary.ClassDefinition).%ExistsId(name) 
+                && $classmethod(name, "%Extends","Ens.Production")))
 }
 
 ClassMethod ExportProject(project As %String, force As %Boolean = 0, ByRef filenames) As %Status
@@ -2090,7 +2107,23 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
-    
+    } elseif usertype && (docclass = "Ens.Util.ProjectTextDocument") {
+        // If using sharded Production Exports, use PTD naming conventions
+        if default {
+            set nam = $replace(nam,"||","/")
+        }
+        set $ListBuild(productionDir, nam) = $ListFromString(nam, "/")
+        // Abbreviate "ProductionSettings" to "ProdStgs", "Settings" to "Stgs".
+        Set prefix = $Case($Extract(nam), "P":"ProdStgs-", "S":"Stgs-")
+        Set nam = prefix_$Piece(nam,"-",2,*)
+        set $ListBuild(itemName, itemClassName) = $ListFromString(nam, "|")
+        if $Get(itemClassName) '= "" {
+            // Prevent errors from exceeding max file length by hashing item Class name
+            set nam = productionDir_"/"_itemName_$zhex($zcrc(itemClassName,6))
+        } else {
+            set nam = productionDir_"/"_nam
+        }
+        return $translate(found_$Replace(nam,".","_")_".xml","\","/")
     } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{
@@ -2577,4 +2610,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

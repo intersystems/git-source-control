@@ -300,6 +300,11 @@ Method ExternalName(InternalName As %String) As %String
     quit ##class(Utils).ExternalName(InternalName)
 }
 
+ClassMethod FullExternalName(InternalName As %String) As %String
+{
+    quit ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+}
+
 Method IsReadOnly(InternalName As %String) As %Boolean
 {
     quit ##class(SourceControl.Git.Utils).Locked()

@@ -45,6 +45,9 @@ The same right click menus as in Studio live under "Server Source Control..." wh
 
 ## Notes
 
+### Menu Options
+Documentation for the various git-source-control menu options can be found [here](/docs/menu-items.md).
+
 ### Mapping Configuration
 To specify where files should go relative to your repository root, add mappings via the "Settings" menu item. A mapping has three parts:
 * The file extension to use: e.g., CLS, MAC. As a special case for web application files, use "/CSP/" as the mapping.

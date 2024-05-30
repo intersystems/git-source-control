@@ -1,4 +1,4 @@
-Class SourceControl.Git.PackageManagerContext Extends %ZPM.PackageManager.Core.Singleton
+Class SourceControl.Git.PackageManagerContext Extends SourceControl.Git.Util.Singleton
 {
 
 Property InternalName As %String;
@@ -7,11 +7,10 @@ Property IsInDefaultPackage As %Boolean [ InitialExpression = 0 ];
 
 Property IsInGitEnabledPackage As %Boolean [ InitialExpression = 0 ];
 
-/// Really is a %ZPM.PackageManager.Developer.Module
+/// Really is a %ZPM.PackageManager.Developer.Module / %IPM.Storage.Module
 Property Package As %RegisteredObject [ InitialExpression = {$$$NULLOREF} ];
 
-// Really is a %ZPM.PackageManager.Developer.ResourceReference
-
+/// Really is a %ZPM.PackageManager.Developer.ResourceReference / %IPM.Storage.ResourceReference
 Property ResourceReference As %RegisteredObject [ InitialExpression = {$$$NULLOREF} ];
 
 Method InternalNameSet(InternalName As %String = "") As %Status
@@ -19,10 +18,13 @@ Method InternalNameSet(InternalName As %String = "") As %Status
     set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     if (InternalName '= i%InternalName) {
         set i%InternalName = InternalName
-        if '$$$comClassDefined("%ZPM.PackageManager.Developer.Extension.Utils") {
+        if $$$comClassDefined("%IPM.ExtensionBase.Utils") {
+            set ..Package = ##class(%IPM.ExtensionBase.Utils).FindHomeModule(InternalName,,.resourceReference)
+        } elseif $$$comClassDefined("%ZPM.PackageManager.Developer.Extension.Utils") {
+            set ..Package = ##class(%ZPM.PackageManager.Developer.Extension.Utils).FindHomeModule(InternalName,,.resourceReference)
+        } else {
             quit $$$OK
         }
-        set ..Package = ##class(%ZPM.PackageManager.Developer.Extension.Utils).FindHomeModule(InternalName,,.resourceReference)
         set ..ResourceReference = resourceReference
         set ..IsInGitEnabledPackage = $isobject(..Package) && ##class(%Library.File).Exists(##class(%Library.File).NormalizeFilename(".git",..Package.Root))
         set ..IsInDefaultPackage = $isobject(..Package) && (##class(%Library.File).NormalizeDirectory(..Package.Root) = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).DefaultTempFolder()))

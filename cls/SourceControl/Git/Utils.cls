@@ -113,6 +113,11 @@ ClassMethod GitBinPath(Output isDefault) As %String
     quit $case($extract(binPath),"""":binPath,:""""_binPath_"""")
 }
 
+ClassMethod MappedItemsReadOnly() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "mappedItemsReadOnly"), 1)
+}
+
 ClassMethod GitUserName() As %String
 {
     quit $get(@..#Storage@("settings","user",$username,"gitUserName"),$username)
@@ -508,6 +513,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
 {
+    set settings = ##class(SourceControl.Git.Settings).%New()
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
@@ -518,11 +524,18 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         if 'sc {
             set ec = $$$ADDSC(ec, sc)
         }
+
         for i=1:1:$Get(filenames) {
             set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,,1))
             if (FileInternalName = "") {
                 continue
             }
+
+            if (settings.mappedItemsReadOnly && FileIsMapped(InternalName)) {
+                continue
+            }
+
+            // SKIP IF A MAPPED ITEM
             set FileType = ##class(SourceControl.Git.Utils).Type(.FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
@@ -1334,6 +1347,8 @@ ClassMethod ExportRoutinesAux(path As %String, sep As %String = "", level As %In
 
 ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As %Boolean = 0, ByRef filenames) As %Status
 {
+    set settings = ##class(SourceControl.Git.Settings).%New()
+
     #dim type = ..Type(.InternalName)
     if type = "pkg" {
         $$$QuitOnError(..ExportRoutinesAux(..NameWithoutExtension(InternalName), ".", 0, force, .filenames))
@@ -1347,6 +1362,11 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
             #dim filename as %String = ..FullExternalName(InternalName, .MappingExists)
             if (MappingExists = 0){
                 write "Did not find a matching mapping for """_InternalName_""". Skipping export."
+                quit $$$OK
+            }
+
+            if (..FileIsMapped(InternalName) && settings.mappedItemsReadOnly) {
+                write "Skipping export since mapping to another database found."
                 quit $$$OK
             }
             set filenames($I(filenames)) = filename
@@ -1687,6 +1707,11 @@ ClassMethod UserTypeCached(Name As %String, ByRef Class As %String, ByRef Studio
     Set ^||UserTypeCache(ext) = data
     Set ^||UserTypeCache(ext,"Class") = Class
     Quit 1
+}
+
+/// Determines whether or not a file is mapped to another database
+ClassMethod FileIsMapped(Name As %String) As %Boolean {
+    Quit ##class(%RoutineMgr).IsMapped(Name)
 }
 
 /*

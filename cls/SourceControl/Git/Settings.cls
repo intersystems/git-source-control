@@ -29,6 +29,9 @@ Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(Sou
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()} ];
 
+/// Attribution: Whether mapped items should be read-only, preventing them from being added to source control
+Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -80,6 +83,7 @@ Method %Save() As %Status
     set @storage@("settings","pullEventClass") = ..pullEventClass
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
+    set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -109,6 +113,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
         do %code.WriteLine(" set inst."_property_" = value")
+        
     }
     do %code.WriteLine(" $$$ThrowOnError(inst.%Save())")
     do %code.WriteLine(" write !,""Settings saved.""")

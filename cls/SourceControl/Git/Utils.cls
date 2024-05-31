@@ -531,7 +531,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
                 continue
             }
 
-            if (settings.mappedItemsReadOnly && FileIsMapped(InternalName)) {
+            if (settings.mappedItemsReadOnly && ..FileIsMapped(InternalName)) {
                 continue
             }
 
@@ -1710,8 +1710,9 @@ ClassMethod UserTypeCached(Name As %String, ByRef Class As %String, ByRef Studio
 }
 
 /// Determines whether or not a file is mapped to another database
-ClassMethod FileIsMapped(Name As %String) As %Boolean {
-    Quit ##class(%RoutineMgr).IsMapped(Name)
+ClassMethod FileIsMapped(InternalName As %String) As %Boolean
+{
+    Quit ##class(%RoutineMgr).IsMapped(InternalName)
 }
 
 /*

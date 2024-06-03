@@ -531,11 +531,11 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
                 continue
             }
 
+            // Items mapped to namespace's non default routine database are ignored if set to be read-only
             if (settings.mappedItemsReadOnly && ..FileIsMapped(InternalName)) {
                 continue
             }
 
-            // SKIP IF A MAPPED ITEM
             set FileType = ##class(SourceControl.Git.Utils).Type(.FileInternalName)
 
             set @..#Storage@("items", FileInternalName) = ""
@@ -1365,8 +1365,9 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 quit $$$OK
             }
 
+            // Items mapped to namespace's non default routine database are ignored if set to be read-only
             if (..FileIsMapped(InternalName) && settings.mappedItemsReadOnly) {
-                write "Skipping export since mapping to another database found."
+                write "Mapping to another database found. Skipping export"
                 quit $$$OK
             }
             set filenames($I(filenames)) = filename

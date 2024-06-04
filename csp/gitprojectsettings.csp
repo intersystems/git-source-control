@@ -47,6 +47,10 @@ body {
     border-left: 0px;
 }
 
+.custom-switch-no-border {
+    border: 0px;
+}
+
 .neutral-feedback {
     width: 100%;
     margin-top: 0.25rem;
@@ -69,6 +73,12 @@ body {
     if ('settings.settingsUIReadOnly) {
         for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace" {
             set $Property(settings,param) = $Get(%request.Data(param,1))
+        }
+
+        if ($Get(%request.Data("mappedItemsReadOnly", 1)) = 1) {
+            set settings.mappedItemsReadOnly = 1
+        } else {
+            set settings.mappedItemsReadOnly = 0
         }
         set i = 1
         set param = "NoFolders"
@@ -93,8 +103,7 @@ body {
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">
-            <div class="col-sm-1"></div>
-            <div class="col-sm-8">
+            <div class="offset-sm-1 col-sm-8">
                 <h1>Git Project Settings</h1>
             </div>
             <div class="col-sm-2">
@@ -110,16 +119,14 @@ body {
             <div class="col-md-10"><hr></div>
         </div>
         <div class="row">
-            <div class="col-sm-1"></div>
-            <div class="col-sm-11">
+            <div class="offset-sm-1 col-sm-11">
                 <h3>Settings for namespace #(..EscapeHTML(namespace))# #($select(settings.settingsUIReadOnly:"(read-only)",1:""))#</h3><br/>
             </div>
         </div>
 
         <fieldset id="namespaceSettings">
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="gitBinPath" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
+            <label for="gitBinPath" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
             <div class="col-sm-7">
                 <server>
                     set exists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
@@ -152,8 +159,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="namespaceTemp" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
+            <label for="namespaceTemp" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
             <server>
                 set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
                 if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
@@ -171,8 +177,7 @@ body {
             if (settings.namespaceTemp '= "") && '##class(%File).DirectoryExists(dir_".git") {
                 &html<
                 <div class="form-group row mb-3">
-                    <div class="col-sm-4"></div>
-                    <div class="col-sm-8 neutral-feedback">
+                    <div class="offset-sm-4 col-sm-8 neutral-feedback">
                         <span id="initMsg">Git has not been not initialized for folder.</span>
                         <button id="initBtn" onclick="init(); return false;" class="btn btn-sm btn-outline-dark">Initialize</button>
                         <button id="cloneBtn" onclick="clone(); return false;" class="btn btn-sm btn-outline-dark">Clone...</button>
@@ -183,8 +188,7 @@ body {
             }
         </server>
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
+            <label for="privateKeyFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <server>
                     Set fileExists = ##class(%File).Exists(settings.privateKeyFile)
@@ -223,8 +227,7 @@ body {
                 }
                 &html<
                     <div class="form-group row mb-3">
-                        <div class="col-sm-1"></div>
-                        <div class="col-sm-3">Public key:</div>
+                        <div class="offset-sm-1 col-sm-3">Public key:</div>
                         <div class="col-sm-5">
                             <pre id="publicKey">#(pubKeyText)#</pre>
                         </div>
@@ -238,8 +241,7 @@ body {
         </server>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="pullEventClass" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
+            <label for="pullEventClass" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
                     <server>
@@ -255,16 +257,36 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="percentClassReplace" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed.">'%' Replacement on Export</label>
+            <label for="percentClassReplace" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed.">'%' Replacement on Export</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="percentClassReplace" name="percentClassReplace" value='#(..EscapeHTML(settings.percentClassReplace))#' placeholder="_, __, <empty>, etc."/>
             </div>
         </div>
+        
+        
+        <div class="form-group row mb-3">
+            <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"> Treat Mapped Items as Read-only</label>
+            <div class="col-sm-7">
+            
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <server>
+                        if (settings.mappedItemsReadOnly) {
+                            &html<<input class="custom-control-input" name="mappedItemsReadOnly" type="checkbox" id="mappedItemsReadOnly" checked value="1">>
+                        } else {
+                            &html<<input class="custom-control-input" name="mappedItemsReadOnly" type="checkbox" id="mappedItemsReadOnly" value="1">>
+                        }
+                    </server>
+                    
+                    <label class="custom-control-label" for="mappedItemsReadOnly"></label>
+                </div>
+                
+            </div>
+            
 
+        </div>
+        
         <div class="form-group row mb-3 mapping-input-group">
-            <div class="col-sm-1"></div>
-            <div class="col-sm-3">
+            <div class="offset-sm-1 col-sm-3">
                 <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
@@ -368,16 +390,14 @@ body {
 
         <fieldset id="userSettings">
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="gitUserName" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
+            <label for="gitUserName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="gitUserEmail" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
+            <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>

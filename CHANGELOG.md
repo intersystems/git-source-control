@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Items mapped from database other than namespace's default routine database are now ignored by default when exporting or adding files
 - New setting to configure whether mapped items should be should be treated as read-only
+- Now skips files belonging to other git enabled packages in `##class(SourceControl.Git.Change).RefreshUncommitted()`
 
 ## [2.3.1] - 2024-04-30
 

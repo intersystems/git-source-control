@@ -513,6 +513,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
 {
+    do ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set settings = ##class(SourceControl.Git.Settings).%New()
     #dim i as %Integer
     #dim ec as %Status = $$$OK
@@ -2062,5 +2063,74 @@ ClassMethod ResetSourceControlClass()
     do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("")
 }
 
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+{
+    set sc = $$$OK
+    try {
+        write !, "Exporting classes..."
+        set sql = "SELECT ID FROM %Dictionary.ClassDefinition"
+            _ " WHERE GeneratedBy IS Null AND Deployed = 0"
+            _ " AND NOT ("
+            _ " ID %STARTSWITH 'csr.csp.' OR ID %STARTSWITH '%' OR ID %STARTSWITH 'CSPX.' OR ID %STARTSWITH 'Ens.'"
+            _ " OR ID %STARTSWITH 'EnsLib.' OR ID %STARTSWITH 'EnsPortal.'"
+            _ ")"
+        set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+        throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
+        while rs.%Next() {
+            set internalName = rs.ID _ ".CLS"
+            // exclude items in a non-default IPM package
+            set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
+            continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
+            $$$ThrowOnError(..AddToSourceControl(internalName))
+        }
+        write !, "Exporting mac routines..."
+        do ..BaselineExportRoutines("*.MAC")
+        write !, "Exporting inc routines..."
+        do ..BaselineExportRoutines("*.INC")
+        /*
+        Other items may be supported in the future:
+        - DeepSee folder items
+        - Ensemble lookup tables
+        - Ensemble schema documents
+        - CSP applications
+        */
+        if pCommitMessage '= "" {
+            // switch to default context
+            do ##class(SourceControl.Git.PackageManagerContext).ForInternalName("")
+            do ..RunGitWithArgs(.errStream, .outStream, "add", "--all")
+            do ..PrintStreams(errStream, outStream)
+            set username = ..GitUserName()
+            set email = ..GitUserEmail()
+            set author = username_" <"_email_">"
+            do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", pCommitMessage)
+            do ..PrintStreams(errStream, outStream)
+            $$$ThrowOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
+            if (pPushToRemote '= "") {
+                $$$ThrowOnError(..Push(pPushToRemote))
+            }
+        }
+    } catch err {
+        set sc = err.AsStatus()
+    }
+    return sc
 }
 
+ClassMethod BaselineExportRoutines(pFilter) [ Private ]
+{
+    set rs = ##class(%Library.Routine).RoutineListFunc(pFilter)
+    throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
+    while rs.%Next() {
+        continue:rs.Size=0
+        set item = rs.Name
+        // exclude items in a non-default IPM package
+        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
+        continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
+        // exclude generated routines from classes, SQL, etc.
+        continue:##class(%Library.RoutineMgr).IsGenerated(item)
+        // exclude Ens* routines
+        continue:($extract(item,1,3)="Ens")
+        $$$ThrowOnError(..AddToSourceControl(item))
+    }
+}
+
+}

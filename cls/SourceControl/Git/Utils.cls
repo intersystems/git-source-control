@@ -2067,33 +2067,30 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 {
     set sc = $$$OK
     try {
-        write !, "Exporting classes..."
-        set sql = "SELECT ID FROM %Dictionary.ClassDefinition"
-            _ " WHERE GeneratedBy IS Null AND Deployed = 0"
-            _ " AND NOT ("
-            _ " ID %STARTSWITH 'csr.csp.' OR ID %STARTSWITH '%' OR ID %STARTSWITH 'CSPX.' OR ID %STARTSWITH 'Ens.'"
-            _ " OR ID %STARTSWITH 'EnsLib.' OR ID %STARTSWITH 'EnsPortal.'"
-            _ ")"
-        set rs = ##class(%SQL.Statement).%ExecDirect(,sql)
+        write !, "Exporting items..."
+        set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
+            "*.mac,*.int,*.inc,*.cls,*.csp" // Spec
+            , , ,0  // SystemFiles
+            ,1      // Flat
+            ,0      // NotStudio
+            ,0      // ShowGenerated
+            , , ,0  // Mapped
+            )
         throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
-        while rs.%Next() {
-            set internalName = rs.ID _ ".CLS"
+        while rs.%Next(.sc) {
+            $$$ThrowOnError(sc)
+            set internalName = rs.Name
             // exclude items in a non-default IPM package
             set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
             continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
+            // exclude CSPX classes
+            continue:(rs.Type=4)&&($match(internalName,"CSPX\..*"))
+            // exclude Ensemble system classes
+            continue:(rs.Type=4)&&($match(internalName,"Ens\..*")||$match(internalName,"EnsLib\..*")||$match(internalName,"EnsPortal\..*"))
+            // exclude Ensemble system MAC and INC routines
+            continue:((rs.Type=0)||(rs.Type=2))&&($extract(internalName,1,3)="Ens")
             $$$ThrowOnError(..AddToSourceControl(internalName))
         }
-        write !, "Exporting mac routines..."
-        do ..BaselineExportRoutines("*.MAC")
-        write !, "Exporting inc routines..."
-        do ..BaselineExportRoutines("*.INC")
-        /*
-        Other items may be supported in the future:
-        - DeepSee folder items
-        - Ensemble lookup tables
-        - Ensemble schema documents
-        - CSP applications
-        */
         if pCommitMessage '= "" {
             // switch to default context
             do ##class(SourceControl.Git.PackageManagerContext).ForInternalName("")
@@ -2113,24 +2110,6 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         set sc = err.AsStatus()
     }
     return sc
-}
-
-ClassMethod BaselineExportRoutines(pFilter) [ Private ]
-{
-    set rs = ##class(%Library.Routine).RoutineListFunc(pFilter)
-    throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
-    while rs.%Next() {
-        continue:rs.Size=0
-        set item = rs.Name
-        // exclude items in a non-default IPM package
-        set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
-        continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
-        // exclude generated routines from classes, SQL, etc.
-        continue:##class(%Library.RoutineMgr).IsGenerated(item)
-        // exclude Ens* routines
-        continue:($extract(item,1,3)="Ens")
-        $$$ThrowOnError(..AddToSourceControl(item))
-    }
 }
 
 }

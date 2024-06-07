@@ -80,6 +80,18 @@ body {
         } else {
             set settings.mappedItemsReadOnly = 0
         }
+
+        if ($Get(%request.Data("basicMode", 1)) = 1) {
+            set settings.basicMode = 1
+        } else {
+            set settings.basicMode = 0
+        }
+
+        if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
+            set settings.systemBasicMode = 1
+        } else {
+            set settings.systemBasicMode = 0
+        }
         set i = 1
         set param = "NoFolders"
         kill settings.Mappings
@@ -263,6 +275,26 @@ body {
             </div>
         </div>
         
+        <div class="form-group row mb-3">
+            <label for="systemBasicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether basic mode should be applied as the system-wide default"> Basic Mode as System Default</label>
+            <div class="col-sm-7">
+            
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <server>
+                        if (settings.systemBasicMode) {
+                            &html<<input class="custom-control-input" name="systemBasicMode" type="checkbox" id="systemBasicMode" checked value="1">>
+                        } else {
+                            &html<<input class="custom-control-input" name="systemBasicMode" type="checkbox" id="systemBasicMode" value="1">>
+                        }
+                    </server>
+                    
+                    <label class="custom-control-label" for="systemBasicMode"></label>
+                </div>
+                
+            </div>
+            
+
+        </div>
         
         <div class="form-group row mb-3">
             <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"> Treat Mapped Items as Read-only</label>
@@ -400,6 +432,21 @@ body {
             <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, greatly simplifying the Git Source Control package, requiring no knowledge of git">Basic Mode</label>
+            <div class="custom-control custom-switch custom-switch-no-border">
+                <server>
+                    if (settings.basicMode) {
+                        &html<<input class="custom-control-input" name="basicMode" type="checkbox" id="basicMode" checked value="1">>
+                    } else {
+                        &html<<input class="custom-control-input" name="basicMode" type="checkbox" id="basicMode" value="1">>
+                    }
+                </server>
+                
+                <label class="custom-control-label" for="basicMode"></label>
             </div>
         </div>
 

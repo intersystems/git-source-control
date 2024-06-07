@@ -20,6 +20,7 @@ XData Menu
 <MenuItem Name="Revert" />
 <MenuItem Name="Commit" />
 <MenuItem Separator="true"/>
+<MenuItem Name="Sync" />
 <MenuItem Name="Push" />
 <MenuItem Name="Fetch" />
 <MenuItem Name="Pull" />
@@ -55,9 +56,9 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         quit $$$OK
     }
 
-    set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-    set ec = ##class(Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
+    set ec = ##class(SourceControl.Git.Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
     quit ec
 }
 
@@ -68,9 +69,9 @@ Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %Strin
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
     }
-    set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-    set ec = ##class(Utils).AfterUserAction(Type, Name, InternalName, .Answer, .Msg, .Reload)
+    set ec = ##class(SourceControl.Git.Utils).AfterUserAction(Type, Name, InternalName, .Answer, .Msg, .Reload)
     quit ec
 }
 
@@ -90,6 +91,7 @@ Method LocalizeName(name As %String) As %String
         "SwitchBranch":$$$Text("@SwitchBranch@Check out an existing branch"),
         "Revert":$$$Text("@Revert@Discard changes to file"),
         "Commit":$$$Text("@Commit@Commit changes to file"),
+        "Sync":$$$Text("@Sync@Sync"),
         "Push":$$$Text("@Push@Push to remote branch"),
         "Fetch":$$$Text("@Fetch@Fetch from remote"),
         "Pull":$$$Text("@Pull@Pull changes from remote branch"),
@@ -99,36 +101,52 @@ Method LocalizeName(name As %String) As %String
 
 Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
+    
     if name = "Settings" {
         set Enabled = 1
         quit $$$OK
     }
-    if ##class(Utils).NeedSettings() {
+    if ##class(SourceControl.Git.Utils).NeedSettings() {
         set Enabled = -1
         quit $$$OK
     }
-    if ##class(Utils).IsNamespaceInGit() {
-    if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit"), name) {
-        quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
-    }
-    set Enabled = $CASE(name, 
-        // cases
-        "Status": 1,
-        "GitWebUI" : 1,
-        "Export": 1,
-        "ExportForce": 1,
-        "Import": 1,
-        "ImportForce": 1,
-        "NewBranch": 1,
-        "SwitchBranch": 1,
-        "Push": 1,
-        "Fetch": 1,
-        "Pull": 1,
-        "": 1,
-        :-1 // default
-    )
+    if ##class(SourceControl.Git.Utils).IsNamespaceInGit() {
+
+        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit"), name) {
+            quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
+        }
+
+        if ##class(SourceControl.Git.Utils).BasicMode() {
+            set Enabled = $CASE(name,
+                "Status": 1,
+                "GitWebUI" : 1,
+                "Sync": 1,
+                "": 1,
+                :-1
+            
+            )
+        } else {
+            set Enabled = $CASE(name, 
+                // cases
+                "Status": 1,
+                "GitWebUI" : 1,
+                "Export": 1,
+                "ExportForce": 1,
+                "Import": 1,
+                "ImportForce": 1,
+                "NewBranch": 1,
+                "SwitchBranch": 1,
+                "Push": 1,
+                "Fetch": 1,
+                "Pull": 1,
+                "Sync": -1,
+                "": 1,
+                :-1 // default
+            )
+        }
         
-    } elseif ##class(Utils).GitBinExists() {
+            
+    } elseif ##class(SourceControl.Git.Utils).GitBinExists() {
         if name = "Init" {
         } else {
             set Enabled = -1
@@ -141,7 +159,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 
 Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByRef Enabled As %String, ByRef DisplayName As %String) As %Status
 {
-    if (itemName = "") || '##class(Utils).IsNamespaceInGit() {
+    if (itemName = "") || '##class(SourceControl.Git.Utils).IsNamespaceInGit() {
         set Enabled = -1
     } elseif (($find(itemName,",") > 0) || (##class(SourceControl.Git.Utils).Type(itemName) = "pkg")) { 
         //if more than one item is selected, we can only add/remove, no diff or blame
@@ -150,16 +168,16 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
     } elseif menuItemName = "Revert" {
         set Enabled = 1
         do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-        if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
+        if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
         }
     } elseif menuItemName = "Commit" {
         set Enabled = 1
         do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-        if '(##class(Change).IsUncommitted(##class(Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
+        if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
         }
-    } elseif ##class(Utils).IsInSourceControl(itemName) {
+    } elseif ##class(SourceControl.Git.Utils).IsInSourceControl(itemName) {
         set Enabled = $case(menuItemName, "AddToSC":-1,:1)
     } else {
         set Enabled = $case(menuItemName, "AddToSC":1,:-1)
@@ -174,7 +192,7 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
 /// this menu item from the list totally, 0 will gray the menu item out and the default 1 will display the menu item as normal.
 Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As %String, ByRef Enabled As %Boolean, ByRef DisplayName As %String) As %Status
 {
-    set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
 
     #dim menu as %String= $piece(MenuName,",")
@@ -200,9 +218,9 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 Method OnBeforeLoad(InternalName As %String, verbose As %Boolean) As %Status
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-    set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
-    if ##class(Utils).IsInSourceControl(InternalName) {
-        quit ##class(Utils).ImportItem(InternalName,,0)
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
+    if ##class(SourceControl.Git.Utils).IsInSourceControl(InternalName) {
+        quit ##class(SourceControl.Git.Utils).ImportItem(InternalName,,0)
     }
     quit $$$OK
 }
@@ -236,15 +254,17 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 {
     set sc = $$$OK
     try {
-        set InternalName = ##class(Utils).NormalizeInternalName(.InternalName)
+        set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-        if ##class(Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
-            set filename = ##class(Utils).FullExternalName(InternalName)
-            $$$ThrowOnError(##class(Utils).RemoveRoutineTSH(InternalName))
-            $$$ThrowOnError(##class(Utils).ExportItem(InternalName))
+        if ##class(SourceControl.Git.Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
+            set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+            $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
+            $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
             if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                 $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
             }
+        } elseif ##class(SourceControl.Git.Utils).BasicMode() {
+            do ..AddToSourceControl(InternalName)
         }
     } catch e {
         do e.Log()
@@ -262,7 +282,7 @@ Method OnAfterCompile(InternalName As %String) As %Status
 /// Returns true if this item is in source control and false otherwise.
 Method IsInSourceControl(InternalName As %String) As %Boolean [ CodeMode = expression ]
 {
-InternalName'="" && ##class(Utils).IsInSourceControl(##class(Utils).NormalizeInternalName(InternalName))
+InternalName'="" && ##class(SourceControl.Git.Utils).IsInSourceControl(##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName))
 }
 
 /// Called before an item is deleted.
@@ -273,10 +293,10 @@ Method OnBeforeDelete(InternalName As %String) As %Status
         Throw ##class(%Exception.General).%New("Can't delete in locked environment")
     } else {
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-        set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
-        set Filename = ##class(Utils).FullExternalName(InternalName)
-        if ##class(Utils).IsInSourceControl(InternalName) && ##class(%File).Exists(Filename) {
-            quit ##class(Change).AddDeletedToUncommitted(Filename, InternalName)
+        set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
+        set Filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+        if ##class(SourceControl.Git.Utils).IsInSourceControl(InternalName) && ##class(%File).Exists(Filename) {
+            quit ##class(SourceControl.Git.Change).AddDeletedToUncommitted(Filename, InternalName)
         }
         quit $$$OK
     }
@@ -286,9 +306,9 @@ Method OnBeforeDelete(InternalName As %String) As %Status
 Method OnAfterDelete(InternalName As %String) As %Status
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-    set InternalName = ##class(Utils).NormalizeInternalName(InternalName)
-    if ##class(Utils).IsInSourceControl(InternalName) {
-        quit ##class(Utils).DeleteExternalFile(InternalName)
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
+    if ##class(SourceControl.Git.Utils).IsInSourceControl(InternalName) {
+        quit ##class(SourceControl.Git.Utils).DeleteExternalFile(InternalName)
     }
     quit $$$OK
 }
@@ -297,7 +317,7 @@ Method OnAfterDelete(InternalName As %String) As %Status
 /// the routine/class/csp item. This is often a filename to write the file out to.
 Method ExternalName(InternalName As %String) As %String
 {
-    quit ##class(Utils).ExternalName(InternalName)
+    quit ##class(SourceControl.Git.Utils).ExternalName(InternalName)
 }
 
 Method IsReadOnly(InternalName As %String) As %Boolean

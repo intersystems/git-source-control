@@ -32,6 +32,11 @@ Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(So
 /// Attribution: Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
+/// Attribution: Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
+Property basicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
+
+Property systemBasicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SystemBasicMode()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -84,6 +89,8 @@ Method %Save() As %Status
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
+    set @storage@("settings", "user", $username, "basicMode") = ..basicMode
+    set @storage@("settings", "basicMode") = ..systemBasicMode
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings

@@ -24,6 +24,8 @@ This option pushes the commits in the branch to the remote repository. This exhi
 Much like the [git fetch](https://git-scm.com/docs/git-fetch) command, this option fetches the most recent versions of the branch without merging that version into the local copy of the branch.
 ## Pull changes from remote branch
 Much like the [git pull](https://git-scm.com/docs/git-pull) command, this menu option pulls the most recent version of the current branch from a remote source, merging the changes into the local copy.
+## Sync
+This option will synchronize a local repo with the remote repo. The sync operation is only enabled in basic mode. It encapsulates the pattern of fetching, pulling, committing and then pushing into one menu action. If there is no defined remote repository, it will simply commit any uncommitted files.
 ## Create new branch
 This menu option creates a new branch in the repository for changes to be committed to. It also changes the current branch to be the created branch. This mimics the behavior of the [git checkout -b](https://git-scm.com/docs/git-checkout) command.
 ## Check out an existing branch

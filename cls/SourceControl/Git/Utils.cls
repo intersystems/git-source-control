@@ -10,9 +10,9 @@ Parameter InstallNamespace = "%SYS";
 Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 
 /// Name of the file with version controlled items
-Parameter GitMenuItems = ",Settings,Commit,Pull,Fetch,Push,Revert,";
+Parameter GitMenuItems = ",Settings,Commit,Sync,Pull,Fetch,Push,Revert,";
 
-Parameter ImportAfterGitMenuItems = ",Commit,Pull,Fetch,Push,";
+Parameter ImportAfterGitMenuItems = ",Commit,Sync,Pull,Fetch,Push,";
 
 Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
@@ -111,6 +111,16 @@ ClassMethod GitBinPath(Output isDefault) As %String
         // (can't easily change storage location for backward compatibility)
     }
     quit $case($extract(binPath),"""":binPath,:""""_binPath_"""")
+}
+
+ClassMethod BasicMode() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "user", $username, "basicMode"), ..SystemBasicMode())
+}
+
+ClassMethod SystemBasicMode() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "basicMode"), 0)
 }
 
 ClassMethod MappedItemsReadOnly() As %Boolean
@@ -227,6 +237,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
+    } elseif (menuItemName = "Sync") {
+        quit ..Sync()
     } elseif (menuItemName = "Push") {
         quit ..Push()
     } elseif (menuItemName = "Fetch") {
@@ -319,6 +331,22 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
+    quit $$$OK
+}
+
+ClassMethod Sync() As %Status
+{
+    write "Syncing local repository..."
+    if '..HasRemoteRepo() {
+        write "No remote repository configured: skipping fetch, pull and push"
+        do ..Commit("", "Committing all files through sync command")
+    } else {
+        do ..Fetch()
+        do ..Pull()
+        do ..Commit("", "Committing all files through sync command")
+        do ..Push()
+    }
+    
     quit $$$OK
 }
 
@@ -1456,6 +1484,15 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
     quit 'fileCount
 }
 
+ClassMethod HasRemoteRepo() As %Boolean
+{
+    do ..RunGitCommand("remote", .errStream,.outStream)
+    if outStream.SizeGet() = 0 {
+        quit 0
+    }
+     quit 1
+}
+
 ClassMethod RunGitWithArgs(Output errStream, Output outStream, args...) As %Integer
 {
     set command = args(1)
@@ -1473,7 +1510,7 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
-    if (command '= "--version") {
+    if (command '= "--version") && (command '= "remote") {
         set newArgs($increment(newArgs)) = "-C"
         set newArgs($increment(newArgs)) = ..TempFolder()
 

@@ -513,6 +513,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
 {
+    do ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set settings = ##class(SourceControl.Git.Settings).%New()
     #dim i as %Integer
     #dim ec as %Status = $$$OK
@@ -2062,5 +2063,47 @@ ClassMethod ResetSourceControlClass()
     do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("")
 }
 
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+{
+    set sc = $$$OK
+    try {
+        write !, "Exporting items..."
+        set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
+            "*.mac,*.int,*.inc,*.cls,*.csp" // Spec
+            , , ,0  // SystemFiles
+            ,1      // Flat
+            ,0      // NotStudio
+            ,0      // ShowGenerated
+            , , ,0  // Mapped
+            )
+        throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
+        while rs.%Next(.sc) {
+            $$$ThrowOnError(sc)
+            set internalName = rs.Name
+            // exclude items in a non-default IPM package
+            set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
+            continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
+            $$$ThrowOnError(..AddToSourceControl(internalName))
+        }
+        if pCommitMessage '= "" {
+            // switch to default context
+            do ##class(SourceControl.Git.PackageManagerContext).ForInternalName("")
+            do ..RunGitWithArgs(.errStream, .outStream, "add", "--all")
+            do ..PrintStreams(errStream, outStream)
+            set username = ..GitUserName()
+            set email = ..GitUserEmail()
+            set author = username_" <"_email_">"
+            do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", pCommitMessage)
+            do ..PrintStreams(errStream, outStream)
+            $$$ThrowOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
+            if (pPushToRemote '= "") {
+                $$$ThrowOnError(..Push(pPushToRemote))
+            }
+        }
+    } catch err {
+        set sc = err.AsStatus()
+    }
+    return sc
 }
 
+}

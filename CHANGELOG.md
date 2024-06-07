@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-release support for IPM v0.9.0+
 - Items mapped from database other than namespace's default routine database are now ignored by default when exporting or adding files
 - New setting to configure whether mapped items should be should be treated as read-only
+- Command-line utility to do a baseline export of items in a namespace
 
 ## [2.3.1] - 2024-04-30
 

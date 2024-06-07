@@ -2083,12 +2083,6 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
             // exclude items in a non-default IPM package
             set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
             continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
-            // exclude CSPX classes
-            continue:(rs.Type=4)&&($match(internalName,"CSPX\..*"))
-            // exclude Ensemble system classes
-            continue:(rs.Type=4)&&($match(internalName,"Ens\..*")||$match(internalName,"EnsLib\..*")||$match(internalName,"EnsPortal\..*"))
-            // exclude Ensemble system MAC and INC routines
-            continue:((rs.Type=0)||(rs.Type=2))&&($extract(internalName,1,3)="Ens")
             $$$ThrowOnError(..AddToSourceControl(internalName))
         }
         if pCommitMessage '= "" {

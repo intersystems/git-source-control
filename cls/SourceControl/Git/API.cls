@@ -56,5 +56,12 @@ ClassMethod Unlock()
     quit ##class(SourceControl.Git.Utils).Locked(0)
 }
 
+/// Run in terminal to baseline a namespace by adding all items to source control.
+/// - pCommitMessage: if defined, all changes in namespace context will be committed.
+/// - pPushToRemote: if defined, will run a git push to the specified remote
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+{
+    quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote)
 }
 
+}

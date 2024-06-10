@@ -131,7 +131,12 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
         set examine=$select(action="add":1,action="edit":1,action="delete":1, IncludeRevert&&(action="revert"):1,1:0)
         if 'examine set filename=$order(tFileList(filename),1,action) continue
 
+        set packageRoot = ##class(SourceControl.Git.Utils).TempFolder()
         set InternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filename,0,0)
+
+        // skip files belonging to other git enabled packages
+        if ($EXTRACT(filename, 1, $LENGTH(packageRoot)) '= packageRoot) continue
+        
 
         if (('##class(%File).Exists(filename)) || (InternalName = "") || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && 
             (($data($$$TrackedItems(InternalName))) || ##class(SourceControl.Git.Utils).NormalizeExtension($data($$$TrackedItems(InternalName))))))  {

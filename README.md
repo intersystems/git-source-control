@@ -58,6 +58,12 @@ This might look like:
 
 ![Example of mapping configuration](docs/images/settings.PNG "Example of mapping configuration")
 
+### Pull Event Handlers
+
+The ##class(SourceControl.Git.PullEventHandler) is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
+
+A recommended way to implement CI/CD would be to use one of the pre-defined subclasses of PullEventHandler that are placed inside the PullEventHandler package. Additionally, custom load logic can be placed in that package following the model of the existing subclasses.
+
 ### Security
 
 #### Unsecured (http) connections
@@ -98,6 +104,8 @@ Assuming you have the local and remote repositories created,
 7. Change the default `ssh` command in the git config for **your repository** as:
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
+
+
 
 ## During Development
 

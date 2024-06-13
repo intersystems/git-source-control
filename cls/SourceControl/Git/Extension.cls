@@ -50,6 +50,11 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         set Name = "%SourceMenu,Status"
     } 
 
+    if Type = 1, Name = 1 {
+        do ..AddToSourceControl(InternalName)
+    }
+    
+
     #dim ec as %Status = $$$OK
     #dim menu as %Status = $piece(Name, ",", 1)
     if menu '= "%SourceMenu", menu'="%SourceContext" {
@@ -58,7 +63,7 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 
     set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-    set ec = ##class(SourceControl.Git.Utils).UserAction(InternalName, Name, .Target, .Action, .Reload)
+    set ec = ##class(SourceControl.Git.Utils).UserAction(InternalName, Name, .Target, .Action, .Reload, .Msg)
     quit ec
 }
 
@@ -263,8 +268,6 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
             if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                 $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
             }
-        } elseif ##class(SourceControl.Git.Utils).BasicMode() {
-            do ..AddToSourceControl(InternalName)
         }
     } catch e {
         do e.Log()

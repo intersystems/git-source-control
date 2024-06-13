@@ -118,6 +118,11 @@ ClassMethod BasicMode() As %Boolean
     quit $get(@..#Storage@("settings", "user", $username, "basicMode"), ..SystemBasicMode())
 }
 
+ClassMethod UserBasicMode() As %String
+{
+    quit $get(@..#Storage@("settings", "user", $username, "basicMode"), "system")
+}
+
 ClassMethod SystemBasicMode() As %Boolean
 {
     quit $get(@..#Storage@("settings", "basicMode"), 0)
@@ -168,7 +173,7 @@ ClassMethod IsImportAfter(menuItemName As %String) As %Boolean [ CodeMode = expr
 $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 }
 
-ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean) As %Status
+ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean, ByRef Msg As %String) As %Status
 {
     #define Force 1
     // MenuName = "<Name of menu>,<Name of menu item>"
@@ -238,7 +243,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Sync") {
-        quit ..Sync()
+        set Target = "Enter a commit message for the sync operation"
+        set Action = 7
+        set Msg = ..PreSync()
+        quit $$$OK
     } elseif (menuItemName = "Push") {
         quit ..Push()
     } elseif (menuItemName = "Fetch") {
@@ -283,6 +291,11 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     } elseif (menuItemName = "SwitchBranch") {
         if (Answer = 1) {
             do ..SwitchBranch(Msg)
+            set Reload = 1
+        }
+    } elseif (menuItemName = "Sync") {
+        if (Answer = 1) {
+            do ..Sync(Msg)
             set Reload = 1
         }
     }
@@ -334,16 +347,63 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
     quit $$$OK
 }
 
-ClassMethod Sync() As %Status
+ClassMethod PreSync() As %String
 {
-    write "Syncing local repository..."
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("current user's changes")
+    quit ..GenerateCommitMessageFromFiles(uncommittedFilesWithAction)
+}
+
+/// Commits all the files as needed by the Sync operation 
+ClassMethod SyncCommit(Msg As %String) As %Status
+{
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("current user's changes")
+    set username = ..GitUserName()
+    set email = ..GitUserEmail()
+    set author = username_" <"_email_">"
+    do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Msg)
+    do ..PrintStreams(errStream, outStream)
+    $$$QuitOnError(..ClearUncommitted(uncommittedFilesWithAction))
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
+    quit $$$OK
+}
+
+/// Goes through all the added files and stages them
+ClassMethod StageAddedFiles()
+{
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("current user's changes")
+    set iterator = uncommittedFilesWithAction.%GetIterator()
+    while iterator.%GetNext(,.value,) {
+        set file = value.%Get("file")
+        do ..RunGitWithArgs(.errStream, .outStream, "add", file)
+        do ..PrintStreams(errStream, outStream)
+    }
+}
+
+/// Converts the DynamicArray into a list and calls the SourceControl.Git.Change RemoveUncommitted method on the newly created list
+ClassMethod ClearUncommitted(filesWithActions) As %Status
+{
+    set files = ""
+
+    set iterator = filesWithActions.%GetIterator()
+    while iterator.%GetNext(,.value,) {
+        set file = value.%Get("file")
+        set files = files_$listbuild(file)
+    }
+    $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(files))
+    quit $$$OK
+}
+
+ClassMethod Sync(Msg As %String) As %Status
+{
+    write !, "Syncing local repository...", !
+    do ..StageAddedFiles()    
     if '..HasRemoteRepo() {
         write "No remote repository configured: skipping fetch, pull and push"
-        do ..Commit("", "Committing all files through sync command")
+        do ..SyncCommit(Msg)
     } else {
         do ..Fetch()
         do ..Pull()
-        do ..Commit("", "Committing all files through sync command")
+        do ..SyncCommit(Msg)
         do ..Push()
     }
     
@@ -1568,6 +1628,29 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set stream.RemoveOnClose = 1
     }
     quit returnCode
+}
+
+ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String
+{
+    set commitMsg = ""
+
+    set iterator = filesWithActions.%GetIterator()
+    while iterator.%GetNext(,.value,) {
+        set action = value.%Get("action")
+        set file = value.%Get("file")
+
+
+        if action = "A" {
+            set commitMsg = commitMsg _ "added " _ file _ ", "
+        } elseif action = "M" {
+            set commitMsg = commitMsg _ "modified " _ file _ ", "
+        } elseif action = "D" {
+            set commitMsg = commitMsg _ "deleted " _ file _ ", "
+        } elseif action = "R" {
+            set commitMsg = commitMsg _ "renamed " _ file _ ", "
+        }
+    }
+    quit commitMsg
 }
 
 ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)

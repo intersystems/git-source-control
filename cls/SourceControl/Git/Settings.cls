@@ -33,8 +33,12 @@ Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(So
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
 /// Attribution: Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
-Property basicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
+Property basicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
 
+/// This does not map to a setting on the screen but is used to select the value to be displayed for the user's basic mode setting
+Property userBasicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).UserBasicMode()} ];
+
+/// The system's default mode. If true, the system defaults to basic mode
 Property systemBasicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SystemBasicMode()} ];
 
 Property Mappings [ MultiDimensional ];
@@ -89,8 +93,16 @@ Method %Save() As %Status
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
-    set @storage@("settings", "user", $username, "basicMode") = ..basicMode
     set @storage@("settings", "basicMode") = ..systemBasicMode
+    if ..basicMode = "system" {
+        kill @storage@("settings", "user", $username, "basicMode")
+    } else {
+        set @storage@("settings", "user", $username, "basicMode") = ..basicMode
+    } 
+
+    // update value of basicUserMode to reflect the updated setting for basicMode
+    set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
+    
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings

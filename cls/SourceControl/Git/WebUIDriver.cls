@@ -236,8 +236,8 @@ ClassMethod UncommittedWithAction() As %SystemBase
         }
     }
 
-    do fileToOtherDevelopers.%Set("current user's changes", editedByCurrentUser)
-    do fileToOtherDevelopers.%Set("other users' changes", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
+    do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
+    do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
     quit fileToOtherDevelopers
 }
 

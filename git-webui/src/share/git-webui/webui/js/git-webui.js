@@ -2147,9 +2147,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         var col = type == "working-copy" ? 1 : 0;
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
-                console.log(uncommitted);
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
-                console.log(uncommittedItems);
                 var otherDeveloperUncommittedItems = JSON.parse(uncommitted)["other users' changes"];
                 self.filesCount = 0;
                 function addItemToFileList(fileList, otherDeveloperUsername, model) {

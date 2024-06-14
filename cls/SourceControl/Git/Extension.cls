@@ -50,7 +50,7 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         set Name = "%SourceMenu,Status"
     } 
 
-    if Type = 1, Name = 1 {
+    if (Type = 1) && ((Name = 1) || (Name = 7)) {
         do ..AddToSourceControl(InternalName)
     }
     

@@ -349,14 +349,14 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 
 ClassMethod PreSync() As %String
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("current user's changes")
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("user")
     quit ..GenerateCommitMessageFromFiles(uncommittedFilesWithAction)
 }
 
 /// Commits all the files as needed by the Sync operation 
 ClassMethod SyncCommit(Msg As %String) As %Status
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("current user's changes")
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("user")
     set username = ..GitUserName()
     set email = ..GitUserEmail()
     set author = username_" <"_email_">"
@@ -370,7 +370,7 @@ ClassMethod SyncCommit(Msg As %String) As %Status
 /// Goes through all the added files and stages them
 ClassMethod StageAddedFiles()
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("current user's changes")
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("user")
     set iterator = uncommittedFilesWithAction.%GetIterator()
     while iterator.%GetNext(,.value,) {
         set file = value.%Get("file")
@@ -1570,7 +1570,7 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
-    if (command '= "--version") && (command '= "remote") {
+    if (command '= "--version") {
         set newArgs($increment(newArgs)) = "-C"
         set newArgs($increment(newArgs)) = ..TempFolder()
 
@@ -1639,18 +1639,19 @@ ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String
         set action = value.%Get("action")
         set file = value.%Get("file")
 
+        set oneFileMsg = $Case(action,
+            "A":"added",
+            "M": "modified",
+            "D": "deleted",
+            "R": "renamed",
+            "U": "updated",
+            : "???"
+        )_ " "_file
 
-        if action = "A" {
-            set commitMsg = commitMsg _ "added " _ file _ ", "
-        } elseif action = "M" {
-            set commitMsg = commitMsg _ "modified " _ file _ ", "
-        } elseif action = "D" {
-            set commitMsg = commitMsg _ "deleted " _ file _ ", "
-        } elseif action = "R" {
-            set commitMsg = commitMsg _ "renamed " _ file _ ", "
-        }
+        set commitMsg = commitMsg_$LISTBUILD(oneFileMsg)
+        
     }
-    quit commitMsg
+    quit $LISTTOSTRING(commitMsg, ",")
 }
 
 ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)

@@ -349,14 +349,14 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 
 ClassMethod PreSync() As %String
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("user")
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
     quit ..GenerateCommitMessageFromFiles(uncommittedFilesWithAction)
 }
 
 /// Commits all the files as needed by the Sync operation 
 ClassMethod SyncCommit(Msg As %String) As %Status
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("user")
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
     set username = ..GitUserName()
     set email = ..GitUserEmail()
     set author = username_" <"_email_">"
@@ -370,7 +370,7 @@ ClassMethod SyncCommit(Msg As %String) As %Status
 /// Goes through all the added files and stages them
 ClassMethod StageAddedFiles()
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.WebUIDriver).UncommittedWithAction().%Get("user")
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
     set iterator = uncommittedFilesWithAction.%GetIterator()
     while iterator.%GetNext(,.value,) {
         set file = value.%Get("file")
@@ -2071,6 +2071,41 @@ ClassMethod GetSourceControlInclude() As %String
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src=""/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
+}
+
+ClassMethod UncommittedWithAction() As %Library.DynamicObject
+{
+    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+    do ##class(SourceControl.Git.Utils).GitStatus(.files, 1)
+    set output = ""
+    set key = ""
+
+    set editedByCurrentUser = []
+    set fileToOtherDevelopers = {}
+    for {
+        set key = $order(files(key), 1, fileData)
+        quit:key=""
+
+        set filename = ##class(SourceControl.Git.Utils).FullExternalName(key)
+        if (($ISVALIDNUM(key)) && (files(key) '= "")) {
+            set edit = {}
+            do edit.%Set("file", $listget(fileData, 2))
+            do edit.%Set("action", $listget(fileData, 1))
+            do editedByCurrentUser.%Push(edit)
+        } else {
+            set sc=##class(SourceControl.Git.Change).GetUncommitted(filename, .tAction, .tInternalName, .UncommittedUser, .tSource, .UncommittedLastUpdated)
+            if ($$$ISOK(sc)) && ($data(tAction)&&(UncommittedUser=$username)) {
+                set edit = {}
+                do edit.%Set("file", $listget(fileData, 2))
+            do edit.%Set("action", $listget(fileData, 1))
+            do editedByCurrentUser.%Push(edit)
+            }
+        }
+    }
+
+    do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
+    do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
+    quit fileToOtherDevelopers
 }
 
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status

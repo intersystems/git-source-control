@@ -208,37 +208,8 @@ ClassMethod Uncommitted() As %SystemBase
 
 ClassMethod UncommittedWithAction() As %SystemBase
 {
-    do ##class(SourceControl.Git.Change).RefreshUncommitted()
-    do ##class(SourceControl.Git.Utils).GitStatus(.files, 1)
-    set output = ""
-    set key = ""
-
-    set editedByCurrentUser = []
-    set fileToOtherDevelopers = {}
-    for {
-        set key = $order(files(key), 1, fileData)
-        quit:key=""
-
-        set filename = ##class(SourceControl.Git.Utils).FullExternalName(key)
-        if (($ISVALIDNUM(key)) && (files(key) '= "")) {
-            set edit = {}
-            do edit.%Set("file", $listget(fileData, 2))
-            do edit.%Set("action", $listget(fileData, 1))
-            do editedByCurrentUser.%Push(edit)
-        } else {
-            set sc=##class(SourceControl.Git.Change).GetUncommitted(filename, .tAction, .tInternalName, .UncommittedUser, .tSource, .UncommittedLastUpdated)
-            if ($$$ISOK(sc)) && ($data(tAction)&&(UncommittedUser=$username)) {
-                set edit = {}
-                do edit.%Set("file", $listget(fileData, 2))
-            do edit.%Set("action", $listget(fileData, 1))
-            do editedByCurrentUser.%Push(edit)
-            }
-        }
-    }
-
-    do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
-    do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
-    quit fileToOtherDevelopers
+    set uncomittedWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction()
+    quit uncomittedWithAction
 }
 
 ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String

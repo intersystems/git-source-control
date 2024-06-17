@@ -32,10 +32,10 @@ Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(So
 /// Attribution: Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
-/// Attribution: Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
+/// Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
 Property basicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
 
-/// This does not map to a setting on the screen but is used to select the value to be displayed for the user's basic mode setting
+/// A read-only setting used to display the basic mode setting that is chosen in the settings page
 Property userBasicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).UserBasicMode()} ];
 
 /// The system's default mode. If true, the system defaults to basic mode
@@ -125,6 +125,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     for {
         set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
+        continue:property="userBasicMode"
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")

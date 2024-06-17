@@ -226,7 +226,7 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
     quit {"url": (settingsURL)}
 }
 
-ClassMethod GetPackageVersion() As %SystemBase
+ClassMethod GetPackageVersion() As %Library.DynamicObject
 {
     set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
     quit {"version": (version)}

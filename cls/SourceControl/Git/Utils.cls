@@ -1952,6 +1952,13 @@ ClassMethod CheckInitialization()
     }
 }
 
+ClassMethod GetPackageVersion() As %String
+{
+    do ##class(%ZPM.PackageManager).GetVersion("git-source-control",.out)
+    set scVersion = out("git-source-control")
+    quit $LIST(scVersion, 2)
+}
+
 ClassMethod GetSourceControlInclude() As %String
 {
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():

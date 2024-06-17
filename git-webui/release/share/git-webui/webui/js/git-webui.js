@@ -483,6 +483,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         webui.git("fetch --prune",updateSideBar);
     }
 
+    self.getPackageVersion = function() {
+        $.get("api/get-package-version", function(version) {
+            var ver = JSON.parse(version)["version"];
+            $("#packageVersion").text("package version " + ver)
+        })
+    }
+
     
     self.checkoutBranch = function(branchType, refName) {
         $("#confirm-branch-checkout").remove();
@@ -751,8 +758,10 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     };
 
     self.mainView = mainView;
+    
     self.element = $(   '<div id="sidebar">' +
                             '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
+                            '<h5 id="packageVersion"></h5>' +
                             '<div id="sidebar-content">' +
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
@@ -802,7 +811,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
     }
-
+    self.getPackageVersion();
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
     self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");

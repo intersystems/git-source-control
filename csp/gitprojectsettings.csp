@@ -57,6 +57,14 @@ body {
     font-size: 80%;
 }
 
+.form-rad {
+    padding-left: 30px;
+}
+
+.form-rad-label {
+    padding-left: 4px;
+}
+
 </style>
 </head>
 <body>
@@ -80,6 +88,20 @@ body {
             set settings.mappedItemsReadOnly = 1
         } else {
             set settings.mappedItemsReadOnly = 0
+        }
+
+        if ($Get(%request.Data("basicMode", 1)) = 1) {
+            set settings.basicMode = 1
+        } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
+            set settings.basicMode = "system"
+        } else {
+            set settings.basicMode = 0
+        }
+
+        if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
+            set settings.systemBasicMode = 1
+        } else {
+            set settings.systemBasicMode = 0
         }
         set i = 1
         set param = "NoFolders"
@@ -266,6 +288,26 @@ body {
             </div>
         </div>
         
+        <div class="form-group row mb-3">
+            <label for="systemBasicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode for all users, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace."> Basic Mode as System Default</label>
+            <div class="col-sm-7">
+            
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <server>
+                        if (settings.systemBasicMode) {
+                            &html<<input class="custom-control-input" name="systemBasicMode" type="checkbox" id="systemBasicMode" checked value="1">>
+                        } else {
+                            &html<<input class="custom-control-input" name="systemBasicMode" type="checkbox" id="systemBasicMode" value="1">>
+                        }
+                    </server>
+                    
+                    <label class="custom-control-label" for="systemBasicMode"></label>
+                </div>
+                
+            </div>
+            
+
+        </div>
         
         <div class="form-group row mb-3">
             <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"> Treat Mapped Items as Read-only</label>
@@ -404,6 +446,62 @@ body {
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label form-rad-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">Basic Mode</label>
+
+            <div class="form-check offset-sm-4 form-rad">
+                <server>
+                    if (settings.userBasicMode = "1") {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode1" checked value="1">>
+                    } else {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode1" value="1">>
+                    }
+                </server>
+                <label class="form-check-label" for="basicMode1">
+                    Use Basic Mode
+                </label>
+            </div> </br>
+            <div class="form-check offset-sm-4 form-rad">
+                <server>
+                    if (settings.userBasicMode = "0") {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode0" checked value="0">>
+                    } else {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode0" value="0">>
+                    }
+                </server>
+                <label class="form-check-label" for="basicMode0">
+                    Use Expert Mode
+                </label>
+            </div> </br>
+            <div class="form-check offset-sm-4 form-rad">
+                <server>
+                    if (settings.userBasicMode = "system") {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicModeDefault" checked value="system">>
+                    } else {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicModeDefault" value="system">>
+                    }
+                </server>
+                <label class="form-check-label" for="basicModeDefault">
+                    Use System's Default Mode
+                </label>
+            </div>
+
+
+
+          <!--  <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">Basic Mode</label>
+            <div class="custom-control custom-switch custom-switch-no-border">
+                <server>
+                    if (settings.basicMode) {
+                        &html<<input class="custom-control-input" name="basicMode" type="checkbox" id="basicMode" checked value="1">>
+                    } else {
+                        &html<<input class="custom-control-input" name="basicMode" type="checkbox" id="basicMode" value="1">>
+                    }
+                </server>
+                
+                <label class="custom-control-label" for="basicMode"></label>
+            </div> -->
         </div>
 
         <br/>

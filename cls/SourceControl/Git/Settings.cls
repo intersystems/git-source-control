@@ -32,6 +32,15 @@ Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(So
 /// Attribution: Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
+/// Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
+Property basicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
+
+/// A read-only setting used to display the basic mode setting that is chosen in the settings page
+Property userBasicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).UserBasicMode()} ];
+
+/// The system's default mode. If true, the system defaults to basic mode
+Property systemBasicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SystemBasicMode()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -84,6 +93,16 @@ Method %Save() As %Status
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
+    set @storage@("settings", "basicMode") = ..systemBasicMode
+    if ..basicMode = "system" {
+        kill @storage@("settings", "user", $username, "basicMode")
+    } else {
+        set @storage@("settings", "user", $username, "basicMode") = ..basicMode
+    } 
+
+    // update value of basicUserMode to reflect the updated setting for basicMode
+    set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
+    
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -106,6 +125,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     for {
         set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
+        continue:property="userBasicMode"
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")

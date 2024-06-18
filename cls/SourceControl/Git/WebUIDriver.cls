@@ -202,9 +202,16 @@ ClassMethod Uncommitted() As %SystemBase
             }
         }
     }
+
     do fileToOtherDevelopers.%Set("current user's changes", editedByCurrentUser)
     do fileToOtherDevelopers.%Set("other users' changes", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
     quit fileToOtherDevelopers
+}
+
+ClassMethod UncommittedWithAction() As %SystemBase
+{
+    set uncomittedWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction()
+    quit uncomittedWithAction
 }
 
 ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String

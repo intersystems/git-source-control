@@ -10,9 +10,9 @@ Parameter InstallNamespace = "%SYS";
 Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 
 /// Name of the file with version controlled items
-Parameter GitMenuItems = ",Settings,Commit,Pull,Fetch,Push,Revert,";
+Parameter GitMenuItems = ",Settings,Commit,Sync,Pull,Fetch,Push,Revert,";
 
-Parameter ImportAfterGitMenuItems = ",Commit,Pull,Fetch,Push,";
+Parameter ImportAfterGitMenuItems = ",Commit,Sync,Pull,Fetch,Push,";
 
 Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
@@ -113,6 +113,21 @@ ClassMethod GitBinPath(Output isDefault) As %String
     quit $case($extract(binPath),"""":binPath,:""""_binPath_"""")
 }
 
+ClassMethod BasicMode() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "user", $username, "basicMode"), ..SystemBasicMode())
+}
+
+ClassMethod UserBasicMode() As %String
+{
+    quit $get(@..#Storage@("settings", "user", $username, "basicMode"), "system")
+}
+
+ClassMethod SystemBasicMode() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "basicMode"), 0)
+}
+
 ClassMethod MappedItemsReadOnly() As %Boolean
 {
     quit $get(@..#Storage@("settings", "mappedItemsReadOnly"), 1)
@@ -158,7 +173,7 @@ ClassMethod IsImportAfter(menuItemName As %String) As %Boolean [ CodeMode = expr
 $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 }
 
-ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean) As %Status
+ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean, ByRef Msg As %String) As %Status
 {
     #define Force 1
     // MenuName = "<Name of menu>,<Name of menu item>"
@@ -227,6 +242,11 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
+    } elseif (menuItemName = "Sync") {
+        set Target = "Enter a commit message for the sync operation"
+        set Action = 7
+        set Msg = ..PreSync()
+        quit $$$OK
     } elseif (menuItemName = "Push") {
         quit ..Push()
     } elseif (menuItemName = "Fetch") {
@@ -271,6 +291,11 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     } elseif (menuItemName = "SwitchBranch") {
         if (Answer = 1) {
             do ..SwitchBranch(Msg)
+            set Reload = 1
+        }
+    } elseif (menuItemName = "Sync") {
+        if (Answer = 1) {
+            do ..Sync(Msg)
             set Reload = 1
         }
     }
@@ -319,6 +344,69 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
+    quit $$$OK
+}
+
+ClassMethod PreSync() As %String
+{
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+    quit ..GenerateCommitMessageFromFiles(uncommittedFilesWithAction)
+}
+
+/// Commits all the files as needed by the Sync operation 
+ClassMethod SyncCommit(Msg As %String) As %Status
+{
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+    set username = ..GitUserName()
+    set email = ..GitUserEmail()
+    set author = username_" <"_email_">"
+    do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Msg)
+    do ..PrintStreams(errStream, outStream)
+    $$$QuitOnError(..ClearUncommitted(uncommittedFilesWithAction))
+    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
+    quit $$$OK
+}
+
+/// Goes through all the added files and stages them
+ClassMethod StageAddedFiles()
+{
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+    set iterator = uncommittedFilesWithAction.%GetIterator()
+    while iterator.%GetNext(,.value,) {
+        set file = value.%Get("file")
+        do ..RunGitWithArgs(.errStream, .outStream, "add", file)
+        do ..PrintStreams(errStream, outStream)
+    }
+}
+
+/// Converts the DynamicArray into a list and calls the SourceControl.Git.Change RemoveUncommitted method on the newly created list
+ClassMethod ClearUncommitted(filesWithActions) As %Status
+{
+    set files = ""
+
+    set iterator = filesWithActions.%GetIterator()
+    while iterator.%GetNext(,.value,) {
+        set file = value.%Get("file")
+        set files = files_$listbuild(file)
+    }
+    $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(files))
+    quit $$$OK
+}
+
+ClassMethod Sync(Msg As %String) As %Status
+{
+    write !, "Syncing local repository...", !
+    do ..StageAddedFiles()    
+    if '..HasRemoteRepo() {
+        write "No remote repository configured: skipping fetch, pull and push"
+        do ..SyncCommit(Msg)
+    } else {
+        do ..Fetch()
+        do ..Pull()
+        do ..SyncCommit(Msg)
+        do ..Push()
+    }
+    
     quit $$$OK
 }
 
@@ -1463,6 +1551,15 @@ ClassMethod RemoveFolderIfEmpty(path As %String) As %Boolean
     quit 'fileCount
 }
 
+ClassMethod HasRemoteRepo() As %Boolean
+{
+    do ..RunGitCommand("remote", .errStream,.outStream)
+    if outStream.SizeGet() = 0 {
+        quit 0
+    }
+     quit 1
+}
+
 ClassMethod RunGitWithArgs(Output errStream, Output outStream, args...) As %Integer
 {
     set command = args(1)
@@ -1538,6 +1635,30 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set stream.RemoveOnClose = 1
     }
     quit returnCode
+}
+
+ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String
+{
+    set commitMsg = ""
+
+    set iterator = filesWithActions.%GetIterator()
+    while iterator.%GetNext(,.value,) {
+        set action = value.%Get("action")
+        set file = value.%Get("file")
+
+        set oneFileMsg = $Case(action,
+            "A":"added",
+            "M": "modified",
+            "D": "deleted",
+            "R": "renamed",
+            "U": "updated",
+            : "???"
+        )_ " "_file
+
+        set commitMsg = commitMsg_$LISTBUILD(oneFileMsg)
+        
+    }
+    quit $LISTTOSTRING(commitMsg, ",")
 }
 
 ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
@@ -1964,6 +2085,41 @@ ClassMethod GetSourceControlInclude() As %String
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src=""/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
+}
+
+ClassMethod UncommittedWithAction() As %Library.DynamicObject
+{
+    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+    do ##class(SourceControl.Git.Utils).GitStatus(.files, 1)
+    set output = ""
+    set key = ""
+
+    set editedByCurrentUser = []
+    set fileToOtherDevelopers = {}
+    for {
+        set key = $order(files(key), 1, fileData)
+        quit:key=""
+
+        set filename = ##class(SourceControl.Git.Utils).FullExternalName(key)
+        if (($ISVALIDNUM(key)) && (files(key) '= "")) {
+            set edit = {}
+            do edit.%Set("file", $listget(fileData, 2))
+            do edit.%Set("action", $listget(fileData, 1))
+            do editedByCurrentUser.%Push(edit)
+        } else {
+            set sc=##class(SourceControl.Git.Change).GetUncommitted(filename, .tAction, .tInternalName, .UncommittedUser, .tSource, .UncommittedLastUpdated)
+            if ($$$ISOK(sc)) && ($data(tAction)&&(UncommittedUser=$username)) {
+                set edit = {}
+                do edit.%Set("file", $listget(fileData, 2))
+            do edit.%Set("action", $listget(fileData, 1))
+            do editedByCurrentUser.%Push(edit)
+            }
+        }
+    }
+
+    do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
+    do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
+    quit fileToOtherDevelopers
 }
 
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status

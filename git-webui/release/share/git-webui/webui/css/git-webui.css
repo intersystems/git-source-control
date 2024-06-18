@@ -857,6 +857,32 @@ body {
 #workspace-view .diff-line-offset {
   cursor: pointer;
 }
+#changedFilesContainer {
+  width: 100%;
+}
+#changedFilesContainer .file-area {
+  padding-left: 20px;
+  padding-top: 15px;
+  overflow-y: scroll;
+}
+#changedFilesContainer .file-area .form-check {
+  margin-left: 10px;
+  padding: 3px 5px 3px 5px;
+}
+#changedFilesContainer .file-area .file-item-label {
+  padding-top: 1px;
+  padding-left: 8px;
+  font-size: 1rem;
+}
+#changedFilesContainer .file-area .file-item-label::after {
+  content: "A";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .commit-area {
+  padding-top: 15px;
+  overflow-y: scroll;
+}
 #commit-explorer-view #commit-explorer-navigator-view .panel .panel-body {
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;

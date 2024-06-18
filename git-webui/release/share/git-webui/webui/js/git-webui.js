@@ -797,7 +797,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         workspaceElement.click(function (event) {
             $("*", self.element).removeClass("active");
             workspaceElement.addClass("active");
-            self.mainView.workspaceView.update("stage");
+            self.mainView.workspaceView.show();
         });
 
         var stashElement = $("#sidebar-stash h4", self.element);
@@ -2106,7 +2106,7 @@ webui.HistoryView = function(mainView) {
     self.element.appendChild(self.commitView.element);
     self.mainView = mainView;
 };
-
+ 
 /*
  * == WorkspaceView ===========================================================
  */
@@ -2116,10 +2116,10 @@ webui.WorkspaceView = function(mainView) {
 
     self.show = function() {
         mainView.switchTo(self.element);
+        self.update("stage");
     };
 
     self.update = function(mode) {
-        self.show();
         self.workingCopyView.update();
         self.stagingAreaView.update();
         self.commitMessageView.update();
@@ -2137,12 +2137,16 @@ webui.WorkspaceView = function(mainView) {
     workspaceDiffView.appendChild(self.diffView.element);
     var workspaceEditor = $("#workspace-editor", self.element)[0];
     self.workingCopyView = new webui.ChangedFilesView(self, "working-copy", "Working Copy");
-    workspaceEditor.appendChild(self.workingCopyView.element);
+    // workspaceEditor.appendChild(self.workingCopyView.element);
     self.commitMessageView = new webui.CommitMessageView(self);
-    workspaceEditor.appendChild(self.commitMessageView.element);
+    // workspaceEditor.appendChild(self.commitMessageView.element);
     self.stagingAreaView = new webui.ChangedFilesView(self, "staging-area", "Staging Area");
-    workspaceEditor.appendChild(self.stagingAreaView.element);
+    // workspaceEditor.appendChild(self.stagingAreaView.element);
+
+    self.newChangedFilesView = new webui.NewChangedFilesView(self);
+    workspaceEditor.appendChild(self.newChangedFilesView.element);
 };
+
 
 /*
  * == ChangedFilesView ========================================================
@@ -2201,6 +2205,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         }
                         
                         if (isForCurrentUser) {
+                            console.log(fileList);
                             addItemToFileList(fileList, "", model);
                         }
                     }
@@ -2495,6 +2500,84 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
 
     self.filesCount = 0;
 };
+
+/*
+ * ==new ChangedFilesView ====================================================
+ */
+
+webui.NewChangedFilesView = function(workspaceView) {
+
+    var self = this;
+
+    self.update = function() {
+        $(fileList).empty();
+        webui.git("status -u --porcelain", function(data) {
+            $.get("api/uncommitted", function (uncommitted) {
+                var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
+
+            })
+        });
+    }
+
+    self.getSelectedItemsCount = function() {
+        return $(".active", fileList).length;
+    }
+
+    self.element = $(
+        '<div id="changedFilesContainer" class="container">' +
+            '<div class="row">' +
+                '<div class="col-sm-5 file-area">' +
+                    '<h4 id="fileAreaHeader">Test Header</h4>' +
+                    '<div class="changed-files-list">' + 
+                        '<div class="form-check">' +
+                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck1">' +
+                            '<label class="form-check-label file-item-label" for="defaultCheck1">' +
+                                'test check'+
+                            '</label>' +
+                        '</div>' +
+                        '<div class="form-check">' +
+                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck2" checked>' +
+                            '<label class="form-check-label file-item-label" for="defaultCheck2">' +
+                                'test check'+
+                            '</label>' +
+                        '</div>' +
+                        '<div class="form-check">' +
+                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck3">' +
+                            '<label class="form-check-label file-item-label" for="defaultCheck3">' +
+                                'test check'+
+                            '</label>' +
+                        '</div>' +
+                        '<div class="form-check">' +
+                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck4">' +
+                            '<label class="form-check-label file-item-label" for="defaultCheck4">' +
+                                'test check'+
+                            '</label>' +
+                        '</div>' +
+                        '<div class="form-check">' +
+                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck5" checked>' +
+                            '<label class="form-check-label file-item-label" for="defaultCheck5">' +
+                                'test check'+
+                            '</label>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="commit-area offset-sm-2 col-sm-5">' +
+                    '<h4>Commit Area</h4>' +
+                    '<div class="form-group">' +
+                        '<label for="commitMsg">Enter commit message:</label>' +
+                        '<input type="area" class="form-control" id="commitMsg" placeholder="commit message">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="commitMsgDetail">Enter commit message detail (optional)</label>' +
+                        '<textarea class="form-control" id="commitMsgDetail"></textarea>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    )[0];
+    var fileListContainer = $(".file-area", self.element)[0];
+    var fileList = $(".changed-files-list", fileListContainer)[0];
+}
 
 /*
  * == CommitMessageView =======================================================

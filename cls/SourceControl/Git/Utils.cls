@@ -432,7 +432,8 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
     quit $$$OK
 }
 
-ClassMethod GetCurrentBranch() As %String{
+ClassMethod GetCurrentBranch() As %String
+{
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     quit branchName
@@ -2276,3 +2277,4 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
+

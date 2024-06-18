@@ -18,6 +18,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..Uncommitted()
         } elseif $extract(pagePath,6,*) = "settings" {
             set responseJSON = ..GetSettingsURL(%request)
+        } elseif $extract(pagePath, 6, *) = "get-package-version"{
+            set responseJSON = ..GetPackageVersion()
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -229,6 +231,12 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
     set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&Namespace="_$namespace_"&Username="_$username
     set settingsURL = ..GetURLPrefix(%request, settingsURL)
     quit {"url": (settingsURL)}
+}
+
+ClassMethod GetPackageVersion() As %Library.DynamicObject
+{
+    set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
+    quit {"version": (version)}
 }
 
 }

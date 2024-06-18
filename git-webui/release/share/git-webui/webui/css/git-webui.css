@@ -34,6 +34,11 @@
 #help-modal .img-fluid {
   max-width: 90%;
 }
+#packageVersion {
+  color: white;
+  font-size: 0.83em;
+  align-self: center;
+}
 html,
 body {
   height: 100%;

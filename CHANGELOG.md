@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New setting to configure whether mapped items should be should be treated as read-only
 - Added a basic mode to automatically perform functionality expected in basic use cases (#349)
 - New sync operation for basic mode that fetches, pulls, commits and then pushes (#349)
+- Now skips files belonging to other git enabled packages in `##class(SourceControl.Git.Change).RefreshUncommitted()` (#347)
+- Added a new "Branch" parameter to `##class(SourceControl.Git.PullEventHandler)` (#351)
+- Command-line utility to do a baseline export of items in a namespace
+
 
 ## [2.3.1] - 2024-04-30
 

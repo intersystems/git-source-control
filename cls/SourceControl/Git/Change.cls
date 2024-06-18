@@ -126,29 +126,39 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     do ##class(Utils).GitStatus(.gitFiles)
 
     // Remove entries in the uncommitted queue that don't correspond to changes as tracked by git
-    set filename="", filename=$order(tFileList(filename),1,action)
-    while (filename'="") {       
-        set examine=$select(action="add":1,action="edit":1,action="delete":1, IncludeRevert&&(action="revert"):1,1:0)
-        if 'examine set filename=$order(tFileList(filename),1,action) continue
+    set filename=""
+    for {
+        set filename=$order(tFileList(filename),1,action)
+        quit:filename=""
+
+        set examine=$select(action="add":1,
+            action="edit":1,
+            action="delete":1,
+            IncludeRevert&&(action="revert"):1,
+            1:0)
+        if 'examine {
+            continue
+        }
 
         set packageRoot = ##class(SourceControl.Git.Utils).TempFolder()
         set InternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filename,0,0)
 
         // skip files belonging to other git enabled packages
         if ($EXTRACT(filename, 1, $LENGTH(packageRoot)) '= packageRoot) continue
-        
 
         if (('##class(%File).Exists(filename)) || (InternalName = "") || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && 
             (($data($$$TrackedItems(InternalName))) || ##class(SourceControl.Git.Utils).NormalizeExtension($data($$$TrackedItems(InternalName))))))  {
             set sc=..RemoveUncommitted(filename,Display,0,0)
-            if $$$ISERR(sc) set filename="" continue
+            if $$$ISERR(sc) continue
         }
-        set filename=$order(tFileList(filename),1,action)
     }
 
     // Add missing records to the uncommitted queue that correspond to changes as tracked by git
-    set filename="", filename=$order(gitFiles(filename),1,details)
-    while (filename'="") {  
+    set filename=""
+    for {
+        set filename=$order(gitFiles(filename),1,details)
+        quit:filename=""
+        
         set InternalName = filename
         set ExternalName = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Utils).TempFolder()_$list(details,2))
         set changeType = $list(details,1)
@@ -161,9 +171,8 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
 
         if ((##class(%File).Exists(ExternalName)) && ('$ISVALIDNUM(InternalName)) && ('..IsUncommitted(ExternalName)) && ($data($$$TrackedItems(InternalName))))  {
             set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "", 0)
-            if $$$ISERR(sc) w sc set filename="" continue
+            if $$$ISERR(sc) continue
         }
-        set filename=$order(gitFiles(filename),1,details)
     }
     set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
     merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles

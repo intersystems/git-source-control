@@ -2076,9 +2076,14 @@ ClassMethod CheckInitialization()
 
 ClassMethod GetPackageVersion() As %String
 {
-    do ##class(%ZPM.PackageManager).GetVersion("git-source-control",.out)
-    set scVersion = out("git-source-control")
-    quit $LIST(scVersion, 2)
+    set package = $$$NULLOREF
+    if $$$comClassDefined("%IPM.Storage.Module") {
+        set package = ##class(%IPM.Storage.Module).NameOpen("git-source-control")
+    } elseif $$$comClassDefined("%ZPM.PackageManager.Developer.Module") {
+        set package = ##class(%ZPM.PackageManager.Developer.Module).NameOpen("git-source-control")
+    }
+    quit $select($IsObject(package):package.VersionString,
+        1:"unknown")
 }
 
 ClassMethod GetSourceControlInclude() As %String

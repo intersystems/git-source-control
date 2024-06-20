@@ -86,7 +86,9 @@ It is important for the namespace temp folder to be owned by the user IRIS runs 
 If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
 
 #### IRIS Privileges
-For developers to be able to run this extension, they'll need the USE privilege on %System_Callout.
+For developers to be able to run this extension, they'll need the following privileges:
+- the USE privilege on %System_Callout
+- SQL SELECT privileges on %Studio_SourceControl.Change and SourceControl_Git.Change
 
 ### Setting up multiple GitHub deploy keys on one machine
 

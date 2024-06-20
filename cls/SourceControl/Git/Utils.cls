@@ -1187,7 +1187,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             if ($extract(InternalName, 1) = "/"){
                 set sc = ..ImportCSPFile(InternalName)
             } else{
-                set sc = $system.OBJ.Load(filename,"-l-d")
+                set sc = $system.OBJ.Load(filename,"ck")
             }
         }
         if sc {

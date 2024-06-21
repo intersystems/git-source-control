@@ -1608,7 +1608,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     // defining variables for if statement use later
     set syncIris = 0
     set diffBase = ""
-
+    set diffCompare = ""
     if (command = "checkout") || (command = "merge") || (command = "rebase") {
         set syncIris = 1
         set diffCompare = args(args)
@@ -1629,10 +1629,16 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         }
     }
 
+    if (diffCompare = "--no-commit") || (diffCompare = "--abort") {
+        set syncIris = 0
+    }
+
     if syncIris {
+        set ^mtemphw("diffc", $i(^mtemphw("diffc"))) = diffCompare
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
+        set ^mtemphw("diffb", $i(^mtemphw("diffb"))) = diffBase
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_".."_diffCompare, "--name-status")
         while (outputStream.AtEnd = 0) {
             set file = outputStream.ReadLine()

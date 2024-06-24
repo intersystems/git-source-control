@@ -2526,7 +2526,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     self.element = $(
         '<div id="changedFilesContainer" class="container">' +
             '<div class="row">' +
-                '<div class="col-sm-5 file-area">' +
+                '<div class="col-sm-6 file-area">' +
                     '<h4 id="fileAreaHeader">Test Header</h4>' +
                     '<div class="changed-files-list">' + 
                         '<div class="form-check">' +
@@ -2561,7 +2561,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                         '</div>' +
                     '</div>' +
                 '</div>' +
-                '<div class="commit-area offset-sm-2 col-sm-5">' +
+                '<div class="commit-area col-sm-6">' +
                     '<h4>Commit Area</h4>' +
                     '<div class="form-group">' +
                         '<label for="commitMsg">Enter commit message:</label>' +

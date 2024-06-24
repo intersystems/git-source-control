@@ -448,6 +448,7 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
 
     set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
 
+    quit sc
 }
 
 ClassMethod Clone(remote As %String) As %Status
@@ -1613,7 +1614,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if syncIris {
         
-        do ..SyncIrisWithRepo(.files)
+        $$$ThrowOnError(..SyncIrisWithRepo(.files))
+
     }
     quit returnCode
 }

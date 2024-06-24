@@ -12,7 +12,8 @@ Property OriginalDevice;
 ClassMethod Run()
 {
      If %request.Get("method") = "preview" {
-         Do ##class(SourceControl.Git.API).Pull(1)
+		set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
+		do ..RunGitWithArgs(.errStream, .outStream, "pull",  "origin/" _ branchName)
      } ElseIf %request.Get("method") = "pull" {
          Do ##class(SourceControl.Git.API).Pull()
      } ElseIf %request.Get("method") = "init" {

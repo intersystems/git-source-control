@@ -13,7 +13,7 @@ ClassMethod Run()
 {
      If %request.Get("method") = "preview" {
 		set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
-		do ..RunGitWithArgs(.errStream, .outStream, "pull",  "origin/" _ branchName)
+		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "pull",  "origin/" _ branchName)
      } ElseIf %request.Get("method") = "pull" {
          Do ##class(SourceControl.Git.API).Pull()
      } ElseIf %request.Get("method") = "init" {

@@ -439,7 +439,7 @@ ClassMethod GetCurrentBranch() As %String
     quit branchName
 }
 
-ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Status
+ClassMethod Pull(remote As %String = "origin") As %Status
 {
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")

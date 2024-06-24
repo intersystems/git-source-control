@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a new "Branch" parameter to `##class(SourceControl.Git.PullEventHandler)` (#351)
 - Command-line utility to do a baseline export of items in a namespace
 
+### Fixed
+- Menu items names are properly translated from internal name in VSCode, Management Portal (#372)
 
 ## [2.3.1] - 2024-04-30
 

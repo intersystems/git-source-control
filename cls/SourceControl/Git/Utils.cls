@@ -446,82 +446,8 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
 
-    set sc =  ##class(SourceControl.Git.Utils).RunGitCommandWithInput("fetch",,.errStream,.outStream, remote, branchName)
-    if (sc=1){
-        do ..PrintStreams(errStream)
-        quit sc
-    }
-
-    write !, "Fetch done"
-    write !, "Files that will be modified by git pull: "
-
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errStream,.outStream, branchName_".."_remote_"/"_branchName, "--name-status")
-    while (outStream.AtEnd = 0) {
-        set file = outStream.ReadLine()
-        set modification = ##class(SourceControl.Git.Modification).%New()
-        set modification.changeType = $piece(file, $c(9), 1)
-        set modification.externalName = $zstrip($piece(file, $c(9),2),"<W")
-        if (modification.changeType '= "A"){
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-        }
-        else {
-            set modification.internalName = ""
-        }
-        set files($increment(files)) = modification
-        write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
-    }
-    if ('$data(files)) {
-        write !, ?4, "None"
-        if preview {
-            quit $$$OK
-        }
-        write !, "Already up to date."
-        quit $$$OK
-    } elseif preview {
-        quit $$$OK
-    }
-
     set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
-    if (sc=1){
-        do ..PrintStreams(errStream, outStream)
-        quit $$$ERROR(5001, "Pull event handler not called. Fix errors before compiling.")
-    }
-    do ..PrintStreams(outStream)
-    write !
 
-    set key = $order(files(""))
-    set deletedFiles = ""
-    set addedFiles = ""
-    while(key '= "") {
-        set modification = files(key)
-        if (modification.changeType = "D"){
-            if (modification.internalName '= "") {
-                set deletedFiles = deletedFiles_","_modification.internalName
-            }
-        } elseif (modification.changeType = "A"){
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-            if (modification.internalName '= "") {
-                set addedFiles = addedFiles_","_modification.internalName
-                set files(key) = modification
-            }
-        }
-        set key = $order(files(key))
-    }
-
-    set deletedFiles = $extract(deletedFiles, 2, *)
-    set addedFiles = $extract(addedFiles, 2, *)
-    
-    if (deletedFiles '= ""){
-        set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
-    }
-    if (addedFiles '= ""){
-        set sc = ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(addedFiles)
-    }
-
-    set event = $classmethod(..PullEventClass(),"%New")
-    set event.LocalRoot = ..TempFolder()
-    merge event.ModifiedFiles = files
-    quit event.OnPull()
 }
 
 ClassMethod Clone(remote As %String) As %Status
@@ -1609,7 +1535,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set syncIris = 0
     set diffBase = ""
     set diffCompare = ""
-    if (command = "checkout") || (command = "merge") || (command = "rebase") {
+    if (command = "checkout") || (command = "merge") || (command = "rebase") || (command = "pull"){
         set syncIris = 1
         set diffCompare = args(args)
     }
@@ -1618,7 +1544,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for i=1:1:$get(args) {
         if ($data(args(i))) {
             set newArgs($increment(newArgs)) = args(i)
-            if (args(i) = "checkout") || (args(i) = "merge") || (args(i) = "rebase") {
+            if (args(i) = "checkout") || (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull"){
                 set syncIris = 1
                 set diffCompare = args(i + 1)
                 
@@ -1634,11 +1560,11 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
 
     if syncIris {
-        set ^mtemphw("diffc", $i(^mtemphw("diffc"))) = diffCompare
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
-        set ^mtemphw("diffb", $i(^mtemphw("diffb"))) = diffBase
+        do ..RunGitCommand("fetch", .errorStream, .outputStream)
+        kill errorStream, outputStream
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_".."_diffCompare, "--name-status")
         while (outputStream.AtEnd = 0) {
             set file = outputStream.ReadLine()

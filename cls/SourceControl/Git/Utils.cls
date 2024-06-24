@@ -419,7 +419,7 @@ ClassMethod Sync(Msg As %String) As %Status
     } else {
         do ..Fetch()
         do ..Pull()
-        do ..DefaultMergeBranch()
+        do ..MergeDefaultMergeBranch()
         do ..SyncCommit(Msg)
         do ..Push()
     }

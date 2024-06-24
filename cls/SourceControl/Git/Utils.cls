@@ -446,7 +446,7 @@ ClassMethod Pull(remote As %String = "origin", preview As %Boolean = 0) As %Stat
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
 
-    set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+    set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote _ "/" _ branchName)
 
     quit sc
 }

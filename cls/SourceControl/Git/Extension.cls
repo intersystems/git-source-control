@@ -106,7 +106,6 @@ Method LocalizeName(name As %String) As %String
 
 Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef DisplayName As %String, InternalName As %String) As %Status
 {
-    
     if name = "Settings" {
         set Enabled = 1
         quit $$$OK
@@ -125,6 +124,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             set Enabled = $CASE(name,
                 "Status": 1,
                 "GitWebUI" : 1,
+                "NewBranch": 1,
                 "Sync": 1,
                 "": 1,
                 :-1
@@ -159,6 +159,9 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
     } else {
         set Enabled = -1
     }
+    if (name '= "") {
+	    set DisplayName = ..LocalizeName(name)
+    }
     quit $$$OK
 }
 
@@ -186,6 +189,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
         set Enabled = $case(menuItemName, "AddToSC":-1,:1)
     } else {
         set Enabled = $case(menuItemName, "AddToSC":1,:-1)
+    }
+    if (menuItemName '= "") {
+	    set DisplayName = ..LocalizeName(menuItemName)
     }
     quit $$$OK
 }

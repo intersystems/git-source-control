@@ -446,9 +446,10 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
 
-    set sc = ..RunGitWithArgs(.errStream, .outStream, "pull", remote _ "/" _ branchName)
+    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote _ "/" _ branchName)
 
-    quit sc
+    w !, "Pull ran with return code: " _ returnCode
+    quit $$$OK
 }
 
 ClassMethod Clone(remote As %String) As %Status
@@ -1504,7 +1505,10 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
-    
+    set pullArg = ""
+    if command = "pull" {
+        set pullArg = args(1)
+    }
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
     if (command '= "--version") {
         set newArgs($increment(newArgs)) = "-C"
@@ -1536,6 +1540,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set syncIris = 0
     set diffBase = ""
     set diffCompare = ""
+    set pullOriginIndex = ""
     if (command = "checkout") || (command = "merge") || (command = "rebase") || (command = "pull"){
         set syncIris = 1
         set diffCompare = args(args)
@@ -1545,6 +1550,9 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for i=1:1:$get(args) {
         if ($data(args(i))) {
             set newArgs($increment(newArgs)) = args(i)
+            if newArgs(newArgs) = pullArg {
+                set pullOriginIndex = newArgs
+            }
             if (args(i) = "checkout") || (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull"){
                 set syncIris = 1
                 set diffCompare = args(i + 1)
@@ -1552,6 +1560,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 if args = (i + 2) {
                     set diffBase = args(i + 2)
                 }
+            }
+
+            if (args(i) = "pull") {
+                set pullOriginIndex = i
             }
         }
     }
@@ -1582,6 +1594,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set files($increment(files)) = modification
             set mod = files(files)
             write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
+        }
+
+        if pullOriginIndex '= "" {
+            set newArgs(pullOriginIndex) = $piece(newArgs(pullOriginIndex), "/", 1)
         }
     }
 

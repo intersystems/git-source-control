@@ -445,9 +445,9 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
-
+    kill errStream, outStream
     set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote _ "/" _ branchName)
-
+    
     w !, "Pull ran with return code: " _ returnCode
     quit $$$OK
 }
@@ -1627,7 +1627,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-
+    do ..PrintStreams(errStream, outStream)
     if syncIris {
         
         $$$ThrowOnError(..SyncIrisWithRepo(.files))

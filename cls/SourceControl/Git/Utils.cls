@@ -432,6 +432,7 @@ ClassMethod Sync(Msg As %String) As %Status
         do ..SyncCommit(Msg)
         do ..Push()
         do ..MergeDefaultRemoteBranch()
+        do ..Push()
         
     }
     

@@ -4,6 +4,9 @@ Class SourceControl.Git.WebUIDriver
 ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
     do %session.Unlock()
+    // Make sure we capture any stray output
+    set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+    do buffer.BeginCaptureOutput()
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     kill %data
     #dim %response as %CSP.Response
@@ -165,8 +168,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set handled = 1
             }
         }
-
     }
+    do buffer.EndCaptureOutput(.throwaway)
 }
 
 ClassMethod UserInfo() As %SystemBase
@@ -240,4 +243,3 @@ ClassMethod GetPackageVersion() As %Library.DynamicObject
 }
 
 }
-

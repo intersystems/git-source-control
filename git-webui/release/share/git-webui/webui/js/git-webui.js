@@ -2569,6 +2569,11 @@ webui.NewChangedFilesView = function(workspaceView) {
                     '<div class="form-group">' +
                         '<textarea class="form-control" id="commitMsgDetail" placeholder="Enter commit message details (optional)"></textarea>' +
                     '</div>' +
+                    '<div class="button-group">' +
+                        '<div class="btn btn-primary"> Commit </div>' +
+                        '<div class="btn btn-secondary"> Stash </div>' +
+                        '<div class="btn btn-danger"> Discard </div>' +
+                    '</div>' +
                 '</div>' +
             '</div>' +
         '</div>'

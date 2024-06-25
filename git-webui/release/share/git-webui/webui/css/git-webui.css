@@ -884,6 +884,9 @@ body {
   padding-top: 15px;
   overflow-y: scroll;
 }
+#changedFilesContainer .commit-area .button-group .btn {
+  margin-right: 5px;
+}
 #commit-explorer-view #commit-explorer-navigator-view .panel .panel-body {
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;

@@ -1658,9 +1658,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
     do ..PrintStreams(errStream, outStream)
     if syncIris {
-        
         $$$ThrowOnError(..SyncIrisWithRepo(.files))
-
     }
     quit returnCode
 }
@@ -2140,7 +2138,7 @@ ClassMethod CheckInitialization()
     }
 }
 
-ClassMethod GetPackageVersion() As %String
+ClassMethod GetPackageVersion() As %String [ CodeMode = objectgenerator ]
 {
     set package = $$$NULLOREF
     if $$$comClassDefined("%IPM.Storage.Module") {
@@ -2148,8 +2146,10 @@ ClassMethod GetPackageVersion() As %String
     } elseif $$$comClassDefined("%ZPM.PackageManager.Developer.Module") {
         set package = ##class(%ZPM.PackageManager.Developer.Module).NameOpen("git-source-control")
     }
-    quit $select($IsObject(package):package.VersionString,
+    set packageVersion = $select($IsObject(package):package.VersionString,
         1:"unknown")
+    do %code.WriteLine(" quit "_$$$QUOTE(packageVersion))
+    quit $$$OK
 }
 
 ClassMethod GetSourceControlInclude() As %String
@@ -2348,4 +2348,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

@@ -2527,7 +2527,6 @@ webui.NewChangedFilesView = function(workspaceView) {
         '<div id="changedFilesContainer" class="container">' +
             '<div class="row">' +
                 '<div class="col-sm-6 file-area">' +
-                    '<h4 id="fileAreaHeader">File Changes</h4>' +
                     '<div class="changed-files-list">' + 
                         '<div class="form-check">' +
                             '<input class="form-check-input" type="checkbox" value="" id="defaultCheck1">' +
@@ -2562,7 +2561,6 @@ webui.NewChangedFilesView = function(workspaceView) {
                     '</div>' +
                 '</div>' +
                 '<div class="commit-area col-sm-6">' +
-                    '<h4>Commit Area</h4>' +
                     '<div class="form-group">' +
                         '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message">' +
                     '</div>' +

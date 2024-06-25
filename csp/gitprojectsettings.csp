@@ -80,7 +80,7 @@ body {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
     if ('settings.settingsUIReadOnly) {
-        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace" {
+        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch" {
             set $Property(settings,param) = $Get(%request.Data(param,1))
         }
 
@@ -307,6 +307,13 @@ body {
             </div>
             
 
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="defaultMergeBranch" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="In basic mode, the Sync operation will merge changes from this remote branch (leave blank for no branch)">Default merge branch</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="defaultMergeBranch" name="defaultMergeBranch" value='#(..EscapeHTML(settings.defaultMergeBranch))#' placeholder="sample-remote-branch">
+            </div>
         </div>
         
         <div class="form-group row mb-3">

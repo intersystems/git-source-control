@@ -128,6 +128,11 @@ ClassMethod SystemBasicMode() As %Boolean
     quit $get(@..#Storage@("settings", "basicMode"), 0)
 }
 
+ClassMethod DefaultMergeBranch() As %String
+{
+    quit $get(@..#Storage@("settings", "defaultMergeBranch"), "")
+}
+
 ClassMethod MappedItemsReadOnly() As %Boolean
 {
     quit $get(@..#Storage@("settings", "mappedItemsReadOnly"), 1)
@@ -335,6 +340,16 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    if (settings.basicMode) && (settings.defaultMergeBranch '= ""){
+        do ..RunGitWithArgs(.errStream, .outStream, "checkout", settings.defaultMergeBranch)
+        do ..PrintStreams(errStream, outStream)
+        kill errStream, outStream
+        do ..RunGitWithArgs(.errStream, .outStream, "pull")
+        do ..PrintStreams(errStream, outStream)
+        kill errStream, outStream
+    }
+    
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
     do ..PrintStreams(errStream, outStream)
     quit $$$OK
@@ -379,6 +394,17 @@ ClassMethod StageAddedFiles()
     }
 }
 
+/// Merges the files from the configured branch as part of the Sync operation
+ClassMethod MergeDefaultRemoteBranch()
+{
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    set defaultMergeBranch = settings.defaultMergeBranch
+    if defaultMergeBranch '= "" {
+        do ..RunGitWithArgs(.errStream, .outStream, "rebase", defaultMergeBranch)
+        do ..PrintStreams(errStream, outStream)
+    }
+}
+
 /// Converts the DynamicArray into a list and calls the SourceControl.Git.Change RemoveUncommitted method on the newly created list
 ClassMethod ClearUncommitted(filesWithActions) As %Status
 {
@@ -405,6 +431,9 @@ ClassMethod Sync(Msg As %String) As %Status
         do ..Pull()
         do ..SyncCommit(Msg)
         do ..Push()
+        do ..MergeDefaultRemoteBranch()
+        do ..Push()
+        
     }
     
     quit $$$OK

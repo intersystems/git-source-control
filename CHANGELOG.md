@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Now skips files belonging to other git enabled packages in `##class(SourceControl.Git.Change).RefreshUncommitted()` (#347)
 - Added a new "Branch" parameter to `##class(SourceControl.Git.PullEventHandler)` (#351)
 - Command-line utility to do a baseline export of items in a namespace
+- 'New Branch' menu option in basic now will create new branches from the configured default merge branch
+- Merging back with the default merge branch is now a part of the basic mode's Sync flow
 
 ### Fixed
 - Menu items names are properly translated from internal name in VSCode, Management Portal (#372)

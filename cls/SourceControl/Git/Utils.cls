@@ -1620,8 +1620,9 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             else {
                 set modification.internalName = ""
             }
-            set files($increment(files)) = modification
-            set mod = files(files)
+            if modification.changeType '= "D" { // for now, do not support deletes
+                set files($increment(files)) = modification
+            }
             write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
         }
 

@@ -2527,7 +2527,6 @@ webui.NewChangedFilesView = function(workspaceView) {
         '<div id="changedFilesContainer" class="container">' +
             '<div class="row">' +
                 '<div class="col-sm-6 file-area">' +
-                    '<h4 id="fileAreaHeader">File Changes</h4>' +
                     '<div class="changed-files-list">' + 
                         '<div class="form-check">' +
                             '<input class="form-check-input" type="checkbox" value="" id="defaultCheck1">' +
@@ -2562,7 +2561,6 @@ webui.NewChangedFilesView = function(workspaceView) {
                     '</div>' +
                 '</div>' +
                 '<div class="commit-area col-sm-6">' +
-                    '<h4>Commit Area</h4>' +
                     '<div class="form-group">' +
                         '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message">' +
                     '</div>' +
@@ -2570,9 +2568,9 @@ webui.NewChangedFilesView = function(workspaceView) {
                         '<textarea class="form-control" id="commitMsgDetail" placeholder="Enter commit message details (optional)"></textarea>' +
                     '</div>' +
                     '<div class="button-group">' +
-                        '<div class="btn btn-primary"> Commit </div>' +
-                        '<div class="btn btn-secondary"> Stash </div>' +
-                        '<div class="btn btn-danger"> Discard </div>' +
+                        '<button type="button" class="btn btn-primary file-action-button"> Commit </button>' +
+                        '<button type="button" class="btn btn-secondary file-action-button" > Stash </button>' +
+                        '<button type="button" class="btn btn-danger file-action-button"> Discard </button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +

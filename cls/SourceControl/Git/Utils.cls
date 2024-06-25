@@ -340,6 +340,16 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
 
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    if (settings.basicMode) && (settings.defaultMergeBranch '= ""){
+        do ..RunGitWithArgs(.errStream, .outStream, "checkout", settings.defaultMergeBranch)
+        do ..PrintStreams(errStream, outStream)
+        kill errStream, outStream
+        do ..RunGitWithArgs(.errStream, .outStream, "pull")
+        do ..PrintStreams(errStream, outStream)
+        kill errStream, outStream
+    }
+    
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
     do ..PrintStreams(errStream, outStream)
     quit $$$OK

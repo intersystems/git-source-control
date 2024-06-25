@@ -420,8 +420,9 @@ ClassMethod Sync(Msg As %String) As %Status
         do ..Fetch()
         do ..Pull()
         do ..SyncCommit(Msg)
-        do ..MergeDefaultRemoteBranch()
         do ..Push()
+        do ..MergeDefaultRemoteBranch()
+        
     }
     
     quit $$$OK

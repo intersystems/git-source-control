@@ -303,6 +303,9 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
             do ..Sync(Msg)
             set Reload = 1
         }
+    } elseif (menuItemName = "GitWebUI") {
+        // Always force reload as many things could have possibly changed.
+        set Reload = 1
     }
     quit $$$OK
 }
@@ -395,14 +398,49 @@ ClassMethod StageAddedFiles()
 }
 
 /// Merges the files from the configured branch as part of the Sync operation
-ClassMethod MergeDefaultRemoteBranch()
+/// Returns true if this resulted in durable changes to the local git repo
+ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
 {
+    set rebased = 0
     set settings = ##class(SourceControl.Git.Settings).%New()
     set defaultMergeBranch = settings.defaultMergeBranch
     if defaultMergeBranch '= "" {
-        do ..RunGitWithArgs(.errStream, .outStream, "rebase", defaultMergeBranch)
+        do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
+
+        // Start a transaction so code changes can be rolled back
+        set initTLevel = $TLevel
+        try {
+            TSTART
+            set code = ..RunGitWithArgs(.errStream, .outStream, "rebase", defaultMergeBranch)
+            if (code '= 0) {
+                $$$ThrowStatus($$$ERROR($$$GeneralError,"git rebase reported failure"))
+            }
+            set rebased = 1
+            TCOMMIT
+        } catch e {
+            // "rebase" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the rebase.
+            write !,"Attempting to resolve differences in production definition..."
+            set resolver = ##class(SourceControl.Git.Util.ProductionConflictResolver).FromLog(outStream)
+            write !! zw resolver write !!
+            if resolver.resolved {
+                set rebased = 1
+                write " success!"
+            } else {
+                write " unable to resolve - "_resolver.errorMessage
+                while $TLevel > initTLevel {
+                    TROLLBACK 1
+                }
+            }
+        }
+        if 'rebased {
+            do ..RunGitCommand("rebase",.errStream, .outStream,"--abort")
+            do ..PrintStreams(errStream, outStream)
+            set alert = "WARNING: Remote branch '"_defaultMergeBranch_"' could not be merged due to conflicts. Changes have been pushed to '"_..GetCurrentBranch()_"' and must be resolved in your git remote."
+            write !,alert,!
+        }
     }
+    quit rebased
 }
 
 /// Converts the DynamicArray into a list and calls the SourceControl.Git.Change RemoveUncommitted method on the newly created list
@@ -419,7 +457,7 @@ ClassMethod ClearUncommitted(filesWithActions) As %Status
     quit $$$OK
 }
 
-ClassMethod Sync(Msg As %String) As %Status
+ClassMethod Sync(Msg As %String, Output alert As %String) As %Status
 {
     write !, "Syncing local repository...", !
     do ..StageAddedFiles()    
@@ -430,20 +468,24 @@ ClassMethod Sync(Msg As %String) As %Status
         do ..Fetch()
         do ..Pull()
         do ..SyncCommit(Msg)
-        do ..Push()
-        do ..MergeDefaultRemoteBranch()
-        do ..Push()
-        
+        do ..Push(,1)
+        if ..MergeDefaultRemoteBranch(.alert) {
+            do ..Push(,1)
+        }
     }
-    
     quit $$$OK
 }
 
-ClassMethod Push(remote As %String = "origin") As %Status
+ClassMethod Push(remote As %String = "origin", force As %Boolean = 0) As %Status
 {
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outstream,"--show-current")
     set branchName = outstream.ReadLine(outstream.Size)
-    do ..RunGitWithArgs(.errStream, .outStream, "push", remote, branchName)
+    if (force) {
+        set args($i(args)) = "--force"
+    }
+    set args($i(args)) = remote
+    set args($i(args)) = branchName
+    do ..RunGitWithArgs(.errStream, .outStream, "push", args...)
     do ..PrintStreams(errStream, outStream)
     quit $$$OK
 }
@@ -475,7 +517,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
     kill errStream, outStream
-    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote _ "/" _ branchName)
+    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     
     w !, "Pull ran with return code: " _ returnCode
     quit $$$OK
@@ -1226,6 +1268,7 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
 ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 {
     #define DoNotLoad 1
+    set res = $$$OK
     
     set mappingFileType = $order($$$SourceMapping(""))
     while (mappingFileType '= "") {
@@ -1536,7 +1579,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 {
     set pullArg = ""
     if command = "pull" {
-        set pullArg = args(1)
+        set pullArg = $Get(args(1))
     }
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
     if (command '= "--version") {
@@ -1570,11 +1613,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set diffBase = ""
     set diffCompare = ""
     set pullOriginIndex = ""
-    if (command = "checkout") || (command = "merge") || (command = "rebase") || (command = "pull"){
+    if (command = "checkout") || (command = "merge") || (command = "rebase") || (command = "pull") {
         set syncIris = 1
-        set diffCompare = args(args)
+        if $data(args) && $data(args(args),diffCompare) {
+            // no-op
+        }
     }
-    
     
     for i=1:1:$get(args) {
         if ($data(args(i))) {
@@ -1607,7 +1651,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         }
         do ..RunGitCommand("fetch", .errorStream, .outputStream)
         kill errorStream, outputStream
-        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_".."_diffCompare, "--name-status")
+        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
         while (outputStream.AtEnd = 0) {
             set file = outputStream.ReadLine()
             set modification = ##class(SourceControl.Git.Modification).%New()
@@ -1656,8 +1700,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-    do ..PrintStreams(errStream, outStream)
     if syncIris {
+        do ..PrintStreams(errStream, outStream)
         $$$ThrowOnError(..SyncIrisWithRepo(.files))
     }
     quit returnCode

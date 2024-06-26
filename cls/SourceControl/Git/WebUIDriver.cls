@@ -3,7 +3,6 @@ Class SourceControl.Git.WebUIDriver
 
 ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
-    do %session.Unlock()
     // Make sure we capture any stray output
     set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
     do buffer.BeginCaptureOutput()
@@ -13,6 +12,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
     #dim %request as %CSP.Request
     set pathStart = $piece(pagePath,"/",2)
     if pathStart = "api" {
+        do %session.Unlock()
         set handled = 1
         set %data = ##class(%Stream.FileCharacter).%New()
         if $extract(pagePath,6,*) = "userinfo" {
@@ -42,6 +42,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             SimpleHTTPRequestHandler.do_GET(self)
             */
             if (pathStart = "git") {
+                do %session.Unlock()
                 if $piece(pagePath,"/",3) = "cat-file" {
                     set blob = $piece(pagePath,"/",4)
                     set name = $Piece(pagePath,"/",*)
@@ -107,6 +108,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 }
                 set readOnlyCommands = $listbuild("branch","tag","log","ls-files","ls-tree","show","status","diff")
                 set baseCommand = $Piece(args(1)," ")
+                
+                if '$listfind(readOnlyCommands,baseCommand) {
+                    do %session.Unlock()
+                }
 
                 set gitArgs($increment(gitArgs)) = "color.ui=true"
 

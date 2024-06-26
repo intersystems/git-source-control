@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Modifications to local repo files are now synced with IRIS (#153)
 - Menu items names are properly translated from internal name in VSCode, Management Portal (#372)
+- Now has proper locking behavior in `##class(SourceControl.Git.WebUIDriver).HandleRequest()`(#385)
 
 ## [2.3.1] - 2024-04-30
 

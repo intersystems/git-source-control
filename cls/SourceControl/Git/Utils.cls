@@ -475,7 +475,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
     kill errStream, outStream
-    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote _ "/" _ branchName)
+    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote)
     
     w !, "Pull ran with return code: " _ returnCode
     quit $$$OK
@@ -1534,10 +1534,6 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
-    set pullArg = ""
-    if command = "pull" {
-        set pullArg = args(1)
-    }
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
     if (command '= "--version") {
         set newArgs($increment(newArgs)) = "-C"
@@ -1569,11 +1565,11 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output
     set diffBase = ""
     set diffCompare = ""
-    set pullOriginIndex = ""
-    if (command = "checkout") || (command = "pull"){
+
+    if (command = "checkout"){
         set syncIrisWithDiff = 1
         set diffCompare = args(args)
-    } elseif (command = "merge") || (command = "rebase") {
+    } elseif (command = "merge") || (command = "rebase")  || (command = "pull"){
         set syncIrisWithCommand = 1
         set diffCompare = args(args)
     }
@@ -1582,24 +1578,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for i=1:1:$get(args) {
         if ($data(args(i))) {
             set newArgs($increment(newArgs)) = args(i)
-            if newArgs(newArgs) = pullArg {
-                set pullOriginIndex = newArgs
-            }
-            if (args(i) = "checkout") || (args(i) = "pull"){
+            if (args(i) = "checkout") {
                 set syncIrisWithDiff = 1
                 set diffCompare = args(i + 1)
                 
                 if args = (i + 2) {
                     set diffBase = args(i + 2)
                 }
-            } elseif (args(i) = "merge") || (args(i) = "rebase"){
+            } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
                 set syncIrisWithCommand = 1
                 set diffCompare = args(i + 1)
             }
 
-            if (args(i) = "pull") {
-                set pullOriginIndex = i
-            }
         }
     }
 
@@ -1631,9 +1621,6 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
         }
 
-        if pullOriginIndex '= "" {
-            set newArgs(pullOriginIndex) = $piece(newArgs(pullOriginIndex), "/", 1)
-        }
     }
 
     set outLog = ##class(%Library.File).TempFilename()
@@ -1662,7 +1649,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-    // do ..PrintStreams(errStream, outStream)
+    do ..PrintStreams(errStream, outStream)
     if syncIrisWithDiff {
         $$$ThrowOnError(..SyncIrisWithRepoThroughDiff(.files))
     } elseif syncIrisWithCommand {

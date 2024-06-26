@@ -1679,7 +1679,6 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     while (outStream.AtEnd = 0) {
 
         set line = outStream.ReadLine()
-        set ^mtempz($i(^mtempz)) = line
         set lineStart = $piece(line, " ", 2)
         if (lineStart = "delete") || (lineStart = "create") {
             set fileOperation = $select(lineStart = "create" : "A", 1: "D")
@@ -1701,8 +1700,6 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     set deletedFiles = $extract(deletedFiles, 2, *)
     set addedFiles = $extract(addedFiles, 2, *)
 
-    set ^mtemphw("addedFiles", $i(^mtemphw("addedFiles"))) = addedFiles
-    set ^mtemphw("deletedFiles", $i(^mtemphw("deletedFiles"))) = deletedFiles
 
     if (deletedFiles '= ""){
         set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
@@ -1720,7 +1717,6 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
 
 ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
 {
-    set ^mtempz($i(^mtempz)) = "here"
     set key = $order(files(""))
     set deletedFiles = ""
     set addedFiles = ""

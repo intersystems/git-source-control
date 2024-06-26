@@ -153,6 +153,11 @@ ClassMethod PrivateKeyFile() As %String
     quit $get(@..#Storage@("settings","ssh","privateKeyFile"))
 }
 
+ClassMethod CompileOnImport() As %Boolean
+{
+    quit $get(@..#Storage@("settings","compileOnImport"),1)
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -1294,13 +1299,17 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
+
+    kill files
     
+    set settings = ##class(SourceControl.Git.Settings).%New()
     #dim internalName as %String = ""
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
+        set doImport = ..IsRoutineOutdated(internalName) || force
         if ..IsInSourceControl(internalName) {
             set sc = ..ImportItem(internalName, force)            
         } else {
@@ -1309,6 +1318,21 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }
+        if doImport && settings.compileOnImport {
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "M"
+            set modification.internalName = internalName
+            set modification.externalName = ..FullExternalName(internalName)
+            set files($increment(files)) = modification
+        }
+    }
+
+    set eventHandler = $classmethod(..PullEventClass(),"%New")
+    set eventHandler.LocalRoot = ..TempFolder()
+    merge eventHandler.ModifiedFiles = files
+    set sc = eventHandler.OnPull()
+    if $$$ISERR(sc) {
+        set ec = $$$ADDSC(ec,sc)
     }
     
     //let's delete all items for which corresponding files had been deleted

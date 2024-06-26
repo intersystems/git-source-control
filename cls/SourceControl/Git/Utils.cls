@@ -1565,13 +1565,16 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     set newArgs($increment(newArgs)) = command
 
-    // defining variables for if statement use later
-    set syncIris = 0
+    set syncIrisWithDiff = 0 // whether IRIS needs to be synced with repo file changes using diff output
+    set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output
     set diffBase = ""
     set diffCompare = ""
     set pullOriginIndex = ""
-    if (command = "checkout") || (command = "merge") || (command = "rebase") || (command = "pull"){
-        set syncIris = 1
+    if (command = "checkout") || (command = "pull"){
+        set syncIrisWithDiff = 1
+        set diffCompare = args(args)
+    } elseif (command = "merge") || (command = "rebase") {
+        set syncIrisWithCommand = 1
         set diffCompare = args(args)
     }
     
@@ -1582,13 +1585,16 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             if newArgs(newArgs) = pullArg {
                 set pullOriginIndex = newArgs
             }
-            if (args(i) = "checkout") || (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull"){
-                set syncIris = 1
+            if (args(i) = "checkout") || (args(i) = "pull"){
+                set syncIrisWithDiff = 1
                 set diffCompare = args(i + 1)
                 
                 if args = (i + 2) {
                     set diffBase = args(i + 2)
                 }
+            } elseif (args(i) = "merge") || (args(i) = "rebase"){
+                set syncIrisWithCommand = 1
+                set diffCompare = args(i + 1)
             }
 
             if (args(i) = "pull") {
@@ -1597,11 +1603,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         }
     }
 
-    if (diffCompare = "--no-commit") || (diffCompare = "--abort") {
-        set syncIris = 0
+    if (diffCompare = "--no-commit") || (diffCompare = "--abort") || (diffCompare = "-b") {
+        set syncIrisWithDiff = 0
+        set syncIrisWithCommand = 0
     }
 
-    if syncIris {
+    if syncIrisWithDiff {
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
@@ -1621,7 +1628,6 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 set modification.internalName = ""
             }
             set files($increment(files)) = modification
-            set mod = files(files)
             write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
         }
 
@@ -1656,16 +1662,65 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-    do ..PrintStreams(errStream, outStream)
-    if syncIris {
-        $$$ThrowOnError(..SyncIrisWithRepo(.files))
+    // do ..PrintStreams(errStream, outStream)
+    if syncIrisWithDiff {
+        $$$ThrowOnError(..SyncIrisWithRepoThroughDiff(.files))
+    } elseif syncIrisWithCommand {
+        $$$ThrowOnError(..SyncIrisWithRepoThroughCommand(.outStream))
     }
     quit returnCode
 }
 
-ClassMethod SyncIrisWithRepo(ByRef files)
+ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
 {
+    set deletedFiles = ""
+    set addedFiles = ""
+    set files = ""
+    while (outStream.AtEnd = 0) {
 
+        set line = outStream.ReadLine()
+        set ^mtempz($i(^mtempz)) = line
+        set lineStart = $piece(line, " ", 2)
+        if (lineStart = "delete") || (lineStart = "create") {
+            set fileOperation = $select(lineStart = "create" : "A", 1: "D")
+            set externalName = $piece(line, " ", *)
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = fileOperation
+            set modification.internalName = internalName
+            set modification.externalName = externalName
+            set files($i(files)) = modification
+            if fileOperation = "A" {
+                set addedFiles = addedFiles_","_internalName
+            } else {
+                set deletedFiles = deletedFiles_","_internalName
+            }
+        }
+    }
+    
+    set deletedFiles = $extract(deletedFiles, 2, *)
+    set addedFiles = $extract(addedFiles, 2, *)
+
+    set ^mtemphw("addedFiles", $i(^mtemphw("addedFiles"))) = addedFiles
+    set ^mtemphw("deletedFiles", $i(^mtemphw("deletedFiles"))) = deletedFiles
+
+    if (deletedFiles '= ""){
+        set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
+    }
+    if (addedFiles '= ""){
+        set sc = ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(addedFiles)
+    }
+
+    do outStream.Rewind()
+    set event = $classmethod(..PullEventClass(),"%New")
+    set event.LocalRoot = ..TempFolder()
+    merge event.ModifiedFiles = files
+    quit event.OnPull()
+}
+
+ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
+{
+    set ^mtempz($i(^mtempz)) = "here"
     set key = $order(files(""))
     set deletedFiles = ""
     set addedFiles = ""
@@ -2348,3 +2403,4 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
+

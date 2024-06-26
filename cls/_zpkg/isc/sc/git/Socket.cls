@@ -15,7 +15,7 @@ ClassMethod Run()
 		set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
 		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
 		kill errStream, outStream
-		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "diff", "origin/"_branchName, "--name-status")
+		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "log", "HEAD..origin", "--name-status")
      } ElseIf %request.Get("method") = "pull" {
          Do ##class(SourceControl.Git.API).Pull()
      } ElseIf %request.Get("method") = "init" {

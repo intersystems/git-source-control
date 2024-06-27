@@ -153,6 +153,11 @@ ClassMethod PrivateKeyFile() As %String
     quit $get(@..#Storage@("settings","ssh","privateKeyFile"))
 }
 
+ClassMethod CompileOnImport() As %Boolean
+{
+    quit $get(@..#Storage@("settings","compileOnImport"),1)
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -1294,13 +1299,17 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
+
+    kill files
     
+    set settings = ##class(SourceControl.Git.Settings).%New()
     #dim internalName as %String = ""
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
+        set doImport = ..IsRoutineOutdated(internalName) || force
         if ..IsInSourceControl(internalName) {
             set sc = ..ImportItem(internalName, force)            
         } else {
@@ -1309,7 +1318,15 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }
+        if doImport && settings.compileOnImport {
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "M"
+            set modification.internalName = internalName
+            set modification.externalName = ..FullExternalName(internalName)
+            set files($increment(files)) = modification
+        }
     }
+
     
     //let's delete all items for which corresponding files had been deleted
     #dim item as %String = ""
@@ -1323,41 +1340,21 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         set fullExternalName = ..FullExternalName(item)
         if '##class(%File).Exists(fullExternalName) {
             write !,fullExternalName," does not exist - deleting ",item
-            #dim type as %String = ..Type(item)
-            #dim name as %String = ..NameWithoutExtension(item)
-            #dim deleted as %Boolean = 1
-            if type = "prj" {
-                set ec = $$$ADDSC(ec, $system.OBJ.DeleteProject(name))
-            }elseif type = "cls" {
-                set ec = $$$ADDSC(ec, $system.OBJ.Delete(item))
-            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
-                set ec = $$$ADDSC(ec, ##class(%Routine).Delete(item))
-            }elseif type = "csp" {
-                #dim filename = $system.CSP.GetFileName(item)
-                if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
-                    set ec = $$$ADDSC(ec, ..MakeError("Error while removing "_item))
-                }
-            }elseif ..UserTypeCached(item) {
-                set ec = $$$ADDSC(ec, ##class(%Library.RoutineMgr).Delete(item))
-            } else {
-                set deleted = 0
-            }
-            
-            if deleted && ec {
-                do ..RemoveRoutineTSH(item)
-                kill $$$TrackedItems(..NormalizeExtension(item))
-                write !, item, " was deleted"
-            } else {
-                if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {
-                    write !, "Error: could not delete ", item
-                } else {
-                    // if something we wanted to delete is already deleted -- good!
-                    set ec = $$$OK
-                }
-            }
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "D"
+            set modification.internalName = item
+            set modification.externalName = fullExternalName
+            set files($increment(files)) = modification
         }
     }
     
+    set eventHandler = $classmethod(..PullEventClass(),"%New")
+    set eventHandler.LocalRoot = ..TempFolder()
+    merge eventHandler.ModifiedFiles = files
+    set sc = eventHandler.OnPull()
+    if $$$ISERR(sc) {
+        set ec = $$$ADDSC(ec,sc)
+    }
     write !, "==import done=="
     quit ec
 }

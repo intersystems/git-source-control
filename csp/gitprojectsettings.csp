@@ -90,6 +90,8 @@ body {
             set settings.mappedItemsReadOnly = 0
         }
 
+        set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
+
         if ($Get(%request.Data("basicMode", 1)) = 1) {
             set settings.basicMode = 1
         } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
@@ -335,6 +337,16 @@ body {
             </div>
             
 
+        </div>
+        <div class="form-group row mb-3">
+            <label for="compileOnImport" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="If true, the Import All options will compile imported options using the configured pull event handler">Compile Items on Import</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="compileOnImport" type="checkbox" 
+                        id="compileOnImport" #($select(settings.compileOnImport:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="compileOnImport"></label>
+                </div>
+            </div>
         </div>
         
         <div class="form-group row mb-3 mapping-input-group">

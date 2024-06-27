@@ -109,7 +109,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set readOnlyCommands = $listbuild("branch","tag","log","ls-files","ls-tree","show","status","diff")
                 set baseCommand = $Piece(args(1)," ")
                 
-                if '$listfind(readOnlyCommands,baseCommand) {
+                if $listfind(readOnlyCommands,baseCommand) {
                     do %session.Unlock()
                 }
 

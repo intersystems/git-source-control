@@ -253,9 +253,15 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Sync") {
-        set Target = "Enter a commit message for the sync operation"
-        set Action = 7
-        set Msg = ..PreSync()
+        if ..CheckForUncommittedFiles() {
+            set Target = "Enter a commit message for the sync operation"
+            set Action = 7
+            set Msg = ..PreSync()
+        } else {
+            do ..Sync("")
+        }
+        
+        
         quit $$$OK
     } elseif (menuItemName = "Push") {
         quit ..Push()
@@ -376,15 +382,30 @@ ClassMethod PreSync() As %String
 /// Commits all the files as needed by the Sync operation 
 ClassMethod SyncCommit(Msg As %String) As %Status
 {
-    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
-    set username = ..GitUserName()
-    set email = ..GitUserEmail()
-    set author = username_" <"_email_">"
-    do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Msg)
-    do ..PrintStreams(errStream, outStream)
-    $$$QuitOnError(..ClearUncommitted(uncommittedFilesWithAction))
-    $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
+   
+    if ..CheckForUncommittedFiles() {
+        set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+        set username = ..GitUserName()
+        set email = ..GitUserEmail()
+        set author = username_" <"_email_">"
+        do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Msg)
+        do ..PrintStreams(errStream, outStream)
+        $$$QuitOnError(..ClearUncommitted(uncommittedFilesWithAction))
+        $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
+    }
+    
     quit $$$OK
+}
+
+ClassMethod CheckForUncommittedFiles() As %Boolean
+{
+    set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+    set valInArr = uncommittedFilesWithAction.%Pop()
+    if valInArr = "" {
+        return 0
+    } else {
+        quit 1
+    }
 }
 
 /// Goes through all the added files and stages them

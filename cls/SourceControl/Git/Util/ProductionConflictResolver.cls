@@ -82,18 +82,16 @@ Method Resolve() [ Private ]
         $$$ThrowStatus($$$ERROR($$$GeneralError,"Unable to load base/ours/theirs for "_..productionFile))
     }
 
-    Do ..ClassToTree(base,.baseTree)
-    Do ..ClassToTree(ours,.oursTree)
-    Do ..ClassToTree(theirs,.theirsTree)
+    Do ..ClassToXMLDoc(base,.baseDoc)
+    Do ..ClassToXMLDoc(ours,.oursDoc)
+    Do ..ClassToXMLDoc(theirs,.theirsDoc)
 
-    zw baseTree,oursTree,theirsTree
+    Do ..ThreeWayMerge(baseDoc,oursDoc,theirsDoc,.resolved)
 
-    Do ..ThreeWayMerge(.baseTree,.theirsTree,.oursTree,.resolved)
-
-    Do ..TreeToClass(.resolved)
+    Do ..XMLDocToClass(resolved)
 }
 
-Method ClassToTree(source As %Stream.Object, Output tree)
+Method ClassToXMLDoc(source As %Stream.Object, Output doc As %XML.Document)
 {
     Set sc = $$$OK
     Kill ^||%oddDEF
@@ -111,24 +109,52 @@ Method ClassToTree(source As %Stream.Object, Output tree)
         For i=1:1:$Get(classDef($$$cCLASSxdata,"ProductionDefinition",$$$cXDATAdata)) {
             Do xmlStream.WriteLine($Get(classDef($$$cCLASSxdata,"ProductionDefinition",$$$cXDATAdata,i)))
         }
-        Set handler=##class(%XML.ImportHandler).%New("IRIS.Temp",$$$IntHandler)
-        $$$ThrowOnError(##Class(%XML.SAX.Parser).ParseStream(xmlStream,handler))
-
-        Merge tree = @handler.DOMName@(handler.Tree)
+        Set reader = ##class(%XML.Reader).%New()
+        $$$ThrowOnError(reader.OpenStream(xmlStream))
+        Set doc = reader.Document
     } Catch e {
         Set sc = e.AsStatus()
     }
     Do source.Rewind()
-    Kill ^||%oddDEF(..productionClassname)
+    Kill ^||%oddDEF
     $$$ThrowOnError(sc)
 }
 
-Method ThreeWayMerge(ByRef base, ByRef theirs, ByRef ours, Output resolved)
+ClassMethod ThreeWayMerge(base As %XML.Document, theirs As %XML.Document, ours As %XML.Document, Output resolved)
+{
+    // TODO: actually do three-way merge
+    Merge resolved = ours
+}
+
+ClassMethod BuildElementPathMap(doc As %XML.Document, Output map)
 {
 }
 
-Method TreeToClass(ByRef tree)
+ClassMethod XMLDocToStream(document As %XML.Document, ByRef outStream)
 {
+    Set writer = ##class(%XML.Writer).%New()
+    Set export = ##class(%Stream.TmpCharacter).%New()
+    $$$ThrowOnError(writer.OutputToStream(export))
+    $$$ThrowOnError(writer.Document(document))
+
+    Set reader = ##class(%XML.Reader).%New()
+    $$$ThrowOnError(reader.OpenStream(export))
+    Do reader.CorrelateRoot("Ens.Config.Production")
+    If 'reader.Next(.production,.sc) {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"Could not reimport production from resolved XML."))
+    }
+    $$$ThrowOnError(sc)
+    $$$ThrowOnError(production.XMLExportToStream(.outStream,,"literal,indent"))
+}
+
+Method XMLDocToClass(resolved As %XML.Document)
+{
+    Set xData = ##class(%Dictionary.XDataDefinition).IDKEYOpen(..productionClassname,"ProductionDefinition",,.sc)
+    $$$ThrowOnError(sc)
+    Do xData.Implementation.Clear()
+    Do ..XMLDocToStream(resolved,xData.Implementation)
+    Do xData.Implementation.Rewind()
+    Write !!,$ZConvert(xData.Implementation.Read(100000),"O","HTML"),!!
 }
 
 }

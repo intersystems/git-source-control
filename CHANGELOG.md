@@ -20,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command-line utility to do a baseline export of items in a namespace
 - 'New Branch' menu option in basic now will create new branches from the configured default merge branch (#366)
 - Merging back with the default merge branch is now a part of the basic mode's Sync flow (#366)
+- Added a new option "compileOnImport". If true, Import options will compile files using the pull event handler. (#362)
 
 ### Fixed
 - Modifications to local repo files are now synced with IRIS (#153)
 - Menu items names are properly translated from internal name in VSCode, Management Portal (#372)
+- Now has proper locking behavior in `##class(SourceControl.Git.WebUIDriver).HandleRequest()`(#385)
+- Git operations from the WebUI now don't unlock the session if they aren't read-only
 
 ## [2.3.1] - 2024-04-30
 

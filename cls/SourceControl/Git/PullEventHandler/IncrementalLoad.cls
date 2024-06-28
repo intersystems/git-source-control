@@ -38,16 +38,36 @@ Method OnPull() As %Status
     quit $system.OBJ.CompileList(.compilelist, "cukb")
 }
 
-Method DeleteFile(item As %String)
+Method DeleteFile(item As %String) As %Status
 {
+    set sc = $$$OK
     set type = ##class(SourceControl.Git.Utils).Type(item)
-    if (type = "cls") {
-        quit $System.OBJ.Delete(item)
-    } elseif (type = "csp") {
-        quit $System.CSP.DeletePage(item)
+    set name = ##class(SourceControl.Git.Utils).NameWithoutExtension(item)
+    set deleted = 1
+    if type = "prj" {
+        set sc = $system.OBJ.DeleteProject(name)
+    }elseif type = "cls" {
+        set sc = $system.OBJ.Delete(item)
+    }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
+        set sc = ##class(%Routine).Delete(item)
+    }elseif type = "csp" {
+        set sc = $System.CSP.DeletePage(item)
+    }elseif ##class(SourceControl.Git.Utils).UserTypeCached(item) {
+        set sc = ##class(%Library.RoutineMgr).Delete(item)
     } else {
-        quit ##class(%Library.RoutineMgr).Delete(item)
+        set deleted = 0
     }
+    
+    if deleted && $$$ISOK(sc) {
+        do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
+        kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
+    } else {
+        if +$system.Status.GetErrorCodes(sc) = $$$ClassDoesNotExist {
+            // if something we wanted to delete is already deleted -- good!
+            set sc = $$$OK
+        }
+    }
+    return sc
 }
 
 }

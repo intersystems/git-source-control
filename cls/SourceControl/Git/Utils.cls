@@ -153,6 +153,11 @@ ClassMethod PrivateKeyFile() As %String
     quit $get(@..#Storage@("settings","ssh","privateKeyFile"))
 }
 
+ClassMethod CompileOnImport() As %Boolean
+{
+    quit $get(@..#Storage@("settings","compileOnImport"),1)
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -517,7 +522,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
     kill errStream, outStream
-    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
+    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote)
     
     w !, "Pull ran with return code: " _ returnCode
     quit $$$OK
@@ -1337,13 +1342,17 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
     
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
+
+    kill files
     
+    set settings = ##class(SourceControl.Git.Settings).%New()
     #dim internalName as %String = ""
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
+        set doImport = ..IsRoutineOutdated(internalName) || force
         if ..IsInSourceControl(internalName) {
             set sc = ..ImportItem(internalName, force)            
         } else {
@@ -1352,7 +1361,15 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         }
+        if doImport && settings.compileOnImport {
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "M"
+            set modification.internalName = internalName
+            set modification.externalName = ..FullExternalName(internalName)
+            set files($increment(files)) = modification
+        }
     }
+
     
     //let's delete all items for which corresponding files had been deleted
     #dim item as %String = ""
@@ -1366,41 +1383,21 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         set fullExternalName = ..FullExternalName(item)
         if '##class(%File).Exists(fullExternalName) {
             write !,fullExternalName," does not exist - deleting ",item
-            #dim type as %String = ..Type(item)
-            #dim name as %String = ..NameWithoutExtension(item)
-            #dim deleted as %Boolean = 1
-            if type = "prj" {
-                set ec = $$$ADDSC(ec, $system.OBJ.DeleteProject(name))
-            }elseif type = "cls" {
-                set ec = $$$ADDSC(ec, $system.OBJ.Delete(item))
-            }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
-                set ec = $$$ADDSC(ec, ##class(%Routine).Delete(item))
-            }elseif type = "csp" {
-                #dim filename = $system.CSP.GetFileName(item)
-                if ##class(%File).Exists(filename) && '##class(%File).Delete(filename) {
-                    set ec = $$$ADDSC(ec, ..MakeError("Error while removing "_item))
-                }
-            }elseif ..UserTypeCached(item) {
-                set ec = $$$ADDSC(ec, ##class(%Library.RoutineMgr).Delete(item))
-            } else {
-                set deleted = 0
-            }
-            
-            if deleted && ec {
-                do ..RemoveRoutineTSH(item)
-                kill $$$TrackedItems(..NormalizeExtension(item))
-                write !, item, " was deleted"
-            } else {
-                if +$system.Status.GetErrorCodes(ec) '= $$$ClassDoesNotExist {
-                    write !, "Error: could not delete ", item
-                } else {
-                    // if something we wanted to delete is already deleted -- good!
-                    set ec = $$$OK
-                }
-            }
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "D"
+            set modification.internalName = item
+            set modification.externalName = fullExternalName
+            set files($increment(files)) = modification
         }
     }
     
+    set eventHandler = $classmethod(..PullEventClass(),"%New")
+    set eventHandler.LocalRoot = ..TempFolder()
+    merge eventHandler.ModifiedFiles = files
+    set sc = eventHandler.OnPull()
+    if $$$ISERR(sc) {
+        set ec = $$$ADDSC(ec,sc)
+    }
     write !, "==import done=="
     quit ec
 }
@@ -1577,10 +1574,6 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
-    set pullArg = ""
-    if command = "pull" {
-        set pullArg = $Get(args(1))
-    }
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
     if (command '= "--version") {
         set newArgs($increment(newArgs)) = "-C"
@@ -1608,44 +1601,43 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     set newArgs($increment(newArgs)) = command
 
-    // defining variables for if statement use later
-    set syncIris = 0
+    set syncIrisWithDiff = 0 // whether IRIS needs to be synced with repo file changes using diff output
+    set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output
     set diffBase = ""
     set diffCompare = ""
-    set pullOriginIndex = ""
-    if (command = "checkout") || (command = "merge") || (command = "rebase") || (command = "pull") {
-        set syncIris = 1
-        if $data(args) && $data(args(args),diffCompare) {
-            // no-op
-        }
+
+    if (command = "checkout"){
+        set syncIrisWithDiff = 1
+        set diffCompare = args(args)
+    } elseif (command = "merge") || (command = "rebase")  || (command = "pull"){
+        set syncIrisWithCommand = 1
+        set diffCompare = args(args)
     }
     
     for i=1:1:$get(args) {
         if ($data(args(i))) {
             set newArgs($increment(newArgs)) = args(i)
-            if newArgs(newArgs) = pullArg {
-                set pullOriginIndex = newArgs
-            }
-            if (args(i) = "checkout") || (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull"){
-                set syncIris = 1
+            if (args(i) = "checkout") {
+                set syncIrisWithDiff = 1
                 set diffCompare = args(i + 1)
                 
                 if args = (i + 2) {
                     set diffBase = args(i + 2)
                 }
+            } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
+                set syncIrisWithCommand = 1
+                set diffCompare = args(i + 1)
             }
 
-            if (args(i) = "pull") {
-                set pullOriginIndex = i
-            }
         }
     }
 
-    if (diffCompare = "--no-commit") || (diffCompare = "--abort") {
-        set syncIris = 0
+    if (diffCompare = "--no-commit") || (diffCompare = "--abort") || (diffCompare = "-b") {
+        set syncIrisWithDiff = 0
+        set syncIrisWithCommand = 0
     }
 
-    if syncIris {
+    if syncIrisWithDiff {
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
@@ -1665,13 +1657,9 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 set modification.internalName = ""
             }
             set files($increment(files)) = modification
-            set mod = files(files)
             write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
         }
 
-        if pullOriginIndex '= "" {
-            set newArgs(pullOriginIndex) = $piece(newArgs(pullOriginIndex), "/", 1)
-        }
     }
 
     set outLog = ##class(%Library.File).TempFilename()
@@ -1700,16 +1688,61 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-    if syncIris {
-        do ..PrintStreams(errStream, outStream)
-        $$$ThrowOnError(..SyncIrisWithRepo(.files))
+    do ..PrintStreams(errStream, outStream)
+    if syncIrisWithDiff {
+        $$$ThrowOnError(..SyncIrisWithRepoThroughDiff(.files))
+    } elseif syncIrisWithCommand {
+        $$$ThrowOnError(..SyncIrisWithRepoThroughCommand(.outStream))
     }
     quit returnCode
 }
 
-ClassMethod SyncIrisWithRepo(ByRef files)
+ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
 {
+    set deletedFiles = ""
+    set addedFiles = ""
+    set files = ""
+    while (outStream.AtEnd = 0) {
 
+        set line = outStream.ReadLine()
+        set lineStart = $piece(line, " ", 2)
+        if (lineStart = "delete") || (lineStart = "create") {
+            set fileOperation = $select(lineStart = "create" : "A", 1: "D")
+            set externalName = $piece(line, " ", *)
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = fileOperation
+            set modification.internalName = internalName
+            set modification.externalName = externalName
+            set files($i(files)) = modification
+            if fileOperation = "A" {
+                set addedFiles = addedFiles_","_internalName
+            } else {
+                set deletedFiles = deletedFiles_","_internalName
+            }
+        }
+    }
+    
+    set deletedFiles = $extract(deletedFiles, 2, *)
+    set addedFiles = $extract(addedFiles, 2, *)
+
+
+    if (deletedFiles '= ""){
+        set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
+    }
+    if (addedFiles '= ""){
+        set sc = ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(addedFiles)
+    }
+
+    do outStream.Rewind()
+    set event = $classmethod(..PullEventClass(),"%New")
+    set event.LocalRoot = ..TempFolder()
+    merge event.ModifiedFiles = files
+    quit event.OnPull()
+}
+
+ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
+{
     set key = $order(files(""))
     set deletedFiles = ""
     set addedFiles = ""

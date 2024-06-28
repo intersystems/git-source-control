@@ -44,6 +44,9 @@ Property systemBasicMode As %Boolean [ InitialExpression = {##class(SourceContro
 /// In Basic mode, Sync will merge changes from this remote branch
 Property defaultMergeBranch As %String [ InitialExpression = {##class(SourceControl.Git.Utils).DefaultMergeBranch()} ];
 
+/// Import All options compile imported options using the configured pull event handler
+Property compileOnImport As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).CompileOnImport()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -97,6 +100,7 @@ Method %Save() As %Status
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
     set @storage@("settings", "defaultMergeBranch") = ..defaultMergeBranch
+    set @storage@("settings", "compileOnImport") = ..compileOnImport
     set @storage@("settings", "basicMode") = ..systemBasicMode
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")

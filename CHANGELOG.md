@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Items mapped from database other than namespace's default routine database are now ignored by default when exporting or adding files
 - New setting to configure whether mapped items should be should be treated as read-only
 - Added a basic mode to automatically perform functionality expected in basic use cases (#349)
-- New sync operation for basic mode that fetches, pulls, commits and then pushes (#349)
+- New sync operation for basic mode that fetches, pulls, commits, pushes, rebases, and pushes again (#349)
+- "Sync" operation in basic mode automatically resolves the class of merge conflict common in production classes where multiple independent items are added in different feature branches
 - Now skips files belonging to other git enabled packages in `##class(SourceControl.Git.Change).RefreshUncommitted()` (#347)
 - Added a new "Branch" parameter to `##class(SourceControl.Git.PullEventHandler)` (#351)
 - Command-line utility to do a baseline export of items in a namespace

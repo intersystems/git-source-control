@@ -1608,10 +1608,14 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if (command = "checkout"){
         set syncIrisWithDiff = 1
-        set diffCompare = args(args)
+        if $data(args) && $data(args(args),diffCompare) {
+            // no-op
+        }
     } elseif (command = "merge") || (command = "rebase")  || (command = "pull"){
         set syncIrisWithCommand = 1
-        set diffCompare = args(args)
+        if $data(args) && $data(args(args),diffCompare) {
+            // no-op
+        }
     }
     
     for i=1:1:$get(args) {
@@ -1688,10 +1692,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
-    do ..PrintStreams(errStream, outStream)
+
     if syncIrisWithDiff {
+        do ..PrintStreams(errStream, outStream)
         $$$ThrowOnError(..SyncIrisWithRepoThroughDiff(.files))
     } elseif syncIrisWithCommand {
+        do ..PrintStreams(errStream, outStream)
         $$$ThrowOnError(..SyncIrisWithRepoThroughCommand(.outStream))
     }
     quit returnCode
@@ -1746,7 +1752,7 @@ ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
     set key = $order(files(""))
     set deletedFiles = ""
     set addedFiles = ""
-    while(key '= "") {
+    while (key '= "") {
         set modification = files(key)
         if (modification.changeType = "D"){
             if (modification.internalName '= "") {
@@ -1757,7 +1763,6 @@ ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
             if (modification.internalName '= "") {
                 set addedFiles = addedFiles_","_modification.internalName
                 set files(key) = modification
-                
             }
         }
         set key = $order(files(key))

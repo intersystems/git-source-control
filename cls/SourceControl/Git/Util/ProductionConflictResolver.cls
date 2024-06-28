@@ -72,89 +72,84 @@ Method ConsumeStream() [ Private ]
 
 Method Resolve() [ Private ]
 {
-    // If we got this far, ..productionClassname is a subclass of Ens.Production and ..productionFile is its file within the git root.
-    Set code = 0
-    Set code = code + ##class(SourceControl.Git.Utils).RunGitCommand("show",,.base,":1:"_..productionFile)
-    Set code = code + ##class(SourceControl.Git.Utils).RunGitCommand("show",,.ours,":2:"_..productionFile)
-    Set code = code + ##class(SourceControl.Git.Utils).RunGitCommand("show",,.theirs,":3:"_..productionFile)
+    Set filePath = ##class(SourceControl.Git.Utils).TempFolder()_..productionFile
+    Set file = ##class(%Stream.FileCharacter).%OpenId(filePath,,.sc)
+    $$$ThrowOnError(sc)
 
-    If code > 0 {
-        $$$ThrowStatus($$$ERROR($$$GeneralError,"Unable to load base/ours/theirs for "_..productionFile))
+    Do ..ResolveStream(file) // Throws exception on failure
+
+    $$$ThrowOnError(##class(SourceControl.Git.Utils).ImportItem(..productionClassname_".CLS",1))
+    $$$ThrowOnError($System.OBJ.Compile(..productionClassname,"ck"))
+
+    // TODO: if we add multiple resolvers, move this to the end.
+    set code = ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "add", ..productionFile)
+    if (code '= 0) {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"git add reported failure"))
     }
-
-    Do ..ClassToXMLDoc(base,.baseDoc)
-    Do ..ClassToXMLDoc(ours,.oursDoc)
-    Do ..ClassToXMLDoc(theirs,.theirsDoc)
-
-    Do ..ThreeWayMerge(baseDoc,oursDoc,theirsDoc,.resolved)
-
-    Do ..XMLDocToClass(resolved)
+    set code = ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "commit", "-m", "Auto-resolved conflict on production class")
+    if (code '= 0) {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"git commit reported failure"))
+    }
+    set code = ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "rebase", "--continue")
+    if (code '= 0) {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"git rebase --continue reported failure"))
+    }
+    
+    Set ..resolved = 1
 }
 
-Method ClassToXMLDoc(source As %Stream.Object, Output doc As %XML.Document)
+/// Non-private to support unit testing
+ClassMethod ResolveStream(stream As %Stream.Object)
 {
-    Set sc = $$$OK
-    Kill ^||%oddDEF
-    Set ^||%oddDEF(..productionClassname)=""
-    Try {
-        Do source.Rewind()
-        While 'source.AtEnd {
-            Set tTextArray($Increment(tTextArray(0))) = source.ReadLine(,.sc)
-            $$$ThrowOnError(sc)
+    // File may have:
+    /*
+    <<<<<<< HEAD
+    <Item Name="Demo7" Category="" ClassName="EnsLib.CloudStorage.BusinessOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    =======
+    <Item Name="Demo5" Category="" ClassName="EnsLib.AmazonCloudWatch.MetricAlarmOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    >>>>>>> 607d1f6 (modified src/HCC/Connect/Production.cls add Demo5)
+    </Item>
+    */
+
+    // If:
+    // * We have one such marker (<<<<<<< / ======= / >>>>>>>)
+    // * The line after >>>>>> is "</Item>"
+    // Then:
+    // * We can replace ======= with "</Item>"
+
+    Set copy = ##class(%Stream.TmpCharacter).%New()
+    Set markerCount = 0
+    Set postCloseMarker = 0
+    While 'stream.AtEnd {
+        Set line = stream.ReadLine()
+        Set start = $Extract(line,1,7)
+        If start = "<<<<<<<" {
+            Set markerCount = markerCount + 1
+            Continue
+        } ElseIf (start = ">>>>>>>") {
+            Set postCloseMarker = 1
+            Continue
+        } ElseIf (start = "=======") {
+            Do copy.WriteLine("  </Item>")
+            Continue
+        } ElseIf postCloseMarker {
+            If $ZStrip(line,"<>W") '= "</Item>" {
+                $$$ThrowStatus($$$ERROR($$$GeneralError,"The type of conflict encountered is not handled; user must resolve manually."))
+            }
+            Set postCloseMarker = 0
         }
-        $$$ThrowOnError(##class(%Atelier.v1.Utils.TextServices).SetTextFromArray(.tTextArray,,..productionClassname,"CLS"))
-        Merge classDef = ^||%oddDEF(..productionClassname)
-
-        Set xmlStream = ##class(%Stream.TmpCharacter).%New()
-        For i=1:1:$Get(classDef($$$cCLASSxdata,"ProductionDefinition",$$$cXDATAdata)) {
-            Do xmlStream.WriteLine($Get(classDef($$$cCLASSxdata,"ProductionDefinition",$$$cXDATAdata,i)))
-        }
-        Set reader = ##class(%XML.Reader).%New()
-        $$$ThrowOnError(reader.OpenStream(xmlStream))
-        Set doc = reader.Document
-    } Catch e {
-        Set sc = e.AsStatus()
+        Do copy.WriteLine(line)
     }
-    Do source.Rewind()
-    Kill ^||%oddDEF
-    $$$ThrowOnError(sc)
-}
 
-ClassMethod ThreeWayMerge(base As %XML.Document, theirs As %XML.Document, ours As %XML.Document, Output resolved)
-{
-    // TODO: actually do three-way merge
-    Merge resolved = ours
-}
-
-ClassMethod BuildElementPathMap(doc As %XML.Document, Output map)
-{
-}
-
-ClassMethod XMLDocToStream(document As %XML.Document, ByRef outStream)
-{
-    Set writer = ##class(%XML.Writer).%New()
-    Set export = ##class(%Stream.TmpCharacter).%New()
-    $$$ThrowOnError(writer.OutputToStream(export))
-    $$$ThrowOnError(writer.Document(document))
-
-    Set reader = ##class(%XML.Reader).%New()
-    $$$ThrowOnError(reader.OpenStream(export))
-    Do reader.CorrelateRoot("Ens.Config.Production")
-    If 'reader.Next(.production,.sc) {
-        $$$ThrowStatus($$$ERROR($$$GeneralError,"Could not reimport production from resolved XML."))
+    If markerCount > 1 {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"Multiple conflicts found, cannot resolve automatically."))
+    } ElseIf markerCount = 0 {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"No conflict markers found in file"))
     }
-    $$$ThrowOnError(sc)
-    $$$ThrowOnError(production.XMLExportToStream(.outStream,,"literal,indent"))
-}
 
-Method XMLDocToClass(resolved As %XML.Document)
-{
-    Set xData = ##class(%Dictionary.XDataDefinition).IDKEYOpen(..productionClassname,"ProductionDefinition",,.sc)
-    $$$ThrowOnError(sc)
-    Do xData.Implementation.Clear()
-    Do ..XMLDocToStream(resolved,xData.Implementation)
-    Do xData.Implementation.Rewind()
-    Write !!,$ZConvert(xData.Implementation.Read(100000),"O","HTML"),!!
+    $$$ThrowOnError(stream.CopyFromAndSave(copy))
+
+    Quit 1
 }
 
 }

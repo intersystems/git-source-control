@@ -422,16 +422,16 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
             // "rebase" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the rebase.
             write !,"Attempting to resolve differences in production definition..."
             set resolver = ##class(SourceControl.Git.Util.ProductionConflictResolver).FromLog(outStream)
-            write !! zw resolver write !!
             if resolver.resolved {
                 set rebased = 1
+                TCOMMIT
                 write " success!"
             } else {
                 write " unable to resolve - "_resolver.errorMessage
-                while $TLevel > initTLevel {
-                    TROLLBACK 1
-                }
             }
+        }
+        while $TLevel > initTLevel {
+            TROLLBACK 1
         }
         if 'rebased {
             do ..RunGitCommand("rebase",.errStream, .outStream,"--abort")
@@ -2392,4 +2392,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

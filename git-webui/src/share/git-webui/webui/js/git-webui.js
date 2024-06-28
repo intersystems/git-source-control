@@ -2123,6 +2123,7 @@ webui.WorkspaceView = function(mainView) {
         self.workingCopyView.update();
         self.stagingAreaView.update();
         self.commitMessageView.update();
+        self.newChangedFilesView.update();
         if (self.workingCopyView.getSelectedItemsCount() + self.stagingAreaView.getSelectedItemsCount() == 0) {
             self.diffView.update(undefined, undefined, undefined, mode);
         }
@@ -2205,7 +2206,6 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                         }
                         
                         if (isForCurrentUser) {
-                            console.log(fileList);
                             addItemToFileList(fileList, "", model);
                         }
                     }
@@ -2514,63 +2514,164 @@ webui.NewChangedFilesView = function(workspaceView) {
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
+                self.filesCount = 0;
+                function addItemToFileList(fileList, workingTreeStatus, model) {
+                    var formCheck = $('<div class="form-check changes-check"></div>');
+                    formCheck.attr("data-filename", model);
 
-            })
+                    var checkboxInput = $('<input class="form-check-input changes-checkbox" type="checkbox" value="">');
+                    checkboxInput.attr('id', model);
+                    formCheck.append(checkboxInput);
+
+                    var checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
+                    checkboxLabel.addClass(workingTreeStatus);
+                    checkboxLabel.attr('for', model);
+                    formCheck.append(checkboxLabel);
+
+                    formCheck.prependTo(fileList)[0];
+                    // item.model = model;
+                    // item.appendChild(document.createTextNode(model));
+                    // $(item).click(self.select);
+
+                }
+                webui.splitLines(data).forEach(function(line) {
+                    var indexStatus = line[0];
+                    var workingTreeStatus = line[1];
+                    line = line.substring(3);
+                    var splitted = line.split(" -> ");
+                    var model;
+                    if (splitted.length > 1) {
+                        model = splitted[1];
+                    } else {
+                        model = line;
+                    }
+
+
+                    ++self.filesCount;
+                    var isForCurrentUser;
+                    if(model.indexOf(" ") > -1){
+                        isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
+                    } else {
+                        isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                    }
+                    
+                    if (isForCurrentUser) {
+                        addItemToFileList(fileList, workingTreeStatus, model);
+                    }
+                    
+                });
+                $(".changes-checkbox").change(function() {
+                    var fileName = this.id;
+                    var fileIndex = selectedItems.indexOf(fileName);
+                    if (this.checked) {
+                        if (fileIndex == -1) {
+                            selectedItems.push(fileName);
+                        }
+                    } else {
+                        $('#selectAllFiles').prop('checked', false);
+                        if (fileIndex > -1) {
+                            selectedItems.splice(fileIndex, 1);
+                        }
+                    }
+                    self.updateButtons();
+                });
+
+                $("#commitMsg").on("input", function() {
+                    self.updateButtons();
+                });
+
+                $('.changes-check').on("click", function() {
+                    self.unhighlightPrevious();
+                    $(this).addClass("diffed-file");
+                    self.fileToDiff = $(this).attr("data-filename");
+                    self.refreshDiff();
+
+                });
+
+                $('#selectAllFiles').on("input", function() {
+                    if ($(this).checked) {
+                        self.selectAll();
+                    } else {
+                        self.deselectAll();
+                    }
+                })
+            });
         });
     }
 
+    self.handleCheckEvent = function(file) {
+        var fileIndex = selectedItems.indexOf(file);
+        if (fileIndex > -1) {
+            selectedItems.splice(fileIndex, 1);
+        } else {
+            selectedItems.push(file);
+        }
+        self.updateButtons();
+    }
+
+    self.updateButtons = function() {
+        if (self.getSelectedItemsCount() > 0) {
+            $('#stashBtn').prop("disabled", false);
+            $('#discardBtn').prop("disabled", false);
+            if (!self.commitMsgEmpty()) {
+                $('#commitBtn').prop("disabled", false);
+            } else {
+                $('#commitBtn').prop("disabled", true);
+            }
+        } else {
+            $('#stashBtn').prop("disabled", true);
+            $('#discardBtn').prop("disabled", true);
+            $('#commitBtn').prop("disabled", true);
+        }
+
+    }
+
+    self.commitMsgEmpty = function() {
+        return $('#commitMsg').val().length == 0;
+    }
+
     self.getSelectedItemsCount = function() {
-        return $(".active", fileList).length;
+        return selectedItems.length;
+    }
+
+    self.selectAll = function() {
+
+    }
+
+    self.deselectAll = function() {
+
+    }
+
+    self.unhighlightPrevious = function(){
+        $('[data-filename="' + self.fileToDiff + '"]').removeClass("diffed-file");
+    }
+
+    self.refreshDiff = function() {
+        self.fileToDiff;
+        workspaceView.diffView.update("diff", [], self.fileToDiff, "stage");
     }
 
     self.element = $(
         '<div id="changedFilesContainer" class="container">' +
             '<div class="row">' +
                 '<div class="col-sm-6 file-area">' +
-                    '<div class="changed-files-list">' + 
-                        '<div class="form-check">' +
-                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck1">' +
-                            '<label class="form-check-label file-item-label" for="defaultCheck1">' +
-                                'test check'+
-                            '</label>' +
-                        '</div>' +
-                        '<div class="form-check">' +
-                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck2" checked>' +
-                            '<label class="form-check-label file-item-label" for="defaultCheck2">' +
-                                'test check'+
-                            '</label>' +
-                        '</div>' +
-                        '<div class="form-check">' +
-                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck3">' +
-                            '<label class="form-check-label file-item-label" for="defaultCheck3">' +
-                                'test check'+
-                            '</label>' +
-                        '</div>' +
-                        '<div class="form-check">' +
-                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck4">' +
-                            '<label class="form-check-label file-item-label" for="defaultCheck4">' +
-                                'test check'+
-                            '</label>' +
-                        '</div>' +
-                        '<div class="form-check">' +
-                            '<input class="form-check-input" type="checkbox" value="" id="defaultCheck5" checked>' +
-                            '<label class="form-check-label file-item-label" for="defaultCheck5">' +
-                                'test check'+
-                            '</label>' +
-                        '</div>' +
+                    '<div class="form-check select-all">' + 
+                        '<input class="form-check-input" id="selectAllFiles" type="checkbox" value="">' +
+                        '<label class="form-check-label" for="selectAllFiles"> Select All Files </label>' +
                     '</div>' +
+                    '<div class="changed-files-list"></div>' + 
                 '</div>' +
                 '<div class="commit-area col-sm-6">' +
                     '<div class="form-group">' +
-                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message">' +
+                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required, 72 character limit)">' +
                     '</div>' +
                     '<div class="form-group">' +
-                        '<textarea class="form-control" id="commitMsgDetail" placeholder="Enter commit message details (optional)"></textarea>' +
+                        '<textarea class="form-control" id="commitMsgDetail" placeholder="Enter commit details (optional, no character limit)"></textarea>' +
                     '</div>' +
                     '<div class="button-group">' +
-                        '<button type="button" class="btn btn-primary file-action-button"> Commit </button>' +
-                        '<button type="button" class="btn btn-secondary file-action-button" > Stash </button>' +
-                        '<button type="button" class="btn btn-danger file-action-button"> Discard </button>' +
+                        '<button type="button" class="btn btn-primary file-action-button" id="commitBtn" disabled> Commit </button>' +
+                        '<button type="button" class="btn btn-secondary file-action-button" id="stashBtn" disabled> Stash </button>' +
+                        '<button type="button" class="btn btn-danger file-action-button" id="discardBtn" disabled> Discard </button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -2578,6 +2679,8 @@ webui.NewChangedFilesView = function(workspaceView) {
     )[0];
     var fileListContainer = $(".file-area", self.element)[0];
     var fileList = $(".changed-files-list", fileListContainer)[0];
+    var selectedItems = [];
+    var fileToDiff;
 }
 
 /*

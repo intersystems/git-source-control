@@ -832,26 +832,67 @@ body {
     max-width: 100% !important;
     margin: 0 10px;
     .file-area {
-        padding-left: 20px;
+        // padding-left: 20px;
         padding-top: 15px;
-
         overflow-y: scroll;
 
-        .form-check {
-            margin-left: 10px;
-            padding: 3px 5px 3px 5px;
+        .select-all {
+
+            .form-check-label {
+                font-size: 1rem;
+                padding-top: 1px;
+                padding-left: 8px;
+            }
+
+            .form-check-input {
+                margin-bottom: 2px;
+            }
+            
+            border-bottom: 2px solid black;
         }
+
+        .diffed-file {
+            background-color: #4daefd;
+        }
+
+        
+
+        .form-check {
+            padding: 3px 5px 3px 15px;
+        }
+        
+        .changes-check:hover {
+            background-color: rgba(61, 174, 253, 0.2);
+        }
+
         .file-item-label {
             padding-top: 1px;
             padding-left: 8px;
             font-size: 1rem;
 
         }
-        .file-item-label::after {
+
+        .form-check-input {
+            margin-left: -12px !important;
+        }
+        .A::after {
             content: "A";
             position: absolute;
             right: 5px;
         }
+
+        .D::after {
+            content: "D";
+            position: absolute;
+            right: 5px;
+        }
+
+        .M::after {
+            content: "M";
+            position: absolute;
+            right: 5px;
+        }
+        
     }
 
     .commit-area {

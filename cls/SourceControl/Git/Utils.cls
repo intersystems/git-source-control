@@ -258,9 +258,12 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
             set Action = 7
             set Msg = ..PreSync()
         } else {
-            do ..Sync("")
+            set Target = ""
+            do ..Sync("",.Target)
+            if (Target '= "") {
+                set Action = 6
+            }
         }
-        
         
         quit $$$OK
     } elseif (menuItemName = "Push") {
@@ -462,7 +465,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         if 'rebased {
             do ..RunGitCommand("rebase",.errStream, .outStream,"--abort")
             do ..PrintStreams(errStream, outStream)
-            set alert = "WARNING: Remote branch '"_defaultMergeBranch_"' could not be merged due to conflicts. Changes have been pushed to '"_..GetCurrentBranch()_"' and must be resolved in your git remote."
+            set alert = "WARNING: Remote branch '"_defaultMergeBranch_"' could not be merged due to conflicts. Changes have been pushed to '"_..GetCurrentBranch()_"' and must be resolved in your git remote. See log for more details."
             write !,alert,!
         }
     }

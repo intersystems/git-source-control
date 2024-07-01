@@ -848,11 +848,11 @@ body {
                 margin-bottom: 2px;
             }
             
-            border-bottom: 2px solid black;
+            border-bottom: 1px solid lightgray;
         }
 
         .diffed-file {
-            background-color: #4daefd;
+            background-color: #7fceff;
         }
 
         
@@ -876,19 +876,25 @@ body {
             margin-left: -12px !important;
         }
         .A::after {
-            content: "A";
+            content: "Added";
             position: absolute;
             right: 5px;
         }
 
         .D::after {
-            content: "D";
+            content: "Deleted";
             position: absolute;
             right: 5px;
         }
 
         .M::after {
-            content: "M";
+            content: "Modified";
+            position: absolute;
+            right: 5px;
+        }
+
+        .R::after {
+            content: "Renamed";
             position: absolute;
             right: 5px;
         }

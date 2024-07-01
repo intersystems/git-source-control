@@ -866,7 +866,7 @@ body {
   padding-top: 15px;
 }
 #changedFilesContainer .file-area .select-all {
-  border-bottom: 2px solid black;
+  border-bottom: 1px solid lightgray;
 }
 #changedFilesContainer .file-area .select-all .form-check-label {
   font-size: 1rem;
@@ -877,7 +877,7 @@ body {
   margin-bottom: 2px;
 }
 #changedFilesContainer .file-area .diffed-file {
-  background-color: #4daefd;
+  background-color: #7fceff;
 }
 #changedFilesContainer .file-area .form-check {
   padding: 3px 5px 3px 15px;
@@ -894,17 +894,22 @@ body {
   margin-left: -12px !important;
 }
 #changedFilesContainer .file-area .A::after {
-  content: "A";
+  content: "Added";
   position: absolute;
   right: 5px;
 }
 #changedFilesContainer .file-area .D::after {
-  content: "D";
+  content: "Deleted";
   position: absolute;
   right: 5px;
 }
 #changedFilesContainer .file-area .M::after {
-  content: "M";
+  content: "Modified";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .R::after {
+  content: "Renamed";
   position: absolute;
   right: 5px;
 }

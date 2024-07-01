@@ -2518,6 +2518,7 @@ webui.NewChangedFilesView = function(workspaceView) {
         $("#commitMsg").val("");
         $("#commitMsgDetail").val("");
         $('#selectAllFiles').prop('checked', false);
+
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
@@ -2590,16 +2591,18 @@ webui.NewChangedFilesView = function(workspaceView) {
                         self.deselectAll();
                     }
                 });
-
+                $("#commitBtn").off("click");
                 $("#commitBtn").on("click", function() {
                     var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val()
                     self.commit(commitMessage);
                 });
 
+                $("#discardBtn").off("click");
                 $("#discardBtn").on("click", function() {
                     self.discard();
                 });
 
+                $("#stashBtn").off("click");
                 $("#stashBtn").on("click", function() {
                     self.stash();
                 });
@@ -2614,6 +2617,9 @@ webui.NewChangedFilesView = function(workspaceView) {
             if (fileIndex == -1) {
                 selectedItems.push(fileName);
             }
+            if (selectedItems.length == Array.from(fileList.children).length) {
+                $('#selectAllFiles').prop('checked', true);
+            } 
         } else {
             $('#selectAllFiles').prop('checked', false);
             if (fileIndex > -1) {
@@ -2692,7 +2698,6 @@ webui.NewChangedFilesView = function(workspaceView) {
     self.discard = function() {
         var selectedFilesAsString = selectedItems.join(" ");
         webui.git("restore -- " + selectedFilesAsString, function(output) {
-            // webui.showSuccess(output);
             workspaceView.update();
         });
     }
@@ -2721,7 +2726,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                         '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required, 72 character limit)">' +
                     '</div>' +
                     '<div class="form-group">' +
-                        '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional, no character limit)"></textarea>' +
+                        '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional)"></textarea>' +
                     '</div>' +
                     '<div class="button-group">' +
                         '<button type="button" class="btn btn-primary file-action-button" id="commitBtn" disabled> Commit </button>' +

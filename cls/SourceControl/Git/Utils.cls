@@ -1677,11 +1677,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = $piece(file, $c(9), 1)
             
-            set modification.externalName = $zstrip($piece(file, $c(9),2),"<W")
-            if (modification.changeType '= "A"){
+            set modification.externalName = $zstrip($piece(file, $c(9), 2),"<W")
+            if $extract(modification.changeType) = "R" {
+                set modification.changeType = "D"
                 set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-            }
-            else {
+                set files($increment(files)) = modification
+                set modification = ##class(SourceControl.Git.Modification).%New()
+                set modification.changeType = "A"
+                set modification.internalName = ""
+                set modification.externalName = $zstrip($piece(file, $c(9), 3),"<W")
+            } elseif (modification.changeType '= "A"){
+                set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+            } else {
                 set modification.internalName = ""
             }
             set files($increment(files)) = modification

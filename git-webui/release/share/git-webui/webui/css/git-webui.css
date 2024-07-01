@@ -860,10 +860,10 @@ body {
 #changedFilesContainer {
   max-width: 100% !important;
   margin: 0 10px;
+  overflow-y: auto;
 }
 #changedFilesContainer .file-area {
   padding-top: 15px;
-  overflow-y: scroll;
 }
 #changedFilesContainer .file-area .select-all {
   border-bottom: 2px solid black;
@@ -910,7 +910,6 @@ body {
 }
 #changedFilesContainer .commit-area {
   padding-top: 15px;
-  overflow-y: scroll;
 }
 #changedFilesContainer .commit-area .button-group .btn {
   margin-right: 5px;

@@ -2511,6 +2511,13 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.update = function() {
         $(fileList).empty();
+        selectedItems = [];
+        $('#stashBtn').prop("disabled", true);
+        $('#discardBtn').prop("disabled", true);
+        $('#commitBtn').prop("disabled", true);
+        $("#commitMsg").val("");
+        $("#commitMsgDetail").val("");
+        $('#selectAllFiles').prop('checked', false);
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
@@ -2561,19 +2568,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     
                 });
                 $(".changes-checkbox").change(function() {
-                    var fileName = this.id;
-                    var fileIndex = selectedItems.indexOf(fileName);
-                    if (this.checked) {
-                        if (fileIndex == -1) {
-                            selectedItems.push(fileName);
-                        }
-                    } else {
-                        $('#selectAllFiles').prop('checked', false);
-                        if (fileIndex > -1) {
-                            selectedItems.splice(fileIndex, 1);
-                        }
-                    }
-                    self.updateButtons();
+                    self.afterFileChecked(this);
                 });
 
                 $("#commitMsg").on("input", function() {
@@ -2583,20 +2578,49 @@ webui.NewChangedFilesView = function(workspaceView) {
                 $('.changes-check').on("click", function() {
                     self.unhighlightPrevious();
                     $(this).addClass("diffed-file");
-                    self.fileToDiff = $(this).attr("data-filename");
+                    fileToDiff = $(this).attr("data-filename");
                     self.refreshDiff();
 
                 });
 
-                $('#selectAllFiles').on("input", function() {
-                    if ($(this).checked) {
+                $('#selectAllFiles').on("change", function() {
+                    if (this.checked) {
                         self.selectAll();
                     } else {
                         self.deselectAll();
                     }
-                })
+                });
+
+                $("#commitBtn").on("click", function() {
+                    var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val()
+                    self.commit(commitMessage);
+                });
+
+                $("#discardBtn").on("click", function() {
+                    self.discard();
+                });
+
+                $("#stashBtn").on("click", function() {
+                    self.stash();
+                });
             });
         });
+    }
+
+    self.afterFileChecked = function(element) {
+        var fileName = element.id;
+        var fileIndex = selectedItems.indexOf(fileName);
+        if (element.checked) {
+            if (fileIndex == -1) {
+                selectedItems.push(fileName);
+            }
+        } else {
+            $('#selectAllFiles').prop('checked', false);
+            if (fileIndex > -1) {
+                selectedItems.splice(fileIndex, 1);
+            }
+        }
+        self.updateButtons();
     }
 
     self.handleCheckEvent = function(file) {
@@ -2635,20 +2659,51 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.selectAll = function() {
-
+        Array.from(fileList.children).forEach(function(fileDiv, index) {
+            fileDiv.children[0].checked = true;
+            self.afterFileChecked(fileDiv.children[0]);
+        });
     }
 
     self.deselectAll = function() {
-
+        Array.from(fileList.children).forEach(function(fileDiv, index) {
+            fileDiv.children[0].checked = false;
+            self.afterFileChecked(fileDiv.children[0])
+        });
     }
 
     self.unhighlightPrevious = function(){
-        $('[data-filename="' + self.fileToDiff + '"]').removeClass("diffed-file");
+        $('[data-filename="' + fileToDiff + '"]').removeClass("diffed-file");
     }
 
     self.refreshDiff = function() {
-        self.fileToDiff;
-        workspaceView.diffView.update("diff", [], self.fileToDiff, "stage");
+        fileToDiff;
+        workspaceView.diffView.update("diff", [], fileToDiff, "stage");
+    }
+
+    self.stash = function() {
+        var selectedFilesAsString = selectedItems.join(" ");
+        webui.git("stash push -- " + selectedFilesAsString, function(output){
+            webui.showSuccess(output);
+            workspaceView.update();
+        });
+    }
+
+    self.discard = function() {
+        var selectedFilesAsString = selectedItems.join(" ");
+        webui.git("restore -- " + selectedFilesAsString, function(output) {
+            // webui.showSuccess(output);
+            workspaceView.update();
+        });
+    }
+
+    self.commit = function(message) {
+        var selectedFilesAsString = selectedItems.join(" ");
+        webui.git("add " + selectedFilesAsString);
+        webui.git('commit -m "' + message + '" -- ' + selectedFilesAsString, function(output) {
+            webui.showSuccess(output);
+            workspaceView.update()
+        });
     }
 
     self.element = $(
@@ -2666,7 +2721,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                         '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required, 72 character limit)">' +
                     '</div>' +
                     '<div class="form-group">' +
-                        '<textarea class="form-control" id="commitMsgDetail" placeholder="Enter commit details (optional, no character limit)"></textarea>' +
+                        '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional, no character limit)"></textarea>' +
                     '</div>' +
                     '<div class="button-group">' +
                         '<button type="button" class="btn btn-primary file-action-button" id="commitBtn" disabled> Commit </button>' +
@@ -2681,6 +2736,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     var fileList = $(".changed-files-list", fileListContainer)[0];
     var selectedItems = [];
     var fileToDiff;
+
 }
 
 /*

@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Now has proper locking behavior in `##class(SourceControl.Git.WebUIDriver).HandleRequest()`(#385)
 - Git operations from the WebUI now don't unlock the session if they aren't read-only
 - Syncing only prompts users for a commit message if there are uncommitted files (#390)
+- WebUI works properly for users with %Developer without needing to add further SQL privileges (#365)
 
 ## [2.3.1] - 2024-04-30
 

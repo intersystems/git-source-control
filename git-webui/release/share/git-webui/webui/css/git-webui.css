@@ -913,6 +913,9 @@ body {
   position: absolute;
   right: 5px;
 }
+#changedFilesContainer .file-area .other-user-label::before {
+  content: "HI";
+}
 #changedFilesContainer .commit-area {
   padding-top: 15px;
 }

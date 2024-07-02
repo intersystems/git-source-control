@@ -2512,6 +2512,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     self.update = function() {
         $(fileList).empty();
         selectedItems = [];
+        selectedItemsFromOtherUser = [];
         $('#stashBtn').prop("disabled", true);
         $('#discardBtn').prop("disabled", true);
         $('#commitBtn').prop("disabled", true);
@@ -2523,15 +2524,35 @@ webui.NewChangedFilesView = function(workspaceView) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 self.filesCount = 0;
-                function addItemToFileList(fileList, workingTreeStatus, model) {
-                    var formCheck = $('<div class="form-check changes-check"></div>');
+                function addItemToFileList(fileList, workingTreeStatus, model, isOtherUserChange) {
+                    
+                    var formCheck;
+                    if (isOtherUserChange) {
+                        formCheck = $('<div class="form-check changes-check other-user"></div>');
+                    } else {
+                        formCheck = $('<div class="form-check changes-check"></div>');
+                    }
+                    
                     formCheck.attr("data-filename", model);
 
-                    var checkboxInput = $('<input class="form-check-input changes-checkbox" type="checkbox" value="">');
+                    var checkboxInput;
+                    
+                    if (isOtherUserChange) {
+                        checkboxInput = $('<input class="form-check-input changes-checkbox other-user" type="checkbox" value="">');
+                    } else {
+                        checkboxInput = $('<input class="form-check-input changes-checkbox" type="checkbox" value="">');
+                    }
+                    
                     checkboxInput.attr('id', model);
                     formCheck.append(checkboxInput);
 
-                    var checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
+                    var checkboxLabel;
+                    if (isOtherUserChange) {
+                        checkboxLabel = $('<label class="form-check-label file-item-label other-user-label"></label>').text(model);
+                    } else {
+                        checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
+                    }
+
                     checkboxLabel.addClass(workingTreeStatus);
                     checkboxLabel.attr('for', model);
                     formCheck.append(checkboxLabel);
@@ -2542,6 +2563,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     // $(item).click(self.select);
 
                 }
+
                 webui.splitLines(data).forEach(function(line) {
                     var indexStatus = line[0];
                     var workingTreeStatus = line[1];
@@ -2564,7 +2586,9 @@ webui.NewChangedFilesView = function(workspaceView) {
                     }
                     
                     if (isForCurrentUser) {
-                        addItemToFileList(fileList, workingTreeStatus, model);
+                        addItemToFileList(fileList, workingTreeStatus, model, false);
+                    } else {
+                        addItemToFileList(fileList, workingTreeStatus, model, true)
                     }
                     
                 });
@@ -2610,6 +2634,66 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     }
 
+    self.confirmActionOnOtherUsersChanges = function(action) {
+        function removeWarningModal(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#confirmAction").remove();
+            modalOpen = false;
+        }
+
+        var popup = $(  '<div class="modal fade" id="confirmAction" role="dialog" data-backdrop="static">' +
+                            '<div class="modal-dialog modal-md">' +
+                                '<div class="modal-content>' +
+                                    '<div class="modal-header">' +
+                                        '<h5 class="modal-title">Confirm ' + action + '</h5>' +
+                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                        webui.largeXIcon+
+                                        '</button>' +
+                                    '</div>' +
+                                    '<div class="modal-body"></div>' +
+                                '</div>' +
+                            '</div>' +
+            
+                        '</div>')[0];
+        $("body").append(popup);
+        var popupContent = $(".modal-body", popup)[0];
+        webui.detachChildren(popupContent);
+        $('<div class="row"><div class="col-sm-1">'+
+        webui.warningIcon+
+        '</div>'+
+        '<div class="col-sm-11">The following files were changed by other users. Are you sure you want to ' + action + ' them?</div></div><ul>').appendTo(popupContent);
+
+        selectedItemsFromOtherUser.forEach(function(file, index){
+            $('<li>'+ file +'</li>').appendTo(popupContent);
+        });
+
+        $('</ul>').appendTo(popupContent);
+
+        $('<button class="btn btn-sm btn-warning float-right" id="confirmActionBtn">' + action.charAt(0).toUpperCase()+action.substring(1) + '</button>' +
+          '<button class="btn btn-sm btn-secondary float-right" id="cancelActionBtn">Cancel</button>').appendTo(popupContent);
+        
+        $(popup).modal('show');
+        var modalOpen = true;
+
+        var actionConfirmed = false;
+
+        $('#confirmAction').on('click', '#confirmActionBtn', function() {
+            actionConfirmed = true;
+            removeWarningModal(popup);
+        });
+
+        $('#confirmAction').find('#cancelAction, .close').click(function() {
+            removeWarningModal(popup);
+        })
+
+        while(modalOpen) {
+            // spin
+        }
+
+        return actionConfirmed;
+    }
+
     self.afterFileChecked = function(element) {
         var fileName = element.id;
         var fileIndex = selectedItems.indexOf(fileName);
@@ -2617,6 +2701,11 @@ webui.NewChangedFilesView = function(workspaceView) {
             if (fileIndex == -1) {
                 selectedItems.push(fileName);
             }
+
+            if (element.hasClass("other-user") && (selectedItems.indexOf(fileName) == -1)) {
+                selectedItemsFromOtherUser.push(fileName);
+            }
+
             if (selectedItems.length == Array.from(fileList.children).length) {
                 $('#selectAllFiles').prop('checked', true);
             } 
@@ -2624,6 +2713,10 @@ webui.NewChangedFilesView = function(workspaceView) {
             $('#selectAllFiles').prop('checked', false);
             if (fileIndex > -1) {
                 selectedItems.splice(fileIndex, 1);
+            }
+
+            if (element.hasClass("other-user") && (selectedItems.indexOf(fileName) > -1)) {
+                selectedItemsFromOtherUser.splice(selectedItems.indexOf(fileName), 1);
             }
         }
         self.updateButtons();
@@ -2689,6 +2782,11 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.stash = function() {
         var selectedFilesAsString = selectedItems.join(" ");
+        if (selectedItemsFromOtherUser.length > 0) {
+            if (!this.confirmActionOnOtherUsersChanges("stash")) {
+                return
+            }
+        }
         webui.git("stash push -- " + selectedFilesAsString, function(output){
             webui.showSuccess(output);
             workspaceView.update();
@@ -2697,6 +2795,11 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.discard = function() {
         var selectedFilesAsString = selectedItems.join(" ");
+        if (selectedItemsFromOtherUser.length > 0) {
+            if (!this.confirmActionOnOtherUsersChanges("discard")) {
+                return
+            }
+        }
         webui.git("restore -- " + selectedFilesAsString, function(output) {
             workspaceView.update();
         });
@@ -2704,6 +2807,12 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.commit = function(message) {
         var selectedFilesAsString = selectedItems.join(" ");
+
+        if (selectedItemsFromOtherUser.length > 0) {
+            if (!this.confirmActionOnOtherUsersChanges("commit")) {
+                return
+            }
+        }
         webui.git("add " + selectedFilesAsString);
         webui.git('commit -m "' + message + '" -- ' + selectedFilesAsString, function(output) {
             webui.showSuccess(output);
@@ -2740,6 +2849,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     var fileListContainer = $(".file-area", self.element)[0];
     var fileList = $(".changed-files-list", fileListContainer)[0];
     var selectedItems = [];
+    var selectedItemsFromOtherUser = [];
     var fileToDiff;
 
 }

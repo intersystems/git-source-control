@@ -338,8 +338,7 @@ ClassMethod Revert(InternalName As %String) As %Status
     do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1,,1))
-    $$$QuitOnError(..ImportItem(InternalName,1))
-    quit $$$OK
+    quit ##class(SourceControl.Git.PullEventHandler).ForInternalNames(InternalName)
 }
 
 ClassMethod Commit(InternalName As %String, Message As %String = "example commit message") As %Status
@@ -1415,10 +1414,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         }
     }
     
-    set eventHandler = $classmethod(..PullEventClass(),"%New")
-    set eventHandler.LocalRoot = ..TempFolder()
-    merge eventHandler.ModifiedFiles = files
-    set sc = eventHandler.OnPull()
+    set sc = ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
     if $$$ISERR(sc) {
         set ec = $$$ADDSC(ec,sc)
     }
@@ -1772,10 +1768,7 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     }
 
     do outStream.Rewind()
-    set event = $classmethod(..PullEventClass(),"%New")
-    set event.LocalRoot = ..TempFolder()
-    merge event.ModifiedFiles = files
-    quit event.OnPull()
+    quit ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
 }
 
 ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
@@ -1809,10 +1802,7 @@ ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
         set sc = ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(addedFiles)
     }
 
-    set event = $classmethod(..PullEventClass(),"%New")
-    set event.LocalRoot = ..TempFolder()
-    merge event.ModifiedFiles = files
-    quit event.OnPull()
+    quit ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
 }
 
 ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String

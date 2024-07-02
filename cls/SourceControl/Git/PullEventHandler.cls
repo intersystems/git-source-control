@@ -20,5 +20,28 @@ Method OnPull() As %Status [ Abstract ]
 {
 }
 
+/// <var>files</var> is an integer-subscripted array of <class>SourceControl.Git.Modification</class> objects.
+ClassMethod ForModifications(ByRef files) As %Status
+{
+    set event = $classmethod(##class(SourceControl.Git.Utils).PullEventClass(),"%New")
+    set event.LocalRoot = ##class(SourceControl.Git.Utils).TempFolder()
+    merge event.ModifiedFiles = files
+    quit event.OnPull()
 }
 
+/// <var>InternalName</var> may be a comma-delimited string or $ListBuild list
+ClassMethod ForInternalNames(InternalName As %String) As %Status
+{
+    set list = $select($listvalid(InternalName):InternalName,1:$ListFromString(InternalName))
+    set pointer = 0
+    while $listnext(list,pointer,InternalName) {
+        set mod = ##class(SourceControl.Git.Modification).%New()
+        set mod.internalName = InternalName
+        set mod.externalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+        set mod.changeType = "M"
+        set files($i(files)) = mod
+    }
+    quit ..ForModifications(.files)
+}
+
+}

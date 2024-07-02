@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 'New Branch' menu option in basic now will create new branches from the configured default merge branch (#366)
 - Merging back with the default merge branch is now a part of the basic mode's Sync flow (#366)
 - Added a new option "compileOnImport". If true, Import options will compile files using the pull event handler. (#362)
+- If merge conflicts occur on the production during Sync due to multiple branches all adding business hosts, they will be resolved automatically.
 
 ### Fixed
 - Modifications to local repo files are now synced with IRIS (#153)
@@ -29,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Git operations from the WebUI now don't unlock the session if they aren't read-only
 - Syncing only prompts users for a commit message if there are uncommitted files (#390)
 - WebUI works properly for users with %Developer without needing to add further SQL privileges (#365)
+- Fixed `<UNDEFINED>` error running Import All (#380)
+- Discarding changes now recompiles - critical for productions and some other cases (#387)
 
 ## [2.3.1] - 2024-04-30
 

@@ -90,12 +90,13 @@ Method Resolve() [ Private ]
     if (code '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git commit reported failure"))
     }
+
     set code = ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "rebase", "--continue")
     if (code '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git rebase --continue reported failure"))
     }
     
-    Set ..resolved = 1
+    set ..resolved = 1
 }
 
 /// Non-private to support unit testing

@@ -436,6 +436,9 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
+        do ..RunGitWithArgs(,.outStream, "rev-parse", defaultMergeBranch)
+        set startSha = outStream.ReadLine()
+
         // Start a transaction so code changes can be rolled back
         set initTLevel = $TLevel
         try {
@@ -461,7 +464,11 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         while $TLevel > initTLevel {
             TROLLBACK 1
         }
-        if 'rebased {
+        if rebased {
+            do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "diff", startSha, "HEAD", "--name-status")
+            do ##class(SourceControl.Git.Utils).ParseDiffStream(outStream,,.finalFileSet)
+            do ##class(SourceControl.Git.Utils).SyncIrisWithRepoThroughDiff(.finalFileSet)
+        } else {
             do ..RunGitCommand("rebase",.errStream, .outStream,"--abort")
             do ..PrintStreams(errStream, outStream)
             set alert = "WARNING: Remote branch '"_defaultMergeBranch_"' could not be merged due to conflicts. Changes have been pushed to '"_..GetCurrentBranch()_"' and must be resolved in your git remote. See log for more details."
@@ -1668,29 +1675,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         do ..RunGitCommand("fetch", .errorStream, .outputStream)
         kill errorStream, outputStream
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
-        while (outputStream.AtEnd = 0) {
-            set file = outputStream.ReadLine()
-            set modification = ##class(SourceControl.Git.Modification).%New()
-            set modification.changeType = $piece(file, $c(9), 1)
-            
-            set modification.externalName = $zstrip($piece(file, $c(9), 2),"<W")
-            if $extract(modification.changeType) = "R" {
-                set modification.changeType = "D"
-                set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-                set files($increment(files)) = modification
-                set modification = ##class(SourceControl.Git.Modification).%New()
-                set modification.changeType = "A"
-                set modification.internalName = ""
-                set modification.externalName = $zstrip($piece(file, $c(9), 3),"<W")
-            } elseif (modification.changeType '= "A"){
-                set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-            } else {
-                set modification.internalName = ""
-            }
-            set files($increment(files)) = modification
-            write !, ?4, modification.changeType, ?4, modification.internalName, ?4 , modification.externalName
-        }
-
+        do ..ParseDiffStream(outputStream,,.files)
     }
 
     set outLog = ##class(%Library.File).TempFilename()
@@ -1735,8 +1720,8 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     set deletedFiles = ""
     set addedFiles = ""
     set files = ""
+    do outStream.Rewind()
     while (outStream.AtEnd = 0) {
-
         set line = outStream.ReadLine()
         set lineStart = $piece(line, " ", 2)
         if (lineStart = "delete") || (lineStart = "create") {
@@ -1759,7 +1744,6 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     set deletedFiles = $extract(deletedFiles, 2, *)
     set addedFiles = $extract(addedFiles, 2, *)
 
-
     if (deletedFiles '= ""){
         set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
     }
@@ -1769,6 +1753,35 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
 
     do outStream.Rewind()
     quit ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
+}
+
+ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, Output files)
+{
+    kill files
+    while (stream.AtEnd = 0) {
+        set file = stream.ReadLine()
+        set modification = ##class(SourceControl.Git.Modification).%New()
+        set modification.changeType = $piece(file, $c(9), 1)
+        
+        set modification.externalName = $zstrip($piece(file, $c(9), 2),"<W")
+        if $extract(modification.changeType) = "R" {
+            set modification.changeType = "D"
+            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+            set files($increment(files)) = modification
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "A"
+            set modification.internalName = ""
+            set modification.externalName = $zstrip($piece(file, $c(9), 3),"<W")
+        } elseif (modification.changeType '= "A"){
+            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+        } else {
+            set modification.internalName = ""
+        }
+        set files($increment(files)) = modification
+        if verbose {
+            write !, "    ", modification.changeType, "    ", modification.internalName, "    ", modification.externalName
+        }
+    }
 }
 
 ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status

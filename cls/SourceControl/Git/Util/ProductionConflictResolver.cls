@@ -86,7 +86,7 @@ Method Resolve() [ Private ]
     if (code '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git add reported failure"))
     }
-    set code = ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "commit", "-m", "Auto-resolved conflict on production class")
+    set code = ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "commit", "--no-edit")
     if (code '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git commit reported failure"))
     }

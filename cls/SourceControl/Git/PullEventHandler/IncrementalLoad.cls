@@ -35,7 +35,7 @@ Method OnPull() As %Status
         write !, "Nothing to compile."
         quit $$$OK
     }
-    quit $system.OBJ.CompileList(.compilelist, "cukb")
+    quit $system.OBJ.CompileList(.compilelist, "ck")
 }
 
 Method DeleteFile(item As %String) As %Status

@@ -65,7 +65,7 @@ Method ConsumeStream() [ Private ]
         $$$ThrowStatus($$$ERROR($$$GeneralError,"File with conflict is not a class."))
     }
     Set ..productionClassname = $Piece(internalName,".",1,*-1)
-    If '$$$comClassDefined(..productionClassname) && '$ClassMethod(..productionClassname,"%Extends","Ens.Production") {
+    If '($$$comClassDefined(..productionClassname) && $ClassMethod(..productionClassname,"%Extends","Ens.Production")) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"File with conflict is not an interoperability production."))
     }
 }

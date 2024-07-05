@@ -1686,12 +1686,20 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                         set diffBase = args(i + 2)
                     }
                 }
-            } elseif (args(i) = "restore") || (args(i) = "stash") {
-                // stash list shouldn't trigger anything
-                if ($Get(args(i + 1)) '= "list") {
+            } elseif (args(i) = "restore") {
+                set syncIrisWithDiff = 1
+                set diffCompare = ""
+                set invert = 1
+            } elseif (args(i) = "stash") {
+                set subcommand = $Get(args(i + 1))
+                set whichStash = $Get(args(i + 2))
+                if subcommand = "push" {
                     set syncIrisWithDiff = 1
                     set diffCompare = ""
                     set invert = 1
+                } elseif (subcommand = "pop") || (subcommand = "apply") {
+                    set syncIrisWithDiff = 1
+                    set diffCompare = whichStash
                 }
             } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
                 set syncIrisWithCommand = 1

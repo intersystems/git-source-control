@@ -421,7 +421,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                     var col = 1
                     webui.splitLines(data).forEach(function(line) {
-                        var status = line[col];
+                        var status = line.trim()[col];
                         if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
                             line = line.substring(3);
                             var splitted = line.split(" -> ");
@@ -502,7 +502,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 var col = 1
                 webui.splitLines(data).forEach(function(line) {
-                    var status = line[col];
+                    var status = line.trim()[col];
                     if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
                         line = line.substring(3);
                         var splitted = line.split(" -> ");
@@ -976,8 +976,6 @@ webui.LogView = function(historyView) {
 
             entry.element.webuiLeft = Math.max(entry.element.webuiLeft, streams.length);
             maxLeft = Math.max(maxLeft, entry.element.webuiLeft);
-            // Debug log
-            //console.log(entry.commit, entry.parents, $.extend(true, [], streams));
 
             currentY += self.lineHeight;
         }
@@ -2120,11 +2118,8 @@ webui.WorkspaceView = function(mainView) {
     };
 
     self.update = function(mode) {
-        self.workingCopyView.update();
-        self.stagingAreaView.update();
-        self.commitMessageView.update();
         self.newChangedFilesView.update();
-        if (self.workingCopyView.getSelectedItemsCount() + self.stagingAreaView.getSelectedItemsCount() == 0) {
+        if (self.newChangedFilesView.getSelectedItemsCount() == 0) {
             self.diffView.update(undefined, undefined, undefined, mode);
         }
     };
@@ -2137,368 +2132,8 @@ webui.WorkspaceView = function(mainView) {
     self.diffView = new webui.DiffView(true, true, self);
     workspaceDiffView.appendChild(self.diffView.element);
     var workspaceEditor = $("#workspace-editor", self.element)[0];
-    self.workingCopyView = new webui.ChangedFilesView(self, "working-copy", "Working Copy");
-    // workspaceEditor.appendChild(self.workingCopyView.element);
-    self.commitMessageView = new webui.CommitMessageView(self);
-    // workspaceEditor.appendChild(self.commitMessageView.element);
-    self.stagingAreaView = new webui.ChangedFilesView(self, "staging-area", "Staging Area");
-    // workspaceEditor.appendChild(self.stagingAreaView.element);
-
     self.newChangedFilesView = new webui.NewChangedFilesView(self);
     workspaceEditor.appendChild(self.newChangedFilesView.element);
-};
-
-
-/*
- * == ChangedFilesView ========================================================
- */
-webui.ChangedFilesView = function(workspaceView, type, label) {
-
-    var self = this;
-
-    self.update = function() {
-        $(fileList).empty()
-        var col = type == "working-copy" ? 1 : 0;
-        webui.git("status -u --porcelain", function(data) {
-            $.get("api/uncommitted", function (uncommitted) {
-                var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
-                var otherDeveloperUncommittedItems = JSON.parse(uncommitted)["other users' changes"];
-                self.filesCount = 0;
-                function addItemToFileList(fileList, otherDeveloperUsername, model) {
-                    var isForCurrentUser = otherDeveloperUsername === ""? true : false;
-                    var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
-                    if(isForCurrentUser){
-                        var item = $('<a class="'+cssClass+'">').prependTo(fileList)[0];
-                    }
-                    else{
-                        var item = $('<a class="'+cssClass+'" data-toggle="tooltip" title='+otherDeveloperUsername+'>'+
-                                    webui.peopleIcon).appendTo(fileList)[0];
-                    }
-                    item.model = model;
-                    item.appendChild(document.createTextNode(model));
-                    if (isForCurrentUser) {
-                        $(item).click(self.select);
-                        $(item).dblclick(self.process);
-                    }
-                }
-                webui.splitLines(data).forEach(function(line) {
-                    var indexStatus = line[0];
-                    var workingTreeStatus = line[1];
-                    line = line.substring(3);
-                    var splitted = line.split(" -> ");
-                    var model;
-                    if (splitted.length > 1) {
-                        model = splitted[1];
-                    } else {
-                        model = line;
-                    }
-
-                    var isNotStaged= workingTreeStatus != "D" && workingTreeStatus != " "
-                    var addUnstagedFile = col == 1 && isNotStaged;
-                    var addStagedFile = col == 0 && indexStatus != " " && indexStatus != "?"
-                    if (addUnstagedFile || addStagedFile) {
-                        ++self.filesCount;
-                        var isForCurrentUser;
-                        if(model.indexOf(" ") > -1){
-                            isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
-                        } else {
-                            isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
-                        }
-                        
-                        if (isForCurrentUser) {
-                            addItemToFileList(fileList, "", model);
-                        }
-                    }
-                });
-
-                for (var i = 0, otherDeveloperUncommittedItemsKeys = Object.keys(otherDeveloperUncommittedItems); i < otherDeveloperUncommittedItemsKeys.length; i++) {
-                    var otherDeveloperItem = otherDeveloperUncommittedItemsKeys[i];
-                    for (var j = 0, otherDeveloperUncommittedItem = otherDeveloperUncommittedItems[otherDeveloperItem]; j < otherDeveloperUncommittedItem.length; j++) {
-                        var otherDeveloperUsername = otherDeveloperUncommittedItem[j];
-                        if (col==1) {
-                            addItemToFileList(fileList, otherDeveloperUsername, otherDeveloperItem);
-                        }
-                    }
-                }
-                
-                $(function () {
-                    $('[data-toggle="tooltip"]').tooltip()
-                });
-
-                if (selectedIndex !== null && selectedIndex >= fileList.childElementCount) {
-                    selectedIndex = fileList.childElementCount - 1;
-                    if (selectedIndex == -1) {
-                        selectedIndex = null;
-                    }
-                }
-                if (selectedIndex !== null) {
-                    var selectedNode = fileList.children[selectedIndex];
-                    $(selectedNode).addClass("active");
-                    self.refreshDiff(selectedNode);
-                }
-                fileListContainer.scrollTop = prevScrollTop;
-            });
-        });
-    };
-
-    self.select = function(event) {
-        var clicked = event.target;
-
-        if (event.shiftKey && selectedIndex !== null) {
-            var clickedIndex = webui.getNodeIndex(clicked);
-            if (clickedIndex < selectedIndex) {
-                var from = clickedIndex;
-                var to = selectedIndex;
-            } else {
-                var from = selectedIndex;
-                var to = clickedIndex;
-            }
-            for (var i = from; i <= to; ++i) {
-                $(fileList.children[i]).addClass("active");
-            }
-            selectedIndex = clickedIndex;
-        } else if (event.ctrlKey) {
-            $(clicked).toggleClass("active");
-            selectedIndex = webui.getNodeIndex(clicked);
-        } else {
-            for (var i = 0; i < fileList.childElementCount; ++i) {
-                $(fileList.children[i]).removeClass("active");
-            }
-            $(clicked).addClass("active");
-            selectedIndex = webui.getNodeIndex(clicked);
-        }
-        if (type == "working-copy") {
-            workspaceView.stagingAreaView.unselect();
-        } else {
-            workspaceView.workingCopyView.unselect();
-        }
-        self.refreshDiff(clicked);
-    };
-
-    self.refreshDiff = function(element) {
-        var gitOpts = [];
-        if (type == "staging-area") {
-            gitOpts.push("--cached");
-        }
-        workspaceView.diffView.update("diff", gitOpts, element.model, type == "working-copy" ? "stage" : "unstage");
-    };
-
-    self.unselect = function() {
-        if (selectedIndex !== null) {
-            $(fileList.children[selectedIndex]).removeClass("active");
-            selectedIndex = null;
-        }
-    };
-
-    function confirmActionForUnavailableFile(files, action) {
-        function removeUnavailableModal(popup) {
-            $(popup).children( ".modal-fade").modal('hide');
-            $(".modal-backdrop").remove();
-            $("#confirm-unavailable-staging").remove();
-        }
-
-        var popup = $(  '<div class="modal fade" id="confirm-unavailable-staging" role="dialog">' +
-                            '<div class="modal-dialog modal-md">' +
-                                '<div class="modal-content">' +
-                                    '<div class="modal-header">' +
-                                        '<h5 class="modal-title">Confirm Staging</h5>' +
-                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
-                                        webui.largeXIcon+
-                                        '</button>' +
-                                    '</div>' +
-                                    '<div class="modal-body"></div>' +
-                                '</div>' +
-                            '</div>' +
-                        '</div>')[0];
-        $("body").append(popup); 
-        var popupContent = $(".modal-body", popup)[0];
-        webui.detachChildren(popupContent);
-        $('<div class="row"><div class="col-sm-1">'+
-        webui.warningIcon+
-        '</div>'+
-        '<div class="col-sm-11">The following files were changed by other users. Are you sure you want to ' + action + ' them?</div></div>').appendTo(popupContent);
-
-        files.forEach(function(file, index, array){
-            $('<div class="form-check">'+
-            '<input class="form-check-input" type="checkbox" value="'+ file.model+'" id="file'+index+'" checked>'+
-            '<label class="form-check-label" for="file'+index+'">'+file.model+
-            '</label>'+
-          '</div>').appendTo(popupContent);
-        });
-
-
-        $('<button class="btn btn-sm btn-danger" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substring(1)+'</button>'+
-        '<button class="btn btn-sm btn-secondary" id="cancel-staging">Cancel</button>').appendTo(popupContent);
-        $(popup).modal('show');
-
-        $("#confirm-unavailable-staging").on('click', '#confirm-staging', function(e){
-            var checkedFiles = $("#confirm-unavailable-staging input[type=checkbox]:checked" );
-            for (var i = 0; i < fileList.childElementCount; ++i) {
-                var newChild = fileList.children[i];
-                for (var j = 0 ; j < checkedFiles.length; j++) {
-                    if(newChild.model == $(checkedFiles[j]).val()){
-                        $(newChild).addClass("available");
-                        $(newChild).addClass("active");
-                        $(newChild).removeClass("unavailable");
-                    }
-                }
-            }
-            removeUnavailableModal(popup);
-            if(action == 'discard'){
-                self.cancel();
-            } else if(action == 'stash'){
-                self.stash();
-            }
-            else{
-                self.process();
-            }
-        });
-
-        $("#confirm-unavailable-staging").find("#cancel-staging, .close").click(function() {
-            removeUnavailableModal(popup);
-        });
-    }
-
-    self.getFileList = function(including, excluding, onlyUnavailable, stringifyFilenames) {
-        if(stringifyFilenames || stringifyFilenames == undefined){
-            stringifyFilenames = 1
-            var files = "";
-        }
-        else
-            var files = [];
-
-        if(onlyUnavailable == undefined){
-            onlyUnavailable = 0
-        }
-
-        for (var i = 0; i < fileList.childElementCount; ++i) {
-            var child = fileList.children[i];
-            var included = including == undefined || including.indexOf(child.status) != -1;
-            var excluded = excluding != undefined && excluding.indexOf(child.status) != -1;
-            if ($(child).hasClass("active") && ($(child).hasClass("available")^onlyUnavailable) && included && !excluded) {   
-                if(stringifyFilenames)
-                    files += ((child.model) + ' ');
-                else
-                    files.push(child);
-            }
-        }
-        return files;
-    }
-
-    self.process = function() {
-        var action = type == "working-copy" ? "stage" : "unstage"
-        var files = self.getFileList(undefined, "D", 0);
-        var rmFiles = self.getFileList("D", undefined, 0);
-
-        if (files.length != 0) {
-            var cmd = type == "working-copy" ? "add" : "reset";
-            webui.git(cmd + " -- " + files, function(data) {
-                if (rmFiles.length != 0) {
-                    webui.git("rm -- " + rmFiles, function(data) {
-                        workspaceView.update(action);
-                    });
-                } else {
-                    workspaceView.update(action);
-                }
-            });
-        } else if (rmFiles.length != 0) {
-            var cmd = type == "working-copy" ? "rm" : "reset";
-            webui.git(cmd + " -- " + rmFiles, function(data) {
-                workspaceView.update(action);
-            });
-        }
-    };
-
-    self.processByAvailability = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        self.process();
-
-        var action = type == "working-copy" ? "stage" : "unstage"
-        var files = self.getFileList(undefined, "D", 1, 0);
-        var rmFiles = self.getFileList("D", undefined, 1, 0);
-        var combinedFiles = files.concat(rmFiles);
-
-        if(combinedFiles.length>0)
-            confirmActionForUnavailableFile(combinedFiles, action);
-    }
-
-    self.cancelByAvailability = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        self.cancel();
-
-        var action = "discard"
-        var files = self.getFileList(undefined, undefined, 1, 0);
-        if(files.length>0)
-            confirmActionForUnavailableFile(files, action);
-    }
-
-    self.cancel = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        var files = self.getFileList();
-        if (files.length != 0) {
-            webui.git("checkout -- " + files, function(data) {
-                workspaceView.update("stage");
-            });
-        }
-    }
-
-    self.stashByAvailability = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        self.stash();
-
-        var action = "stash";
-
-        var files = self.getFileList(undefined, "D", 1, 0);
-        var rmFiles = self.getFileList("D", undefined, 1, 0);
-        var combinedFiles = files.concat(rmFiles);
-
-        if(combinedFiles.length>0)
-            confirmActionForUnavailableFile(combinedFiles, action);
-    }
-
-    self.stash = function() {
-        var files = self.getFileList(undefined, "D", 0, 1);
-        var rmFiles = self.getFileList("D", undefined, 0, 1);
-        var combinedFiles = files.concat(rmFiles);
-
-        if(combinedFiles.length != 0){
-            webui.git("stash push --include-untracked -- " + combinedFiles, function(output){
-                webui.showSuccess(output);
-                workspaceView.update("stash");
-            });
-        }
-    }
-
-    self.getSelectedItemsCount = function() {
-        return $(".active", fileList).length;
-    }
-
-    self.element = $(   '<div id="' + type + '-view" class="panel panel-default">' +
-                            '<div class="panel-heading">' +
-                                '<h5>'+ label + '</h5>' +
-                                '<div class="btn-group btn-group-sm"></div>' +
-                            '</div>' +
-                            '<div class="file-list-container">' +
-                                '<div class="list-group"></div>' +
-                            '</div>' +
-                        '</div>')[0];
-    if (type == "working-copy") {
-        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Stash", callback: self.stashByAvailability }, { name: "Cancel", callback: self.cancelByAvailability }];
-    } else {
-        var buttons = [{ name: "Unstage", callback: self.processByAvailability }];
-    }
-    var btnGroup = $(".btn-group", self.element);
-    buttons.forEach(function (btnData) {
-        var btn = $('<button type="button" class="btn btn-default">' + btnData.name + '</button>')
-        btn.appendTo(btnGroup);
-        btn.click(btnData.callback);
-    });
-    var fileListContainer = $(".file-list-container", self.element)[0];
-    var prevScrollTop = fileListContainer.scrollTop;
-    var fileList = $(".list-group", fileListContainer)[0];
-    var selectedIndex = null;
-
-    self.filesCount = 0;
 };
 
 /*
@@ -2524,8 +2159,8 @@ webui.NewChangedFilesView = function(workspaceView) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 self.filesCount = 0;
-                function addItemToFileList(fileList, workingTreeStatus, model, isOtherUserChange) {
-                    
+                
+                function addItemToFileList(fileList, indexStatus, workingTreeStatus, model, isOtherUserChange) {
                     var formCheck;
                     if (isOtherUserChange) {
                         formCheck = $('<div class="form-check changes-check other-user"></div>');
@@ -2534,6 +2169,10 @@ webui.NewChangedFilesView = function(workspaceView) {
                     }
                     
                     formCheck.attr("data-filename", model);
+                    formCheck.attr("data-index-status", indexStatus);
+                    formCheck.attr("data-working-tree-status", workingTreeStatus);
+
+                    var displayStatus = (indexStatus == " ") ? workingTreeStatus : indexStatus;
 
                     var checkboxInput;
                     
@@ -2553,15 +2192,11 @@ webui.NewChangedFilesView = function(workspaceView) {
                         checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
                     }
 
-                    checkboxLabel.addClass(workingTreeStatus);
+                    checkboxLabel.addClass(displayStatus);
                     checkboxLabel.attr('for', model);
                     formCheck.append(checkboxLabel);
 
                     formCheck.prependTo(fileList)[0];
-                    // item.model = model;
-                    // item.appendChild(document.createTextNode(model));
-                    // $(item).click(self.select);
-
                 }
 
                 webui.splitLines(data).forEach(function(line) {
@@ -2576,7 +2211,6 @@ webui.NewChangedFilesView = function(workspaceView) {
                         model = line;
                     }
 
-
                     ++self.filesCount;
                     var isForCurrentUser;
                     if(model.indexOf(" ") > -1){
@@ -2586,9 +2220,9 @@ webui.NewChangedFilesView = function(workspaceView) {
                     }
                     
                     if (isForCurrentUser) {
-                        addItemToFileList(fileList, workingTreeStatus, model, false);
+                        addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
                     } else {
-                        addItemToFileList(fileList, workingTreeStatus, model, true);
+                        addItemToFileList(fileList, indexStatus, workingTreeStatus, model, true);
                     }
                     
                 });
@@ -2603,9 +2237,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 $('.changes-check').on("click", function() {
                     self.unhighlightPrevious();
                     $(this).addClass("diffed-file");
-                    fileToDiff = $(this).attr("data-filename");
-                    self.refreshDiff();
-
+                    self.refreshDiff(this);
                 });
 
                 $('#selectAllFiles').on("change", function() {
@@ -2710,11 +2342,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     
             $('#confirmAction').find('#cancelAction, .close').click(function() {
                 removeWarningModal(popup);
-            })
-    
-    
-    
-
+            });
     }
 
     self.afterFileChecked = function(element) {
@@ -2798,23 +2426,32 @@ webui.NewChangedFilesView = function(workspaceView) {
         $('[data-filename="' + fileToDiff + '"]').removeClass("diffed-file");
     }
 
-    self.refreshDiff = function() {
-        fileToDiff;
-        workspaceView.diffView.update("diff", [], fileToDiff, "stage");
-    }
+    self.refreshDiff = function(element) {
+        var fileToDiff = $(element).attr("data-filename");
+        var indexStatus = $(element).attr("data-index-status");
+        var gitOpts = [];
+        if (indexStatus != " ") {
+            gitOpts.push("--cached");
+        }
+        workspaceView.diffView.update("diff", gitOpts, fileToDiff, "stage");
+    };
 
     self.stash = function() {
         var selectedFilesAsString = selectedItems.join(" ");
-        webui.git("stash push -- " + selectedFilesAsString, function(output){
-            webui.showSuccess(output);
-            workspaceView.update();
+        webui.git("add -- " + selectedFilesAsString, function(output) {
+            webui.git("stash push --include-untracked -- " + selectedFilesAsString, function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            });
         });
     }
 
     self.discard = function() {
         var selectedFilesAsString = selectedItems.join(" ");
-        webui.git("restore -- " + selectedFilesAsString, function() {
-            workspaceView.update();
+        webui.git("add -- " + selectedFilesAsString, function() {
+            webui.git("restore --staged --worktree -- " + selectedFilesAsString, function() {
+                workspaceView.update();
+            });
         });
     }
 
@@ -2859,61 +2496,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     var selectedItems = [];
     var selectedItemsFromOtherUser = [];
     var fileToDiff;
-
 }
-
-/*
- * == CommitMessageView =======================================================
- */
-webui.CommitMessageView = function(workspaceView) {
-
-    var self = this;
-
-    self.onAmend = function() {
-        if (!amend.hasClass("active") && textArea.value.length == 0) {
-            webui.git("log --pretty=format:%B -n 1", function(data) {
-                textArea.value = data;
-            });
-        }
-    };
-
-    self.onCommit = function() {
-        if (workspaceView.stagingAreaView.filesCount == 0 && !amend.hasClass("active")) {
-            webui.showError("No files staged for commit");
-        } else if (textArea.value.length == 0) {
-            webui.showError("Enter a commit message first");
-        } else {
-            var cmd = "commit ";
-            if (amend.hasClass("active")) {
-                cmd += "--amend ";
-            }
-            cmd += "--file=-";
-            webui.git(cmd, textArea.value, function(data) {
-                textArea.value = "";
-                workspaceView.update("stage");
-                amend.removeClass("active");
-            });
-        }
-    }
-
-    self.update = function() {
-    }
-
-    self.element = $(   '<div id="commit-message-view" class="panel panel-default">' +
-                            '<div class="panel-heading">' +
-                                '<h5>Message</h5>' +
-                                '<div class="btn-group btn-group-sm">' +
-                                    '<button type="button" class="btn btn-default commit-message-amend" data-toggle="button">Amend</button>' +
-                                    '<button type="button" class="btn btn-default commit-message-commit">Commit</button>' +
-                                '</div>' +
-                            '</div>' +
-                            '<textarea></textarea>' +
-                        '</div>')[0];
-    var textArea = $("textarea", self.element)[0];
-    var amend = $(".commit-message-amend", self.element);
-    amend.click(self.onAmend);
-    $(".commit-message-commit", self.element).click(self.onCommit);
-};
 
 /*
  *  == Initialization =========================================================

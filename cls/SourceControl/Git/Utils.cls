@@ -1633,18 +1633,23 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set diffBase = ""
     set diffCompare = ""
 
-    if (command = "checkout"){
+    if (command = "checkout") {
         set syncIrisWithDiff = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
         }
-    } elseif (command = "merge") || (command = "rebase")  || (command = "pull"){
+    } elseif (command = "restore") {
+        // Leave diffCompare empty, this actually does the right thing.
+        set syncIrisWithDiff = 1
+    } elseif (command = "merge") || (command = "rebase")  || (command = "pull") {
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
         }
     }
     
+    // WebUI prefixes with "color.ui=true" so we need to grab the command
+    // from later in the args... array
     for i=1:1:$get(args) {
         if ($data(args(i))) {
             set newArgs($increment(newArgs)) = args(i)
@@ -1655,6 +1660,9 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 if args = (i + 2) {
                     set diffBase = args(i + 2)
                 }
+            } elseif (args(i) = "restore") || (args(i) = "stash") {
+                set syncIrisWithDiff = 1
+                set diffCompare = ""
             } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
                 set syncIrisWithCommand = 1
                 set diffCompare = args(i + 1)

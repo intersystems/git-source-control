@@ -4,7 +4,6 @@ Class SourceControl.Git.API
 /// Configures settings for Git integration
 ClassMethod Configure()
 {
-    //
     set sc = $$$OK
     set initTLevel = $tlevel
     try {

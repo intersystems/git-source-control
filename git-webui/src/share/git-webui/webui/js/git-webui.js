@@ -72,6 +72,7 @@ $.get("api/settings", function(settingsURL){
 webui.showSuccess = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
+    
     $(  '<div class="alert alert-success alert-dismissible" role="alert">' +
             '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
             webui.largeXIcon+
@@ -88,6 +89,19 @@ webui.showError = function(message) {
 webui.showWarning = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
+
+    // convert links in message into actual html links
+    var messageAsArr = message.split(" ");
+    messageAsArr = messageAsArr.map(function(messagePart){
+        if (messagePart.startsWith("https://")) {
+            return '<a href="' + messagePart + '" target="_blank">' + messagePart + '</a>';
+        } else {
+            return messagePart;
+        }
+    });
+    message = messageAsArr.join(" ")
+
+
     $(  '<div class="alert alert-warning alert-dismissible" role="alert">' +
             '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
             webui.largeXIcon+

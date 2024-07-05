@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Items mapped from database other than namespace's default routine database are now ignored by default when exporting or adding files
 - New setting to configure whether mapped items should be should be treated as read-only
 - Added a basic mode to automatically perform functionality expected in basic use cases (#349)
-- New sync operation for basic mode that fetches, pulls, commits and then pushes (#349)
+- New sync operation for basic mode that fetches, pulls, commits, pushes, rebases, and pushes again (#349)
+- "Sync" operation in basic mode automatically resolves the class of merge conflict common in production classes where multiple independent items are added in different feature branches
 - Now skips files belonging to other git enabled packages in `##class(SourceControl.Git.Change).RefreshUncommitted()` (#347)
 - Added a new "Branch" parameter to `##class(SourceControl.Git.PullEventHandler)` (#351)
 - Command-line utility to do a baseline export of items in a namespace
@@ -30,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Git operations from the WebUI now don't unlock the session if they aren't read-only
 - WebUI works properly for users with %Developer without needing to add further SQL privileges (#365, #358)
 - Uncommitted deletes are shown in WebUI (#395)
+- Syncing only prompts users for a commit message if there are uncommitted files (#390)
+- WebUI works properly for users with %Developer without needing to add further SQL privileges (#365)
+- Fixed `<UNDEFINED>` error running Import All (#380)
+- Discarding changes now recompiles - critical for productions and some other cases (#387)
 
 ## [2.3.1] - 2024-04-30
 

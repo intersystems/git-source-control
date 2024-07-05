@@ -913,11 +913,17 @@ body {
   position: absolute;
   right: 5px;
 }
+#changedFilesContainer .file-area .other-user-label svg {
+  margin-right: 5px;
+}
 #changedFilesContainer .commit-area {
   padding-top: 15px;
 }
 #changedFilesContainer .commit-area .button-group .btn {
   margin-right: 5px;
+}
+#confirmAction li {
+  margin-left: 20%;
 }
 #commit-explorer-view #commit-explorer-navigator-view .panel .panel-body {
   flex: 1 1 0px;

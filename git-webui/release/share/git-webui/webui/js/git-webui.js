@@ -2327,8 +2327,8 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
         });
 
 
-        $('<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substring(1)+'</button>'+
-        '<button class="btn btn-sm btn-secondary float-right" id="cancel-staging">Cancel</button>').appendTo(popupContent);
+        $('<button class="btn btn-sm btn-danger" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substring(1)+'</button>'+
+        '<button class="btn btn-sm btn-secondary" id="cancel-staging">Cancel</button>').appendTo(popupContent);
         $(popup).modal('show');
 
         $("#confirm-unavailable-staging").on('click', '#confirm-staging', function(e){
@@ -2512,6 +2512,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     self.update = function() {
         $(fileList).empty();
         selectedItems = [];
+        selectedItemsFromOtherUser = [];
         $('#stashBtn').prop("disabled", true);
         $('#discardBtn').prop("disabled", true);
         $('#commitBtn').prop("disabled", true);
@@ -2523,15 +2524,35 @@ webui.NewChangedFilesView = function(workspaceView) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 self.filesCount = 0;
-                function addItemToFileList(fileList, workingTreeStatus, model) {
-                    var formCheck = $('<div class="form-check changes-check"></div>');
+                function addItemToFileList(fileList, workingTreeStatus, model, isOtherUserChange) {
+                    
+                    var formCheck;
+                    if (isOtherUserChange) {
+                        formCheck = $('<div class="form-check changes-check other-user"></div>');
+                    } else {
+                        formCheck = $('<div class="form-check changes-check"></div>');
+                    }
+                    
                     formCheck.attr("data-filename", model);
 
-                    var checkboxInput = $('<input class="form-check-input changes-checkbox" type="checkbox" value="">');
+                    var checkboxInput;
+                    
+                    if (isOtherUserChange) {
+                        checkboxInput = $('<input class="form-check-input changes-checkbox other-user" type="checkbox" value="">');
+                    } else {
+                        checkboxInput = $('<input class="form-check-input changes-checkbox" type="checkbox" value="">');
+                    }
+                    
                     checkboxInput.attr('id', model);
                     formCheck.append(checkboxInput);
 
-                    var checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
+                    var checkboxLabel;
+                    if (isOtherUserChange) {
+                        checkboxLabel = $('<label class="form-check-label file-item-label other-user-label" data-toggle="tooltip" title="File changed by another user">' + webui.peopleIcon +'</label>').append(model);
+                    } else {
+                        checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
+                    }
+
                     checkboxLabel.addClass(workingTreeStatus);
                     checkboxLabel.attr('for', model);
                     formCheck.append(checkboxLabel);
@@ -2542,6 +2563,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     // $(item).click(self.select);
 
                 }
+
                 webui.splitLines(data).forEach(function(line) {
                     var indexStatus = line[0];
                     var workingTreeStatus = line[1];
@@ -2564,7 +2586,9 @@ webui.NewChangedFilesView = function(workspaceView) {
                     }
                     
                     if (isForCurrentUser) {
-                        addItemToFileList(fileList, workingTreeStatus, model);
+                        addItemToFileList(fileList, workingTreeStatus, model, false);
+                    } else {
+                        addItemToFileList(fileList, workingTreeStatus, model, true);
                     }
                     
                 });
@@ -2593,21 +2617,104 @@ webui.NewChangedFilesView = function(workspaceView) {
                 });
                 $("#commitBtn").off("click");
                 $("#commitBtn").on("click", function() {
-                    var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val()
-                    self.commit(commitMessage);
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("commit");
+                    } else {
+                        var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val();
+                        self.commit(commitMessage);
+                    }
+                    
                 });
 
                 $("#discardBtn").off("click");
                 $("#discardBtn").on("click", function() {
-                    self.discard();
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("discard");
+                    } else {
+                        self.discard();
+                    }
                 });
 
                 $("#stashBtn").off("click");
                 $("#stashBtn").on("click", function() {
-                    self.stash();
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("stash");
+                    } else {
+                        self.stash();
+                    }
+                    
                 });
             });
         });
+    }
+
+    self.confirmActionOnOtherUsersChanges = function(action) {
+            function removeWarningModal(popup) {
+                $(popup).children(".modal-fade").modal("hide");
+                $(".modal-backdrop").remove();
+                $("#confirmAction").remove();
+            }
+    
+            var popup = $(  '<div class="modal fade" tab-index="-1" id="confirmAction" role="dialog" data-backdrop="static">' +
+                                '<div class="modal-dialog modal-md" role="document">' +
+                                    '<div class="modal-content">' +
+                                        '<div class="modal-header">' +
+                                            '<h5 class="modal-title">Confirm ' + action + '</h5>' +
+                                            '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                            webui.largeXIcon+
+                                            '</button>' +
+                                        '</div>' +
+                                        '<div class="modal-body"></div>' +
+                                        '<div class="modal-footer"></div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>')[0];
+            $("body").append(popup);
+            var popupContent = $(".modal-body", popup)[0];
+            webui.detachChildren(popupContent);
+    
+    
+            $('<div class="row"><div class="col-sm-1">'+
+            webui.warningIcon+
+            '</div>'+
+            '<div class="col-sm-11">The following files were changed by other users. Are you sure you want to ' + action + ' them?</div></div><ul>').appendTo(popupContent);
+    
+            selectedItemsFromOtherUser.forEach(function(file){
+                $('<li>'+ file +'</li>').appendTo(popupContent);
+            });
+    
+            $('</ul>').appendTo(popupContent);
+    
+            var popupFooter = $(".modal-footer", popup)[0];
+            webui.detachChildren(popupFooter);
+    
+            
+    
+            $('<button class="btn btn-sm btn-warning action-btn" id="confirmActionBtn">' + action.charAt(0).toUpperCase()+action.substring(1) + '</button>' +
+              '<button class="btn btn-sm btn-secondary action-btn" id="cancelActionBtn">Cancel</button>').appendTo(popupFooter);
+            
+            $(popup).modal('show');
+    
+
+            $('#confirmActionBtn').on('click', function() {
+                removeWarningModal(popup);
+                if (action == "commit") {
+                    var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val();
+                    self.commit(commitMessage);
+                } else if (action == "discard") {
+                    self.discard();
+                } else if (action == "stash") {
+                    self.stash();
+                }
+            });
+    
+            $('#confirmAction').find('#cancelAction, .close').click(function() {
+                removeWarningModal(popup);
+            })
+    
+    
+    
+
     }
 
     self.afterFileChecked = function(element) {
@@ -2617,13 +2724,22 @@ webui.NewChangedFilesView = function(workspaceView) {
             if (fileIndex == -1) {
                 selectedItems.push(fileName);
             }
-            if (selectedItems.length == Array.from(fileList.children).length) {
+
+            if ($(element).hasClass("other-user") && (selectedItemsFromOtherUser.indexOf(fileName) == -1)) {
+                selectedItemsFromOtherUser.push(fileName);
+            }
+
+            if (selectedItems.length == Array.prototype.slice.call(fileList.children).length) {
                 $('#selectAllFiles').prop('checked', true);
             } 
         } else {
             $('#selectAllFiles').prop('checked', false);
             if (fileIndex > -1) {
                 selectedItems.splice(fileIndex, 1);
+            }
+
+            if ($(element).hasClass("other-user") && (selectedItemsFromOtherUser.indexOf(fileName) > -1)) {
+                selectedItemsFromOtherUser.splice(selectedItems.indexOf(fileName), 1);
             }
         }
         self.updateButtons();
@@ -2665,16 +2781,16 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.selectAll = function() {
-        Array.from(fileList.children).forEach(function(fileDiv, index) {
+        Array.prototype.slice.call(fileList.children).forEach(function(fileDiv, index) {
             fileDiv.children[0].checked = true;
             self.afterFileChecked(fileDiv.children[0]);
         });
     }
 
     self.deselectAll = function() {
-        Array.from(fileList.children).forEach(function(fileDiv, index) {
+        Array.prototype.slice.call(fileList.children).forEach(function(fileDiv, index) {
             fileDiv.children[0].checked = false;
-            self.afterFileChecked(fileDiv.children[0])
+            self.afterFileChecked(fileDiv.children[0]);
         });
     }
 
@@ -2697,17 +2813,18 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.discard = function() {
         var selectedFilesAsString = selectedItems.join(" ");
-        webui.git("restore -- " + selectedFilesAsString, function(output) {
+        webui.git("restore -- " + selectedFilesAsString, function() {
             workspaceView.update();
         });
     }
 
     self.commit = function(message) {
         var selectedFilesAsString = selectedItems.join(" ");
+
         webui.git("add " + selectedFilesAsString);
         webui.git('commit -m "' + message + '" -- ' + selectedFilesAsString, function(output) {
             webui.showSuccess(output);
-            workspaceView.update()
+            workspaceView.update();
         });
     }
 
@@ -2740,6 +2857,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     var fileListContainer = $(".file-area", self.element)[0];
     var fileList = $(".changed-files-list", fileListContainer)[0];
     var selectedItems = [];
+    var selectedItemsFromOtherUser = [];
     var fileToDiff;
 
 }

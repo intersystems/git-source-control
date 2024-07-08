@@ -2252,8 +2252,8 @@ webui.NewChangedFilesView = function(workspaceView) {
                     if (selectedItemsFromOtherUser.length > 0) {
                         self.confirmActionOnOtherUsersChanges("commit");
                     } else {
-                        var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val();
-                        self.commit(commitMessage);
+                        var commitMessage = $('#commitMsg').val();
+                        self.commit(commitMessage, $("#commitMsgDetail").val());
                     }
                     
                 });
@@ -2455,11 +2455,11 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     }
 
-    self.commit = function(message) {
+    self.commit = function(message, details) {
         var selectedFilesAsString = selectedItems.join(" ");
 
         webui.git("add " + selectedFilesAsString);
-        webui.git('commit -m "' + message + '" -- ' + selectedFilesAsString, function(output) {
+        webui.git('commit -m "' + message + '" -m "' + details + '" -- ' + selectedFilesAsString, function(output) {
             webui.showSuccess(output);
             workspaceView.update();
         });

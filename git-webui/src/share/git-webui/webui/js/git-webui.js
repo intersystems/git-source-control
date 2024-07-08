@@ -2354,7 +2354,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 }
             });
     
-            $('#confirmAction').find('#cancelAction, .close').click(function() {
+            $('#confirmAction').find('#cancelActionBtn, .close').click(function() {
                 removeWarningModal(popup);
             });
     }

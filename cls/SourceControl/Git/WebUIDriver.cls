@@ -89,25 +89,16 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             SimpleHTTPRequestHandler.do_POST(self)
             */
             if (pathStart = "git") {
-                set reference = "%request.Data"
-                for {
-                    set reference = $query(@reference)
-                    quit:reference=""
-                    if $qsubscript(reference,3)="O" {
-                        set args(@reference)=$qsubscript(reference,1)
-                        if $data(%request.Data($qsubscript(reference,1),$qsubscript(reference,2)),argValue)#2 && (argValue '= "") {
-                            set args(@reference)=args(@reference)_"="_argValue
-                        }
-                    }
-                }
+                merge data = %request.Data 
+                set args = data("command",1)
                 
                 // Problem: args(1) might contain $c(10) followed by our stdin value
-                if $data(args(1))#2 {
-                    set stdin = $piece(args(1),$char(10),2,*)
-                    set args(1) = $piece(args(1),$char(10))
+                if $data(args)#2 {
+                    set stdin = $piece(args,$char(10),2,*)
+                    set args = $piece(args,$char(10))
                 }
                 set readOnlyCommands = $listbuild("branch","tag","log","ls-files","ls-tree","show","status","diff")
-                set baseCommand = $Piece(args(1)," ")
+                set baseCommand = $Piece(args," ")
                 
                 if $listfind(readOnlyCommands,baseCommand) {
                     do %session.Unlock()
@@ -117,7 +108,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
 
                 // TODO: Don't be lazy! Implement shlex.split in ObjectScript.
                 // The below is just a little bit cheesy.
-                set argList = $listfromstring(args(1)," ")
+                set argList = $listfromstring(args," ")
                 set pointer = 0
                 set inQuotedString = 0
                 while $listnext(argList,pointer,arg) {

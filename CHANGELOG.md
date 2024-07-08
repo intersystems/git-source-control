@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebUI works properly for users with %Developer without needing to add further SQL privileges (#365)
 - Fixed `<UNDEFINED>` error running Import All (#380)
 - Discarding changes now recompiles - critical for productions and some other cases (#387)
+- Special characters in WebUI git commands now result in the command being executed properly (#369)
 
 ## [2.3.1] - 2024-04-30
 

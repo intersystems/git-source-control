@@ -1602,9 +1602,10 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
 {
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
+    set tempFolder = ..TempFolder()
     if (command '= "--version") {
         set newArgs($increment(newArgs)) = "-C"
-        set newArgs($increment(newArgs)) = ..TempFolder()
+        set newArgs($increment(newArgs)) = tempFolder
 
         set privateKeyFile = ..PrivateKeyFile()
         if (privateKeyFile '= "") {
@@ -1632,34 +1633,90 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output
     set diffBase = ""
     set diffCompare = ""
+    set invert = 0
+    set whichStash = ""
 
-    if (command = "checkout"){
+    // Find / build file list
+    set hasFileList = 0
+    for i=1:1:$get(args) {
+        if $data(args(i),arg)#2 {
+            if hasFileList {
+                if arg [ tempFolder {
+                    set relativeFile = $Piece(arg,tempFolder,2)
+                } else {
+                    set relativeFile = arg
+                }
+                if (relativeFile '= "") {
+                    set filterToFiles(relativeFile) = ""
+                }
+            } elseif arg = "--" {
+                set hasFileList = 1
+            }
+        }
+    }
+
+    if (command = "checkout") {
         set syncIrisWithDiff = 1
-        if $data(args) && $data(args(args),diffCompare) {
+        if hasFileList {
+            set invert = 1
+        } elseif $data(args) && $data(args(args),diffCompare) {
             // no-op
         }
-    } elseif (command = "merge") || (command = "rebase")  || (command = "pull"){
+    } elseif (command = "restore") {
+        // Leave diffCompare empty, this actually does the right thing.
+        set syncIrisWithDiff = 1
+    } elseif (command = "merge") || (command = "rebase")  || (command = "pull") {
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
         }
+    } elseif (command = "stash") {
+        set subcommand = $Get(args(1))
+        set whichStash = $Get(args(2))
+        if subcommand = "push" {
+            set syncIrisWithDiff = 1
+            set diffCompare = ""
+            set invert = 1
+        } elseif (subcommand = "pop") || (subcommand = "apply") {
+            set syncIrisWithDiff = 1
+            set diffCompare = whichStash
+        }
     }
     
+    // WebUI prefixes with "color.ui=true" so we need to grab the command
+    // from later in the args... array
     for i=1:1:$get(args) {
         if ($data(args(i))) {
             set newArgs($increment(newArgs)) = args(i)
             if (args(i) = "checkout") {
                 set syncIrisWithDiff = 1
-                set diffCompare = args(i + 1)
-                
-                if args = (i + 2) {
-                    set diffBase = args(i + 2)
+                if hasFileList {
+                    set invert = 1
+                } else {
+                    set diffCompare = args(i + 1)
+                    if args = (i + 2) {
+                        set diffBase = args(i + 2)
+                    }
+                }
+            } elseif (args(i) = "restore") {
+                set syncIrisWithDiff = 1
+                set diffCompare = ""
+                set invert = 1
+            } elseif (args(i) = "stash") {
+                set subcommand = $Get(args(i + 1))
+                set whichStash = $Get(args(i + 2))
+                if subcommand = "push" {
+                    set syncIrisWithDiff = 1
+                    set diffCompare = ""
+                    set invert = 1
+                } elseif (subcommand = "pop") || (subcommand = "apply") {
+                    set syncIrisWithDiff = 1
+                    set diffCompare = whichStash
                 }
             } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
                 set syncIrisWithCommand = 1
                 set diffCompare = args(i + 1)
             }
-
         }
     }
 
@@ -1672,6 +1729,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
+
         do ..RunGitCommand("fetch", .errorStream, .outputStream)
         kill errorStream, outputStream
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
@@ -1707,7 +1765,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if syncIrisWithDiff {
         do ..PrintStreams(errStream, outStream)
-        $$$ThrowOnError(..SyncIrisWithRepoThroughDiff(.files))
+        $$$ThrowOnError(..SyncIrisWithRepoThroughDiff(.files, .filterToFiles, invert))
     } elseif syncIrisWithCommand {
         do ..PrintStreams(errStream, outStream)
         $$$ThrowOnError(..SyncIrisWithRepoThroughCommand(.outStream))
@@ -1772,10 +1830,8 @@ ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, O
             set modification.changeType = "A"
             set modification.internalName = ""
             set modification.externalName = $zstrip($piece(file, $c(9), 3),"<W")
-        } elseif (modification.changeType '= "A"){
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
         } else {
-            set modification.internalName = ""
+            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
         }
         set files($increment(files)) = modification
         if verbose {
@@ -1784,18 +1840,34 @@ ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, O
     }
 }
 
-ClassMethod SyncIrisWithRepoThroughDiff(ByRef files) As %Status
+ClassMethod SyncIrisWithRepoThroughDiff(ByRef files, ByRef filterToFiles, invert As %Boolean = 0) As %Status
 {
+    if invert {
+        // Change A <-> D
+        set key = ""
+        for {
+            set key = $order(files(key),1,modification)
+            quit:key=""
+            if '$data(filterToFiles(modification.externalName)) {
+                continue
+            }
+            set modification.changeType = $translate(modification.changeType,"DA","AD")
+            set realFiles($increment(realFiles)) = modification
+        }
+        kill files
+        merge files = realFiles
+    }
+
     set key = $order(files(""))
     set deletedFiles = ""
     set addedFiles = ""
     while (key '= "") {
         set modification = files(key)
-        if (modification.changeType = "D"){
+        if (modification.changeType = "D") {
             if (modification.internalName '= "") {
                 set deletedFiles = deletedFiles_","_modification.internalName
             }
-        } elseif (modification.changeType = "A"){
+        } elseif (modification.changeType = "A") {
             set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
             if (modification.internalName '= "") {
                 set addedFiles = addedFiles_","_modification.internalName

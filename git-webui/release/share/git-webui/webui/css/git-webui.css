@@ -857,6 +857,74 @@ body {
 #workspace-view .diff-line-offset {
   cursor: pointer;
 }
+#changedFilesContainer {
+  max-width: 100% !important;
+  margin: 0 10px;
+  overflow-y: auto;
+}
+#changedFilesContainer .file-area {
+  padding-top: 15px;
+}
+#changedFilesContainer .file-area .select-all {
+  border-bottom: 1px solid lightgray;
+}
+#changedFilesContainer .file-area .select-all .form-check-label {
+  font-size: 1rem;
+  padding-top: 1px;
+  padding-left: 8px;
+}
+#changedFilesContainer .file-area .select-all .form-check-input {
+  margin-bottom: 2px;
+}
+#changedFilesContainer .file-area .diffed-file {
+  background-color: #7fceff;
+}
+#changedFilesContainer .file-area .form-check {
+  padding: 3px 5px 3px 15px;
+}
+#changedFilesContainer .file-area .changes-check:hover {
+  background-color: rgba(61, 174, 253, 0.2);
+}
+#changedFilesContainer .file-area .file-item-label {
+  padding-top: 1px;
+  padding-left: 8px;
+  font-size: 1rem;
+}
+#changedFilesContainer .file-area .form-check-input {
+  margin-left: -12px !important;
+}
+#changedFilesContainer .file-area .A::after {
+  content: "Added";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .D::after {
+  content: "Deleted";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .M::after {
+  content: "Modified";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .R::after {
+  content: "Renamed";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .other-user-label svg {
+  margin-right: 5px;
+}
+#changedFilesContainer .commit-area {
+  padding-top: 15px;
+}
+#changedFilesContainer .commit-area .button-group .btn {
+  margin-right: 5px;
+}
+#confirmAction li {
+  margin-left: 20%;
+}
 #commit-explorer-view #commit-explorer-navigator-view .panel .panel-body {
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;

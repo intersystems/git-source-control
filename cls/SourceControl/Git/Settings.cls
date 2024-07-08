@@ -29,7 +29,7 @@ Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(Sou
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()} ];
 
-/// Attribution: Whether mapped items should be read-only, preventing them from being added to source control
+/// Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
 /// Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
@@ -41,10 +41,10 @@ Property userBasicMode As %String [ InitialExpression = {##class(SourceControl.G
 /// The system's default mode. If true, the system defaults to basic mode
 Property systemBasicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SystemBasicMode()} ];
 
-/// In Basic mode, Sync will merge changes from this remote branch
+/// Branch from which Sync will merge changes, in basic mode
 Property defaultMergeBranch As %String [ InitialExpression = {##class(SourceControl.Git.Utils).DefaultMergeBranch()} ];
 
-/// Import All options compile imported options using the configured pull event handler
+/// Compile using the configured pull event handler when "Import All" is run
 Property compileOnImport As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).CompileOnImport()} ];
 
 Property Mappings [ MultiDimensional ];

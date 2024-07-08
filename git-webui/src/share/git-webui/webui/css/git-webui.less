@@ -828,6 +828,100 @@ body {
     }
 }
 
+#changedFilesContainer {
+    max-width: 100% !important;
+    margin: 0 10px;
+    overflow-y: auto;
+    .file-area {
+        // padding-left: 20px;
+        padding-top: 15px;
+
+        .select-all {
+
+            .form-check-label {
+                font-size: 1rem;
+                padding-top: 1px;
+                padding-left: 8px;
+            }
+
+            .form-check-input {
+                margin-bottom: 2px;
+            }
+            
+            border-bottom: 1px solid lightgray;
+        }
+
+        .diffed-file {
+            background-color: #7fceff;
+        }
+
+        
+
+        .form-check {
+            padding: 3px 5px 3px 15px;
+        }
+        
+        .changes-check:hover {
+            background-color: rgba(61, 174, 253, 0.2);
+        }
+
+        .file-item-label {
+            padding-top: 1px;
+            padding-left: 8px;
+            font-size: 1rem;
+
+        }
+
+        .form-check-input {
+            margin-left: -12px !important;
+        }
+        .A::after {
+            content: "Added";
+            position: absolute;
+            right: 5px;
+        }
+
+        .D::after {
+            content: "Deleted";
+            position: absolute;
+            right: 5px;
+        }
+
+        .M::after {
+            content: "Modified";
+            position: absolute;
+            right: 5px;
+        }
+
+        .R::after {
+            content: "Renamed";
+            position: absolute;
+            right: 5px;
+        }
+
+        .other-user-label svg {
+            margin-right: 5px;
+        }
+        
+    }
+
+    .commit-area {
+        padding-top: 15px;
+
+        .button-group {
+            .btn {
+                margin-right: 5px;
+            }
+        }
+    }
+}
+
+#confirmAction {
+    li {
+        margin-left: 20%;
+    }
+}
+
 #commit-explorer-view {
     #commit-explorer-navigator-view {
         .panel {

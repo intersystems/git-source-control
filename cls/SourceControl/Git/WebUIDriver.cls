@@ -91,18 +91,6 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             if (pathStart = "git") {
                 merge data = %request.Data 
                 set args = data("command",1)
-                #; for {
-                #;     set reference = $query(@reference)
-                #;     merge ^mtempref($i(^mtempref)) = reference
-                #;     quit:reference=""
-                #;     if $qsubscript(reference,3)="O" {
-                #;         set args(@reference)=$qsubscript(reference,1)
-                #;         if $data(%request.Data($qsubscript(reference,1),$qsubscript(reference,2)),argValue)#2 && (argValue '= "") {
-                #;             set args(@reference)=args(@reference)_"="_argValue
-                #;         }
-                #;     }
-                #; }
-
                 
                 // Problem: args(1) might contain $c(10) followed by our stdin value
                 if $data(args)#2 {

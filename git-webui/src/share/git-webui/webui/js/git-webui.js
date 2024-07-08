@@ -119,7 +119,7 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
         var warningCallback = arg4;
     } 
 
-    $.post("git", cmd, function(data, status, xhr) {
+    $.post("git", {command: cmd}, function(data, status, xhr) {
         if (xhr.status == 200) {
             // Convention : last lines are footer meta data like headers. An empty line marks the start if the footers
             var footers = {};

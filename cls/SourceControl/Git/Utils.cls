@@ -552,7 +552,7 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
     kill errStream, outStream
-    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote)
+    set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     
     w !, "Pull ran with return code: " _ returnCode
     quit $$$OK

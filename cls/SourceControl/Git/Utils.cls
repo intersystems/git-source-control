@@ -1779,6 +1779,7 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     set addedFiles = ""
     set files = ""
     do outStream.Rewind()
+    // future: a less fragile way to do this is by running "git log" to list files changed in previous commit
     while (outStream.AtEnd = 0) {
         set line = outStream.ReadLine()
         set lineStart = $piece(line, " ", 2)
@@ -1796,6 +1797,13 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
             } else {
                 set deletedFiles = deletedFiles_","_internalName
             }
+        } elseif (line [ "|") {
+            set externalName = $zstrip($piece(line,"|",1),"<>W")
+            set modification = ##class(SourceControl.Git.Modification).%New()
+            set modification.changeType = "C"
+            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
+            set modification.externalName = externalName
+            set files($i(files)) = modification
         }
     }
     
@@ -2536,4 +2544,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

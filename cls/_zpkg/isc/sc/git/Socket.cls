@@ -16,6 +16,7 @@ ClassMethod Run()
 		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
 		kill errStream, outStream
 		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "log", "HEAD..origin", "--name-status")
+		do ##class(SourceControl.Git.Utils).PrintStreams(errStream, outStream)
      } ElseIf %request.Get("method") = "pull" {
          Do ##class(SourceControl.Git.API).Pull()
      } ElseIf %request.Get("method") = "init" {
@@ -194,4 +195,3 @@ Method SendJSON(pObject As %DynamicAbstractObject)
 }
 
 }
-

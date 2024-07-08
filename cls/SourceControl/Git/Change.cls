@@ -44,9 +44,7 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
             set changeSourceClass=##class(%Studio.SourceControl.Interface).SourceControlClassGet()
         }
         if ('$get(^SYS("SourceControl","ChangeConfig","KeepHistory")))||(Revert) {
-            if (obj.ChangedBy = $username) {
-                set sc=..%DeleteId(obj.%Id())
-            }
+            set sc=..%DeleteId(obj.%Id())
         } else {
             if $get(CommitCCR)'="" set obj.CCR=CommitCCR
             set obj.P4Issued=$zdatetime($h,3)
@@ -112,6 +110,7 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
 ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
 {
+    
     set lock = $System.AutoLock.Lock("^SourceControl.Git.Refresh",,10)
     if lock = $$$NULLOREF {
         quit $$$ERROR($$$GeneralError,"Unable to get exclusive lock for refresh of uncommitted changes.")

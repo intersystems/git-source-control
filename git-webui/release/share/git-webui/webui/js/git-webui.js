@@ -90,6 +90,7 @@ webui.showWarning = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
 
+    // convert links in message into actual html links
     var messageAsArr = message.split(" ");
     messageAsArr = messageAsArr.map(function(messagePart){
         if (messagePart.startsWith("https://")) {
@@ -99,6 +100,8 @@ webui.showWarning = function(message) {
         }
     });
     message = messageAsArr.join(" ")
+
+
     $(  '<div class="alert alert-warning alert-dismissible" role="alert">' +
             '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
             webui.largeXIcon+

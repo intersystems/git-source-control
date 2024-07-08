@@ -159,7 +159,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 if '$listfind(readOnlyCommands,baseCommand) {
-                    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
                 set handled = 1
             }

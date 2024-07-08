@@ -1634,6 +1634,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set diffBase = ""
     set diffCompare = ""
     set invert = 0
+    set whichStash = ""
 
     // Find / build file list
     set hasFileList = 0
@@ -1668,6 +1669,17 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
+        }
+    } elseif (command = "stash") {
+        set subcommand = $Get(args(1))
+        set whichStash = $Get(args(2))
+        if subcommand = "push" {
+            set syncIrisWithDiff = 1
+            set diffCompare = ""
+            set invert = 1
+        } elseif (subcommand = "pop") || (subcommand = "apply") {
+            set syncIrisWithDiff = 1
+            set diffCompare = whichStash
         }
     }
     

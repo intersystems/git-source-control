@@ -2423,17 +2423,17 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.unhighlightPrevious = function(){
-        $('[data-filename="' + fileToDiff + '"]').removeClass("diffed-file");
+        $('[data-filename="' + self.fileToDiff + '"]').removeClass("diffed-file");
     }
 
     self.refreshDiff = function(element) {
-        var fileToDiff = $(element).attr("data-filename");
+        self.fileToDiff = $(element).attr("data-filename");
         var indexStatus = $(element).attr("data-index-status");
         var gitOpts = [];
         if (indexStatus != " ") {
             gitOpts.push("--cached");
         }
-        workspaceView.diffView.update("diff", gitOpts, fileToDiff, "stage");
+        workspaceView.diffView.update("diff", gitOpts, self.fileToDiff, "stage");
     };
 
     self.stash = function() {

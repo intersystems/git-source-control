@@ -906,7 +906,8 @@ ClassMethod IsCspFolder(InternalName As %String) As %Boolean
 /// pkg -- package<br/>
 /// prj -- project<br/>
 /// csp -- csp-page or csp-folder. See <Method>IsCspFolder</Method><br/>
-/// csp -- any static file from csp-folder 
+/// csp -- any static file from csp-folder <br/>
+/// ptd -- interoperability production configuration item
 ClassMethod Type(InternalName As %String) As %String
 {
     #dim extension as %String = $zconvert($piece(InternalName,".",$length(InternalName,".")),"L")
@@ -1483,12 +1484,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
     }elseif (type = "csp") && ..IsCspFolder(InternalName) {
         $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force, .filenames))
     }else {
-        // for now, if this is a production class and production decomposition is enabled, don't worry about timestamps.
-        if ..ItemIsProductionToDecompose(InternalName) {
-            write !, "exporting decomposed production ", InternalName
-            set name = 	$piece(InternalName,".",1,*-1)
-            $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportProduction(name, "FullExternalName"))
-        } elseif ..IsTempFileOutdated(InternalName) || force {
+        if (type = "ptd") || ..IsTempFileOutdated(InternalName) || force {
             #dim filename as %String = ..FullExternalName(InternalName, .MappingExists)
             if (MappingExists = 0){
                 write "Did not find a matching mapping for """_InternalName_""". Skipping export."
@@ -1502,7 +1498,13 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
             }
             set filenames($I(filenames)) = filename
             write !, "exporting new version of ", InternalName, " to ", filename
-            $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+            if (type = "ptd") {
+                $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportPTD(InternalName,"FullExternalName"))
+            } elseif (..ItemIsProductionToDecompose(InternalName, .productionName)) {
+                $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportProductionWithoutDefinition(productionName,"FullExternalName"))
+            } else {
+                $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+            }
             $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
             if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                 $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
@@ -1512,16 +1514,16 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
     quit $$$OK
 }
 
-ClassMethod ItemIsProductionToDecompose(InternalName)
+ClassMethod ItemIsProductionToDecompose(InternalName, Output productionName)
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
 	set name = $piece(InternalName,".",1,*-1)
-	set ext = $zconvert($piece(InternalName,".",*),"U")
-    return settings.decomposeProductions 
-        && ((ext = "PTD") 
-            || ((ext = "CLS") 
-                && ##class(%Dictionary.ClassDefinition).%ExistsId(name) 
-                && $classmethod(name, "%Extends","Ens.Production")))
+    set decomposeProduction = settings.decomposeProductions && (..Type(InternalName) = "cls") 
+        && $$$comClassDefined(name) && $classmethod(name, "%Extends","Ens.Production")
+    if decomposeProduction {
+        set productionName = name
+    }
+    return decomposeProduction
 }
 
 ClassMethod ExportProject(project As %String, force As %Boolean = 0, ByRef filenames) As %Status

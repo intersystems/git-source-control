@@ -44,9 +44,7 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
             set changeSourceClass=##class(%Studio.SourceControl.Interface).SourceControlClassGet()
         }
         if ('$get(^SYS("SourceControl","ChangeConfig","KeepHistory")))||(Revert) {
-            if (obj.ChangedBy = $username) {
-                set sc=..%DeleteId(obj.%Id())
-            }
+            set sc=..%DeleteId(obj.%Id())
         } else {
             if $get(CommitCCR)'="" set obj.CCR=CommitCCR
             set obj.P4Issued=$zdatetime($h,3)
@@ -83,17 +81,24 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
 {
     set numEntries = 0
     set fileToOtherDevelopers = {}
-    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE CHARINDEX('SourceControl.Git', Name)>0 AND Committed = '0' AND ChangedBy <> ?"
+    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE Committed = '0' AND ChangedBy <> ?"
     set statement = ##class(%SQL.Statement).%New()
-    set status = statement.%Prepare(query)
+    set status = statement.%Prepare(query, 0)
     $$$ThrowOnError(status)
     set rset = statement.%Execute($username)
     if (rset.%SQLCODE < 0) {
         throw ##class(%Exception.SQL).CreateFromSQLCODE(rset.%SQLCODE,rset.%Message)
     }
+    set tempFolder = ##class(SourceControl.Git.Utils).TempFolder()
     while rset.%Next(.sc) {
         $$$ThrowOnError(sc)
-        set filePath = "cls\"_$EXTRACT(rset.ItemFile, $FIND(rset.ItemFile,"cls\"),$LENGTH(rset.ItemFile))
+
+        if $FIND(rset.ItemFile, tempFolder) {
+            set filePath = $PIECE(rset.ItemFile, tempFolder, 2)
+        } else {
+            continue
+        }
+        
         set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
         do otherDevelopers.%Push(rset.ChangedBy)
         do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
@@ -105,6 +110,7 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
 ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
 {
+    
     set lock = $System.AutoLock.Lock("^SourceControl.Git.Refresh",,10)
     if lock = $$$NULLOREF {
         quit $$$ERROR($$$GeneralError,"Unable to get exclusive lock for refresh of uncommitted changes.")
@@ -126,24 +132,39 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     do ##class(Utils).GitStatus(.gitFiles)
 
     // Remove entries in the uncommitted queue that don't correspond to changes as tracked by git
-    set filename="", filename=$order(tFileList(filename),1,action)
-    while (filename'="") {       
-        set examine=$select(action="add":1,action="edit":1,action="delete":1, IncludeRevert&&(action="revert"):1,1:0)
-        if 'examine set filename=$order(tFileList(filename),1,action) continue
+    set filename=""
+    for {
+        set filename=$order(tFileList(filename),1,action)
+        quit:filename=""
 
+        set examine=$select(action="add":1,
+            action="edit":1,
+            action="delete":1,
+            IncludeRevert&&(action="revert"):1,
+            1:0)
+        if 'examine {
+            continue
+        }
+
+        set packageRoot = ##class(SourceControl.Git.Utils).TempFolder()
         set InternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filename,0,0)
+
+        // skip files belonging to other git enabled packages
+        if ($EXTRACT(filename, 1, $LENGTH(packageRoot)) '= packageRoot) continue
 
         if (('##class(%File).Exists(filename)) || (InternalName = "") || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && 
             (($data($$$TrackedItems(InternalName))) || ##class(SourceControl.Git.Utils).NormalizeExtension($data($$$TrackedItems(InternalName))))))  {
             set sc=..RemoveUncommitted(filename,Display,0,0)
-            if $$$ISERR(sc) set filename="" continue
+            if $$$ISERR(sc) continue
         }
-        set filename=$order(tFileList(filename),1,action)
     }
 
     // Add missing records to the uncommitted queue that correspond to changes as tracked by git
-    set filename="", filename=$order(gitFiles(filename),1,details)
-    while (filename'="") {  
+    set filename=""
+    for {
+        set filename=$order(gitFiles(filename),1,details)
+        quit:filename=""
+        
         set InternalName = filename
         set ExternalName = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Utils).TempFolder()_$list(details,2))
         set changeType = $list(details,1)
@@ -156,9 +177,8 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
 
         if ((##class(%File).Exists(ExternalName)) && ('$ISVALIDNUM(InternalName)) && ('..IsUncommitted(ExternalName)) && ($data($$$TrackedItems(InternalName))))  {
             set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "", 0)
-            if $$$ISERR(sc) w sc set filename="" continue
+            if $$$ISERR(sc) continue
         }
-        set filename=$order(gitFiles(filename),1,details)
     }
     set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
     merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles
@@ -217,3 +237,4 @@ Storage Default
 }
 
 }
+

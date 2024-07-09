@@ -3,13 +3,16 @@ Class SourceControl.Git.WebUIDriver
 
 ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
-    do %session.Unlock()
+    // Make sure we capture any stray output
+    set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+    do buffer.BeginCaptureOutput()
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     kill %data
     #dim %response as %CSP.Response
     #dim %request as %CSP.Request
     set pathStart = $piece(pagePath,"/",2)
     if pathStart = "api" {
+        do %session.Unlock()
         set handled = 1
         set %data = ##class(%Stream.FileCharacter).%New()
         if $extract(pagePath,6,*) = "userinfo" {
@@ -18,6 +21,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..Uncommitted()
         } elseif $extract(pagePath,6,*) = "settings" {
             set responseJSON = ..GetSettingsURL(%request)
+        } elseif $extract(pagePath, 6, *) = "get-package-version"{
+            set responseJSON = ..GetPackageVersion()
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -37,6 +42,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             SimpleHTTPRequestHandler.do_GET(self)
             */
             if (pathStart = "git") {
+                do %session.Unlock()
                 if $piece(pagePath,"/",3) = "cat-file" {
                     set blob = $piece(pagePath,"/",4)
                     set name = $Piece(pagePath,"/",*)
@@ -83,31 +89,26 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             SimpleHTTPRequestHandler.do_POST(self)
             */
             if (pathStart = "git") {
-                set reference = "%request.Data"
-                for {
-                    set reference = $query(@reference)
-                    quit:reference=""
-                    if $qsubscript(reference,3)="O" {
-                        set args(@reference)=$qsubscript(reference,1)
-                        if $data(%request.Data($qsubscript(reference,1),$qsubscript(reference,2)),argValue)#2 && (argValue '= "") {
-                            set args(@reference)=args(@reference)_"="_argValue
-                        }
-                    }
-                }
+                merge data = %request.Data 
+                set args = data("command",1)
                 
                 // Problem: args(1) might contain $c(10) followed by our stdin value
-                if $data(args(1))#2 {
-                    set stdin = $piece(args(1),$char(10),2,*)
-                    set args(1) = $piece(args(1),$char(10))
+                if $data(args)#2 {
+                    set stdin = $piece(args,$char(10),2,*)
+                    set args = $piece(args,$char(10))
                 }
                 set readOnlyCommands = $listbuild("branch","tag","log","ls-files","ls-tree","show","status","diff")
-                set baseCommand = $Piece(args(1)," ")
+                set baseCommand = $Piece(args," ")
+                
+                if $listfind(readOnlyCommands,baseCommand) {
+                    do %session.Unlock()
+                }
 
                 set gitArgs($increment(gitArgs)) = "color.ui=true"
 
                 // TODO: Don't be lazy! Implement shlex.split in ObjectScript.
                 // The below is just a little bit cheesy.
-                set argList = $listfromstring(args(1)," ")
+                set argList = $listfromstring(args," ")
                 set pointer = 0
                 set inQuotedString = 0
                 while $listnext(argList,pointer,arg) {
@@ -158,13 +159,13 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 if '$listfind(readOnlyCommands,baseCommand) {
-                    do ##class(SourceControl.Git.Change).RefreshUncommitted()
+                    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
                 set handled = 1
             }
         }
-
     }
+    do buffer.EndCaptureOutput(.throwaway)
 }
 
 ClassMethod UserInfo() As %SystemBase
@@ -200,9 +201,16 @@ ClassMethod Uncommitted() As %SystemBase
             }
         }
     }
+
     do fileToOtherDevelopers.%Set("current user's changes", editedByCurrentUser)
     do fileToOtherDevelopers.%Set("other users' changes", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
     quit fileToOtherDevelopers
+}
+
+ClassMethod UncommittedWithAction() As %SystemBase
+{
+    set uncomittedWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction()
+    quit uncomittedWithAction
 }
 
 ClassMethod GetURLPrefix(%request As %CSP.Request, URL As %String) As %String
@@ -224,4 +232,11 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
     quit {"url": (settingsURL)}
 }
 
+ClassMethod GetPackageVersion() As %Library.DynamicObject
+{
+    set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
+    quit {"version": (version)}
 }
+
+}
+

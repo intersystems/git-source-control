@@ -19,17 +19,19 @@
 	} catch e {
 		// ignore; may occur on platform versions without the above properties
 	}
-	do %session.Unlock()
+	
 
 	// Serve static content when appropriate.
 	// index.html
 	if (url = %base) || (url = $Extract(%base,1,*-1)) {
+		do %session.Unlock()
 		do %request.Set("FILE","/isc/studio/usertemplates/gitsourcecontrol/index.html")
 		set %stream = 1
 		quit 1
 	}
 	// other static resources
     if $Match(url,"^(.*/img/.*|.*\.(js|map|html|css|woff|woff2))$") {
+		do %session.Unlock()
 		do %request.Set("FILE","/isc/studio/usertemplates/gitsourcecontrol/"_$Piece(url,%base,2,*))
 		kill %base
 		set %stream = 1

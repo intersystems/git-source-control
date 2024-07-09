@@ -32,6 +32,24 @@ Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(Sou
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()} ];
 
+/// Whether mapped items should be read-only, preventing them from being added to source control
+Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
+
+/// Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
+Property basicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
+
+/// A read-only setting used to display the basic mode setting that is chosen in the settings page
+Property userBasicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).UserBasicMode()} ];
+
+/// The system's default mode. If true, the system defaults to basic mode
+Property systemBasicMode As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SystemBasicMode()} ];
+
+/// Branch from which Sync will merge changes, in basic mode
+Property defaultMergeBranch As %String [ InitialExpression = {##class(SourceControl.Git.Utils).DefaultMergeBranch()} ];
+
+/// Compile using the configured pull event handler when "Import All" is run
+Property compileOnImport As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).CompileOnImport()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -84,6 +102,19 @@ Method %Save() As %Status
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings","decomposeProductions") = ..decomposeProductions
+    set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
+    set @storage@("settings", "defaultMergeBranch") = ..defaultMergeBranch
+    set @storage@("settings", "compileOnImport") = ..compileOnImport
+    set @storage@("settings", "basicMode") = ..systemBasicMode
+    if ..basicMode = "system" {
+        kill @storage@("settings", "user", $username, "basicMode")
+    } else {
+        set @storage@("settings", "user", $username, "basicMode") = ..basicMode
+    } 
+
+    // update value of basicUserMode to reflect the updated setting for basicMode
+    set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
+    
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
@@ -106,6 +137,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     for {
         set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
+        continue:property="userBasicMode"
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")
@@ -113,6 +145,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
         do %code.WriteLine(" set inst."_property_" = value")
+        
     }
     do %code.WriteLine(" $$$ThrowOnError(inst.%Save())")
     do %code.WriteLine(" write !,""Settings saved.""")

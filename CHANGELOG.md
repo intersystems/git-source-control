@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [2.4.0] - 2024-07-08
+
+### Added
+- Pre-release support for IPM v0.9.0+
+- Items mapped from database other than namespace's default routine database are now ignored by default when exporting or adding files
+- New setting to configure whether mapped items should be should be treated as read-only
+- Added a basic mode to automatically perform functionality expected in basic use cases (#349)
+- New sync operation for basic mode that fetches, pulls, commits, pushes, rebases, and pushes again (#349)
+- "Sync" operation in basic mode automatically resolves the class of merge conflict common in production classes where multiple independent items are added in different feature branches
+- Now skips files belonging to other git enabled packages in `##class(SourceControl.Git.Change).RefreshUncommitted()` (#347)
+- Added a new "Branch" parameter to `##class(SourceControl.Git.PullEventHandler)` (#351)
+- Command-line utility to do a baseline export of items in a namespace
+- 'New Branch' menu option in basic now will create new branches from the configured default merge branch (#366)
+- Merging back with the default merge branch is now a part of the basic mode's Sync flow (#366)
+- Added a new option "compileOnImport". If true, Import options will compile files using the pull event handler. (#362)
+- Git web UI overhauled for better UX selecting files to commit/stash/discard (#346)
+- Git web UI supports discarding some/all changes (#395)
+
+### Fixed
+- Modifications to local repo files are now synced with IRIS (#153)
+- Menu items names are properly translated from internal name in VSCode, Management Portal (#372)
+- Now has proper locking behavior in `##class(SourceControl.Git.WebUIDriver).HandleRequest()`(#385)
+- Git operations from the WebUI now don't unlock the session if they aren't read-only
+- WebUI works properly for users with %Developer without needing to add further SQL privileges (#365, #358)
+- Uncommitted deletes are shown in WebUI (#395)
+- Syncing only prompts users for a commit message if there are uncommitted files (#390)
+- WebUI works properly for users with %Developer without needing to add further SQL privileges (#365)
+- Fixed `<UNDEFINED>` error running Import All (#380)
+- Discarding changes now recompiles - critical for productions and some other cases (#387)
+- Special characters in WebUI git commands now result in the command being executed properly (#369)
+
 ## [2.3.1] - 2024-04-30
 
 ### Fixed

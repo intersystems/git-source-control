@@ -45,6 +45,9 @@ The same right click menus as in Studio live under "Server Source Control..." wh
 
 ## Notes
 
+### Menu Options
+Documentation for the various git-source-control menu options can be found [here](/docs/menu-items.md).
+
 ### Mapping Configuration
 To specify where files should go relative to your repository root, add mappings via the "Settings" menu item. A mapping has three parts:
 * The file extension to use: e.g., CLS, MAC. As a special case for web application files, use "/CSP/" as the mapping.
@@ -54,6 +57,12 @@ To specify where files should go relative to your repository root, add mappings 
 This might look like:
 
 ![Example of mapping configuration](docs/images/settings.PNG "Example of mapping configuration")
+
+### Pull Event Handlers
+
+The ##class(SourceControl.Git.PullEventHandler) is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
+
+A recommended way to implement CI/CD would be to use one of the pre-defined subclasses of PullEventHandler that are placed inside the PullEventHandler package. Additionally, custom load logic can be placed in that package following the model of the existing subclasses.
 
 ### Security
 
@@ -77,7 +86,8 @@ It is important for the namespace temp folder to be owned by the user IRIS runs 
 If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
 
 #### IRIS Privileges
-For developers to be able to run this extension, they'll need the USE privilege on %System_Callout.
+For developers to be able to run this extension, they'll need the following privileges:
+- the USE privilege on %System_Callout
 
 ### Setting up multiple GitHub deploy keys on one machine
 
@@ -95,6 +105,8 @@ Assuming you have the local and remote repositories created,
 7. Change the default `ssh` command in the git config for **your repository** as:
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
+
+
 
 ## During Development
 

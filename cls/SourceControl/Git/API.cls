@@ -37,9 +37,9 @@ ClassMethod Configure()
 }
 
 /// API for git pull - just wraps Utils
-ClassMethod Pull(preview As %Boolean = 0)
+ClassMethod Pull()
 {
-    quit ##class(SourceControl.Git.Utils).Pull(,.preview)
+    quit ##class(SourceControl.Git.Utils).Pull()
 }
 
 /// Locks the environment to prevent changes to code other than through git pull.
@@ -54,6 +54,14 @@ ClassMethod Lock()
 ClassMethod Unlock()
 {
     quit ##class(SourceControl.Git.Utils).Locked(0)
+}
+
+/// Run in terminal to baseline a namespace by adding all items to source control.
+/// - pCommitMessage: if defined, all changes in namespace context will be committed.
+/// - pPushToRemote: if defined, will run a git push to the specified remote
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+{
+    quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote)
 }
 
 }

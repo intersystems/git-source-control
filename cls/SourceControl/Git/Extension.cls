@@ -276,6 +276,25 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
         set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
         if ##class(SourceControl.Git.Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
+            // If this is a production class and production decomposition is enabled, call recursively on all modified production items.
+            if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
+                do ##class(%Studio.SourceControl.Production).GetModifiedItemsAfterSave(InternalName, .productionItems)
+                set key = $order(productionItems(""))
+                while (key '= "") {
+                    if productionItems(key) = "D" {
+                        set itemFilename = ..ExternalName(key)
+                        if ##class(SourceControl.Git.Utils).IsInSourceControl(InternalName) && ##class(%File).Exists(itemFilename) {
+                            $$$ThrowOnError(##class(SourceControl.Git.Change).AddDeletedToUncommitted(itemFilename, InternalName))
+                            $$$ThrowOnError(##class(SourceControl.Git.Utils).DeleteExternalFile(InternalName))
+                        }
+                    } elseif '..IsInSourceControl(key) {
+                        $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(key))
+                    } else {
+                        $$$ThrowOnError(..OnAfterSave(key))
+                    }
+                    set key = $order(productionItems(key))
+                }
+            }
             set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
             $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
             $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
@@ -354,6 +373,10 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(.InternalName)
     set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
+    if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
+        do ##class(%Studio.SourceControl.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
+        //TODO: if any modified items in this production class are edited by a different user, prohibit editing
+    }
     set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
     set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
     if filename="" quit $$$OK
@@ -408,4 +431,3 @@ Method AddToSourceControl(InternalName As %String, Description As %String = "") 
 }
 
 }
-

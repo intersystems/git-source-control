@@ -672,6 +672,7 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             do ..RunGitCommand("add",.errStream,.outStream,filenames(i),"--intent-to-add")
             write !, "Added ", FileInternalName, " to source control."
             do ..PrintStreams(outStream, errStream)
+            do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
         }
     }
     quit ec
@@ -2544,4 +2545,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

@@ -191,7 +191,12 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
     } elseif ##class(SourceControl.Git.Utils).IsInSourceControl(itemName) {
         set Enabled = $case(menuItemName, "AddToSC":-1,:1)
     } else {
-        set Enabled = $case(menuItemName, "AddToSC":1,:-1)
+        if '$$$defClassDefined(classname) {
+            set Enabled = -1
+        } else {
+            set Enabled = $case(menuItemName, "AddToSC":1,:-1)
+        }
+
     }
     if (menuItemName '= "") {
 	    set DisplayName = ..LocalizeName(menuItemName)

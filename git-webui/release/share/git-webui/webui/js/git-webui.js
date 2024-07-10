@@ -93,7 +93,7 @@ webui.showWarning = function(message) {
     // convert links in message into actual html links
     var messageAsArr = message.split(" ");
     messageAsArr = messageAsArr.map(function(messagePart){
-        if (messagePart.startsWith("https://")) {
+        if (messagePart.substring(0,8) === "https://") {
             return '<a href="' + messagePart + '" target="_blank">' + messagePart + '</a>';
         } else {
             return messagePart;

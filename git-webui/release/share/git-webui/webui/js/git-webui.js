@@ -2172,9 +2172,10 @@ webui.NewChangedFilesView = function(workspaceView) {
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
                 var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
+                var otherUserUncommittedItems = JSON.parse(uncommitted)["other users' changes"];
                 self.filesCount = 0;
                 
-                function addItemToFileList(fileList, indexStatus, workingTreeStatus, model, isOtherUserChange) {
+                function addItemToFileList(fileList, indexStatus, workingTreeStatus, model, isOtherUserChange, otherUser) {
                     var formCheck;
                     if (isOtherUserChange) {
                         formCheck = $('<div class="form-check changes-check other-user"></div>');
@@ -2201,7 +2202,7 @@ webui.NewChangedFilesView = function(workspaceView) {
 
                     var checkboxLabel;
                     if (isOtherUserChange) {
-                        checkboxLabel = $('<label class="form-check-label file-item-label other-user-label" data-toggle="tooltip" title="File changed by another user">' + webui.peopleIcon +'</label>').append(model);
+                        checkboxLabel = $('<label class="form-check-label file-item-label other-user-label" data-toggle="tooltip" data-placement="top" title="File changed by: ' + otherUser + '">' + webui.peopleIcon +'</label>').append(model);
                     } else {
                         checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
                     }
@@ -2236,7 +2237,8 @@ webui.NewChangedFilesView = function(workspaceView) {
                     if (isForCurrentUser) {
                         addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
                     } else {
-                        addItemToFileList(fileList, indexStatus, workingTreeStatus, model, true);
+                        var otherUser = otherUserUncommittedItems[model.replace(/\//g, '\\')];
+                        addItemToFileList(fileList, indexStatus, workingTreeStatus, model, true, otherUser);
                     }
                     
                 });

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed JS errors in Studio on certain operations (#416)
+- Fixed issue where selecting different item in stash list didn't update diff view
 
 ## [2.4.0] - 2024-07-08
 

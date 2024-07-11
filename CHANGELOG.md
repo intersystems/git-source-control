@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed JS errors in Studio on certain operations (#416)
+- Files are added to source control upon creation properly (#404)
+- Files show in uncommitted queue when automatically added (#407)
 
 ## [2.4.0] - 2024-07-08
 

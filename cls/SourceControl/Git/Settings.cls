@@ -88,9 +88,9 @@ Method %Save() As %Status
     
     set ..namespaceTemp = ##class(%Library.File).NormalizeDirectory(..namespaceTemp)
     set @storage@("settings","namespaceTemp") = ..namespaceTemp
-    if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){
-        do ##class(%Library.File).CreateDirectoryChain(@storage@("settings","namespaceTemp"))
-    }
+    
+    do ..CreateNamespaceTempFolder()
+
     set @storage@("settings","user",$username,"gitUserName") = ..gitUserName
 
     set @storage@("settings","user",$username,"gitUserEmail") = ..gitUserEmail
@@ -115,6 +115,15 @@ Method %Save() As %Status
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
     quit $$$OK
+}
+
+ClassMethod CreateNamespaceTempFolder() {
+    set storage = ##class(SourceControl.Git.Utils).#Storage
+    if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){
+        set workMgr = $System.WorkMgr.%New("")
+        $$$ThrowOnError(workMgr.Queue("##class(%Library.File).CreateDirectoryChain(@storage@(""settings"",""namespaceTemp""))"))
+        $$$ThrowOnError(workMgr.WaitForComplete())
+    }
 }
 
 ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]

@@ -88,8 +88,9 @@ Method %Save() As %Status
     
     set ..namespaceTemp = ##class(%Library.File).NormalizeDirectory(..namespaceTemp)
     set @storage@("settings","namespaceTemp") = ..namespaceTemp
-    
-    do ..CreateNamespaceTempFolder()
+    set workMgr = $System.WorkMgr.%New("")
+    $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Settings).CreateNamespaceTempFolder"))
+    $$$ThrowOnError(workMgr.WaitForComplete())
 
     set @storage@("settings","user",$username,"gitUserName") = ..gitUserName
 
@@ -117,13 +118,14 @@ Method %Save() As %Status
     quit $$$OK
 }
 
-ClassMethod CreateNamespaceTempFolder() {
+ClassMethod CreateNamespaceTempFolder() As %Status
+{
     set storage = ##class(SourceControl.Git.Utils).#Storage
-    if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){
-        set workMgr = $System.WorkMgr.%New("")
-        $$$ThrowOnError(workMgr.Queue("##class(%Library.File).CreateDirectoryChain(@storage@(""settings"",""namespaceTemp""))"))
-        $$$ThrowOnError(workMgr.WaitForComplete())
+    if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){ 
+        do ##class(%Library.File).CreateDirectoryChain(@storage@("settings","namespaceTemp"))
     }
+
+    return $$$OK
 }
 
 ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
@@ -197,10 +199,18 @@ Method OnAfterConfigure() As %Boolean
             }
         }
         if (value = 1) {
+            set settings = ##class(SourceControl.Git.Settings).%New()
+            set repoRootFolder = settings.namespaceTemp
+            if ($extract(repoRootFolder, $length(repoRootFolder)) = "\") || ($extract(repoRootFolder, $length(repoRootFolder)) = "/") {
+                set repoRootFolder = $extract(settings.namespaceTemp, 1, $length(settings.namespaceTemp) - 1)
+            }
+            set repoRootFolder = $translate(repoRootFolder, "\", "/")
+            do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("config",,,,"--global", "--add", "safe.directory", repoRootFolder)
              // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.WaitForComplete())
+            
             do ##class(SourceControl.Git.Utils).EmptyInitialCommit()
         } elseif (value = 2) {
             set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)

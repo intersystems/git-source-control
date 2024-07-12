@@ -1256,11 +1256,7 @@ webui.StashCommitView = function(stashView) {
     var self = this;
 
     self.update = function(entry) {
-        if (currentCommit == entry.commit) {
-            // We already display the right data. No need to update.
-            return;
 
-        }
         currentCommit = entry.commit;
         self.showDiff();
         diffView.update("stash show -p stash@{"+entry.stashIndex+"}");
@@ -2060,11 +2056,6 @@ webui.CommitView = function(historyView) {
     var self = this;
 
     self.update = function(entry) {
-        if (currentCommit == entry.commit) {
-            // We already display the right data. No need to update.
-            return;
-
-        }
         currentCommit = entry.commit;
         self.showDiff();
         buttonBox.select(0);

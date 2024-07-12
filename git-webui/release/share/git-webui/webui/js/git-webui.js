@@ -1304,11 +1304,11 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                 right.webuiPrevScrollTop = 0;
                 right.webuiPrevScrollLeft = 0;
             }
-            webui.git("ls-files "+file, function(path){
-                self.gitFile = file;
+            webui.git("ls-files \""+file+"\"", function(path){
+                self.gitFile = "\"" + file + "\"";
                 self.noIndex = ""
                 if(path.length == 0 && file != undefined){
-                    self.gitFile = " /dev/null " + file;
+                    self.gitFile = " /dev/null " + "\"" + file + "\"";
                     self.noIndex = " --no-index "
                 }
                 if (self.gitCmd) {
@@ -2224,6 +2224,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     } else {
                         model = line;
                     }
+                    model = model.replace(/^"(.*)"$/g,'$1');
 
                     ++self.filesCount;
                     var isForCurrentUser;

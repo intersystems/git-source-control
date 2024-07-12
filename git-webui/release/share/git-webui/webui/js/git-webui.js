@@ -1304,8 +1304,11 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                 self.gitFile = "\"" + file + "\"";
                 self.noIndex = ""
                 if(path.length == 0 && file != undefined){
-                    self.gitFile = " /dev/null " + "\"" + file + "\"";
-                    self.noIndex = " --no-index "
+                    self.gitFile = " /dev/null " + file;
+                    self.noIndex = " --no-index ";
+                    if (self.gitDiffOpts == "--cached") {
+                        self.gitDiffOpts = "";
+                    } 
                 }
                 if (self.gitCmd) {
                     var fullCmd = self.gitCmd;

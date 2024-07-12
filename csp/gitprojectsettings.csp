@@ -670,6 +670,8 @@ $('[id^=noFoldersSwitch]').click(toggleNoFolders);
 </html>
 <script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
 	try {
+		set %session.UseSessionCookie = 1 // Always set back to autodetect
+		set %session.CookiePath = "" // Always clear
 		if (%request.UserAgent [ " Code/") {
 			// Workaround for VSCode webview
 			set %session.SessionScope = 0 // none; allowed because...

@@ -191,7 +191,7 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
     } elseif ##class(SourceControl.Git.Utils).IsInSourceControl(itemName) {
         set Enabled = $case(menuItemName, "AddToSC":-1,:1)
     } else {
-        if '$$$defClassDefined(classname) {
+        if (($extract(itemName, $length(itemName) - 3, $length(itemName)) = ".cls" ) || ($extract(itemName, $length(itemName) - 3, $length(itemName)) = ".CLS")) && ('$$$defClassDefined($extract(itemName, 1, $length(itemName) - 4))) {
             set Enabled = -1
         } else {
             set Enabled = $case(menuItemName, "AddToSC":1,:-1)

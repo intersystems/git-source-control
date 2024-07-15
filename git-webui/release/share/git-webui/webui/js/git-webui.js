@@ -2269,6 +2269,16 @@ webui.NewChangedFilesView = function(workspaceView) {
                     
                 });
 
+                $("amendBtn").off("click");
+                $("#amendBtn").on("click", function() {
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("amend");
+                    } else {
+                        var commitMessage = $('#commitMsg').val();
+                        self.amend(commitMessage, $("#commitMsgDetail").val());
+                    }
+                });
+
                 $("#discardBtn").off("click");
                 $("#discardBtn").on("click", function() {
                     if (selectedItemsFromOtherUser.length > 0) {
@@ -2348,6 +2358,8 @@ webui.NewChangedFilesView = function(workspaceView) {
                     self.discard();
                 } else if (action == "stash") {
                     self.stash();
+                } else if (axtion == "amend") {
+                    self.amend();
                 }
             });
     
@@ -2398,6 +2410,7 @@ webui.NewChangedFilesView = function(workspaceView) {
         if (self.getSelectedItemsCount() > 0) {
             $('#stashBtn').prop("disabled", false);
             $('#discardBtn').prop("disabled", false);
+            $('#amendBtn').prop("disabled", false);
             if (!self.commitMsgEmpty()) {
                 $('#commitBtn').prop("disabled", false);
             } else {
@@ -2407,6 +2420,12 @@ webui.NewChangedFilesView = function(workspaceView) {
             $('#stashBtn').prop("disabled", true);
             $('#discardBtn').prop("disabled", true);
             $('#commitBtn').prop("disabled", true);
+            if (!self.commitMsgEmpty()) {
+                $('#amendBtn').prop("disabled", false);
+            } else {
+                $('#amendBtn').prop("disabled", true);
+            }
+            
         }
 
     }
@@ -2466,6 +2485,33 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     }
 
+    self.amend = function(message, details) {
+        var selectedFilesAsString = selectedItems.join(" ");
+        console.log(selectedItems.length);
+        if (self.commitMsgEmpty()) {
+            webui.git("add " + selectedFilesAsString);
+            webui.git("commit --amend --no-edit -- " + selectedFilesAsString, function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            })
+        } else if (selectedItems.length != 0) {
+            console.log("bad");
+            webui.git("add " + selectedFilesAsString);
+            webui.git('commit --amend -m "' + message + '" -m "' + details + '" -- ' + selectedFilesAsString, function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            })
+        } else {
+            console.log("here");
+            webui.git('commit --amend --allow-empty -m "' + message + '" -m "' + details + '"', function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            })
+        }
+            
+        
+    }
+
     self.commit = function(message, details) {
         var selectedFilesAsString = selectedItems.join(" ");
 
@@ -2495,6 +2541,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     '</div>' +
                     '<div class="button-group">' +
                         '<button type="button" class="btn btn-primary file-action-button" id="commitBtn" disabled> Commit </button>' +
+                        '<button type="button" class="btn btn-outline-primary file-action-button" id="amendBtn" disabled> Amend </button>' +
                         '<button type="button" class="btn btn-secondary file-action-button" id="stashBtn" disabled> Stash </button>' +
                         '<button type="button" class="btn btn-danger file-action-button" id="discardBtn" disabled> Discard </button>' +
                     '</div>' +

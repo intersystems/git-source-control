@@ -1283,8 +1283,6 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     var self = this;
 
     self.update = function(cmd, diffOpts, file, mode) {
-        console.log(diffOpts);
-        console.log(file);
         gitApplyType = mode;
         $(".diff-stage", self.element).attr("style", "display:none");
         $(".diff-cancel", self.element).attr("style", "display:none");
@@ -1292,18 +1290,19 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         if (cmd) {
             self.gitCmd = cmd;
             self.gitDiffOpts = diffOpts;
-            if (file != self.gitFile) {
-                // left.scrollTop = 0;
-                // left.scrollLeft = 0;
-                // right.scrollTop = 0;
-                // right.scrollLeft = 0;
-                // left.webuiPrevScrollTop = 0;
-                // left.webuiPrevScrollLeft = 0;
-                // right.webuiPrevScrollTop = 0;
-                // right.webuiPrevScrollLeft = 0;
-            }
+            // if (file != self.gitFile) {
+            //     left.scrollTop = 0;
+            //     left.scrollLeft = 0;
+            //     right.scrollTop = 0;
+            //     right.scrollLeft = 0;
+            //     left.webuiPrevScrollTop = 0;
+            //     left.webuiPrevScrollLeft = 0;
+            //     right.webuiPrevScrollTop = 0;
+            //     right.webuiPrevScrollLeft = 0;
+            // }
             webui.git("ls-files \""+file+"\"", function(path){
                 self.gitFile = "\"" + file + "\"";
+                console.log(self.gitFile);
                 self.noIndex = ""
                 if(path.length == 0 && file != undefined){
                     self.gitFile = " /dev/null " + file;
@@ -1325,7 +1324,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                     if (self.gitDiffOpts) {
                         fullCmd += " " + self.gitDiffOpts.join(" ")
                     }
-                    if (self.gitFile) {
+                    if (self.gitFile && self.gitFile != '"undefined"') {
                         fullCmd += self.noIndex + " -- " + self.gitFile;
                     }
                     webui.git(fullCmd, self.refresh, self.refresh, self.refresh);

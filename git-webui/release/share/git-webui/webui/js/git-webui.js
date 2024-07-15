@@ -1290,16 +1290,16 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         if (cmd) {
             self.gitCmd = cmd;
             self.gitDiffOpts = diffOpts;
-            // if (file != self.gitFile) {
-            //     left.scrollTop = 0;
-            //     left.scrollLeft = 0;
-            //     right.scrollTop = 0;
-            //     right.scrollLeft = 0;
-            //     left.webuiPrevScrollTop = 0;
-            //     left.webuiPrevScrollLeft = 0;
-            //     right.webuiPrevScrollTop = 0;
-            //     right.webuiPrevScrollLeft = 0;
-            // }
+            if (file != self.gitFile && self.gitFile != '"undefined"') {
+                left.scrollTop = 0;
+                left.scrollLeft = 0;
+                right.scrollTop = 0;
+                right.scrollLeft = 0;
+                left.webuiPrevScrollTop = 0;
+                left.webuiPrevScrollLeft = 0;
+                right.webuiPrevScrollTop = 0;
+                right.webuiPrevScrollLeft = 0;
+            }
             webui.git("ls-files \""+file+"\"", function(path){
                 self.gitFile = "\"" + file + "\"";
                 console.log(self.gitFile);

@@ -2269,6 +2269,15 @@ webui.NewChangedFilesView = function(workspaceView) {
                     
                 });
 
+                $("#amendBtn").off("click");
+                $("#amendBtn").on("click", function() {
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("amend");
+                    } else {
+                        self.confirmAmend();
+                    }
+                });
+
                 $("#discardBtn").off("click");
                 $("#discardBtn").on("click", function() {
                     if (selectedItemsFromOtherUser.length > 0) {
@@ -2288,6 +2297,64 @@ webui.NewChangedFilesView = function(workspaceView) {
                     
                 });
             });
+        });
+    }
+
+    self.confirmAmend = function() {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#confirmAmend").remove();
+        }
+    
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="confirmAmend" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Confirm amend</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body"></div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+    
+        $("body").append(popup);
+        var popupContent = $(".modal-body", popup)[0];
+        webui.detachChildren(popupContent);
+    
+        $(
+            '<div class="row">' +
+                '<div class="col-sm-1">' +
+                    webui.warningIcon +
+                '</div>' +
+                '<div class="col-sm-11">' +
+                    '<p>Careful, amending commits will rewrite the branch history. The amended commit will not be pushed to remote, even if the previous commit was.</p>' + // Removed extra closing </p> tag
+                '</div>' +
+            '</div>'
+        ).appendTo(popupContent);
+    
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+    
+        $(
+            '<button class="btn btn-sm btn-warning action-btn" id="confirmAmendBtn">Confirm amend</button>' +
+            '<button class="btn btn-sm btn-secondary action-btn" id="cancelAmendBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+    
+        $(popup).modal('show');
+    
+        $('#confirmAmendBtn').on('click', function() {
+            removePopup(popup); 
+            var commitMessage = $('#commitMsg').val();
+            self.amend(commitMessage, $("#commitMsgDetail").val());
+        });
+    
+        $('#confirmAmend').find('#cancelAmendBtn, .close').click(function() {
+            removePopup(popup);
         });
     }
 
@@ -2327,6 +2394,12 @@ webui.NewChangedFilesView = function(workspaceView) {
             });
     
             $('</ul>').appendTo(popupContent);
+
+            if (action == "amend") {
+                $(  '<div>' +
+                        '<p>Careful, amending commits will rewrite the branch history. The amended commit will not be pushed to remote, even if the previous commit was.</p>' +
+                    '</div>').appendTo(popupContent);
+            }
     
             var popupFooter = $(".modal-footer", popup)[0];
             webui.detachChildren(popupFooter);
@@ -2342,12 +2415,15 @@ webui.NewChangedFilesView = function(workspaceView) {
             $('#confirmActionBtn').on('click', function() {
                 removeWarningModal(popup);
                 if (action == "commit") {
-                    var commitMessage = $('#commitMsg').val() + "\n" + $("#commitMsgDetail").val();
-                    self.commit(commitMessage);
+                    var commitMessage = $('#commitMsg').val();
+                    self.commit(commitMessage, $("#commitMsgDetail").val());
                 } else if (action == "discard") {
                     self.discard();
                 } else if (action == "stash") {
                     self.stash();
+                } else if (action == "amend") {
+                    var commitMessage = $('#commitMsg').val();
+                    self.amend(commitMessage, $("#commitMsgDetail").val());
                 }
             });
     
@@ -2398,6 +2474,7 @@ webui.NewChangedFilesView = function(workspaceView) {
         if (self.getSelectedItemsCount() > 0) {
             $('#stashBtn').prop("disabled", false);
             $('#discardBtn').prop("disabled", false);
+            $('#amendBtn').prop("disabled", false);
             if (!self.commitMsgEmpty()) {
                 $('#commitBtn').prop("disabled", false);
             } else {
@@ -2407,6 +2484,12 @@ webui.NewChangedFilesView = function(workspaceView) {
             $('#stashBtn').prop("disabled", true);
             $('#discardBtn').prop("disabled", true);
             $('#commitBtn').prop("disabled", true);
+            if (!self.commitMsgEmpty()) {
+                $('#amendBtn').prop("disabled", false);
+            } else {
+                $('#amendBtn').prop("disabled", true);
+            }
+            
         }
 
     }
@@ -2466,6 +2549,30 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     }
 
+    self.amend = function(message, details) {
+        var selectedFilesAsString = selectedItems.join(" ");
+        if (self.commitMsgEmpty()) {
+            webui.git("add " + selectedFilesAsString);
+            webui.git("commit --amend --no-edit -- " + selectedFilesAsString, function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            })
+        } else if (selectedItems.length != 0) {
+            webui.git("add " + selectedFilesAsString);
+            webui.git('commit --amend -m "' + message + '" -m "' + details + '" -- ' + selectedFilesAsString, function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            })
+        } else {
+            webui.git('commit --amend --allow-empty -m "' + message + '" -m "' + details + '"', function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            })
+        }
+            
+        
+    }
+
     self.commit = function(message, details) {
         var selectedFilesAsString = selectedItems.join(" ");
 
@@ -2495,6 +2602,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     '</div>' +
                     '<div class="button-group">' +
                         '<button type="button" class="btn btn-primary file-action-button" id="commitBtn" disabled> Commit </button>' +
+                        '<button type="button" class="btn btn-outline-primary file-action-button" id="amendBtn" disabled> Amend </button>' +
                         '<button type="button" class="btn btn-secondary file-action-button" id="stashBtn" disabled> Stash </button>' +
                         '<button type="button" class="btn btn-danger file-action-button" id="discardBtn" disabled> Discard </button>' +
                     '</div>' +

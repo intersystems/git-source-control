@@ -1283,8 +1283,6 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     var self = this;
 
     self.update = function(cmd, diffOpts, file, mode) {
-        console.log(diffOpts);
-        console.log(file);
         gitApplyType = mode;
         $(".diff-stage", self.element).attr("style", "display:none");
         $(".diff-cancel", self.element).attr("style", "display:none");

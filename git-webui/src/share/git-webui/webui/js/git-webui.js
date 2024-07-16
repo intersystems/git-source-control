@@ -2577,8 +2577,7 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.doubleQuotesToSingleQuotes = function(string) {
-        var modified = string.replace(/"/g, "'");
-        return `\`${modified}\``;
+        return string.replace(/"/g, "'");
     }
 
     self.commit = function(message, details) {

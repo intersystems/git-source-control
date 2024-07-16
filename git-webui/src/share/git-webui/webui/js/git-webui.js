@@ -1290,7 +1290,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         if (cmd) {
             self.gitCmd = cmd;
             self.gitDiffOpts = diffOpts;
-            if (file != self.gitFile) {
+            if (file != self.gitFile && self.gitFile != '"undefined"') {
                 left.scrollTop = 0;
                 left.scrollLeft = 0;
                 right.scrollTop = 0;
@@ -1323,7 +1323,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                     if (self.gitDiffOpts) {
                         fullCmd += " " + self.gitDiffOpts.join(" ")
                     }
-                    if (self.gitFile) {
+                    if (self.gitFile && self.gitFile != '"undefined"') {
                         fullCmd += self.noIndex + " -- " + self.gitFile;
                     }
                     webui.git(fullCmd, self.refresh, self.refresh, self.refresh);

@@ -1302,7 +1302,6 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             }
             webui.git("ls-files \""+file+"\"", function(path){
                 self.gitFile = "\"" + file + "\"";
-                console.log(self.gitFile);
                 self.noIndex = ""
                 if(path.length == 0 && file != undefined){
                     self.gitFile = " /dev/null " + file;

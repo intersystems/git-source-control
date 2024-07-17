@@ -1770,14 +1770,15 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughDiff(.files, .filterToFiles, invert)
+        set out = ##class(%Stream.GlobalCharacter).%New()
         do buffer.EndCaptureOutput(.out)
         if $$$ISOK(st) {
             while 'out.AtEnd {
-                do %outStream.WriteLine(out.ReadLine())
+                do outStream.WriteLine(out.ReadLine())
             }
         } else {
             while 'out.AtEnd {
-                do %errStream.WriteLine(out.ReadLine())
+                do errStream.WriteLine(out.ReadLine())
             }
         }
     } elseif syncIrisWithCommand {
@@ -1785,14 +1786,15 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughCommand(.outStream)
+        set out = ##class(%Stream.Global).%New()
         do buffer.EndCaptureOutput(.out)
         if $$$ISOK(st) {
             while 'out.AtEnd {
-                do %outStream.WriteLine(out.ReadLine())
+                do outStream.WriteLine(out.ReadLine())
             }
         } else {
             while 'out.AtEnd {
-                do %errStream.WriteLine(out.ReadLine())
+                do errStream.WriteLine(out.ReadLine())
             }
         }
     }

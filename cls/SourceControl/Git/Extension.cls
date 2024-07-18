@@ -366,6 +366,28 @@ Method IsReadOnly(InternalName As %String) As %Boolean
     quit ##class(SourceControl.Git.Utils).Locked()
 }
 
+/// Called before the item is saved to the database it is passed
+/// a reference to the current temporary storage of this item so that it
+/// can be modified before the save completes. If you quit with an error
+/// value then it will abort the save.
+Method OnBeforeSave(InternalName As %String, Location As %String = "", Object As %RegisteredObject = {$$$NULLOREF}) As %Status
+{
+    set st = $$$OK
+    if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
+        do ##class(%Studio.SourceControl.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
+		set key = $order(productionItems(""))
+		while (key '= "") {
+			// if any modified items in this production class are checked out by a different user, fail the check.
+			set st = ..GetStatus(key, .IsInSourceControl, .Editable, .IsCheckedOut, .UserCheckedOut)
+            quit:$$$ISERR(st)
+			if 'Editable set st = $$$ERROR($$$GeneralError,"Item is checked out by another user: "_UserCheckedOut)
+            quit:$$$ISERR(st)
+			set key = $order(productionItems(key))
+		}
+    }
+    return st
+}
+
 /// Check the status of the given item
 /// User should be able to edit the item if it is not locked by another user
 /// Check if another user has committed any changes to the item and return the status
@@ -373,16 +395,6 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(.InternalName)
     set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
-    if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
-        do ##class(%Studio.SourceControl.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
-		set key = $order(productionItems(""))
-		while (key '= "") {
-			// if any modified items in this production class are checked out by a different user, fail the check.
-			set st = ..GetStatus(key, .IsInSourceControl, .Editable, .IsCheckedOut, .UserCheckedOut)
-			if 'Editable return st
-			set key = $order(productionItems(key))
-		}
-    }
     set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
     set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
     if filename="" quit $$$OK

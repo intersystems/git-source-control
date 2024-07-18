@@ -61,7 +61,7 @@ ClassMethod ExternalNameToInternalName(ExternalName As %String) As %String
                 set settingsPTD = ##class(EnsLib.EDI.XML.Document).%New(settingsPTDText)
                 set itemClass = settingsPTD.GetValueAt("/Item/@ClassName")
                 set itemName = settingsPTD.GetValueAt("/Item/@Name")
-                set internalName = productionClass_"||"_itemName_"|"_itemClass_".PTD"
+                set internalName = productionClass_"||Settings-"_itemName_"|"_itemClass_".PTD"
             }
         } elseif (($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName(""))))) && ($zconvert(##class(SourceControl.Git.Utils).Type(outName),"U") '= "CSP") {
             set internalName = outName
@@ -99,4 +99,3 @@ Storage Default
 }
 
 }
-

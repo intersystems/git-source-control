@@ -1985,7 +1985,7 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
     while $listnext(list, pointer, item) {
         set operation = $zstrip($extract(item, 1, 2), "<W")
         set externalName = $extract(item, 4, *)
-        set internalName = ..NameToInternalName(externalName)
+        set internalName = ..NameToInternalName(externalName,,0)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
             set @..#Storage@("items",..NormalizeInternalName(internalName)) = ""
@@ -2118,7 +2118,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         }
         set $ListBuild(productionDir, nam) = $ListFromString(nam, "/")
         // Abbreviate "ProductionSettings" to "ProdStgs", "Settings" to "Stgs".
-        Set prefix = $Case($Extract(nam), "P":"ProdStgs-", "S":"Stgs-")
+        Set prefix = $Case($Extract(nam), "P":"ProdStgs-", "S":"Stgs-", :"")
         Set nam = prefix_$Piece(nam,"-",2,*)
         set $ListBuild(itemName, itemClassName) = $ListFromString(nam, "|")
         if $Get(itemClassName) '= "" {

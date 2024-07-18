@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed JS errors in Studio on certain operations (#416)
 - Add menu option disabled for unsaved files (#420)
+- Fixed issue where selecting different item in stash list didn't update diff view (#265)
+- Tooltip in workspace now shows user who made uncommitted change if not current user (#411)
+- Files are added to source control upon creation properly (#404)
+- Files show in uncommitted queue when automatically added (#407)
+- WebUI workspace view now works properly for filenames with spaces (#423)
+- Fixed error popups in interop editors in Studio on 2024.1 (#417)
+- Reintroduced amend (#425)
 
 ## [2.4.0] - 2024-07-08
 

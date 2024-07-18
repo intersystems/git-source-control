@@ -370,7 +370,13 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
     set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
     if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
         do ##class(%Studio.SourceControl.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
-        //TODO: if any modified items in this production class are edited by a different user, prohibit editing
+		set key = $order(productionItems(""))
+		while (key '= "") {
+			// if any modified items in this production class are checked out by a different user, fail the check.
+			set st = ..GetStatus(key, .IsInSourceControl, .Editable, .IsCheckedOut, .UserCheckedOut)
+			if 'Editable return st
+			set key = $order(productionItems(key))
+		}
     }
     set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
     set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))

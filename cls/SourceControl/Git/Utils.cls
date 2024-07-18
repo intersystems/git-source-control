@@ -1261,8 +1261,14 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
     #dim sc as %Status = $$$OK
     
-    if ..IsRoutineOutdated(InternalName) || force {
-        if ..UserTypeCached(InternalName,.docclass,.doctype) {
+    set type = ..Type(InternalName)
+    if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
+        if (type = "ptd") && $$$comClassDefined("Ens.Deployment.Deploy") {
+            set targetProduction = $piece(InternalName,"||",1)
+            set rollbackFile = ##class(%File).TempFilename()
+            set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)
+            do ##class(%File).Delete(rollbackFile)
+        } elseif ..UserTypeCached(InternalName,.docclass,.doctype) {
             set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
             do routineMgr.Code.Rewind()
             set source = ##class(%Stream.FileCharacter).%OpenId(filename,,.sc)
@@ -1279,7 +1285,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
         }
         if sc {
             set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
-            if ..Type(InternalName) = "prj" {
+            if type = "prj" {
                 set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
             }
             write !, InternalName," has been imported from ", filename

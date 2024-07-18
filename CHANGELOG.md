@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed JS errors in Studio on certain operations (#416)
-- Add menu option disabled for uncompiled files (#420)
+- Add menu option disabled for unsaved files (#420)
 
 ## [2.4.0] - 2024-07-08
 

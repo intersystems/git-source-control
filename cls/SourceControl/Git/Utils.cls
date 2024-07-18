@@ -661,7 +661,9 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         }
 
         for i=1:1:$Get(filenames) {
-            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,,1))
+            set ignoreNonexistent = (type '= "ptd")
+            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(
+                ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,ignoreNonexistent,1))
             if (FileInternalName = "") {
                 continue
             }

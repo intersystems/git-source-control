@@ -1256,11 +1256,7 @@ webui.StashCommitView = function(stashView) {
     var self = this;
 
     self.update = function(entry) {
-        if (currentCommit == entry.commit) {
-            // We already display the right data. No need to update.
-            return;
 
-        }
         currentCommit = entry.commit;
         self.showDiff();
         diffView.update("stash show -p stash@{"+entry.stashIndex+"}");
@@ -1308,8 +1304,11 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                 self.gitFile = "\"" + file + "\"";
                 self.noIndex = ""
                 if(path.length == 0 && file != undefined){
-                    self.gitFile = " /dev/null " + "\"" + file + "\"";
-                    self.noIndex = " --no-index "
+                    self.gitFile = " /dev/null " + file;
+                    self.noIndex = " --no-index ";
+                    if (self.gitDiffOpts == "--cached") {
+                        self.gitDiffOpts = "";
+                    } 
                 }
                 if (self.gitCmd) {
                     var fullCmd = self.gitCmd;
@@ -2060,11 +2059,6 @@ webui.CommitView = function(historyView) {
     var self = this;
 
     self.update = function(entry) {
-        if (currentCommit == entry.commit) {
-            // We already display the right data. No need to update.
-            return;
-
-        }
         currentCommit = entry.commit;
         self.showDiff();
         buttonBox.select(0);

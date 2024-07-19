@@ -3,7 +3,6 @@ Class SourceControl.Git.WebUIDriver
 
 ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Output handled As %Boolean = 0, Output %data As %Stream.Object)
 {
-    // Make sure we capture any stray output
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     kill %data
     #dim %response as %CSP.Response

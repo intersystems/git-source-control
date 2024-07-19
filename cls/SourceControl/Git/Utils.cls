@@ -2418,6 +2418,22 @@ ClassMethod UncommittedWithAction() As %Library.DynamicObject
     quit fileToOtherDevelopers
 }
 
+Query InstanceUncommitted() As %Query() 
+{
+}
+
+ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status {
+
+}
+
+ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [PlaceAfter = InstanceUncommittedExecute]{
+
+}
+
+ClassMethod InstanceUncommittedClose(ByRef qHandle As %Binary) As %Status [PlaceAfter = InstanceUncommittedFetch] {
+
+}
+
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 {
     #define sourcedir $System.Util.InstallDirectory()_"devuser/studio/templates/gitsourcecontrol/"

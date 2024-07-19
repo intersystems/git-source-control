@@ -2551,6 +2551,9 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.amend = function(message, details) {
         var selectedFilesAsString = selectedItems.join(" ");
+        message = self.doubleQuotesToSingleQuotes(message);
+        details = self.doubleQuotesToSingleQuotes(details);
+
         if (self.commitMsgEmpty()) {
             webui.git("add " + selectedFilesAsString);
             webui.git("commit --amend --no-edit -- " + selectedFilesAsString, function(output) {
@@ -2573,8 +2576,14 @@ webui.NewChangedFilesView = function(workspaceView) {
         
     }
 
+    self.doubleQuotesToSingleQuotes = function(string) {
+        return string.replace(/"/g, "'");
+    }
+
     self.commit = function(message, details) {
         var selectedFilesAsString = selectedItems.join(" ");
+        message = self.doubleQuotesToSingleQuotes(message);
+        details = self.doubleQuotesToSingleQuotes(details);
 
         webui.git("add " + selectedFilesAsString);
         webui.git('commit -m "' + message + '" -m "' + details + '" -- ' + selectedFilesAsString, function(output) {

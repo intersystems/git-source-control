@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebUI workspace view now works properly for filenames with spaces (#423)
 - Fixed error popups in interop editors in Studio on 2024.1 (#417)
 - Reintroduced amend (#425)
+- Double quotes now permissible in commit messages (#433)
 
 ## [2.4.0] - 2024-07-08
 

@@ -2418,16 +2418,76 @@ ClassMethod UncommittedWithAction() As %Library.DynamicObject
     quit fileToOtherDevelopers
 }
 
+/// Retrieve the list of Namespaces that have git enabled
+ClassMethod GetGitEnabledNamespaces() As %String
+{
+    // Get all namespaces
+    set allNamespaces = ""
+    do ##class(%SYS.Namespace).GetList(.allNamespaces)
+
+    set enabledNamespaces = ""
+
+    // Write query for verifying git sourcecontrol in namespace
+    set gitscQuery = 9
+    set gitscQuery(1) = "SELECT CASE"
+    set gitscQuery(2) = "WHEN EXISTS ("
+    set gitscQuery(3) = "SELECT TABLE_SCHEMA"
+    set gitscQuery(4) = "FROM INFORMATION_SCHEMA.TABLES"
+    set gitscQuery(5) = "WHERE TABLE_TYPE = 'BASE TABLE'"
+    set gitscQuery(6) = "AND TABLE_SCHEMA = 'SourceControl_Git'"
+    set gitscQuery(7) = ") THEN 1"
+    set gitscQuery(8) = "ELSE 0"
+    set gitscQuery(9) = "END AS SchemaExists;"
+
+
+    set namespace = ""
+    new $NAMESPACE
+    for {
+        set namespace = $ORDER(allNamespaces(namespace))
+        quit:namespace=""
+        set $NAMESPACE = namespace
+        set statement = ##class(%SQL.Statement).%New()
+        set status = statement.%Prepare(.gitscQuery)
+        set result = statement.%Execute()
+        do result.%Next()
+        set gitEnabled = result.%GetData(1)
+        if (gitEnabled) set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
+        
+
+
+    }
+
+    quit enabledNamespaces
+}
+
+
 Query InstanceUncommitted() As %Query() 
 {
 }
 
 ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status {
-
+    set qHandle("q") = "SELECT InternalName FROM SourceControl_Git.Change"
+    set namespaces = ..GetGitEnabledNamespaces()
+    set tPtr = 0
+    while $LISTNEXT(namespaces, tPtr, tValue) {
+        set qHandle("n", $increment(qHandle("n"))) = $ZCONVERT(tValue, "U")
+    }
+    
+    Quit $$$OK
 }
 
 ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [PlaceAfter = InstanceUncommittedExecute]{
-
+    #dim tResult as %SQL.StatementResult
+    New $Namespace
+    set tSC = $$$OK
+    try {
+        set namespace = ""
+        for {
+            set namespace = $ORDER(
+        }
+    } catch e {
+        set tSC = e.AsStatus()
+    }
 }
 
 ClassMethod InstanceUncommittedClose(ByRef qHandle As %Binary) As %Status [PlaceAfter = InstanceUncommittedFetch] {

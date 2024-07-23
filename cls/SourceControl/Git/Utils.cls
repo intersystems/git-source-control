@@ -2117,23 +2117,9 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
-    } elseif usertype && (docclass = "Ens.Util.ProjectTextDocument") {
-        // If using sharded Production Exports, use PTD naming conventions
-        if default {
-            set nam = $replace(nam,"||","/")
-        }
-        set $ListBuild(productionDir, nam) = $ListFromString(nam, "/")
-        // Abbreviate "ProductionSettings" to "ProdStgs", "Settings" to "Stgs".
-        Set prefix = $Case($Extract(nam), "P":"ProdStgs-", "S":"Stgs-", :"")
-        Set nam = prefix_$Piece(nam,"-",2,*)
-        set $ListBuild(itemName, itemClassName) = $ListFromString(nam, "|")
-        if $Get(itemClassName) '= "" {
-            // Prevent errors from exceeding max file length by hashing item Class name
-            set nam = productionDir_"/"_itemName_$zhex($zcrc(itemClassName,6))
-        } else {
-            set nam = productionDir_"/"_nam
-        }
-        return $translate(found_$Replace(nam,".","_")_".xml","\","/")
+    } elseif (..Type(InternalName) = "ptd") && $$$comClassDefined("%Studio.SourceControl.Production") {
+        do ##class(%Studio.SourceControl.Production).ParseInternalName(InternalName,'default,,.filename)
+        return $translate(found_filename, "\","/")
     } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{

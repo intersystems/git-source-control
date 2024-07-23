@@ -2423,7 +2423,7 @@ ClassMethod GetGitEnabledNamespaces() As %String
 {
     // Get all namespaces
     set allNamespaces = ""
-    do ##class(%SYS.Namespace).GetList(.allNamespaces)
+    do ##class(%SYS.Namespace).ListAll(.allNamespaces)
 
     set enabledNamespaces = ""
 
@@ -2460,38 +2460,19 @@ ClassMethod GetGitEnabledNamespaces() As %String
     quit enabledNamespaces
 }
 
-
-Query InstanceUncommitted() As %Query() 
+ClassMethod FileIsUncommitted(InternalName As %String, Output User) As %Boolean
 {
-}
-
-ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status {
-    set qHandle("q") = "SELECT InternalName FROM SourceControl_Git.Change"
-    set namespaces = ..GetGitEnabledNamespaces()
-    set tPtr = 0
-    while $LISTNEXT(namespaces, tPtr, tValue) {
-        set qHandle("n", $increment(qHandle("n"))) = $ZCONVERT(tValue, "U")
-    }
-    
-    Quit $$$OK
-}
-
-ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [PlaceAfter = InstanceUncommittedExecute]{
-    #dim tResult as %SQL.StatementResult
-    New $Namespace
-    set tSC = $$$OK
-    try {
-        set namespace = ""
-        for {
-            set namespace = $ORDER(
+    set isUncommitted = 0
+    set resultSet = ##class(SourceControl.Git.Change).InstanceUncommittedFunc()
+    while resultSet.%Next() {
+        set fileName = resultSet.InternalName
+        if InternalName = fileName {
+            set isUncommitted = 1
+            set User = resultSet.User
         }
-    } catch e {
-        set tSC = e.AsStatus()
     }
-}
 
-ClassMethod InstanceUncommittedClose(ByRef qHandle As %Binary) As %Status [PlaceAfter = InstanceUncommittedFetch] {
-
+    quit isUncommitted
 }
 
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status

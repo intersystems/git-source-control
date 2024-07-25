@@ -1261,6 +1261,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
     #dim sc as %Status = $$$OK
     
+    set settings = ##class(SourceControl.Git.Settings).%New()
     set type = ..Type(InternalName)
     if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
         if (type = "ptd") && $$$comClassDefined("Ens.Deployment.Deploy") {
@@ -1268,6 +1269,11 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             set rollbackFile = ##class(%File).TempFilename()
             set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)
             do ##class(%File).Delete(rollbackFile)
+        } elseif (type = "cls") && settings.decomposeProductions 
+                && $$$comClassDefined("%Studio.SourceControl.Production") 
+                && ##class(%Studio.SourceControl.Production).IsProductionClass(
+                    ..NameWithoutExtension(InternalName), "FullExternalName") {
+            set sc = ##class(%Studio.SourceControl.Production).ImportProductionWithoutDefinition(filename)
         } elseif ..UserTypeCached(InternalName,.docclass,.doctype) {
             set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
             do routineMgr.Code.Rewind()

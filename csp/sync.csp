@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+        <link rel="stylesheet" type="text/css" href="css/git-webui.css" /> 
+        <server>set $NAMESPACE = "USER"</server>
+        #(##class(SourceControl.Git.Utils).GetSourceControlInclude())#
+        <style type="text/css">
+            h1 {
+                margin-top: 10px
+            }
+            .A::after {
+                content: "Added";
+                position: absolute;
+                right: 10px;
+            }
+
+            .D::after {
+                content: "Deleted";
+                position: absolute;
+                right: 10px;
+            }
+
+            .M::after {
+                content: "Modified";
+                position: absolute;
+                right: 10px;
+            }
+
+            .R::after {
+                content: "Renamed";
+                position: absolute;
+                right: 10px;
+            }
+
+            .section-header {
+                margin: 20px 0 15px 0
+            }
+
+            #syncBtn {
+                position: absolute;
+                right: 15px;
+                margin-top: 10px;
+            }
+
+            .output {
+                margin-top: 100px;
+                margin-bottom: 20px;
+                border: 1.5px solid darkgray;
+                padding: 10px;
+                border-radius: 4px;
+            }
+
+        </style>
+    </head>
+    <body>
+        <server>
+            set settings = ##class(SourceControl.Git.Settings).%New()
+
+            set uncommittedWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+            set commitMsg = ##class(SourceControl.Git.Utils).GenerateCommitMessageFromFiles(uncommittedWithAction)
+            set filesToSync = ($length(commitMsg) > 0)
+            set fileSectionDisplay = $select(
+                filesToSync = 1: "block",
+                1: "none"
+            )
+            set noFileDisplay = $select(
+                filesToSync = 0: "block",
+                1: "none"
+            )
+
+        </server>
+        
+        <div class="container">
+            <h1 class="text-center">Sync Repository</h1>
+            <div class="row">
+                <div class="offset-sm-2 col-sm-8">
+                    <div style="display: #(fileSectionDisplay)#">
+                        <h3 class="section-header">Files to be committed with sync:</h3>
+                        <ul class="list-group">
+                            <server>
+                                set iterator = uncommittedWithAction.%GetIterator()
+                                while iterator.%GetNext(,.uncommitted) {
+                                    set action = uncommitted.%Get("action")
+                                    set file = uncommitted.%Get("file")
+                                    &html<<li class="list-group-item #(action)#">#(file)#</li>>
+                                }
+                            </server>
+                        </ul>
+                        <h3 class="section-header">Sync commit message:</h3>
+                        <input class="form-control" type="text" name="syncMsg" id="syncMsg" value="#(commitMsg)#">
+                    </div>
+                    <div style="display: #(noFileDisplay)#">
+                        <h1 class="text-center">No files to commit with sync</h1>
+                    </div>
+                    <h3 class="section-header">Sync details:</h3>
+                    <p>Upon syncing, the local repository will pull the changes from remote and commit the newest changes before committing and pushing</p>
+                    <server>
+                        
+                        if settings.defaultMergeBranch '= "" {
+                            &html<<p>Local changes will be merged with #(settings.defaultMergeBranch)# after receiving the latest changes</p>>
+                        }
+                    </server>
+
+                    <button class="btn btn-lg btn-primary" id="syncBtn" onClick="#server(..PerformSync())#">Sync</button>
+                    <div>
+                        <div class="container output">
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </body>
+
+    <script language="cache" method="PerformSync">
+        &js<document.getElementById('syncBtn').innerHTML = 'Syncing...'>
+        &js<document.getElementById('syncBtn').disabled = true>
+    </script>
+</html>

@@ -1947,7 +1947,7 @@ ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String
         set commitMsg = commitMsg_$LISTBUILD(oneFileMsg)
         
     }
-    quit $LISTTOSTRING(commitMsg, ",")
+    quit $LISTTOSTRING(commitMsg, ", ")
 }
 
 ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)

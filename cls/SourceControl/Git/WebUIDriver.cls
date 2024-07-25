@@ -159,6 +159,9 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
                 set handled = 1
+            } elseif (pathStart = "newgit") {
+                merge data = %request.Data
+                
             }
         }
     }

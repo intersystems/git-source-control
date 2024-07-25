@@ -1316,6 +1316,24 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
     Quit sc
 }
 
+ClassMethod ListItemsRecursively(type, fileSpec, directory, ByRef itemList) [ Private ]
+{
+    set files = ##class(%Library.File).FileSetFunc(directory,fileSpec,,1)
+    throw:files.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(files.%SQLCODE,files.%Message)
+    while files.%Next() {
+        if (files.Type="D") {
+            do ..ListItemsRecursively(type, fileSpec, files.Name, .itemList)
+        } else {
+            set internalName = files.ItemName
+            if ($zconvert(type,"l") = "ptd") && $$$comClassDefined("%Studio.SourceControl.Production") {
+                do ##class(%Studio.SourceControl.Production).ParseExternalName($translate(files.Name,"\","/"), .internalName)
+            }
+            set itemList(internalName) = ""
+        }
+    }
+}
+
+/// Returns an array of internal names of all items in the local source control repository.
 ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 {
     #define DoNotLoad 1
@@ -1332,13 +1350,11 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                if ..UserTypeCached("foo."_mappingFileType) {
-                    set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
-                    set files = ##class(%Library.File).FileSetFunc(mappedFilePath,fileSpec)
-                    while files.%Next() {
-                        // Assumes flat file structure
-                        set itemList(files.ItemName) = ""
-                    }
+                if ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
+                    set fileSpec = $select(
+                        userTypeClass="Ens.Util.ProjectTextDocument": "*.xml;*.XML",
+                        1: "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U"))
+                    do ..ListItemsRecursively(mappingFileType, fileSpec, mappedFilePath, .itemList)
                 } else {
                     set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
                     merge itemList = tempItemList

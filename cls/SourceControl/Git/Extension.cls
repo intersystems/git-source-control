@@ -282,10 +282,10 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                 set key = $order(productionItems(""))
                 while (key '= "") {
                     if productionItems(key) = "D" {
-                        set itemFilename = ..ExternalName(key)
-                        if ##class(SourceControl.Git.Utils).IsInSourceControl(InternalName) && ##class(%File).Exists(itemFilename) {
-                            $$$ThrowOnError(##class(SourceControl.Git.Change).AddDeletedToUncommitted(itemFilename, InternalName))
-                            $$$ThrowOnError(##class(SourceControl.Git.Utils).DeleteExternalFile(InternalName))
+                        set itemFilename = ..FullExternalName(key)
+                        if ##class(SourceControl.Git.Utils).IsInSourceControl(key) && ##class(%File).Exists(itemFilename) {
+                            $$$ThrowOnError(##class(SourceControl.Git.Change).AddDeletedToUncommitted(itemFilename, key))
+                            $$$ThrowOnError(##class(SourceControl.Git.Utils).DeleteExternalFile(key))
                         }
                     } elseif '..IsInSourceControl(key) {
                         $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(key))

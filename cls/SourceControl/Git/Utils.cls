@@ -1265,6 +1265,10 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     set type = ..Type(InternalName)
     if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
         if (type = "ptd") && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+            // Deployment manager should not reexport because studio project file includes timestamp
+            // ideally we could just new %SourceControl, but Ens portal config pages do not use %SourceControl
+            new %gscSkipSaveHooks
+            set %gscSkipSaveHooks = 1
             set targetProduction = $piece(InternalName,"||",1)
             set rollbackFile = ##class(%File).TempFilename()
             set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)

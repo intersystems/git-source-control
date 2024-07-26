@@ -272,6 +272,7 @@ Method OnBeforeTimestamp(InternalName As %String)
 Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NULLOREF}) As %Status
 {
     set sc = $$$OK
+    quit:$get(%gscSkipSaveHooks) sc
     try {
         set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)

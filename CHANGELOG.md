@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.1] - Unreleased
 
+### Added
+- New API endpoint that accepts git commands as array instead of string (#437)
+
 ### Fixed
 - Fixed JS errors in Studio on certain operations (#416)
 - Add menu option disabled for unsaved files (#420)

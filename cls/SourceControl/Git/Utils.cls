@@ -1786,7 +1786,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughCommand(.outStream)
-        set out = ##class(%Stream.Global).%New()
+        set out = ##class(%Stream.GlobalCharacter).%New()
         do buffer.EndCaptureOutput(.out)
         if $$$ISOK(st) {
             while 'out.AtEnd {

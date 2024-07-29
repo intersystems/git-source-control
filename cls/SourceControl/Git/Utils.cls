@@ -253,17 +253,19 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Sync") {
-        if ..CheckForUncommittedFiles() {
-            set Target = "Enter a commit message for the sync operation"
-            set Action = 7
-            set Msg = ..PreSync()
-        } else {
-            set Target = ""
-            do ..Sync("",.Target)
-            if (Target '= "") {
-                set Action = 6
-            }
-        }
+        #; if ..CheckForUncommittedFiles() {
+        #;     set Target = "Enter a commit message for the sync operation"
+        #;     set Action = 7
+        #;     set Msg = ..PreSync()
+        #; } else {
+        #;     set Target = ""
+        #;     do ..Sync("",.Target)
+        #;     if (Target '= "") {
+        #;         set Action = 6
+        #;     }
+        #; }
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/sync.csp"
         
         quit $$$OK
     } elseif (menuItemName = "Push") {

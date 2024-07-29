@@ -9,9 +9,10 @@
         <server>set $NAMESPACE = "USER"</server>
         #(##class(SourceControl.Git.Utils).GetSourceControlInclude())#
         <style type="text/css">
-            h1 {
+            h1, h2 {
                 margin-top: 10px
             }
+
             .A::after {
                 content: "Added";
                 position: absolute;
@@ -46,8 +47,11 @@
                 margin-top: 10px;
             }
 
+            .output-header {
+                margin-top: 120px;
+            }
             .output {
-                margin-top: 100px;
+
                 margin-bottom: 20px;
                 border: 1.5px solid darkgray;
                 padding: 10px;
@@ -72,6 +76,8 @@
                 1: "none"
             )
 
+            set outputDisplay = "none"
+
         </server>
         
         <div class="container">
@@ -94,7 +100,7 @@
                         <input class="form-control" type="text" name="syncMsg" id="syncMsg" value="#(commitMsg)#">
                     </div>
                     <div style="display: #(noFileDisplay)#">
-                        <h1 class="text-center">No files to commit with sync</h1>
+                        <h2 class="text-center">No files to commit with sync</h2>
                     </div>
                     <h3 class="section-header">Sync details:</h3>
                     <p>Upon syncing, the local repository will pull the changes from remote and commit the newest changes before committing and pushing</p>
@@ -105,10 +111,11 @@
                         }
                     </server>
 
-                    <button class="btn btn-lg btn-primary" id="syncBtn" onClick="#server(..PerformSync())#">Sync</button>
+                    <button class="btn btn-lg btn-primary" id="syncBtn" onClick="disableInput()">Sync</button>
                     <div>
-                        <div class="container output">
-
+                        <h3 class="output-header" id="outputHeader" style="display: #(outputDisplay)#">Sync output: </h3>
+                        <div class="container output" id="outputContainer" style="display: #(outputDisplay)#">
+                            <pre id="outputBox"></pre>
                         </div>
                     </div>
                 </div>
@@ -116,9 +123,65 @@
             
         </div>
     </body>
+    <script type="text/javascript">
+    function disableInput() {
+        document.getElementById('syncMsg').disabled = true;
+        document.getElementById('syncBtn').innerHTML = 'Syncing...';
+        document.getElementById('syncBtn').disabled = true;
+        #server(..PerformSync(self.document.getElementById('syncMsg').value))#
+    }
+    </script>
+    <script language="cache" method="PerformSync" arguments="syncMsg:%String">
+        &js<document.getElementById('outputContainer').style.display = 'block'>
+        &js<document.getElementById('outputHeader').style.display = 'block'>
+        set $NAMESPACE = "USER"
+        set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+        do buffer.BeginCaptureOutput()
 
-    <script language="cache" method="PerformSync">
-        &js<document.getElementById('syncBtn').innerHTML = 'Syncing...'>
-        &js<document.getElementById('syncBtn').disabled = true>
+        set st = ##class(SourceControl.Git.Utils).Sync(syncMsg)
+
+        set out = ##class(%Stream.GlobalCharacter).%New()
+        do buffer.EndCaptureOutput(.out)
+        while 'out.AtEnd {
+            set line = out.ReadLine()
+            set escapedLine = ..EscapeHTML(line)
+            set escapedLine = $replace(escapedLine, $char(10), "<br>")
+
+            &js<
+                var outputContainer = document.getElementById('outputBox');
+                var lineText = "#(escapedLine)#";
+                var lineTextNode = document.createTextNode(lineText);
+                outputContainer.innerHTML += lineText + "<br>";
+            >
+        }
+        &js<document.getElementById('syncBtn').innerHTML = 'Synced'>
     </script>
 </html>
+<script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
+	try {
+		set %session.UseSessionCookie = 1 // Always set back to autodetect
+		set %session.CookiePath = "" // Always clear
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
+	quit 1
+</script>
+<script method='OnPreHyperEvent' arguments="class:%String,method:%String" language='cache' runat='server' returntype='%Status'>	
+	try {
+		set %session.UseSessionCookie = 1 // Always set back to autodetect
+		set %session.CookiePath = "" // Always clear
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
+	quit 1
+</script>

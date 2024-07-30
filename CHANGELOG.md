@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reintroduced amend (#425)
 - Git operations that import items into IRIS now report output from compilation (#426)
 - Double quotes now permissible in commit messages (#433)
-- Now creating a `%Stream.GlobalCharacter` where it should instead of non-existant `%Stream.Global` (438)
 
 ## [2.4.0] - 2024-07-08
 

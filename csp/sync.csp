@@ -106,7 +106,7 @@
                     <server>
                         
                         if settings.defaultMergeBranch '= "" {
-                            &html<<p>Local changes will be merged with #(settings.defaultMergeBranch)# after receiving the latest changes</p>>
+                            &html<<p>Local changes will be merged with #(..EscapeHTML(settings.defaultMergeBranch))# after receiving the latest changes</p>>
                         }
                     </server>
 
@@ -132,7 +132,6 @@
     <script language="cache" method="PerformSync" arguments="syncMsg:%String">
         &js<document.getElementById('outputContainer').style.display = 'block'>
         &js<document.getElementById('outputHeader').style.display = 'block'>
-        set $NAMESPACE = "USER"
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
 

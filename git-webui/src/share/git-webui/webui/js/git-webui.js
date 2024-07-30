@@ -2633,17 +2633,16 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.amend = function(message, details) {
-        var selectedFilesAsString = selectedItems.join(" ");
 
         if (self.commitMsgEmpty()) {
-            webui.git_command(['add', selectedFilesAsString]);
-            webui.git_command(['commit', '--amend', '--no-edit', '--', selectedFilesAsString], function(output) {
+            webui.git_command(["add"].concat(selectedItems));
+            webui.git_command(['commit', '--amend', '--no-edit', '--'].concat(selectedItems), function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
             });
         } else if (selectedItems.length != 0) {
-            webui.git_command(['add', selectedFilesAsString]);
-            webui.git_command(['commit', '--amend', '-m', message, '-m', 'details', '--', selectedFilesAsString], function(output) {
+            webui.git_command(["add"].concat(selectedItems));
+            webui.git_command(['commit', '--amend', '-m', message, '-m', 'details', '--'].concat(selectedItems), function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
             });
@@ -2658,9 +2657,8 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.commit = function(message, details) {
-        var selectedFilesAsString = selectedItems.join(" ");
-        webui.git_command(['add', selectedFilesAsString]);
-        webui.git_command(['commit', '-m', message, '-m', details, '--', selectedFilesAsString], function(output) {
+        webui.git_command(["add"].concat(selectedItems));
+        webui.git_command(['commit', '-m', message, '-m', details, '--'].concat(selectedItems), function(output) {
             webui.showSuccess(output);
             workspaceView.update();
         });

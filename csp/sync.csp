@@ -6,7 +6,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
         <link rel="stylesheet" type="text/css" href="css/git-webui.css" /> 
-        <server>set $NAMESPACE = "USER"</server>
         #(##class(SourceControl.Git.Utils).GetSourceControlInclude())#
         <style type="text/css">
             h1, h2 {
@@ -92,12 +91,12 @@
                                 while iterator.%GetNext(,.uncommitted) {
                                     set action = uncommitted.%Get("action")
                                     set file = uncommitted.%Get("file")
-                                    &html<<li class="list-group-item #(action)#">#(file)#</li>>
+                                    &html<<li class="list-group-item #(..EscapeHTML(action))#">#(..EscapeHTML(file))#</li>>
                                 }
                             </server>
                         </ul>
                         <h3 class="section-header">Sync commit message:</h3>
-                        <input class="form-control" type="text" name="syncMsg" id="syncMsg" value="#(commitMsg)#">
+                        <input class="form-control" type="text" name="syncMsg" id="syncMsg" value="#(..EscapeHTML(commitMsg))#">
                     </div>
                     <div style="display: #(noFileDisplay)#">
                         <h2 class="text-center">No files to commit with sync</h2>
@@ -111,7 +110,7 @@
                         }
                     </server>
 
-                    <button class="btn btn-lg btn-primary" id="syncBtn" onClick="disableInput()">Sync</button>
+                    <button class="btn btn-lg btn-primary" id="syncBtn" onClick="disableInput(); #server(..PerformSync(self.document.getElementById('syncMsg').value))#">Sync</button>
                     <div>
                         <h3 class="output-header" id="outputHeader" style="display: #(outputDisplay)#">Sync output: </h3>
                         <div class="container output" id="outputContainer" style="display: #(outputDisplay)#">
@@ -128,7 +127,6 @@
         document.getElementById('syncMsg').disabled = true;
         document.getElementById('syncBtn').innerHTML = 'Syncing...';
         document.getElementById('syncBtn').disabled = true;
-        #server(..PerformSync(self.document.getElementById('syncMsg').value))#
     }
     </script>
     <script language="cache" method="PerformSync" arguments="syncMsg:%String">

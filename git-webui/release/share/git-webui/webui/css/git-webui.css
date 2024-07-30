@@ -180,10 +180,10 @@ body {
   border-top: 1px solid #1a1a1a;
   border-bottom: 1px solid #1a1a1a;
   color: #eeeeee;
-  padding-bottom: 6em;
+  padding-bottom: 100px;
 }
 #sidebar #sidebar-content > :first-child,
-#sidebar #sidebar-content > :last-child {
+#sidebar #sidebar-content > :nth-last-child(2) {
   border-top: 1px solid #5e5e5e;
 }
 #sidebar #sidebar-content h4:before {
@@ -215,6 +215,17 @@ body {
 }
 #sidebar #sidebar-content #sidebar-tags h4:before {
   content: url(../img/tag.svg);
+}
+#sidebar #sidebar-content #sidebar-context h4:before {
+  content: url(../img/gear-fill.svg);
+}
+#sidebar #sidebar-content #sidebar-context {
+  position: absolute;
+  bottom: 42px;
+  width: 16.7em;
+  padding-bottom: 0.3rem;
+  margin-bottom: 0;
+  background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-settings h4:before {
   content: url(../img/gear-fill.svg);

@@ -110,6 +110,89 @@ webui.showWarning = function(message) {
         '</div>').appendTo(messageBox);
 }
 
+webui.git_command = function(command, callback) {
+    $.ajax({
+        url: "git-command",
+        type: "POST",
+        contentType: 'application/json',
+        data: JSON.stringify({
+            command: command
+        }),
+        success: function(data) {
+             // Convention : last lines are footer meta data like headers. An empty line marks the start if the footers
+            var footers = {};
+            var fIndex = data.length;
+            while (true) {
+                var oldFIndex = fIndex;
+                fIndex = data.lastIndexOf("\r\n", fIndex - 1);
+                var line = data.substring(fIndex + 2, oldFIndex);
+                if (line.length > 0) {
+                    var footer = line.split(": ");
+                    footers[footer[0]] = footer[1];
+                } else {
+                    break;
+                }
+            }
+            // Trims the the data variable to remove the footers extracted in the loop.
+            // Windows adds \r\n for every line break but the Git-Stderr-Length variable,
+            // counts it as only one character, throwing off the message length.
+            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
+            var fIndex = trimmedData.length
+
+            var messageLength = parseInt(footers["Git-Stderr-Length"]);
+            var messageStartIndex = fIndex-messageLength;
+            var message = trimmedData.substring(messageStartIndex, fIndex);
+
+            var output = trimmedData.substring(0, messageStartIndex);
+            var rcode = parseInt(footers["Git-Return-Code"]);
+
+            if (rcode == 0) {
+                if (callback) {
+                    callback(output);
+                }
+                // Return code is 0 but there is stderr output: this is a warning message
+                if (message.length > 0) {
+                    if(warningCallback) {
+                        warningCallback(message);
+                    } else {
+                        webui.showWarning(message);
+                    }
+                }
+            } else {
+                var displayMessage = ""
+                if(output.length > 0){
+                    displayMessage += (output+"\n");
+                }
+                if(message.length > 0){
+                    displayMessage += message;
+                }
+                if(displayMessage.length > 0){
+                    // if(errorCallback) {
+                    //     errorCallback(displayMessage);
+                    // } else{
+                        if(displayMessage.indexOf("self.document.Login") != -1){
+                            location.reload();
+                            return false;
+                        }
+                        webui.showError(displayMessage);
+                    //}
+                } else {
+                    webui.showError("The command <pre>"+command.join(" ")+"</pre> failed because of an unknown reason. Returned response: \n\n"+data)
+                }
+            }
+        },
+        error: function(data) {
+            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
+            var fIndex = trimmedData.length
+
+            var messageLength = parseInt(footers["Git-Stderr-Length"]);
+            var messageStartIndex = fIndex-messageLength;
+            var message = trimmedData.substring(messageStartIndex, fIndex);
+            webui.showError(message);
+        },
+    });
+}
+
 webui.git = function(cmd, arg1, arg2, arg3, arg4) {
     // cmd = git command line arguments
     // other arguments = optional stdin content and a callback function.
@@ -2551,42 +2634,33 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.amend = function(message, details) {
         var selectedFilesAsString = selectedItems.join(" ");
-        message = self.doubleQuotesToSingleQuotes(message);
-        details = self.doubleQuotesToSingleQuotes(details);
 
         if (self.commitMsgEmpty()) {
             webui.git("add " + selectedFilesAsString);
-            webui.git("commit --amend --no-edit -- " + selectedFilesAsString, function(output) {
+            webui.git_command(['commit', '--amend', '--no-edit', '--'].concat(selectedItems), function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
-            })
+            });
         } else if (selectedItems.length != 0) {
             webui.git("add " + selectedFilesAsString);
-            webui.git('commit --amend -m "' + message + '" -m "' + details + '" -- ' + selectedFilesAsString, function(output) {
+            webui.git_command(['commit', '--amend', '-m', message, '-m', 'details', '--'].concat(selectedItems), function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
-            })
+            });
         } else {
-            webui.git('commit --amend --allow-empty -m "' + message + '" -m "' + details + '"', function(output) {
+            webui.git_command(['commit', '--amend', '--allow-empty', '-m', message, '-m', details], function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
-            })
+            });
         }
             
         
     }
 
-    self.doubleQuotesToSingleQuotes = function(string) {
-        return string.replace(/"/g, "'");
-    }
-
     self.commit = function(message, details) {
-        var selectedFilesAsString = selectedItems.join(" ");
-        message = self.doubleQuotesToSingleQuotes(message);
-        details = self.doubleQuotesToSingleQuotes(details);
-
-        webui.git("add " + selectedFilesAsString);
-        webui.git('commit -m "' + message + '" -m "' + details + '" -- ' + selectedFilesAsString, function(output) {
+        // var selectedFilesAsString = selectedItems.join(" ");
+        webui.git_command(["add"].concat(selectedItems));
+        webui.git_command(['commit', '-m', message, '-m', details, '--'].concat(selectedItems), function(output) {
             webui.showSuccess(output);
             workspaceView.update();
         });

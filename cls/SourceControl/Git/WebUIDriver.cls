@@ -27,7 +27,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         if $isobject($get(responseJSON)) {
             do responseJSON.%ToJSON(%data)
         }
-    } elseif $match(pathStart,"git|dirname|hostname|viewonly") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -158,6 +158,40 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 if '$listfind(readOnlyCommands,baseCommand) {
                     do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
+                set handled = 1
+            } elseif (pathStart = "git-command") {
+                set requestBody = ##class(%Library.DynamicObject).%FromJSON(%request.Content)
+                set command = requestBody.command
+
+                set argsArr = ""
+                set argsArr($increment(argsArr)) = "color.ui=true"
+                set iterator = command.%GetIterator()
+                while iterator.%GetNext(,.value) {
+                    set argsArr($increment(argsArr)) = value
+                }
+
+                set inFile = ""
+
+                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c", inFile, .errStream, .outStream, argsArr...)
+                set %data = ##class(%Stream.TmpCharacter).%New()
+                set changeTerminators = (%data.LineTerminator '= $char(13,10))
+                set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+                while 'outStream.AtEnd {
+                    do %data.WriteLine(outStream.ReadLine())
+                }
+
+                set nLines = 0
+                while 'errStream.AtEnd {
+                    do %data.WriteLine(errStream.ReadLine())
+                    set:changeTerminators nLines = nLines + 1
+                }
+                
+                // Need to write out two lines or we get an infinite loop in JavaScript...
+                do %data.WriteLine()
+                do %data.WriteLine()
+                do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
+                do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
+                do %data.Rewind()
                 set handled = 1
             }
         }

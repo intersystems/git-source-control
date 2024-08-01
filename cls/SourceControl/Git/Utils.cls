@@ -2319,7 +2319,7 @@ ClassMethod Localize()
 Query Namespaces() As %Query(ROWSPEC = "Namespace:%String,SourceControlClass:%String,Accessible:%Boolean") [ SqlProc ]
 {
 }
- 
+
 ClassMethod NamespacesExecute(ByRef qHandle As %Binary) As %Status
 {
 	Set sc = ##class(%SYS.Namespace).ListAll(.array)
@@ -2327,7 +2327,7 @@ ClassMethod NamespacesExecute(ByRef qHandle As %Binary) As %Status
 	Set qHandle = ""
 	Quit sc
 }
- 
+
 ClassMethod NamespacesFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = NamespacesExecute ]
 {
 	Set qHandle = $Order(qHandle(qHandle))
@@ -2347,14 +2347,14 @@ ClassMethod NamespacesFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef 
 	}
 	Quit $$$OK
 }
- 
+
 ClassMethod NamespacesClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = NamespacesExecute ]
 {
 	Quit $$$OK
 }
 
-ClassMethod GetContexts() As %DynamicArray{
-    
+ClassMethod GetContexts() As %DynamicArray
+{
 }
 
 ClassMethod ConfigureWeb()

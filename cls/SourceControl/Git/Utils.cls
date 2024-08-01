@@ -2316,7 +2316,7 @@ ClassMethod Localize()
     }
 }
 
-Query Namespaces() As %Query(ROWSPEC = "Namespace:%String,SourceControlClass:%String,Accessible:%Boolean") [ SqlProc ]
+Query Namespaces() As %Query(ROWSPEC = "Namespace:%String,GitSourceControl:%Boolean,Accessible:%Boolean") [ SqlProc ]
 {
 }
 
@@ -2340,7 +2340,8 @@ ClassMethod NamespacesFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef 
 			New $Namespace
 			Set $Namespace = qHandle
 			Set scc = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
-			Set Row = $ListBuild(qHandle,scc,1)
+            set isGitSC = $select(scc = "SourceControl.Git.Extension":1, 1:0)
+			Set Row = $ListBuild(qHandle,isGitSC,1)
 		} Catch e {
 			Set Row = $ListBuild(qHandle,"",0)
 		}
@@ -2355,6 +2356,16 @@ ClassMethod NamespacesClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = 
 
 ClassMethod GetContexts() As %DynamicArray
 {
+    set namespaces = []
+    set namespacesResultSet = ..NamespacesFunc()
+    while namespacesResultSet.%Next() {
+        set namespace = namespacesResultSet.Namespace
+        if namespacesResultSet.GitSourceControl && namespacesResultSet.Accessible {
+            do namespaces.%Push(namespace)
+        }
+    }
+
+    return namespaces
 }
 
 ClassMethod ConfigureWeb()

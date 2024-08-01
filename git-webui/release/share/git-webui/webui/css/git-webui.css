@@ -217,7 +217,7 @@ body {
   content: url(../img/tag.svg);
 }
 #sidebar #sidebar-content #sidebar-context h4:before {
-  content: url(../img/gear-fill.svg);
+  content: url(../img/context.svg);
 }
 #sidebar #sidebar-content #sidebar-context {
   position: absolute;

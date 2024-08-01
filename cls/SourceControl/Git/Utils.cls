@@ -2316,6 +2316,47 @@ ClassMethod Localize()
     }
 }
 
+Query Namespaces() As %Query(ROWSPEC = "Namespace:%String,SourceControlClass:%String,Accessible:%Boolean") [ SqlProc ]
+{
+}
+ 
+ClassMethod NamespacesExecute(ByRef qHandle As %Binary) As %Status
+{
+	Set sc = ##class(%SYS.Namespace).ListAll(.array)
+	Merge qHandle = array
+	Set qHandle = ""
+	Quit sc
+}
+ 
+ClassMethod NamespacesFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = NamespacesExecute ]
+{
+	Set qHandle = $Order(qHandle(qHandle))
+	If (qHandle = "") {
+		Set AtEnd = 1
+	} ElseIf $Extract(qHandle) = "^" {
+		Quit ..NamespacesFetch(.qHandle,.Row,.AtEnd)
+	} Else {
+		Try {
+			New $Namespace
+			Set $Namespace = qHandle
+			Set scc = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
+			Set Row = $ListBuild(qHandle,scc,1)
+		} Catch e {
+			Set Row = $ListBuild(qHandle,"",0)
+		}
+	}
+	Quit $$$OK
+}
+ 
+ClassMethod NamespacesClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = NamespacesExecute ]
+{
+	Quit $$$OK
+}
+
+ClassMethod GetContexts() As %DynamicArray{
+    
+}
+
 ClassMethod ConfigureWeb()
 {
     set installNamespace = $Namespace

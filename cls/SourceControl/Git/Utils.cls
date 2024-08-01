@@ -2418,6 +2418,63 @@ ClassMethod UncommittedWithAction() As %Library.DynamicObject
     quit fileToOtherDevelopers
 }
 
+/// Retrieve the list of Namespaces that have git enabled
+ClassMethod GetGitEnabledNamespaces() As %String
+{
+    // Get all namespaces
+    set allNamespaces = ""
+    do ##class(%SYS.Namespace).ListAll(.allNamespaces)
+
+    set enabledNamespaces = ""
+
+    // Write query for verifying git sourcecontrol in namespace
+    set gitscQuery = 9
+    set gitscQuery(1) = "SELECT CASE"
+    set gitscQuery(2) = "WHEN EXISTS ("
+    set gitscQuery(3) = "SELECT TABLE_SCHEMA"
+    set gitscQuery(4) = "FROM INFORMATION_SCHEMA.TABLES"
+    set gitscQuery(5) = "WHERE TABLE_TYPE = 'BASE TABLE'"
+    set gitscQuery(6) = "AND TABLE_SCHEMA = 'SourceControl_Git'"
+    set gitscQuery(7) = ") THEN 1"
+    set gitscQuery(8) = "ELSE 0"
+    set gitscQuery(9) = "END AS SchemaExists;"
+
+
+    set namespace = ""
+    new $NAMESPACE
+    for {
+        set namespace = $ORDER(allNamespaces(namespace))
+        quit:namespace=""
+        set $NAMESPACE = namespace
+        set statement = ##class(%SQL.Statement).%New()
+        set status = statement.%Prepare(.gitscQuery)
+        set result = statement.%Execute()
+        do result.%Next()
+        set gitEnabled = result.%GetData(1)
+        if (gitEnabled) set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
+        
+
+
+    }
+
+    quit enabledNamespaces
+}
+
+ClassMethod FileIsUncommitted(InternalName As %String, Output User) As %Boolean
+{
+    set isUncommitted = 0
+    set resultSet = ##class(SourceControl.Git.Change).InstanceUncommittedFunc()
+    while resultSet.%Next() {
+        set fileName = resultSet.InternalName
+        if InternalName = fileName {
+            set isUncommitted = 1
+            set User = resultSet.User
+        }
+    }
+
+    quit isUncommitted
+}
+
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
 {
     #define sourcedir $System.Util.InstallDirectory()_"devuser/studio/templates/gitsourcecontrol/"

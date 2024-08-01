@@ -185,6 +185,46 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     quit sc
 }
 
+Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%String")
+{
+}
+
+ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
+{
+    set qHandle("q") = "SELECT InternalName, ChangedBy FROM SourceControl_Git.Change"
+    set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
+    set tPtr = 0
+    set qHandle("i") = 1
+    while $LISTNEXT(namespaces, tPtr, tValue) {
+        set namespace = $ZCONVERT(tValue, "U")
+        set $NAMESPACE = namespace
+        set resultSet = ##class(%SQL.Statement).%ExecDirect(, qHandle("q"))
+        while resultSet.%Next() {
+            set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
+            set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
+        }
+    }
+    
+    Quit $$$OK
+}
+
+ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = InstanceUncommittedExecute ]
+{
+    set i = qHandle("i")
+    set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"))
+    if i = qHandle("changes") {
+        set AtEnd = 1
+    } else {
+        set qHandle("i") = $increment(qHandle("i"))
+    }
+    Quit $$$OK
+}
+
+ClassMethod InstanceUncommittedClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = InstanceUncommittedFetch ]
+{
+    Quit $$$OK
+}
+
 Storage Default
 {
 <Data name="ChangeDefaultData">

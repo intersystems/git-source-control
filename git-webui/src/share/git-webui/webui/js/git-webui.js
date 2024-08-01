@@ -2642,7 +2642,7 @@ webui.NewChangedFilesView = function(workspaceView) {
             });
         } else if (selectedItems.length != 0) {
             webui.git_command(["add"].concat(selectedItems));
-            webui.git_command(['commit', '--amend', '-m', message, '-m', 'details', '--'].concat(selectedItems), function(output) {
+            webui.git_command(['commit', '--amend', '-m', message, '-m', details, '--'].concat(selectedItems), function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
             });

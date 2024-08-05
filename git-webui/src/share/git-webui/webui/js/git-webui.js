@@ -948,7 +948,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     };
 
     self.mainView = mainView;
-    
+    self.currentContext = self.getCurrentContext();
     self.element = $(   '<div id="sidebar">' +
                             '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<h5 id="packageVersion"></h5>' +
@@ -974,7 +974,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="Current Context">' + 
+                                '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '">' + 
                                     '<h4>Change Context</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-settings">' +
@@ -1006,7 +1006,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $("#sidebar-context", self.element).click(self.changeContextGet);
     }
 
-    self.currentContext = self.getCurrentContext();
+    
     self.getPackageVersion();
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");

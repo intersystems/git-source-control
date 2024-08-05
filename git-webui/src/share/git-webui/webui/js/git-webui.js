@@ -653,6 +653,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
 
         $("#chooseContextBtn").on("click", function() {
+            removePopup(popup);
             self.updateContext($("#chosenContext").val());
         });
     }

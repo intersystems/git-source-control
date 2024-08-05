@@ -504,7 +504,15 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         })
     }
 
-    self.changeContext = function() {
+    self.changeContextGet = function() {
+        $.get("contexts", function(contextList) {
+            var contexts = JSON.parse(contextList);
+            self.changeContext(contexts);
+        });
+    }
+
+    self.changeContext = function(contexts) {
+        
         function removePopup(popup) {
             $(popup).children(".modal-fade").modal("hide");
             $(".modal-backdrop").remove();
@@ -533,11 +541,19 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $(
             '<div class="">'+
                 '<h6>Select context for Git Source Control</h6>' +
-                '<select class="custom-select">'+ 
-                    '<option selected>context!</option>' +
+                '<select id="chosenContext" class="custom-select">'+ 
                 '</select>' +
             '</div>'
         ).appendTo(popupBody);
+
+        var selectDropdown = $(".custom-select", popupBody)[0];
+
+        contexts.forEach(function(context) {
+            $(
+                '<option value="' + context + '" ' + (context == self.currentContext ? "selected" : "") + ' >' + context + '</option>'
+            ).appendTo(selectDropdown);
+        })
+        
 
         var popupFooter = $(".modal-footer", popup)[0];
         webui.detachChildren(popupFooter);
@@ -552,9 +568,36 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $('#changeContextModal').find('#cancelContextBtn', '.close').click(function() {
             removePopup(popup);
         });
+
+        $("#chooseContextBtn").on("click", function() {
+            self.updateContext($("#chosenContext").val());
+        });
     }
 
-    
+    self.getCurrentContext = function() {
+        var urlParts = window.location.href.split("/");
+        if (urlParts[urlParts.length - 1] == "") {
+            // return namespace as context
+            return urlParts[urlParts.length - 2];
+        } else {
+            // return package as context
+            return urlParts[urlParts.length - 1];
+        }
+    }
+
+    self.updateContext = function(context) {
+        var urlParts = window.location.href.split("/");
+        if (context.indexOf(".ZPM") != -1) {
+            urlParts[urlParts.length - 1] = context;
+        } else {
+            urlParts[urlParts.length - 1] = "";
+            urlParts[urlParts.length - 2] = context;
+        }
+
+        window.location = urlParts.join("/");
+        self.currentContext = context;
+    }
+
     self.checkoutBranch = function(branchType, refName) {
         $("#confirm-branch-checkout").remove();
 
@@ -877,8 +920,10 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
-        $("#sidebar-context", self.element).click(self.changeContext);
+        $("#sidebar-context", self.element).click(self.changeContextGet);
     }
+
+    self.currentContext = self.getCurrentContext();
     self.getPackageVersion();
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");

@@ -2356,16 +2356,21 @@ ClassMethod NamespacesClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = 
 
 ClassMethod GetContexts() As %DynamicArray
 {
-    set namespaces = []
+    set contexts = []
     set namespacesResultSet = ..NamespacesFunc()
     while namespacesResultSet.%Next() {
         set namespace = namespacesResultSet.Namespace
         if namespacesResultSet.GitSourceControl && namespacesResultSet.Accessible {
-            do namespaces.%Push(namespace)
+            do contexts.%Push(namespace)
         }
     }
 
-    return namespaces
+    set packagesResultSet = ##class(%SQL.Statement).%ExecDirect(, "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')")
+    while packagesResultSet.%Next() {
+        set package = packagesResultSet.Name
+        do contexts.%Push(package)
+    }
+    return contexts
 }
 
 ClassMethod ConfigureWeb()

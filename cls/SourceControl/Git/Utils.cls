@@ -1263,6 +1263,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     
     set settings = ##class(SourceControl.Git.Settings).%New()
     set type = ..Type(InternalName)
+    set imported = 1
     if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
         if (type = "ptd") && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
             // Deployment manager should not reexport because studio project file includes timestamp
@@ -1277,7 +1278,8 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 && $$$comClassDefined("%Studio.SourceControl.Production") 
                 && ##class(%Studio.SourceControl.Production).IsProductionClass(
                     ..NameWithoutExtension(InternalName), "FullExternalName") {
-            set sc = ##class(%Studio.SourceControl.Production).ImportProductionWithoutDefinition(filename)
+            write !, "Production decomposition enabled, skipping import of production class"
+            set imported = 0
         } elseif ..UserTypeCached(InternalName,.docclass,.doctype) {
             set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
             do routineMgr.Code.Rewind()
@@ -1293,12 +1295,14 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 set sc = $system.OBJ.Load(filename,"-l-d")
             }
         }
-        if sc {
-            set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
-            if type = "prj" {
-                set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
+        if $$$ISOK(sc) {
+            if imported {
+                set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
+                if type = "prj" {
+                    set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
+                }
+                write !, InternalName," has been imported from ", filename
             }
-            write !, InternalName," has been imported from ", filename
         } else {
             write !, "ERROR importing" ,InternalName, !
             do $system.Status.DisplayError(sc)
@@ -1537,7 +1541,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
             if (type = "ptd") {
                 $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportPTD(InternalName,"FullExternalName"))
             } elseif (..ItemIsProductionToDecompose(InternalName, .productionName)) {
-                $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportProductionWithoutDefinition(productionName,"FullExternalName"))
+                write !, "Production decomposition enabled, skipping export of production class"
             } else {
                 $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             }
@@ -1555,7 +1559,8 @@ ClassMethod ItemIsProductionToDecompose(InternalName, Output productionName)
     set settings = ##class(SourceControl.Git.Settings).%New()
 	set name = $piece(InternalName,".",1,*-1)
     set decomposeProduction = settings.decomposeProductions && (..Type(InternalName) = "cls") 
-        && $$$comClassDefined(name) && $classmethod(name, "%Extends","Ens.Production")
+        && $$$comClassDefined("%Studio.SourceControl.Production") 
+        && ##class(%Studio.SourceControl.Production).IsProductionClass(name, "FullExternalName")
     if decomposeProduction {
         set productionName = name
     }
@@ -2633,3 +2638,4 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
+

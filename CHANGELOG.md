@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.5.0] - Unreleased
 
 ### Added
-- New way to change context of Git-Source-Control from UI (#280)
+- Allow changing namespaces and IPM package context from web UI (#280)
 
 ## [2.4.1] - 2024-08-02
 

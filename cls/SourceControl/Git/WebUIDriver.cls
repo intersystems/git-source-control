@@ -20,8 +20,6 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..GetSettingsURL(%request)
         } elseif $extract(pagePath, 6, *) = "get-package-version"{
             set responseJSON = ..GetPackageVersion()
-        } elseif $extract(pagePath, 6, *) = "namespace"{
-            set responseJSON = $NAMESPACE
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -275,4 +273,3 @@ ClassMethod GetPackageVersion() As %Library.DynamicObject
 }
 
 }
-

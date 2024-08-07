@@ -205,6 +205,9 @@ body {
 #sidebar #sidebar-content #sidebar-stash h4:before {
   content: url(../img/inboxes.svg);
 }
+#sidebar #sidebar-content #sidebarDiscarded h4:before {
+  content: url(../img/discarded.svg);
+}
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
 }

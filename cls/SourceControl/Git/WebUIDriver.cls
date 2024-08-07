@@ -27,7 +27,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         if $isobject($get(responseJSON)) {
             do responseJSON.%ToJSON(%data)
         }
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -75,6 +75,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set handled = 1
             } elseif (pathStart = "dirname") {
                 do %data.Write(##class(SourceControl.Git.Utils).TempFolder())
+                set handled = 1
+            } elseif (pathStart = "discarded-states") {
+                set discardsInBranch = ##class(SourceControl.Git.DiscardState).DiscardStatesInBranch()
+                do %data.Write(discardsInBranch.%ToJSON())
                 set handled = 1
             }
         } elseif (%request.Method = "POST") {
@@ -162,6 +166,22 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             } elseif (pathStart = "git-command") {
                 set requestBody = ##class(%Library.DynamicObject).%FromJSON(%request.Content)
                 set command = requestBody.command
+
+                set gitCmd = command.%Get(0)
+
+                if gitCmd = "restore" {
+                    set iter = command.%GetIterator()
+                    set isFile = 0
+                    while iter.%GetNext(,.value) {
+                        if isFile {
+                            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(value)
+                            do ##class(SourceControl.Git.DiscardState).SaveDiscardState(internalName)
+                        }
+                        if value = "--"{
+                            set isFile = 1
+                        }
+                    }
+                }
 
                 set argsArr = ""
                 set argsArr($increment(argsArr)) = "color.ui=true"

@@ -20,6 +20,7 @@ Method RestoreToFileTree()
         do fileStream.CopyFrom(..Contents)
         $$$ThrowOnError(fileStream.%Save())
         do ##class(SourceControl.Git.Utils).ImportItem(..InternalName, 1, 1)
+        do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..InternalName)
         $$$ThrowOnError(..%DeleteId(..%Id()))
 }
 
@@ -53,6 +54,7 @@ ClassMethod DiscardStatesInBranch() As %DynamicArray
         set discardState = ..%OpenId(resultSet.ID)
         do discardState.%JSONExportToString(.JSONStr)
         set discardStateObject = ##class(%DynamicAbstractObject).%FromJSON(JSONStr)
+        set discardStateObject.Id = resultSet.ID
         do discardStates.%Push(discardStateObject)
     }
 

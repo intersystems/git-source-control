@@ -27,7 +27,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         if $isobject($get(responseJSON)) {
             do responseJSON.%ToJSON(%data)
         }
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -213,6 +213,23 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 set handled = 1
+            } elseif (pathStart = "restore-discarded") {
+                merge data = %request.Data 
+                set fileId = data("file",1)
+                
+                set %data = ##class(%Stream.TmpCharacter).%New()
+
+                set discardState = ##class(SourceControl.Git.DiscardState).%OpenId(fileId)
+                if ##class(SourceControl.Git.Change).IsUncommitted(discardState.FullExternalName) {
+                    do %data.WriteLine("Please commit changes to file before restoring discarded state")
+                } else {
+                    do discardState.RestoreToFileTree()
+                    do %data.WriteLine("Successfully restored discarded file state")
+                }
+
+                do %data.Rewind()
+                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+                set handled = 1  
             }
         }
     }

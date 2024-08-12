@@ -1917,6 +1917,7 @@ ClassMethod SyncIrisWithRepoThroughDiff(ByRef files, ByRef filterToFiles, invert
     set addedFiles = $extract(addedFiles, 2, *)
     
     if (deletedFiles '= ""){
+        set ^mtempdeletedFiles($i(^mtempdeletedFiles)) = deletedFiles 
         set sc = ##class(SourceControl.Git.Utils).RemoveFromServerSideSourceControl(deletedFiles)
     }
     if (addedFiles '= ""){

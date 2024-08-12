@@ -1841,17 +1841,100 @@ webui.DiscardedView = function(mainView) {
         mainView.switchTo(self.element);
     };
 
-    self.getDiscardedStates = function() {
-        $.get("discarded-states", function(discarded) {
-            console.log(discarded);
-        });
-    }
 
     self.update = function() {
-        self.getDiscardedStates();
+        self.discarded = [];
+        discardedList.innerHTML = '';
+        $('.file-contents').html('');
+        $('.contents-menu').removeClass("has-items");
+        $('.external-name').text('');
+        $('.restore-discarded').html('');
+
+        // TODO: Empty the discarded list properly
+        $.get("discarded-states", function(discarded) {
+            self.discarded = JSON.parse(discarded);
+            if (self.discarded.length == 0) {
+                discardedList.innerHTML = '<h4>You have no saved discarded states</h4>';
+            }
+            
+            self.populateUiWithDiscardedStates();
+        });
+
+        
     }
 
-    self.element = $('<div id="discardedView"></div>')[0];
+        
+
+    self.populateUiWithDiscardedStates = function() {
+        self.discarded.forEach((discardedState, ind) => {
+            var discardedListEntry = $(
+                '<a class="log-entry list-group-item">' + 
+                    '<header>' + 
+                        '<h6 class="file-internalname">' + discardedState.InternalName + '</h6>' + 
+                        '<span class="discard-date">' + self.formatTimestamp(discardedState.Timestamp) + '</span>' +
+                    '</header>' +
+                    '<span> Branch: ' + discardedState.Branch + ' </span> <br>' +
+                    '<span> User: '+ discardedState.Username + '</span>' +
+
+                '</a>'
+            );
+            
+            discardedListEntry.on("click", function() {
+                $('.log-entry.list-group-item').removeClass('active');
+                $(this).addClass('active');
+
+                $('.contents-menu').addClass("has-items");
+                $('.external-name').text(self.discarded[ind].FullExternalName);
+                
+                var btn = $('<button class="btn btn-sm btn-primary restore-discarded-btn">Restore</button>')[0];
+                var discardElement = $('.restore-discarded')[0];
+                discardElement.innerHTML = '';
+                discardElement.appendChild(btn);
+
+                $('.restore-discarded-btn').off("click").on("click", function() {
+                    $.post("restore-discarded", {file: discardedState.Id}, function(message) {
+                        if (message.trim() == "Please commit changes to file before restoring discarded state") {
+                            webui.showError(message);
+                        } else {
+                            webui.showSuccess(message);
+                        }
+                        
+                        self.update();
+                    });
+                });
+
+                $('.file-contents').html('<pre>' + discardedState.Contents + '</pre>');
+            });
+
+            
+            discardedListEntry.prependTo(discardedList)[0];
+        });
+    }
+    /// This function takes in an IRIS timestamp format makes it use the "date, time" format
+    self.formatTimestamp = function(timestamp) {
+        var timestampArr = timestamp.split("T");
+        return timestampArr[0] + ', ' + timestampArr[1].slice(0, -1);
+    }
+
+    self.element = $(
+        '<div class="row" id="discardedView">' +
+            '<div class="col-sm-7">' +
+                '<div id="discardedList"></div>' +
+            '</div>' +
+            '<div class="col-sm-5">' +
+                '<div class="contents-menu">' +
+                    '<div class="nav-item external-name"></div>' +
+                    '<div class="nav-item restore-discarded"></div>' +
+                '</div>' +
+                '<div class="container file-contents">' +
+
+                '</div>' +
+            '</div>' +
+        '</div>'
+        
+    )[0];
+    self.discarded = [];
+    var discardedList = $("#discardedList", self.element)[0];
 
 }
 

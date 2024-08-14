@@ -34,6 +34,7 @@
       <Invoke Class="SourceControl.Git.Utils" Method="Localize" />
       <Invoke Class="SourceControl.Git.Utils" Method="ConfigureWeb" />
       <Invoke Class="SourceControl.Git.Utils" Method="CheckInitialization" />
+      <Invoke Class="SourceControl.Git.Utils" Method="MigrateInstanceSettings" />
       
       <Invoke Class="SourceControl.Git.Utils" Method="ResetSourceControlClass" Phase="Unconfigure" />
     </Module>

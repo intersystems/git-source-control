@@ -185,8 +185,9 @@ $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 
 ClassMethod MigrateInstanceSettings()
 {
-    if '$data(@..%SYSNamespaceStorage()@("%gitBinPath")) {
+    if '$data(^["%SYS"]SYS("SourceControl", "Git")) {
         merge ^%SYS("SourceControl", "Git") = ^["%SYS"]SYS("SourceControl", "Git")
+        kill ^["%SYS"]SYS("SourceControl", "Git")
     }
 }
 

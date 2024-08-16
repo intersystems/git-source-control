@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New UI for the basic mode Sync (#415)
 
+### Fixed
+- Instance wide settings are placed in proper global (#444)
+
 ## [2.4.1] - 2024-08-02
 
 ### Added

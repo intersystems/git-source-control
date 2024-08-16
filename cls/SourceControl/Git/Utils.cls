@@ -18,7 +18,7 @@ Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
 ClassMethod %SYSNamespaceStorage() As %String [ CodeMode = expression ]
 {
-$Replace(..#Storage,"^","^["""_..#InstallNamespace_"""]")
+$Replace(..#Storage,"^SYS","^%SYS")
 }
 
 /// Returns root temp folder
@@ -181,6 +181,14 @@ $Find(..#GitContextMenuItems, ","_menuItemName_",") > 0
 ClassMethod IsImportAfter(menuItemName As %String) As %Boolean [ CodeMode = expression ]
 {
 $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
+}
+
+ClassMethod MigrateInstanceSettings()
+{
+    if $data(^["%SYS"]SYS("SourceControl", "Git")) {
+        merge ^%SYS("SourceControl", "Git") = ^["%SYS"]SYS("SourceControl", "Git")
+        kill ^["%SYS"]SYS("SourceControl", "Git")
+    }
 }
 
 ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean, ByRef Msg As %String) As %Status
@@ -2563,4 +2571,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

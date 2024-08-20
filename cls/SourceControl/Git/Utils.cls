@@ -2425,35 +2425,16 @@ ClassMethod GetGitEnabledNamespaces() As %String
     do ##class(%SYS.Namespace).ListAll(.allNamespaces)
 
     set enabledNamespaces = ""
-
-    // Write query for verifying git sourcecontrol in namespace
-    set gitscQuery = 9
-    set gitscQuery(1) = "SELECT CASE"
-    set gitscQuery(2) = "WHEN EXISTS ("
-    set gitscQuery(3) = "SELECT TABLE_SCHEMA"
-    set gitscQuery(4) = "FROM INFORMATION_SCHEMA.TABLES"
-    set gitscQuery(5) = "WHERE TABLE_TYPE = 'BASE TABLE'"
-    set gitscQuery(6) = "AND TABLE_SCHEMA = 'SourceControl_Git'"
-    set gitscQuery(7) = ") THEN 1"
-    set gitscQuery(8) = "ELSE 0"
-    set gitscQuery(9) = "END AS SchemaExists;"
-
-
     set namespace = ""
-    new $NAMESPACE
     for {
         set namespace = $ORDER(allNamespaces(namespace))
         quit:namespace=""
-        set $NAMESPACE = namespace
-        set statement = ##class(%SQL.Statement).%New()
-        set status = statement.%Prepare(.gitscQuery)
-        set result = statement.%Execute()
-        do result.%Next()
-        set gitEnabled = result.%GetData(1)
-        if (gitEnabled) set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
-        
-
-
+        try {
+            set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet(namespace)
+        } catch err {
+            set sourceControlClass = "" // user does not have access to this namespace
+        }
+        if (sourceControlClass = "SourceControl.Git.Extension") set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
     }
 
     quit enabledNamespaces
@@ -2463,6 +2444,7 @@ ClassMethod FileIsUncommitted(InternalName As %String, Output User) As %Boolean
 {
     set isUncommitted = 0
     set resultSet = ##class(SourceControl.Git.Change).InstanceUncommittedFunc()
+    throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
     while resultSet.%Next() {
         set fileName = resultSet.InternalName
         if InternalName = fileName {
@@ -2628,3 +2610,4 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
+

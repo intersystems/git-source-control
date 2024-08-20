@@ -195,10 +195,14 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
     set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
     set tPtr = 0
     set qHandle("i") = 1
+    new $namespace
     while $LISTNEXT(namespaces, tPtr, tValue) {
         set namespace = $ZCONVERT(tValue, "U")
         set $NAMESPACE = namespace
-        set resultSet = ##class(%SQL.Statement).%ExecDirect(, qHandle("q"))
+        set statement = ##class(%SQL.Statement).%New()
+        $$$ThrowOnError(statement.%Prepare(qHandle("q"), 0))
+        set resultSet = statement.%Execute()
+        throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
         while resultSet.%Next() {
             set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
             set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
@@ -211,17 +215,14 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
 ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = InstanceUncommittedExecute ]
 {
     set i = qHandle("i")
-    set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"))
-    if i = qHandle("changes") {
+    if $data(qHandle("changes",i))=10 {
+        set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"))
+    }
+    if i >= $get(qHandle("changes"),0) {
         set AtEnd = 1
     } else {
         set qHandle("i") = $increment(qHandle("i"))
     }
-    Quit $$$OK
-}
-
-ClassMethod InstanceUncommittedClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = InstanceUncommittedFetch ]
-{
     Quit $$$OK
 }
 
@@ -277,3 +278,4 @@ Storage Default
 }
 
 }
+

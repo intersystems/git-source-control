@@ -47,7 +47,7 @@ ClassMethod ExternalNameToInternalName(ExternalName As %String) As %String
             }
         }
         if itemIsPTD && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
-            do ##class(%Studio.SourceControl.Production).ParseExternalName(ExternalName,.internalName)
+            do ##class(SourceControl.Git.Production).ParseExternalName(ExternalName,.internalName)
         } elseif (($data(outName)=1) || ($data(outName) = 11 && ($order(outName(""),-1) = $order(outName(""))))) && ($zconvert(##class(SourceControl.Git.Utils).Type(outName),"U") '= "CSP") {
             set internalName = outName
         }
@@ -84,3 +84,4 @@ Storage Default
 }
 
 }
+

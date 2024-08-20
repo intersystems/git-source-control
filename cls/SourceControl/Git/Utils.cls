@@ -1275,8 +1275,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)
             do ##class(%File).Delete(rollbackFile)
         } elseif (type = "cls") && settings.decomposeProductions 
-                && $$$comClassDefined("%Studio.SourceControl.Production") 
-                && ##class(%Studio.SourceControl.Production).IsProductionClass(
+                && ##class(SourceControl.Git.Production).IsProductionClass(
                     ..NameWithoutExtension(InternalName), "FullExternalName") {
             write !, "Production decomposition enabled, skipping import of production class"
             set imported = 0
@@ -1339,8 +1338,8 @@ ClassMethod ListItemsRecursively(type, fileSpec, directory, ByRef itemList) [ Pr
             do ..ListItemsRecursively(type, fileSpec, files.Name, .itemList)
         } else {
             set internalName = files.ItemName
-            if ($zconvert(type,"l") = "ptd") && $$$comClassDefined("%Studio.SourceControl.Production") {
-                do ##class(%Studio.SourceControl.Production).ParseExternalName($translate(files.Name,"\","/"), .internalName)
+            if ($zconvert(type,"l") = "ptd") {
+                do ##class(SourceControl.Git.Production).ParseExternalName($translate(files.Name,"\","/"), .internalName)
             }
             set itemList(internalName) = ""
         }
@@ -1539,7 +1538,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
             set filenames($I(filenames)) = filename
             write !, "exporting new version of ", InternalName, " to ", filename
             if (type = "ptd") {
-                $$$QuitOnError(##class(%Studio.SourceControl.Production).ExportPTD(InternalName,"FullExternalName"))
+                $$$QuitOnError(##class(SourceControl.Git.Production).ExportPTD(InternalName,"FullExternalName"))
             } elseif (..ItemIsProductionToDecompose(InternalName, .productionName)) {
                 write !, "Production decomposition enabled, skipping export of production class"
             } else {
@@ -1559,8 +1558,7 @@ ClassMethod ItemIsProductionToDecompose(InternalName, Output productionName)
     set settings = ##class(SourceControl.Git.Settings).%New()
 	set name = $piece(InternalName,".",1,*-1)
     set decomposeProduction = settings.decomposeProductions && (..Type(InternalName) = "cls") 
-        && $$$comClassDefined("%Studio.SourceControl.Production") 
-        && ##class(%Studio.SourceControl.Production).IsProductionClass(name, "FullExternalName")
+        && ##class(SourceControl.Git.Production).IsProductionClass(name, "FullExternalName")
     if decomposeProduction {
         set productionName = name
     }
@@ -2148,8 +2146,8 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
-    } elseif (..Type(InternalName) = "ptd") && $$$comClassDefined("%Studio.SourceControl.Production") {
-        do ##class(%Studio.SourceControl.Production).ParseInternalName(InternalName,'default,.filename)
+    } elseif (..Type(InternalName) = "ptd") {
+        do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,'default,.filename)
         return $translate(found_filename, "\","/")
     } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())

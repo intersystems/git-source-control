@@ -279,7 +279,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
         if ##class(SourceControl.Git.Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
             // If this is a production class and production decomposition is enabled, call recursively on all modified production items.
             if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
-                do ##class(%Studio.SourceControl.Production).GetModifiedItemsAfterSave(InternalName, .productionItems)
+                do ##class(SourceControl.Git.Production).GetModifiedItemsAfterSave(InternalName, .productionItems)
                 set key = $order(productionItems(""))
                 while (key '= "") {
                     if productionItems(key) = "D" {
@@ -375,7 +375,7 @@ Method OnBeforeSave(InternalName As %String, Location As %String = "", Object As
 {
     set st = $$$OK
     if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
-        do ##class(%Studio.SourceControl.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
+        do ##class(SourceControl.Git.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
 		set key = $order(productionItems(""))
 		while (key '= "") {
 			// if any modified items in this production class are checked out by a different user, fail the check.
@@ -450,3 +450,4 @@ Method AddToSourceControl(InternalName As %String, Description As %String = "") 
 }
 
 }
+

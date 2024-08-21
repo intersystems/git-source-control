@@ -654,30 +654,29 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
         $("#chooseContextBtn").on("click", function() {
             self.updateContext($("#chosenContext").val());
+            removePopup(popup);
         });
     }
 
     self.getCurrentContext = function() {
-        var urlParts = window.location.href.split("/");
-        if (urlParts[urlParts.length - 1] == "") {
-            // return namespace as context
-            return urlParts[urlParts.length - 2];
-        } else {
-            // return package as context
-            return urlParts[urlParts.length - 1];
+        var args = window.location.href.split("webuidriver.csp/")[1].split("/");
+        var context = args[0];
+        if (args[1] && (args[1].indexOf(".ZPM") != -1)) {
+            context = args[1];
         }
+        return context;
     }
 
     self.updateContext = function(context) {
-        var urlParts = window.location.href.split("/");
+        var urlParts = window.location.href.split("webuidriver.csp/");
+        var args = urlParts[1].split("/");
         if (context.indexOf(".ZPM") != -1) {
-            urlParts[urlParts.length - 1] = context;
+            args[1] = context;
         } else {
-            urlParts[urlParts.length - 1] = "";
-            urlParts[urlParts.length - 2] = context;
+            args[0] = context;
+            args[1] = "";
         }
-
-        window.location = urlParts.join("/");
+        window.location = urlParts[0] + "webuidriver.csp/" + args.join("/");
         self.currentContext = context;
     }
 

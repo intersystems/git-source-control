@@ -2315,56 +2315,20 @@ ClassMethod Localize()
     }
 }
 
-Query Namespaces() As %Query(ROWSPEC = "Namespace:%String,GitSourceControl:%Boolean,Accessible:%Boolean") [ SqlProc ]
-{
-}
-
-ClassMethod NamespacesExecute(ByRef qHandle As %Binary) As %Status
-{
-	Set sc = ##class(%SYS.Namespace).ListAll(.array)
-	Merge qHandle = array
-	Set qHandle = ""
-	Quit sc
-}
-
-ClassMethod NamespacesFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = NamespacesExecute ]
-{
-	Set qHandle = $Order(qHandle(qHandle))
-	If (qHandle = "") {
-		Set AtEnd = 1
-	} ElseIf $Extract(qHandle) = "^" {
-		Quit ..NamespacesFetch(.qHandle,.Row,.AtEnd)
-	} Else {
-		Try {
-			New $Namespace
-			Set $Namespace = qHandle
-			Set scc = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
-            set isGitSC = $select(scc = "SourceControl.Git.Extension":1, 1:0)
-			Set Row = $ListBuild(qHandle,isGitSC,1)
-		} Catch e {
-			Set Row = $ListBuild(qHandle,"",0)
-		}
-	}
-	Quit $$$OK
-}
-
-ClassMethod NamespacesClose(ByRef qHandle As %Binary) As %Status [ PlaceAfter = NamespacesExecute ]
-{
-	Quit $$$OK
-}
-
 ClassMethod GetContexts() As %DynamicArray
 {
     set contexts = []
-    set namespacesResultSet = ..NamespacesFunc()
-    while namespacesResultSet.%Next() {
-        set namespace = namespacesResultSet.Namespace
-        if namespacesResultSet.GitSourceControl && namespacesResultSet.Accessible {
-            do contexts.%Push(namespace)
-        }
+    set namespaces = ..GetGitEnabledNamespaces()
+    set ptr = 0
+    while $listnext(namespaces,ptr,value) {
+        do contexts.%Push(value)
     }
 
-    set packagesResultSet = ##class(%SQL.Statement).%ExecDirect(, "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')")
+    set query = "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')"
+    set statement = ##class(%SQL.Statement).%New()
+    $$$ThrowOnError(statement.%Prepare(query, 0))
+    set packagesResultSet = statement.%Execute()
+    throw:packagesResultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(packagesResultSet.%SQLCODE,packagesResultSet.%Message)
     while packagesResultSet.%Next() {
         set package = packagesResultSet.Name
         do contexts.%Push(package)
@@ -2472,6 +2436,29 @@ ClassMethod UncommittedWithAction() As %Library.DynamicObject
     do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
     do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
     quit fileToOtherDevelopers
+}
+
+/// Retrieve the list of Namespaces that have git enabled
+ClassMethod GetGitEnabledNamespaces() As %String
+{
+    // Get all namespaces
+    set allNamespaces = ""
+    do ##class(%SYS.Namespace).ListAll(.allNamespaces)
+
+    set enabledNamespaces = ""
+    set namespace = ""
+    for {
+        set namespace = $ORDER(allNamespaces(namespace))
+        quit:namespace=""
+        try {
+            set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet(namespace)
+        } catch err {
+            set sourceControlClass = "" // user does not have access to this namespace
+        }
+        if (sourceControlClass = "SourceControl.Git.Extension") set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
+    }
+
+    quit enabledNamespaces
 }
 
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
@@ -2628,3 +2615,4 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
+

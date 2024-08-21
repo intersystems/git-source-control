@@ -185,7 +185,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     quit sc
 }
 
-Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%String")
+Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%String,Namespace:%String")
 {
 }
 
@@ -206,6 +206,7 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
         while resultSet.%Next() {
             set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
             set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
+            set qHandle("changes", qHandle("changes"), "Namespace") = namespace
         }
     }
     
@@ -216,7 +217,7 @@ ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %Lis
 {
     set i = qHandle("i")
     if $data(qHandle("changes",i))=10 {
-        set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"))
+        set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"), qHandle("changes", i, "Namespace"))
     }
     if i >= $get(qHandle("changes"),0) {
         set AtEnd = 1

@@ -158,6 +158,11 @@ ClassMethod CompileOnImport() As %Boolean
     quit $get(@..#Storage@("settings","compileOnImport"),1)
 }
 
+ClassMethod WarnInstanceWideUncommitted() As %Boolean
+{
+    quit $get(@..#Storage@("settings","warnInstanceWideUncommitted"),1)
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -2440,16 +2445,18 @@ ClassMethod GetGitEnabledNamespaces() As %String
     quit enabledNamespaces
 }
 
-ClassMethod FileIsUncommitted(InternalName As %String, Output User) As %Boolean
+/// Returns true if the given item has uncommitted changes on a different namespace in this instance.
+ClassMethod InstanceWideUncommittedCheck(InternalName As %String, Output User, Output Namespace) As %Boolean
 {
     set isUncommitted = 0
     set resultSet = ##class(SourceControl.Git.Change).InstanceUncommittedFunc()
     throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
     while resultSet.%Next() {
         set fileName = resultSet.InternalName
-        if InternalName = fileName {
+        if (InternalName = fileName) && (resultSet.Namespace '= $namespace) {
             set isUncommitted = 1
             set User = resultSet.User
+            set Namespace = resultSet.Namespace
         }
     }
 

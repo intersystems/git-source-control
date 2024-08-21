@@ -18,7 +18,7 @@ Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
 ClassMethod %SYSNamespaceStorage() As %String [ CodeMode = expression ]
 {
-$Replace(..#Storage,"^","^["""_..#InstallNamespace_"""]")
+$Replace(..#Storage,"^SYS","^%SYS")
 }
 
 /// Returns root temp folder
@@ -183,6 +183,14 @@ ClassMethod IsImportAfter(menuItemName As %String) As %Boolean [ CodeMode = expr
 $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 }
 
+ClassMethod MigrateInstanceSettings()
+{
+    if $data(^["%SYS"]SYS("SourceControl", "Git")) {
+        merge ^%SYS("SourceControl", "Git") = ^["%SYS"]SYS("SourceControl", "Git")
+        kill ^["%SYS"]SYS("SourceControl", "Git")
+    }
+}
+
 ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean, ByRef Msg As %String) As %Status
 {
     #define Force 1
@@ -253,17 +261,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Sync") {
-        if ..CheckForUncommittedFiles() {
-            set Target = "Enter a commit message for the sync operation"
-            set Action = 7
-            set Msg = ..PreSync()
-        } else {
-            set Target = ""
-            do ..Sync("",.Target)
-            if (Target '= "") {
-                set Action = 6
-            }
-        }
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/sync.csp?Namespace="_$NAMESPACE
         
         quit $$$OK
     } elseif (menuItemName = "Push") {
@@ -1947,7 +1946,7 @@ ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String
         set commitMsg = commitMsg_$LISTBUILD(oneFileMsg)
         
     }
-    quit $LISTTOSTRING(commitMsg, ",")
+    quit $LISTTOSTRING(commitMsg, ", ")
 }
 
 ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
@@ -2629,4 +2628,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

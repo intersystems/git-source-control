@@ -587,7 +587,99 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         })
     }
 
-    
+    self.changeContextGet = function() {
+        $.get("contexts", function(contextList) {
+            var contexts = JSON.parse(contextList);
+            self.changeContext(contexts);
+        });
+    }
+
+    self.changeContext = function(contexts) {
+        
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#changeContextModal").remove();
+        }
+
+        var popup = $(
+            '<div class="modal fade" tab-index="-1" id="changeContextModal" role="dialog">' + 
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Change Context</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body"></div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+
+        $("body").append(popup);
+        var popupBody = $(".modal-body", popup)[0];
+        webui.detachChildren(popupBody);
+
+        $(
+            '<div class="">'+
+                '<h6>Select context for Git Source Control</h6>' +
+                '<select id="chosenContext" class="custom-select">'+ 
+                '</select>' +
+            '</div>'
+        ).appendTo(popupBody);
+
+        var selectDropdown = $(".custom-select", popupBody)[0];
+
+        contexts.forEach(function(context) {
+            $(
+                '<option value="' + context + '" ' + (context == self.currentContext ? "selected" : "") + ' >' + context + '</option>'
+            ).appendTo(selectDropdown);
+        })
+        
+
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+
+        $(
+            '<button class="btn btn-sm btn-primary action-btn" id="chooseContextBtn">Choose Context</button>' + 
+            '<button class="btn btn-sm btn-secondary" id="cancelContextBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+
+        $(popup).modal('show');
+
+        $('#changeContextModal').find('#cancelContextBtn', '.close').click(function() {
+            removePopup(popup);
+        });
+
+        $("#chooseContextBtn").on("click", function() {
+            self.updateContext($("#chosenContext").val());
+            removePopup(popup);
+        });
+    }
+
+    self.getCurrentContext = function() {
+        var args = window.location.href.split("webuidriver.csp/")[1].split("/");
+        var context = args[0];
+        if (args[1] && (args[1].indexOf(".ZPM") != -1)) {
+            context = args[1];
+        }
+        return context;
+    }
+
+    self.updateContext = function(context) {
+        var urlParts = window.location.href.split("webuidriver.csp/");
+        var args = urlParts[1].split("/");
+        if (context.indexOf(".ZPM") != -1) {
+            args[1] = context;
+        } else {
+            args[0] = context;
+            args[1] = "";
+        }
+        window.location = urlParts[0] + "webuidriver.csp/" + args.join("/");
+        self.currentContext = context;
+    }
+
     self.checkoutBranch = function(branchType, refName) {
         $("#confirm-branch-checkout").remove();
 
@@ -855,7 +947,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     };
 
     self.mainView = mainView;
-    
+    self.currentContext = self.getCurrentContext();
     self.element = $(   '<div id="sidebar">' +
                             '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<h5 id="packageVersion"></h5>' +
@@ -880,6 +972,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '</section>' +
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
+                                '</section>' +
+                                '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '">' + 
+                                    '<h4>Change Context</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-settings">' +
                                     '<h4>Settings</h4>' +
@@ -907,7 +1002,10 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
+        $("#sidebar-context", self.element).click(self.changeContextGet);
     }
+
+    
     self.getPackageVersion();
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");

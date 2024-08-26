@@ -276,7 +276,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
     try {
         set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-        if ##class(SourceControl.Git.Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
+        if ##class(SourceControl.Git.Utils).IsNamespaceInGit() {
             // If this is a production class and production decomposition is enabled, call recursively on all modified production items.
             if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
                 do ##class(SourceControl.Git.Production).GetModifiedItemsAfterSave(InternalName, .productionItems)
@@ -296,11 +296,13 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                     set key = $order(productionItems(key))
                 }
             }
-            set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
-            $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
-            $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
-            if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+            if ..IsInSourceControl(InternalName) {
+                set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
+                if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+                }
             }
         }
     } catch e {

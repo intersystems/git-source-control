@@ -1534,18 +1534,21 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 write "Mapping to another database found. Skipping export"
                 quit $$$OK
             }
-            set filenames($I(filenames)) = filename
             write !, "exporting new version of ", InternalName, " to ", filename
             if (type = "ptd") {
                 $$$QuitOnError(##class(SourceControl.Git.Production).ExportPTD(InternalName,"FullExternalName"))
             } elseif (..ItemIsProductionToDecompose(InternalName, .productionName)) {
                 write !, "Production decomposition enabled, skipping export of production class"
+                set filename = ""
             } else {
                 $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             }
-            $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
-            if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
+            if (filename '= "") {
+                set filenames($I(filenames)) = filename
+                $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
+                if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
+                }
             }
         }
     }

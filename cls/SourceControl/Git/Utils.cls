@@ -2378,6 +2378,27 @@ ClassMethod Localize()
     }
 }
 
+ClassMethod GetContexts() As %DynamicArray
+{
+    set contexts = []
+    set namespaces = ..GetGitEnabledNamespaces()
+    set ptr = 0
+    while $listnext(namespaces,ptr,value) {
+        do contexts.%Push(value)
+    }
+
+    set query = "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')"
+    set statement = ##class(%SQL.Statement).%New()
+    $$$ThrowOnError(statement.%Prepare(query, 0))
+    set packagesResultSet = statement.%Execute()
+    throw:packagesResultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(packagesResultSet.%SQLCODE,packagesResultSet.%Message)
+    while packagesResultSet.%Next() {
+        set package = packagesResultSet.Name
+        do contexts.%Push(package)
+    }
+    return contexts
+}
+
 ClassMethod ConfigureWeb()
 {
     set installNamespace = $Namespace
@@ -2478,6 +2499,29 @@ ClassMethod UncommittedWithAction() As %Library.DynamicObject
     do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
     do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
     quit fileToOtherDevelopers
+}
+
+/// Retrieve the list of Namespaces that have git enabled
+ClassMethod GetGitEnabledNamespaces() As %String
+{
+    // Get all namespaces
+    set allNamespaces = ""
+    do ##class(%SYS.Namespace).ListAll(.allNamespaces)
+
+    set enabledNamespaces = ""
+    set namespace = ""
+    for {
+        set namespace = $ORDER(allNamespaces(namespace))
+        quit:namespace=""
+        try {
+            set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet(namespace)
+        } catch err {
+            set sourceControlClass = "" // user does not have access to this namespace
+        }
+        if (sourceControlClass = "SourceControl.Git.Extension") set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
+    }
+
+    quit enabledNamespaces
 }
 
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
@@ -2635,3 +2679,4 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
+

@@ -27,7 +27,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         if $isobject($get(responseJSON)) {
             do responseJSON.%ToJSON(%data)
         }
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|contexts") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -75,6 +75,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set handled = 1
             } elseif (pathStart = "dirname") {
                 do %data.Write(##class(SourceControl.Git.Utils).TempFolder())
+                set handled = 1
+            } elseif (pathStart = "contexts") {
+                set contexts = ##class(SourceControl.Git.Utils).GetContexts()
+                do contexts.%ToJSON(%data)
                 set handled = 1
             }
         } elseif (%request.Method = "POST") {

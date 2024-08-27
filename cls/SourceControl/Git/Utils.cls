@@ -1270,10 +1270,15 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 // ideally we could just new %SourceControl, but Ens portal config pages do not use %SourceControl
                 new %gscSkipSaveHooks
                 set %gscSkipSaveHooks = 1
-                set targetProduction = $piece(InternalName,"||",1)
-                set rollbackFile = ##class(%File).TempFilename()
-                set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)
-                do ##class(%File).Delete(rollbackFile)
+                do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,,,,.targetProduction)
+                if (targetProduction '= "") && '$$$comClassDefined(targetProduction) {
+                    set sc = ##class(SourceControl.Git.Production).CreateProduction(targetProduction)
+                }
+                if $$$ISOK(sc) {
+                    set rollbackFile = ##class(%File).TempFilename()
+                    set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)
+                    do ##class(%File).Delete(rollbackFile)
+                }
             }
         } elseif (type = "cls") && settings.decomposeProductions 
                 && ##class(SourceControl.Git.Production).IsProductionClass(

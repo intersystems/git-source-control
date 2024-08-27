@@ -1264,7 +1264,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     set type = ..Type(InternalName)
     set imported = 1
     if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
-        if (type = "ptd") && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+        if (type = "ptd") && settings.decomposeProductions && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
             // Deployment manager should not reexport because studio project file includes timestamp
             // ideally we could just new %SourceControl, but Ens portal config pages do not use %SourceControl
             new %gscSkipSaveHooks
@@ -2682,4 +2682,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

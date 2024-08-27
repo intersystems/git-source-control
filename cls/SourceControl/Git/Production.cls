@@ -266,8 +266,11 @@ ClassMethod ParseExternalName(externalName, Output internalName)
     }
 }
 
-/// Given an internal name for a PTD item, returns a suggested filename for export.
-ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fileName)
+/// Given an internal name for a PTD item, returns a suggested filename for export, as well as:
+/// - itemName: name of the configuration item
+/// - productionName: name of the associated production
+/// - isProdSettings: if true, this item is a production settings; if false, this item is a configuration item settings
+ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fileName, Output itemName, Output productionName, Output isProdSettings As %Boolean)
 {
     set name = $piece(internalName,".",1,*-1)
     if 'noFolders {
@@ -276,9 +279,10 @@ ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fi
     }
     // Abbreviate "ProductionSettings" to "ProdStgs", "Settings" to "Stgs".
     Set prefix = $Case($Extract(name), "P":"ProdStgs-", "S":"Stgs-", :"")
-    Set name = prefix_$Piece(name,"-",2,*)
+    set isProdSettings = ($Extract(name) = "P")
+    Set name = $Piece(name,"-",2,*)
     set $ListBuild(itemName, itemClassName) = $ListFromString(name, "|")
-    set name = $select(
+    set name = prefix_$select(
         $get(itemClassName) '= "": itemName_$zhex($zcrc(itemClassName,6)),
         1: name
     )
@@ -286,6 +290,30 @@ ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fi
         set name = productionName _ "/" _ name
     }
     set fileName = $translate($replace(name, ".", "_") _ ".xml", "\", "/")
+}
+
+/// Given an internal name for a PTD item, removes that item from the production.
+ClassMethod RemoveItem(internalName, noFolders As %Boolean = 0) As %Status
+{
+    set sc = $$$OK
+    try {
+        if '##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+            quit
+        }
+        do ..ParseInternalName(internalName, noFolders, , .itemName, .productionName, .isProdSettings)
+        if 'isProdSettings {
+            set production = ##class(Ens.Config.Production).%OpenId(productionName,,.sc)
+            quit:$$$ISERR(sc)
+            set configItem = production.OpenItemByConfigName(itemName,.sc)
+            quit:$$$ISERR(sc)
+            do production.RemoveItem(configItem)
+            set sc = production.%Save()
+            quit:$$$ISERR(sc)
+        }
+    } catch err {
+        set sc = err.AsStatus()
+    }
+    return sc
 }
 
 }

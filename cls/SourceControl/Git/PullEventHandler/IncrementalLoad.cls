@@ -43,6 +43,7 @@ Method DeleteFile(item As %String) As %Status
     set sc = $$$OK
     set type = ##class(SourceControl.Git.Utils).Type(item)
     set name = ##class(SourceControl.Git.Utils).NameWithoutExtension(item)
+    set settings = ##class(SourceControl.Git.Settings).%New()
     set deleted = 1
     if type = "prj" {
         set sc = $system.OBJ.DeleteProject(name)
@@ -52,6 +53,11 @@ Method DeleteFile(item As %String) As %Status
         set sc = ##class(%Routine).Delete(item)
     }elseif type = "csp" {
         set sc = $System.CSP.DeletePage(item)
+    } elseif settings.decomposeProductions && (type = "ptd") {
+        set sc = ##class(%SYSTEM.Status).AppendStatus(
+            ##class(SourceControl.Git.Production).RemoveItem(item),
+            ##class(%Library.RoutineMgr).Delete(item)
+        )
     }elseif ##class(SourceControl.Git.Utils).UserTypeCached(item) {
         set sc = ##class(%Library.RoutineMgr).Delete(item)
     } else {
@@ -71,4 +77,3 @@ Method DeleteFile(item As %String) As %Status
 }
 
 }
-

@@ -227,7 +227,7 @@ ClassMethod IsEnsPortal() As %Boolean
 /// Perform check if Production Decomposition logic should be used for given item
 ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %Boolean
 {
-	if $$$comClassDefined(className) {
+	if (className '= "") && $$$comClassDefined(className) {
 		return $classmethod(className, "%Extends", "Ens.Production")
 	} else {
 		set filename = $classmethod($$SrcCtrlCls^%buildccr, nameMethod, className_".CLS")
@@ -235,12 +235,8 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 			$$$ThrowOnError($System.OBJ.Load(filename))
 		}
 		set classDef = ##class(%Dictionary.ClassDefinition).%OpenId(className)
-		if $isobject(classDef) {
-			for key=1:1:classDef.XDatas.Count() {
-				if classDef.XDatas.GetAt(key).Name = "ProductionDefinition" {
-					return 1
-				}
-			}
+		if $isobject(classDef) && ##class(%Dictionary.ClassDefinition).%ExistsId(classDef.Super) {
+			return $classmethod(classDef.Super, "%Extends", "Ens.Production")
 		}
 	}
 	return 0
@@ -314,6 +310,28 @@ ClassMethod RemoveItem(internalName, noFolders As %Boolean = 0) As %Status
         set sc = err.AsStatus()
     }
     return sc
+}
+
+/// Given internal name for a Production Settings PTD, creates the corresponding Production 
+/// Class if it does not already exist in this namespace
+ClassMethod CreateProduction(productionName As %String, superClasses = "") As %Status
+{
+	set classDef = ##class(%Dictionary.ClassDefinition).%New(productionName)
+	if superClasses '= "" {
+		set classDef.Super = superClasses
+	} else {
+		set classDef.Super = "Ens.Production"
+	}
+	set productionXData = ##class(%Dictionary.XDataDefinition).%New()
+	set productionXData.Name = "ProductionDefinition"
+	set sc = productionXData.Data.WriteLine("<Production Name="""_productionName_"""/>")
+	if $$$ISERR(sc) return sc
+	set sc = classDef.XDatas.Insert(productionXData)
+	if $$$ISERR(sc) return sc
+	set sc = classDef.%Save()
+	if $$$ISERR(sc) return sc
+	set sc = $System.OBJ.Compile(productionName)
+	return sc
 }
 
 }

@@ -1132,6 +1132,13 @@ ClassMethod NormalizeInternalName(ByRef name As %String) As %String
     if ($extract(name) '= "/") && (type'="csp") {
         quit $piece(name,".",1,*-1)_"."_$zconvert($piece(name,".",*),"U")
     }
+
+    if (name [ "/") && (type = "csp") {
+        set cspFilename = $System.CSP.GetFileName(name)
+        if (cspFilename '= "") && (cspFilename [ ..TempFolder()) {
+            set name = ..NameToInternalName(cspFilename)
+        }
+    }
     
     if (type = "inc") || (type = "mac") || (type = "int") {
         set name = $extract($translate(name, "/", "."), 2, *)

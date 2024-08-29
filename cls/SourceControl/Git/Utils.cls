@@ -1116,7 +1116,7 @@ ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists 
 ..TempFolder()_..ExternalName(.InternalName, .MappingExists)
 }
 
-ClassMethod NormalizeInternalName(ByRef name As %String) As %String
+ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %Boolean = 0, Output cspFilename) As %String
 {
     //Studio passes name of routine with dots as it is in folders
     //e.g. Package.SubPackage.Routine.mac has InternalName =  /Package/SubPackage/Routine.mac
@@ -1137,6 +1137,9 @@ ClassMethod NormalizeInternalName(ByRef name As %String) As %String
         set cspFilename = $System.CSP.GetFileName(name)
         if (cspFilename '= "") && (cspFilename [ ..TempFolder()) {
             set name = ..NameToInternalName(cspFilename)
+            set fromWebApp = 1
+        } else {
+            kill cspFilename
         }
     }
     
@@ -1253,7 +1256,7 @@ ClassMethod FixProjectCspReferences(projectName As %String) As %Status
 
 /// imports file if version in system is newer then version on disk.
 /// if <var>force</var> = 1 then imports in any case.
-ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose As %Boolean = 1) As %Status
+ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose As %Boolean = 1, compile As %Boolean = 0) As %Status
 {
     #dim filename as %String = ..FullExternalName(.InternalName)
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
@@ -1272,7 +1275,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             if ($extract(InternalName, 1) = "/"){
                 set sc = ..ImportCSPFile(InternalName)
             } else{
-                set sc = $system.OBJ.Load(filename,"-l-d")
+                set sc = $system.OBJ.Load(filename,$Select(compile:"ck-l",1:"-l-d"))
             }
         }
         if sc {

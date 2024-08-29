@@ -74,9 +74,13 @@ Method AfterUserAction(Type As %Integer, Name As %String, InternalName As %Strin
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
     }
-    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
+    set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName, .fromWebApp)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set ec = ##class(SourceControl.Git.Utils).AfterUserAction(Type, Name, InternalName, .Answer, .Msg, .Reload)
+    if fromWebApp {
+        // Force reload and compile of actual item if underlying file has changed
+        do ..OnBeforeLoad(InternalName,1,1)
+    }
     quit ec
 }
 
@@ -235,12 +239,12 @@ Method OnMenuItem(MenuName As %String, InternalName As %String, SelectedText As 
 
 /// This is called before the actual load of data to give the chance
 /// to load the item from an external format.
-Method OnBeforeLoad(InternalName As %String, verbose As %Boolean) As %Status
+Method OnBeforeLoad(InternalName As %String, verbose As %Boolean, compile As %Boolean = 0) As %Status
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     if ##class(SourceControl.Git.Utils).IsInSourceControl(InternalName) {
-        quit ##class(SourceControl.Git.Utils).ImportItem(InternalName,,0)
+        quit ##class(SourceControl.Git.Utils).ImportItem(InternalName,,0,compile)
     }
     quit $$$OK
 }
@@ -274,14 +278,21 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
 {
     set sc = $$$OK
     try {
-        set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName)
+        set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName,.fromWebApp,.fullExternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
         if ##class(SourceControl.Git.Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
-            set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
-            $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
-            $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
-            if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+            if fromWebApp {
+                if fullExternalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName) {
+                    // Reimport item into database
+                    $$$ThrowOnError(##class(SourceControl.Git.Utils).ImportItem(InternalName,,1,1))
+                }
+            } else {
+                set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
+                if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+                }
             }
         }
     } catch e {

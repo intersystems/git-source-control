@@ -38,7 +38,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set filter = "?project="_context.Package.Name
         } else {
             set hasCSP = ##class(SourceControl.Git.Settings).HasNamespaceWebApp()
-            set workspaceFilename = namespace_"-"_instanceName_"-.code-workspace"
+            set workspaceFilename = namespace_"-"_instanceName_".code-workspace"
             set filter = "?mapped=0"
         }
         set server = {

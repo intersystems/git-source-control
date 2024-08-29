@@ -32,17 +32,14 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         set namespace = $Namespace
         set instanceName = $ZConvert(##class(%SYS.System).InstanceGUID(),"L")
         set hasCSP = 0
-        if (InternalName = "") || context.IsInDefaultPackage {
-            set hasCSP = ##class(SourceControl.Git.Settings).HasNamespaceWebApp()
-            set workspaceFilename = namespace_"-"_instanceName_"-.code-workspace"
-            set filter = "?mapped=0"
-        } elseif context.IsInGitEnabledPackage {
+        if context.IsInGitEnabledPackage && 'context.IsInDefaultPackage {
             set workspaceFilename = context.Package.Name_"-"_instanceName_".code-workspace"
             // Loading an IPM package in dev mode automatically creates a project for it, so filter to that.
             set filter = "?project="_context.Package.Name
         } else {
-            // TODO: Error? But really shouldn't happen.
-            quit
+            set hasCSP = ##class(SourceControl.Git.Settings).HasNamespaceWebApp()
+            set workspaceFilename = namespace_"-"_instanceName_"-.code-workspace"
+            set filter = "?mapped=0"
         }
         set server = {
             "webServer": {

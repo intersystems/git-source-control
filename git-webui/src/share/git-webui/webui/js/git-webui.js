@@ -973,6 +973,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
+                                '<section id="sidebar-vscode">' +
+                                    '<h4><a href="vscode-workspace" target="_blank">Code Workspace</a></h4>' +
+                                '</section>' +
                                 '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '">' + 
                                     '<h4>Change Context</h4>' +
                                 '</section>' +

@@ -2403,10 +2403,10 @@ ClassMethod GetPackageVersion() As %String [ CodeMode = objectgenerator ]
     quit $$$OK
 }
 
-ClassMethod GetSourceControlInclude() As %String
+ClassMethod GetSourceControlInclude(prefix As %String = "") As %String
 {
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
-        "<script type=""text/javascript"" src=""/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
+        "<script type=""text/javascript"" src="""_prefix_"/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
 }
 
@@ -2622,4 +2622,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

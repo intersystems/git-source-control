@@ -54,10 +54,6 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         }
         set workspaceDef = {
             "folders": [
-                {
-                    "name": ($Namespace),
-                    "uri": ("isfs://"_instanceName_":"_$Namespace_"/"_filter)
-                }
             ],
             "settings": {
                 "intersystems.servers": {
@@ -72,6 +68,11 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             do workspaceDef.folders.%Push({
                 "name": ($Namespace_" (Filesystem)"),
                 "uri": ("isfs://"_instanceName_":"_$Namespace_"/git/"_$Namespace_"?csp")
+            })
+        } else {
+            do workspaceDef.folders.%Push({
+                "name": ($Namespace),
+                "uri": ("isfs://"_instanceName_":"_$Namespace_"/"_filter)
             })
         }
         set $Property(workspaceDef.settings."intersystems.servers",instanceName) = server

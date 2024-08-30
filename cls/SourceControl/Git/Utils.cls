@@ -2157,9 +2157,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
     } elseif (..Type(InternalName) = "ptd") {
         do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,'default,.filename)
-        set externalName = $translate(found_filename, "\","/")
-        do ##class(SourceControl.Git.Util.ProductionItemCache).Store(..TempFolder()_externalName, InternalName)
-        return externalName
+        return $translate(found_filename, "\","/")
     } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{
@@ -2225,6 +2223,10 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
     }
     if (##class(%File).Exists(Name)) {
         set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)
+        if (InternalName '= "") && (context.IsInGitEnabledPackage) {
+            // Don't need mappings!
+            return ..NormalizeInternalName(InternalName)
+        }
     } else {
         // check for file in uncommitted queue
         &sql(SELECT internalName into :InternalName FROM SourceControl_Git.Change where ItemFile = :Name)
@@ -2234,11 +2236,6 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
             set Deleted = 1
         }
     }
-    // check for file in production item cache
-    if InternalName = "" {
-        set InternalName = ##class(SourceControl.Git.Util.ProductionItemCache).Lookup(Name)
-    }
-    // use mappings
     if (InternalName="") {
         set name=$extract(Name,$length($$$SourceRoot)+1,*)
         set name=$replace(name,"\","/")	// standardize slash direction
@@ -2371,11 +2368,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
     }
     if ((IgnorePercent)&&($extract(InternalName)="%")) { set InternalName = "" }	// don't return a result for % items if instructed to ignore them
     if ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))&&('Deleted)) { set InternalName = "" }	// only return item names which exist in the DB
-    set normalizedInternalName = ..NormalizeInternalName(InternalName)
-    if ..Type(normalizedInternalName) = "ptd" {
-        do ##class(SourceControl.Git.Util.ProductionItemCache).Store(Name, normalizedInternalName)
-    }
-    quit normalizedInternalName
+    quit ..NormalizeInternalName(InternalName)
 }
 
 ClassMethod OutputConfigureMessage()

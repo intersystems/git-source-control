@@ -44,7 +44,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         set server = {
             "webServer": {
                 "host": (%request.CgiEnvs("SERVER_NAME")),
-                "port": (%request.CgiEnvs("SERVER_PORT")),
+                "port": (+%request.CgiEnvs("SERVER_PORT")),
                 "scheme": ($Select(%request.Secure:"https",1:"http"))
             },
             "username": ($Username)
@@ -66,7 +66,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         }
         if hasCSP {
             do workspaceDef.folders.%Push({
-                "name": ($Namespace_" (Filesystem)"),
+                "name": ($Namespace),
                 "uri": ("isfs://"_instanceName_":"_$Namespace_"/git/"_$Namespace_"?csp")
             })
         } else {

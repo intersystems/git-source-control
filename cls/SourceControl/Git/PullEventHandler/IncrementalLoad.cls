@@ -17,7 +17,7 @@ Method OnPull() As %Status
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } elseif (..ModifiedFiles(i).changeType = "D") {
-            set sc = ..DeleteFile(internalName)
+            set sc = ..DeleteFile(internalName, ..ModifiedFiles(i).externalName)
             if sc {
                 write !, ..ModifiedFiles(i).externalName, " was deleted."
             } else {
@@ -38,10 +38,13 @@ Method OnPull() As %Status
     quit $system.OBJ.CompileList(.compilelist, "ck")
 }
 
-Method DeleteFile(item As %String) As %Status
+Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
 {
     set sc = $$$OK
-    set type = ##class(SourceControl.Git.Utils).Type(item)
+    set type = $select(
+        ..ItemIsPTD(externalName): "ptd",
+        1: ##class(SourceControl.Git.Utils).Type(item)
+    )
     set name = ##class(SourceControl.Git.Utils).NameWithoutExtension(item)
     set settings = ##class(SourceControl.Git.Settings).%New()
     set deleted = 1
@@ -54,8 +57,9 @@ Method DeleteFile(item As %String) As %Status
     }elseif type = "csp" {
         set sc = $System.CSP.DeletePage(item)
     } elseif settings.decomposeProductions && (type = "ptd") {
+        set normalizedFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Utils).TempFolder()_externalName)
         set sc = ##class(%SYSTEM.Status).AppendStatus(
-            ##class(SourceControl.Git.Production).RemoveItem(item),
+            ##class(SourceControl.Git.Production).RemoveItemByExternalName(normalizedFilePath,"FullExternalName"),
             ##class(%Library.RoutineMgr).Delete(item)
         )
     }elseif ##class(SourceControl.Git.Utils).UserTypeCached(item) {
@@ -65,8 +69,10 @@ Method DeleteFile(item As %String) As %Status
     }
     
     if deleted && $$$ISOK(sc) {
-        do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
-        kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
+        if (item '= "") {
+            do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
+            kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
+        }
     } else {
         if +$system.Status.GetErrorCodes(sc) = $$$ClassDoesNotExist {
             // if something we wanted to delete is already deleted -- good!
@@ -74,6 +80,25 @@ Method DeleteFile(item As %String) As %Status
         }
     }
     return sc
+}
+
+/// Determines whether an item has type PTD based on the external name, not reliant on the file existing
+ClassMethod ItemIsPTD(externalName) As %Boolean
+{
+    if $zconvert($piece(externalName,".",*),"l") '= "xml" {
+        return 0
+    }
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    set normFilePath = $replace(externalName,"\","/")
+    set key = $order($$$SourceMapping("PTD",""))
+    while (key '= "") {
+        set directory = $replace($$$SourceMapping("PTD",key), "\","/")
+        if $find(normFilePath, directory) = ($length(directory) + 1) {
+            return 1
+        }
+        set key = $order($$$SourceMapping("PTD",key))
+    }
+    return 0
 }
 
 }

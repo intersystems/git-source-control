@@ -101,7 +101,7 @@ ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
 /// exports the PTD for this item to the file system under the directory specified
 ClassMethod ExportConfigItemSettings(productionClass As %String, item As %RegisteredObject, nameMethod As %String) As %Status
 {
-	Set internalName = productionClass_"||Settings-"_item.Name_"|"_item.ClassName_".PTD"
+    set internalName = ..CreateInternalName(productionClass, item.Name, item.ClassName, 0)
 	Set externalName = $ClassMethod($$SrcCtrlCls^%buildccr, nameMethod, internalName)
 	Set filename = ##class(%File).NormalizeFilename(externalName)
     set st = ##class(Ens.Deployment.Utils).CreatePTDFromItem(.item, .ptdName)
@@ -115,7 +115,7 @@ ClassMethod ExportConfigItemSettings(productionClass As %String, item As %Regist
 /// class name
 ClassMethod ExportProductionSettings(productionClass As %String, nameMethod As %String) As %Status
 {
-	Set internalName = productionClass_"||ProductionSettings-"_productionClass_".PTD"
+    set internalName = ..CreateInternalName(productionClass,,,0)
     Set class = ##class(%Dictionary.CompiledClass).%OpenId(productionClass)
     Set sc = ##class(Ens.Deployment.Utils).CreatePTDFromProduction(class, .ptdName)
     If $$$ISERR(sc) {
@@ -153,11 +153,11 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
             }
             set modifiedInternalName = ""
             if $isobject(modifiedItem) {
-                set modifiedInternalName = productionName _ "||Settings-" _ modifiedItem.Name _ "|" _ modifiedItem.ClassName _ ".PTD"
+                set modifiedInternalName = ..CreateInternalName(productionName, modifiedItem.Name, modifiedItem.ClassName, 0)
             } else {
                 // cannot check %IsModified on production config settings because they are not actually modified at this point.
                 // workaround: just assume any change not to a specific item is to the production settings
-                set modifiedInternalName = productionName _ "||ProductionSettings-" _ productionName _ ".PTD"
+                set modifiedInternalName = ..CreateInternalName(productionName,,,1)
             }
         }
         if (modifiedInternalName '= "") {
@@ -193,14 +193,14 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
         $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
         while rs.%Next() {
             if '$get(^mtempsscProd($job,"items", $listbuild(rs.Name, rs.ClassName))) {
-                set itemInternalName = productionName _ "||Settings-" _ rs.Name _ "|" _ rs.ClassName _ ".PTD"
+                set itemInternalName = ..CreateInternalName(productionName, rs.Name, rs.ClassName, 0)
                 set modifiedItems(itemInternalName) = "A"
             }
             kill ^mtempsscProd($job,"items", $listbuild(rs.Name, rs.ClassName))
         }
         set key = $order(^mtempsscProd($job,"items",""))
         while (key '= "") {
-            set itemInternalName = productionName _ "||Settings-" _ $listget(key,1) _ "|" _ $listget(key,2) _ ".PTD"
+            set itemInternalName = ..CreateInternalName(productionName, $listget(key,1), $listget(key,2), 0)
             set modifiedItems(itemInternalName) = "D"
             set key = $order(^mtempsscProd($job,"items",key))
         }
@@ -242,23 +242,25 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 	return 0
 }
 
-/// Given a file name for a PTD item, returns a suggested internal name.
-ClassMethod ParseExternalName(externalName, Output internalName)
+/// Given a file name for a PTD item, returns a suggested internal name. This method assumes that the file exists on disk.
+ClassMethod ParseExternalName(externalName, Output internalName = "", Output productionName = "")
 {
-    set file = $piece(externalName, "/", *)
-    set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
-    set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
-    set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
-    set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")
-    if $extract(file,1,9) = "ProdStgs-" {
-        set internalName = productionName_"||ProductionSettings-"_productionName_".PTD"
-    } else {
-        // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
-        set settingsPTDText = $zconvert(deployDoc.GetValueAt("/Export/Document[2]/1"),"I","XML")
-        set settingsPTD = ##class(EnsLib.EDI.XML.Document).%New(settingsPTDText)
-        set itemClass = settingsPTD.GetValueAt("/Item/@ClassName")
-        set itemName = settingsPTD.GetValueAt("/Item/@Name")
-        set internalName = productionName_"||Settings-"_itemName_"|"_itemClass_".PTD"
+    if ##class(%File).Exists(externalName) {
+        set file = $piece(externalName, "/", *)
+        set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
+        set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
+        set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
+        set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")
+        if $extract(file,1,9) = "ProdStgs-" {
+            set internalName = ..CreateInternalName(productionName,,,1)
+        } else {
+            // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
+            set settingsPTDText = $zconvert(deployDoc.GetValueAt("/Export/Document[2]/1"),"I","XML")
+            set settingsPTD = ##class(EnsLib.EDI.XML.Document).%New(settingsPTDText)
+            set itemClass = settingsPTD.GetValueAt("/Item/@ClassName")
+            set itemName = settingsPTD.GetValueAt("/Item/@Name")
+            set internalName = ..CreateInternalName(productionName, itemName, itemClass, 0)
+        }
     }
 }
 
@@ -286,6 +288,36 @@ ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fi
         set name = productionName _ "/" _ name
     }
     set fileName = $translate($replace(name, ".", "_") _ ".xml", "\", "/")
+}
+
+/// Calculates the internal name for a decomposed production item
+ClassMethod CreateInternalName(productionName = "", itemName = "", itemClassName = "", isProductionSettings As %Boolean = 0)
+{
+    return $select(
+        isProductionSettings: productionName_"||ProductionSettings-"_productionName_".PTD",
+        1: productionName _ "||Settings-" _ itemName _ "|" _ itemClassName _ ".PTD"
+    )
+}
+
+/// Given an external name for a PTD item, removes that item from the production.
+ClassMethod RemoveItemByExternalName(externalName, nameMethod) As %Status
+{
+    set sc = $$$OK
+    set productionName = $replace($piece($replace(externalName,"\","/"),"/",*-1),"_",".")
+    set production = ##class(Ens.Config.Production).%OpenId(productionName,,.sc)
+    $$$QuitOnError(sc)
+    set itemToRemove = $$$NULLOREF
+    for i=1:1:production.Items.Count() {
+        set configItem = production.Items.GetAt(i)
+        set itemInternalName = ..CreateInternalName(productionName, configItem.Name, configItem.ClassName)
+        set itemExternalName = $classmethod($$SrcCtrlCls^%buildccr, nameMethod, itemInternalName)
+        if itemExternalName = externalName {
+            set itemToRemove = configItem
+            quit
+        }
+    }
+    do production.RemoveItem(itemToRemove)
+    return production.%Save()
 }
 
 /// Given an internal name for a PTD item, removes that item from the production.

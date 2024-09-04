@@ -6,14 +6,14 @@ Class SourceControl.Git.Production Extends %RegisteredObject
 
 /// Exports settings for a given Production and each Config Item from
 /// the ProductionDefinition as separate XMLs. These are exported to 
-/// the /ptd subdirectory under the client's ^Sources directory.
-ClassMethod ExportProductionDefinitionShards(productionClass As %String, nameMethod As %String) As %Status
+/// the appropriate file based on nameMethod of the source control class
+ClassMethod ExportProductionDefinitionShards(productionClass As %String, nameMethod As %String, Output internalNames) As %Status
 {
-    // First, export Production definition omitting Config Items
-    Set sc = ..ExportProductionSettings(productionClass, nameMethod)
+    Set sc = ..ExportProductionSettings(productionClass, nameMethod, .internalName)
     If $$$ISERR(sc) {
 	    Return sc
     }
+    Set internalNames(internalName) = 1
 
     // next, export each item to a separate file
     Set rs = ##class(%SQL.Statement).%ExecDirect(,
@@ -25,10 +25,11 @@ ClassMethod ExportProductionDefinitionShards(productionClass As %String, nameMet
         Set ptdName = ""
         Set item = ##class(Ens.Config.Production).OpenItemByConfigName(productionClass _ "||" _ rs.Name _ "|" _ rs.ClassName)
         If $isobject(item) { 
-            Set sc = ..ExportConfigItemSettings(productionClass, item, nameMethod)
+            Set sc = ..ExportConfigItemSettings(productionClass, item, nameMethod, .internalName)
             If $$$ISERR(sc) {
 	            Return sc
             }
+            Set internalNames(internalName) = 1
         }
     }
     Return $$$OK
@@ -102,7 +103,7 @@ ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
 
 /// Export a single Production Config Item. For a given Ens.Config.Item, the 
 /// exports the PTD for this item to the file system under the directory specified
-ClassMethod ExportConfigItemSettings(productionClass As %String, item As %RegisteredObject, nameMethod As %String) As %Status
+ClassMethod ExportConfigItemSettings(productionClass As %String, item As %RegisteredObject, nameMethod As %String, Output internalName As %String) As %Status
 {
     set internalName = ..CreateInternalName(productionClass, item.Name, item.ClassName, 0)
 	Set externalName = $ClassMethod($$SrcCtrlCls^%buildccr, nameMethod, internalName)
@@ -116,7 +117,7 @@ ClassMethod ExportConfigItemSettings(productionClass As %String, item As %Regist
 
 /// Exports the Production settings from ProductionDefinition given the Production
 /// class name
-ClassMethod ExportProductionSettings(productionClass As %String, nameMethod As %String) As %Status
+ClassMethod ExportProductionSettings(productionClass As %String, nameMethod As %String, Output internalName As %String) As %Status
 {
     set internalName = ..CreateInternalName(productionClass,,,1)
     Set class = ##class(%Dictionary.CompiledClass).%OpenId(productionClass)

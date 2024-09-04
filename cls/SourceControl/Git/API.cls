@@ -64,5 +64,11 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote)
 }
 
+/// Run to baseline all interoperability productions in the namespace to source control.
+/// This should be done after changing the value of the "decompose productions" setting.
+ClassMethod BaselineProductions()
+{
+    do ##class(SourceControl.Git.Util.Production).BaselineProductions()
 }
 
+}

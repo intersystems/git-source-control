@@ -42,7 +42,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
 {
     set sc = $$$OK
     set type = $select(
-        ..ItemIsPTD(externalName): "ptd",
+        ##class(SourceControl.Git.Util.Production).ItemIsPTD(externalName): "ptd",
         1: ##class(SourceControl.Git.Utils).Type(item)
     )
     set name = ##class(SourceControl.Git.Utils).NameWithoutExtension(item)
@@ -51,7 +51,11 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
     if type = "prj" {
         set sc = $system.OBJ.DeleteProject(name)
     }elseif type = "cls" {
-        set sc = $system.OBJ.Delete(item)
+        if settings.decomposeProductions && ##class(SourceControl.Git.Production).IsProductionClass(name, "FullExternalName") {
+            write !, "Production decomposition enabled, skipping delete of production class"
+        } else {
+            set sc = $system.OBJ.Delete(item)
+        }
     }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
         set sc = ##class(%Routine).Delete(item)
     }elseif type = "csp" {
@@ -80,25 +84,6 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         }
     }
     return sc
-}
-
-/// Determines whether an item has type PTD based on the external name, not reliant on the file existing
-ClassMethod ItemIsPTD(externalName) As %Boolean
-{
-    if $zconvert($piece(externalName,".",*),"l") '= "xml" {
-        return 0
-    }
-    set settings = ##class(SourceControl.Git.Settings).%New()
-    set normFilePath = $replace(externalName,"\","/")
-    set key = $order($$$SourceMapping("PTD",""))
-    while (key '= "") {
-        set directory = $replace($$$SourceMapping("PTD",key), "\","/")
-        if $find(normFilePath, directory) = ($length(directory) + 1) {
-            return 1
-        }
-        set key = $order($$$SourceMapping("PTD",key))
-    }
-    return 0
 }
 
 }

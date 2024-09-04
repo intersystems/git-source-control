@@ -1550,7 +1550,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
             } else {
                 $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
             }
-            if (filename '= "") {
+            if (filename '= "") && ##class(%File).Exists(filename) {
                 set filenames($I(filenames)) = filename
                 $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
                 if '##class(SourceControl.Git.Change).IsUncommitted(filename) {

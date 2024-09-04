@@ -87,12 +87,15 @@ ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
 	Set name = $Piece(internalName,".",1,$Length(internalName,".")-1)
     Set $ListBuild(productionName, itemName) = $ListFromString(name, "||")
     Set $ListBuild(itemName, itemClassName) = $ListFromString(itemName, "|")
+    Set sc = $$$OK
     If $Piece($Piece(name,"||",2),"|",2) = "" {
         Set sc = ..ExportProductionSettings(productionName, nameMethod)
     } Else {
         Set configItemName = productionName_"||"_$Piece(itemName, "Settings-", 2)_"|"_itemClassName
         Set item = ##class(Ens.Config.Production).OpenItemByConfigName(configItemName)
-        Set sc = ..ExportConfigItemSettings(productionName, item, nameMethod)
+        If $IsObject(item) {
+            Set sc = ..ExportConfigItemSettings(productionName, item, nameMethod)
+        }
     }
     Return sc
 }
@@ -115,7 +118,7 @@ ClassMethod ExportConfigItemSettings(productionClass As %String, item As %Regist
 /// class name
 ClassMethod ExportProductionSettings(productionClass As %String, nameMethod As %String) As %Status
 {
-    set internalName = ..CreateInternalName(productionClass,,,0)
+    set internalName = ..CreateInternalName(productionClass,,,1)
     Set class = ##class(%Dictionary.CompiledClass).%OpenId(productionClass)
     Set sc = ##class(Ens.Deployment.Utils).CreatePTDFromProduction(class, .ptdName)
     If $$$ISERR(sc) {

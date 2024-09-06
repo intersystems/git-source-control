@@ -1280,9 +1280,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                     do ##class(%File).Delete(rollbackFile)
                 }
             }
-        } elseif (type = "cls") && settings.decomposeProductions 
-                && ##class(SourceControl.Git.Production).IsProductionClass(
-                    ..NameWithoutExtension(InternalName), "FullExternalName") {
+        } elseif ..ItemIsProductionToDecompose(InternalName) {
             write !, "Production decomposition enabled, skipping import of production class"
             set imported = 0
         } elseif ..UserTypeCached(InternalName,.docclass,.doctype) {

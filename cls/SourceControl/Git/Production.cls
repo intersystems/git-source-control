@@ -106,7 +106,7 @@ ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
 ClassMethod ExportConfigItemSettings(productionClass As %String, item As %RegisteredObject, nameMethod As %String, Output internalName As %String) As %Status
 {
     set internalName = ..CreateInternalName(productionClass, item.Name, item.ClassName, 0)
-	Set externalName = $ClassMethod($$SrcCtrlCls^%buildccr, nameMethod, internalName)
+	Set externalName = $ClassMethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, internalName)
 	Set filename = ##class(%File).NormalizeFilename(externalName)
     set st = ##class(Ens.Deployment.Utils).CreatePTDFromItem(.item, .ptdName)
     $$$QuitOnError(st)
@@ -125,7 +125,7 @@ ClassMethod ExportProductionSettings(productionClass As %String, nameMethod As %
     If $$$ISERR(sc) {
 	    Return sc
     }
-    Set externalName = $ClassMethod($$SrcCtrlCls^%buildccr, nameMethod, internalName)
+    Set externalName = $ClassMethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, internalName)
     Set filename = ##class(%File).NormalizeFilename(externalName)
     set sc = ..ExportProjectForPTD(productionClass, ptdName, filename)
     Return sc
@@ -172,16 +172,16 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
         // FUTURE: implement this to support Studio
     }
     // populate data for use in OnAfterSave
-    kill ^mtempsscProd($job,"modifiedItems")
-    merge ^mtempsscProd($job,"modifiedItems") = modifiedItems
+    kill ^IRIS.Temp("sscProd",$job,"modifiedItems")
+    merge ^IRIS.Temp("sscProd",$job,"modifiedItems") = modifiedItems
     // FUTURE: use a percent variable or PPG instead
-    kill ^mtempsscProd($job,"items")
+    kill ^IRIS.Temp("sscProd",$job,"items")
     set rs = ##class(%SQL.Statement).%ExecDirect(
         ,"select Name, ClassName from Ens_Config.Item where Production = ?"
         , productionName)
     $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
     while rs.%Next() {
-        set ^mtempsscProd($job,"items",$listbuild(rs.Name, rs.ClassName)) = 1
+        set ^IRIS.Temp("sscProd",$job,"items",$listbuild(rs.Name, rs.ClassName)) = 1
     }
 }
 
@@ -196,22 +196,22 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
             , productionName)
         $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
         while rs.%Next() {
-            if '$get(^mtempsscProd($job,"items", $listbuild(rs.Name, rs.ClassName))) {
+            if '$get(^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))) {
                 set itemInternalName = ..CreateInternalName(productionName, rs.Name, rs.ClassName, 0)
                 set modifiedItems(itemInternalName) = "A"
             }
-            kill ^mtempsscProd($job,"items", $listbuild(rs.Name, rs.ClassName))
+            kill ^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))
         }
-        set key = $order(^mtempsscProd($job,"items",""))
+        set key = $order(^IRIS.Temp("sscProd",$job,"items",""))
         while (key '= "") {
             set itemInternalName = ..CreateInternalName(productionName, $listget(key,1), $listget(key,2), 0)
             set modifiedItems(itemInternalName) = "D"
-            set key = $order(^mtempsscProd($job,"items",key))
+            set key = $order(^IRIS.Temp("sscProd",$job,"items",key))
         }
         // If editing from SMP, get the modified items from a cache stored in OnBeforeSave.
         // Only do this if there are no added/deleted items, because otherwise production settings will be incorrectly included.
         if '$data(modifiedItems) {
-            merge modifiedItems = ^mtempsscProd($job,"modifiedItems")
+            merge modifiedItems = ^IRIS.Temp("sscProd",$job,"modifiedItems")
         }
     } else {
         // If editing/adding/deleting from Studio, get the modified items from a percent variable set in OnBeforeSave.
@@ -234,7 +234,7 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 	if (className '= "") && $$$comClassDefined(className) {
 		return $classmethod(className, "%Extends", "Ens.Production")
 	} else {
-		set filename = $classmethod($$SrcCtrlCls^%buildccr, nameMethod, className_".CLS")
+		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
 		if ##class(%File).Exists(filename) {
 			$$$ThrowOnError($System.OBJ.Load(filename))
 		}
@@ -314,7 +314,7 @@ ClassMethod RemoveItemByExternalName(externalName, nameMethod) As %Status
     for i=1:1:production.Items.Count() {
         set configItem = production.Items.GetAt(i)
         set itemInternalName = ..CreateInternalName(productionName, configItem.Name, configItem.ClassName)
-        set itemExternalName = $classmethod($$SrcCtrlCls^%buildccr, nameMethod, itemInternalName)
+        set itemExternalName = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, itemInternalName)
         if itemExternalName = externalName {
             set itemToRemove = configItem
             quit

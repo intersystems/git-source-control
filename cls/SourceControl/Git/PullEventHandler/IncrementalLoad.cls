@@ -51,7 +51,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
     if type = "prj" {
         set sc = $system.OBJ.DeleteProject(name)
     }elseif type = "cls" {
-        if settings.decomposeProductions && ##class(SourceControl.Git.Production).IsProductionClass(name, "FullExternalName") {
+        if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(name) {
             write !, "Production decomposition enabled, skipping delete of production class"
         } else {
             set sc = $system.OBJ.Delete(item)

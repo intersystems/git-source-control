@@ -91,6 +91,7 @@ body {
         }
 
         set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
+        set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
 
         if ($Get(%request.Data("basicMode", 1)) = 1) {
             set settings.basicMode = 1
@@ -345,6 +346,18 @@ body {
                     <input class="custom-control-input" name="compileOnImport" type="checkbox" 
                         id="compileOnImport" #($select(settings.compileOnImport:"checked",1:""))# value="1">
                     <label class="custom-control-label" for="compileOnImport"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="decomposeProductions" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, interoperability productions are source-controlled under separate files for each configuration item">
+                Decompose Productions</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="decomposeProductions" type="checkbox" 
+                        id="decomposeProductions" #($select(settings.decomposeProductions:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="decomposeProductions"></label>
                 </div>
             </div>
         </div>

@@ -48,7 +48,6 @@ Method TestEditProduction()
     set %request.Data("pageclass",1) = "EnsPortal.dummy"
     do $System.OBJ.Delete(..#ProductionName)
     $$$ThrowOnError(##class(SourceControl.Git.Utils).NewBranch("branch1"))
-    $$$ThrowOnError(##class(SourceControl.Git.Utils).SwitchBranch("branch1"))
     $$$ThrowOnError(##class(SourceControl.Git.Production).CreateProduction(..#ProductionName))
 	do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
     $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(..#ProductionName_".cls"))
@@ -60,7 +59,7 @@ Method TestEditProduction()
     $$$ThrowOnError(%SourceControl.OnAfterSave(..#ProductionName_".cls"))
     do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("UnitTest.SampleProduction||ProductionSettings-UnitTest.SampleProduction.PTD"))
 
-    do $$$LogMessage("adding a production item")
+    do $$$LogMessage("adding a production item should add it to source control")
     $$$ThrowOnError(%SourceControl.OnBeforeSave(..#ProductionName_".cls"))
     do ..ReplaceProductionDefinition("ProductionDefinition1")
     $$$ThrowOnError(%SourceControl.OnAfterSave(..#ProductionName_".cls"))
@@ -73,13 +72,15 @@ Method TestEditProduction()
 
     do $$$LogMessage("switching to a new branch")
     $$$ThrowOnError(##class(SourceControl.Git.Utils).NewBranch("branch2"))
-    $$$ThrowOnError(##class(SourceControl.Git.Utils).SwitchBranch("branch2"))
 
-    do $$$LogMessage("modifying an existing item and adding a new item")
+    do $$$LogMessage("adding a new item and modifying an existing item")
     $$$ThrowOnError(%SourceControl.OnBeforeSave(..#ProductionName_".cls"))
-    set production = ##class(Ens.Config.Production).%OpenId(..#ProductionName)
-    set production.Items.GetAt(1).Enabled = 0
     do ..ReplaceProductionDefinition("ProductionDefinition2")
+    $$$ThrowOnError(%SourceControl.OnAfterSave(..#ProductionName_".cls"))
+    set production = ##class(Ens.Config.Production).%OpenId(..#ProductionName)
+    set production.Items.GetAt(1).Settings.GetAt(1).Value = 71
+    $$$ThrowOnError(%SourceControl.OnBeforeSave(..#ProductionName_".cls"))
+    do ..ReplaceProductionDefinition("ProductionDefinition3")
     $$$ThrowOnError(%SourceControl.OnAfterSave(..#ProductionName_".cls"))
     do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("UnitTest.SampleProduction||Settings-b|Ens.Activity.Operation.Local.PTD"))
     do ##class(SourceControl.Git.Utils).RunGitCommand("add",,,".")
@@ -87,8 +88,10 @@ Method TestEditProduction()
     do ##class(SourceControl.Git.Utils).Commit("UnitTest.SampleProduction||Settings-b|Ens.Activity.Operation.Local.PTD")
     $$$ThrowOnError(production.%Reload())
     do $$$AssertEquals(production.Items.Count(), 2)
+    do $$$AssertEquals(production.Items.GetAt(1).Settings.GetAt(1).Name, "RecordStatsInterval")
+    do $$$AssertEquals(production.Items.GetAt(1).Settings.GetAt(1).Value, 71)
 
-    do $$$LogMessage("switching back to the original branch")
+    do $$$LogMessage("switching back to the original branch should modify and delete items")
     $$$ThrowOnError(##class(SourceControl.Git.Utils).SwitchBranch("branch1"))
     $$$ThrowOnError(production.%Reload())
     do $$$AssertEquals(production.Items.Count(), 1)
@@ -120,15 +123,29 @@ XData ProductionDefinition1
 {
 <Production Name="UnitTest.SampleProduction" LogGeneralTraceEvents="false">
   <Item Name="a" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="RecordStatsInterval">61</Setting>
   </Item>
 </Production>
 }
 
+/// adds item b
 XData ProductionDefinition2
 {
 <Production Name="UnitTest.SampleProduction" LogGeneralTraceEvents="false">
   <Item Name="a" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Host" Name="RecordStatsInterval">61</Setting>
+  </Item>
+  <Item Name="b" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
+</Production>
+}
+
+/// modifies a setting for item a
+XData ProductionDefinition3
+{
+<Production Name="UnitTest.SampleProduction" LogGeneralTraceEvents="false">
+  <Item Name="a" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="RecordStatsInterval">71</Setting>
   </Item>
   <Item Name="b" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
   </Item>

@@ -148,7 +148,7 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
                     quit
                 }
                 for j=1:1:item.Settings.Count() {
-                    set setting = item.Settings.GetAt(i)
+                    set setting = item.Settings.GetAt(j)
                     if $isobject(setting) && setting.%IsModified() {
                         set modifiedItem = item
                         quit

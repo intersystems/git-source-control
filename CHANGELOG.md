@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - New UI for the basic mode Sync (#415)
 - Allow changing namespaces and IPM package context from web UI (#280)
+- Support for editing repo from filesystem perspective via web application (#464)
+- Support for downloading a VSCode workspace file from web UI
 
 ### Fixed
 - Instance wide settings are placed in proper global (#444)
+- Avoid delay/errors in loading interop JS when there is a URL prefix (e.g., instance name in multi-instance webserver configuration)
+- Added proper JS escaping in sync output
 - Added support to switch branch in basic mode from menu (#451)
 
 ## [2.4.1] - 2024-08-02

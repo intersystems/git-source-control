@@ -129,6 +129,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "Status": 1,
                 "GitWebUI" : 1,
                 "NewBranch": 1,
+                "SwitchBranch": 1,
                 "Sync": 1,
                 "": 1,
                 :-1

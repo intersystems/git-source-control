@@ -12,12 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Allow changing namespaces and IPM package context from web UI (#280)
 - Support for editing repo from filesystem perspective via web application (#464)
 - Support for downloading a VSCode workspace file from web UI
+- IncrementalLoad pull event handler will update the running production, if any (#473)
 
 ### Fixed
 - Instance wide settings are placed in proper global (#444)
 - Added support to switch branch in basic mode from menu (#451)
 - Avoid delay/errors in loading interop JS when there is a URL prefix (e.g., instance name in multi-instance webserver configuration)
 - Added proper JS escaping in sync output
+- Pull event handler will not fail when change set includes unmapped files (#453)
+- Pull event handler will attempt compile even if there are failures to load (#457)
+- Improved logging in preview and when errors occur via WebSocket commands (#467)
+- Fixed pull event handler handling of extremely long class names from diff (#467)
 
 ## [2.4.1] - 2024-08-02
 

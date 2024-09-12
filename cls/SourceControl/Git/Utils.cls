@@ -546,14 +546,19 @@ ClassMethod GetCurrentBranch() As %String
 
 ClassMethod Pull(remote As %String = "origin") As %Status
 {
+    New %gitSCOutputFlag
+    Set %gitSCOutputFlag = 1
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
     kill errStream, outStream
     set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
-    
-    w !, "Pull ran with return code: " _ returnCode
+    write !
+    do outStream.OutputToDevice()
+    write !
+    do errStream.OutputToDevice()
+    write !, "Pull ran with return code: " _ returnCode
     quit $$$OK
 }
 
@@ -626,10 +631,13 @@ ClassMethod ExternalName(InternalName As %String, ByRef MappingExists As %Boolea
 
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 {
-     #dim i as %Integer
+    #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
         #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        if (item = "") {
+            continue
+        }
         set @..#Storage@("items", item) = ""
         #dim sc as %Status =  ..ImportItem(item, 1)
         if 'sc {
@@ -1791,12 +1799,16 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             }
         }
     } elseif syncIrisWithCommand {
-        do ..PrintStreams(errStream, outStream)
+        if '$data(%gitSCOutputFlag)#2 {
+            do ..PrintStreams(errStream, outStream)
+        }
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughCommand(.outStream)
         set out = ##class(%Stream.GlobalCharacter).%New()
         do buffer.EndCaptureOutput(.out)
+        do outStream.MoveToEnd()
+        do errStream.MoveToEnd()
         if $$$ISOK(st) {
             while 'out.AtEnd {
                 do outStream.WriteLine(out.ReadLine())
@@ -1836,11 +1848,31 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
             }
         } elseif (line [ "|") {
             set externalName = $zstrip($piece(line,"|",1),"<>W")
-            set modification = ##class(SourceControl.Git.Modification).%New()
-            set modification.changeType = "C"
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
-            set modification.externalName = externalName
-            set files($i(files)) = modification
+            if $Extract(externalName,1,3) = "..." {
+                // For extremely long file names, git may truncate the path.
+                // Simplifying assumption: this is a class, because nothing else would have that long a name.
+                // In other cases, we'll just end up logging the invalid externalName.
+                if $Piece(externalName,".",*) = "cls" {
+                    set possibleClasses = ..ExpandClasses(externalName)
+                    set pointer = 0
+                    while $ListNext(possibleClasses,pointer,class) {
+                        set modification = ##class(SourceControl.Git.Modification).%New()
+                        set modification.changeType = "C"
+                        set modification.internalName = class_".CLS"
+                        set modification.externalName = ..ExternalName(modification.internalName)
+                        set files($i(files)) = modification
+                    }
+                } else {
+                    write !,"WARNING: unable to translate external name ",externalName
+                    continue
+                }
+            } else {
+                set modification = ##class(SourceControl.Git.Modification).%New()
+                set modification.changeType = "C"
+                set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
+                set modification.externalName = externalName
+                set files($i(files)) = modification
+            }
         }
     }
     
@@ -1856,6 +1888,18 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
 
     do outStream.Rewind()
     quit ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
+}
+
+ClassMethod ExpandClasses(externalName As %String) As %List
+{
+    set internalName = $Piece(externalName,".",1,*-1)
+    set internalName = $Extract(internalName,4,*)
+    set internalName = $Translate(internalName,"/\%",".."_..PercentClassReplace())
+    &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
+    if (SQLCODE < 0) {
+        Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+    }
+    quit classes
 }
 
 ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, Output files)

@@ -163,3 +163,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.1] - 2022-06-02
 - Last released version before CHANGELOG existed.
 
+### Fixed
+- Added support to switch branch in basic mode from menu (#451)

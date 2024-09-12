@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Instance wide settings are placed in proper global (#444)
+- Avoid delay/errors in loading interop JS when there is a URL prefix (e.g., instance name in multi-instance webserver configuration)
+- Added proper JS escaping in sync output
 - Added support to switch branch in basic mode from menu (#451)
 - Avoid delay/errors in loading interop JS when there is a URL prefix (e.g., instance name in multi-instance webserver configuration)
 - Added proper JS escaping in sync output

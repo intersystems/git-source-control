@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Instance wide settings are placed in proper global (#444)
+- Added support to switch branch in basic mode from menu (#451)
 
 ## [2.4.1] - 2024-08-02
 
@@ -162,6 +163,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 2022-06-02
 - Last released version before CHANGELOG existed.
-
-### Fixed
-- Added support to switch branch in basic mode from menu (#451)

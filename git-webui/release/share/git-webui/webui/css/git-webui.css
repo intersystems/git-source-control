@@ -219,6 +219,9 @@ body {
 #sidebar #sidebar-content #sidebar-vscode a {
   color: white;
 }
+#sidebar #sidebar-content #sidebar-vscode h4 {
+  padding: 0px;
+}
 #sidebar #sidebar-content #sidebar-vscode h4:before {
   content: url(../img/file.svg);
 }
@@ -226,9 +229,10 @@ body {
   position: absolute;
   bottom: 80px;
   width: 16.7em;
-  padding-bottom: 0.3rem;
-  margin-bottom: 0;
   background-color: #333333;
+}
+#sidebar #sidebar-content #sidebar-context h4 {
+  padding: 0px;
 }
 #sidebar #sidebar-content #sidebar-context h4:before {
   content: url(../img/context.svg);
@@ -237,9 +241,10 @@ body {
   position: absolute;
   bottom: 40px;
   width: 16.7em;
-  padding-bottom: 0.3rem;
-  margin-bottom: 0;
   background-color: #333333;
+}
+#sidebar #sidebar-content #sidebar-settings h4 {
+  padding: 0px;
 }
 #sidebar #sidebar-content #sidebar-settings h4:before {
   content: url(../img/gear-fill.svg);
@@ -248,8 +253,6 @@ body {
   position: absolute;
   bottom: 0px;
   width: 16.7em;
-  padding-bottom: 0.3rem;
-  margin-bottom: 0px;
   background-color: #333333;
 }
 #sidebar #sidebar-content ul {

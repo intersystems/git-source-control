@@ -421,6 +421,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
                 var matches = /^\*?\s*([\w-\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                if (!matches) {
+                    continue;
+                }
                 var branchInfo = {
                     "branch_name": matches[1],
                     "hash": matches[2],

@@ -2451,7 +2451,8 @@ ClassMethod InstanceWideUncommittedCheck(InternalName As %String, Output User, O
     set isUncommitted = 0
     set resultSet = ##class(SourceControl.Git.Change).InstanceUncommittedFunc()
     throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
-    while resultSet.%Next() {
+    while resultSet.%Next(.sc) {
+        $$$ThrowOnError(sc)
         set fileName = resultSet.InternalName
         if (InternalName = fileName) && (resultSet.Namespace '= $namespace) {
             set isUncommitted = 1

@@ -203,7 +203,8 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
         $$$ThrowOnError(statement.%Prepare(qHandle("q"), 0))
         set resultSet = statement.%Execute()
         throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
-        while resultSet.%Next() {
+        while resultSet.%Next(.sc) {
+            $$$ThrowOnError(sc)
             set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
             set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
             set qHandle("changes", qHandle("changes"), "Namespace") = namespace

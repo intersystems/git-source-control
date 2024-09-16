@@ -146,7 +146,7 @@
 
             &js<
                 var outputContainer = document.getElementById('outputBox');
-                var lineText = "#(escapedLine)#";
+                var lineText = #(..QuoteJS(escapedLine))#;
                 var lineTextNode = document.createTextNode(lineText);
                 outputContainer.innerHTML += lineText + "<br>";
             >

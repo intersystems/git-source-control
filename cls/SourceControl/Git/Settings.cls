@@ -47,6 +47,9 @@ Property defaultMergeBranch As %String [ InitialExpression = {##class(SourceCont
 /// Compile using the configured pull event handler when "Import All" is run
 Property compileOnImport As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).CompileOnImport()} ];
 
+/// Define a namespace-level web application allowing access to multiple git repos across separate namespaces
+Property namespaceLevelGitWebApp As %Boolean [ InitialExpression = {##class(SourceControl.Git.Settings).HasNamespaceWebApp()} ];
+
 /// Warn when an item has uncommitted changes in a different namespace in this instance
 Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).WarnInstanceWideUncommitted()} ];
 
@@ -164,6 +167,75 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     do %code.WriteLine(" quit 1")
 }
 
+Method ConfigureNamespaceWebApplication()
+{
+    Set root = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).TempFolder())
+    Set deleteWebApp = ..HasNamespaceWebApp(.appDirectory) && '..namespaceLevelGitWebApp
+    Set createWebApp = ..namespaceLevelGitWebApp && '..HasNamespaceWebApp()
+    Do ..WebAppOperation("/git/"_$Namespace_"/", createWebApp, deleteWebApp, root)
+}
+
+Method WebAppOperation(name, create As %Boolean, delete As %Boolean, root As %String) [ Private ]
+{
+    Set namespace = $Namespace
+    New $Namespace
+    Set $Namespace = "%SYS"
+    If $Extract(name) = "/" {
+        Set name = $Extract(name,1,*-1)
+    }
+    If delete {
+        If ##class(Security.Applications).Exists(name) {
+            $$$ThrowOnError(##class(Security.Applications).Delete(name))
+            Write !,"Removed web application "_name
+        }
+        Quit
+    }
+
+    // These are the only things we want to coerce.
+    Set props("AutheEnabled")=0 // No auth methods enabled = impossible to use
+    Set props("InbndWebServicesEnabled")=0
+    Set props("ServeFiles")=0
+    Set props("Enabled")=1
+    Set props("Name")=name
+    Set props("NameSpace")=namespace
+    Set props("Path")=root
+    Set props("Type")=2
+    Set props("Recurse")=1
+    If create {
+        Write !,"Creating web application: "_name_"... "
+        $$$ThrowOnError(##class(Security.Applications).Create(name,.props))
+        Write "done."
+    } ElseIf ##class(Security.Applications).Exists(name) {
+        Write !,"Web application '"_name_"' already exists."
+        $$$ThrowOnError(##class(Security.Applications).Get(name,.existingProps))
+        Set changes = 0
+        Set key = ""
+        For {
+            Set key = $Order(props(key),1,value)
+            Quit:key=""
+            If (value '= $Get(existingProps(key))) {
+                Write !,"Changing "_key_": "_$Get(existingProps(key))_" -> "_value
+                Set changes = 1
+            }
+        }
+        If changes {
+            $$$ThrowOnError(##class(Security.Applications).Modify(name,.props))
+            Write !,"Web application '"_name_"' updated."
+        } Else {
+            Write !,"No changes made to web application."
+        }
+    }
+}
+
+ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean
+{
+    Set webAppDirectory = $System.CSP.GetFileName("/git/"_$Namespace_"/")
+    If (webAppDirectory '= "") {
+        Set webAppDirectory = ##class(%Library.File).NormalizeDirectory(webAppDirectory)
+    }
+    Quit (webAppDirectory '= "")
+}
+
 Method OnAfterConfigure() As %Boolean
 {
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
@@ -189,6 +261,8 @@ Method OnAfterConfigure() As %Boolean
             }
         }
     }
+
+    do ..ConfigureNamespaceWebApplication()
 
     set gitDir = ##class(%File).NormalizeDirectory(..namespaceTemp)_".git"
     if '##class(%File).DirectoryExists(gitDir) {

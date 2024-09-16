@@ -85,7 +85,7 @@ jobs:
           ls $GITHUB_WORKSPACE/$artifact_dir
           
       - name: Attach CE Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: "PreIRISInstallationPackage"
@@ -103,7 +103,7 @@ jobs:
           fail: false
           
       - name: Attach the report
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{ steps.xunit-viewer.outputs.report-name }}

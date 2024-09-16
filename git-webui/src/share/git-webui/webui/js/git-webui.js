@@ -2641,7 +2641,7 @@ webui.NewChangedFilesView = function(workspaceView) {
             }
 
             if ($(element).hasClass("other-user") && (selectedItemsFromOtherUser.indexOf(fileName) > -1)) {
-                selectedItemsFromOtherUser.splice(selectedItems.indexOf(fileName), 1);
+                selectedItemsFromOtherUser.splice(selectedItemsFromOtherUser.indexOf(fileName), 1);
             }
         }
         self.updateButtons();

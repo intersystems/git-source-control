@@ -9,7 +9,7 @@ Parameter DESCRIPTION = "Performs an incremental load and compile of all changes
 
 Method OnPull() As %Status
 {
-    set loadSC = $$$OK
+    set sc = $$$OK
     set nFiles = 0
 
     for i=1:1:$get(..ModifiedFiles){
@@ -17,8 +17,8 @@ Method OnPull() As %Status
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } elseif (..ModifiedFiles(i).changeType = "D") {
-            set sc = ..DeleteFile(internalName, ..ModifiedFiles(i).externalName)
-            if sc {
+            set delSC = ..DeleteFile(internalName, ..ModifiedFiles(i).externalName)
+            if delSC {
                 write !, ..ModifiedFiles(i).externalName, " was deleted."
             } else {
                 write !, "WARNING: Deletion of ", ..ModifiedFiles(i).externalName, " failed."
@@ -26,8 +26,7 @@ Method OnPull() As %Status
         } else {
             set compilelist(internalName) = ""
             set nFiles = nFiles + 1
-            set loadSC = $$$ADDSC(loadSC,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
-            $$$ThrowOnError(loadSC)
+            set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
         }
     }
 
@@ -35,7 +34,13 @@ Method OnPull() As %Status
         write !, "Nothing to compile."
         quit $$$OK
     }
-    quit $system.OBJ.CompileList(.compilelist, "ck")
+    set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ck"))
+    if $$$comClassDefined("Ens.Director") && ##class(Ens.Director).IsProductionRunning() {
+        write !,"Updating production... "
+        set sc = $$$ADDSC(sc,##class(Ens.Director).UpdateProduction())
+        write "done."
+    }
+    quit sc
 }
 
 Method DeleteFile(item As %String = "", externalName As %String = "") As %Status

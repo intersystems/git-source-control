@@ -27,6 +27,65 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         if $isobject($get(responseJSON)) {
             do responseJSON.%ToJSON(%data)
         }
+    } elseif pathStart = "vscode-workspace" {
+        set handled = 1
+        set namespace = $Namespace
+        set instanceName = $ZConvert(##class(%SYS.System).InstanceGUID(),"L")
+        set hasCSP = 0
+        if context.IsInGitEnabledPackage && 'context.IsInDefaultPackage {
+            set workspaceFilename = context.Package.Name_"-"_instanceName_".code-workspace"
+            // Loading an IPM package in dev mode automatically creates a project for it, so filter to that.
+            set filter = "?project="_context.Package.Name
+        } else {
+            set hasCSP = ##class(SourceControl.Git.Settings).HasNamespaceWebApp()
+            set workspaceFilename = namespace_"-"_instanceName_".code-workspace"
+            set filter = "?mapped=0"
+        }
+        set server = {
+            "webServer": {
+                "host": (%request.CgiEnvs("SERVER_NAME")),
+                "port": (+%request.CgiEnvs("SERVER_PORT")),
+                "scheme": ($Select(%request.Secure:"https",1:"http"))
+            },
+            "username": ($Username)
+        }
+        if (%request.URLPrefix '= "") {
+            set server.webServer.pathPrefix = %request.URLPrefix
+        }
+        set workspaceDef = {
+            "folders": [
+            ],
+            "settings": {
+                "intersystems.servers": {
+                    "/default": (instanceName)
+                },
+                "objectscript.conn": {
+                    "active": false
+                }
+            }
+        }
+        if hasCSP {
+            do workspaceDef.folders.%Push({
+                "name": ($Namespace),
+                "uri": ("isfs://"_instanceName_":"_$Namespace_"/git/"_$Namespace_"?csp")
+            })
+        } else {
+            do workspaceDef.folders.%Push({
+                "name": ($Namespace),
+                "uri": ("isfs://"_instanceName_":"_$Namespace_"/"_filter)
+            })
+        }
+        set $Property(workspaceDef.settings."intersystems.servers",instanceName) = server
+        set stream = ##class(%CSP.CharacterStream).%New()
+        do stream.SetAttribute("ContentDisposition","attachment; filename="_workspaceFilename)
+        set formatter = ##class(%JSON.Formatter).%New()
+        do formatter.FormatToStream(workspaceDef,stream)
+        $$$ThrowOnError(stream.%Save())
+        do %request.Set("STREAMOID",##class(%CSP.Page).Encrypt(stream.%Oid()))
+        set %request.Data("EXPIRES",1,"encrypt") = 1
+        do %request.Set("EXPIRES",0)
+        do ##class(%CSP.StreamServer).OnPreHTTP() // Need to call this to set headers properly
+        set %stream = 1 // Leak this to webuidriver.csp
     } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|contexts") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()

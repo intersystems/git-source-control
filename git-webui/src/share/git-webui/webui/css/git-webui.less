@@ -257,7 +257,7 @@ body {
         color: @gray-lighter;
         padding-bottom: 100px;
 
-        > :first-child, >:nth-last-child(2) {
+        > :first-child, >:nth-last-child(3) {
             border-top: 1px solid darken(@separator-line, 50%);
         }
 
@@ -301,17 +301,42 @@ body {
             content: url(../img/tag.svg);
         }
 
+        #sidebar-vscode a {
+            color: white;
+        }
+
+        #sidebar-vscode h4 {
+            padding: 0px;
+        }
+
+        #sidebar-vscode h4:before {
+            content: url(../img/file.svg);
+        }
+
+        #sidebar-vscode {
+            position: absolute;
+            bottom: 80px;
+            width: 16.7em;
+            background-color: rgba(51, 51, 51, 1);
+        }
+
+        #sidebar-context h4 {
+            padding: 0px;
+        }
+
         #sidebar-context h4:before {
-            content: url(../img/context.svg)
+            content: url(../img/context.svg);
         }
 
         #sidebar-context {
             position: absolute;
-            bottom: 50px;
+            bottom: 40px;
             width: 16.7em;
-            padding-bottom: 0.3rem;
-            margin-bottom: 0;
             background-color: rgba(51, 51, 51, 1);
+        }
+
+        #sidebar-settings h4 {
+            padding: 0px;
         }
 
         #sidebar-settings h4:before {
@@ -322,8 +347,6 @@ body {
             position: absolute;
             bottom: 0px;
             width: 16.7em;
-            padding-bottom: 0.3rem;
-            margin-bottom:0px;
             background-color: rgba(51, 51, 51, 1);
         }
 

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pull event handler will attempt compile even if there are failures to load (#457)
 - Improved logging in preview and when errors occur via WebSocket commands (#467)
 - Fixed pull event handler handling of extremely long class names from diff (#467)
+- Fixed Git web UI prompt to update file list when file selected/unselected (#478)
 
 ## [2.4.1] - 2024-08-02
 

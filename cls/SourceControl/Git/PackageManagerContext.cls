@@ -18,6 +18,10 @@ Method InternalNameSet(InternalName As %String = "") As %Status
     set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
     if (InternalName '= i%InternalName) {
         set i%InternalName = InternalName
+        if (InternalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME) {
+            // git source control settings document is never in an IPM context
+            quit $$$OK
+        }
         if $$$comClassDefined("%IPM.ExtensionBase.Utils") {
             set ..Package = ##class(%IPM.ExtensionBase.Utils).FindHomeModule(InternalName,,.resourceReference)
         } elseif $$$comClassDefined("%ZPM.PackageManager.Developer.Extension.Utils") {
@@ -51,4 +55,3 @@ Method Dump()
 }
 
 }
-

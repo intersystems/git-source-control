@@ -66,6 +66,31 @@ Method %OnNew() As %Status
     quit $$$OK
 }
 
+Method SaveWithSourceControl() As %Status
+{
+    set sc = $$$OK
+    #dim %SourceControl As %Studio.SourceControl.Interface
+    if '$isobject($get(%SourceControl)) {
+        do ##class(%Studio.SourceControl.Interface).SourceControlCreate($username)
+    }
+    // Source control settings naively by only calling OnAfterSave hooks
+    // Future enhancement: add full source control support with settings UI
+    set internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME
+    set settingsDoc = ##class(SourceControl.Git.Settings.Document).%New(internalName)
+    if (##class(%Studio.SourceControl.Interface).SourceControlClassGet() = ##class(SourceControl.Git.Extension).%ClassName(1)) {
+        if '##class(SourceControl.Git.Utils).IsInSourceControl(internalName) {
+            set sc = ##class(SourceControl.Git.Utils).AddToSourceControl(internalName)
+            $$$QuitOnError(sc)
+        }
+    }
+    $$$QuitOnError(..%Save())
+    $$$QuitOnError(settingsDoc.Load()) // reload doc to update timestamps
+    if ($IsObject(%SourceControl)) {
+        $$$QuitOnError(%SourceControl.OnAfterSave(internalName))
+    }
+    quit sc
+}
+
 Method %Save() As %Status
 {
     set sc = ..%ValidateObject()
@@ -122,6 +147,45 @@ Method %Save() As %Status
     quit $$$OK
 }
 
+Method ToDynamicObject() As %DynamicObject
+{
+    // uses custom methods rather than %JSON.Adaptor because Mappings multidimensional
+    // array is not supported
+    set settingsJSON = {
+        "pullEventClass": (..pullEventClass),
+        "percentClassReplace": (..percentClassReplace),
+        "Mappings": {}
+    }
+    do settingsJSON.%Set("decomposeProductions",..decomposeProductions,"boolean")
+    set k1 = $order(..Mappings(""))
+    while (k1 '= "") {
+        do settingsJSON.Mappings.%Set(k1, {})
+        set k2 = $order(..Mappings(k1,""))
+        while (k2 '= "") {
+            do settingsJSON.Mappings.%Get(k1).%Set(k2,..Mappings(k1,k2))
+            set k2 = $order(..Mappings(k1, k2))
+        }
+        set k1 = $order(..Mappings(k1))
+    }
+    return settingsJSON
+}
+
+Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
+{
+    set ..pullEventClass = pSettingsDyn.%Get("pullEventClass")
+    set ..percentClassReplace = pSettingsDyn.%Get("percentClassReplace")
+    set ..decomposeProductions = pSettingsDyn.%Get("decomposeProductions")
+    kill ..Mappings
+    set mappingsDyn = pSettingsDyn.%Get("Mappings", {})
+    set i1 = mappingsDyn.%GetIterator()
+    while i1.%GetNext(.k1, .v1) {
+        set i2 = v1.%GetIterator()
+        while i2.%GetNext(.k2, .v2) {
+            set ..Mappings(k1, k2) = v2
+        }
+    }
+}
+
 ClassMethod CreateNamespaceTempFolder() As %Status
 {
     set storage = ##class(SourceControl.Git.Utils).#Storage
@@ -158,7 +222,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         do %code.WriteLine(" set inst."_property_" = value")
         
     }
-    do %code.WriteLine(" $$$ThrowOnError(inst.%Save())")
+    do %code.WriteLine(" $$$ThrowOnError(inst.SaveWithSourceControl())")
     do %code.WriteLine(" write !,""Settings saved.""")
     do %code.WriteLine(" do inst.OnAfterConfigure()")
     do %code.WriteLine(" quit 1")

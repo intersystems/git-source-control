@@ -75,7 +75,7 @@ body {
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
 
  set settings = ##class(SourceControl.Git.Settings).%New()
- if $Data(%request.Data("gitsettings",1)) {
+ if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
     for param="gitUserName","gitUserEmail" {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
@@ -120,7 +120,21 @@ body {
             set i = i+1
         }
     }
-    do settings.%Save()
+    set err = ""
+    try {
+        set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+        do buffer.BeginCaptureOutput()
+        $$$ThrowOnError(settings.SaveWithSourceControl())
+        do buffer.EndCaptureOutput(.out)
+        &html<<div class="alert alert-primary">
+                <div>#(..EscapeHTML(out))#</div>
+                <div>Settings saved.</div>
+            </div>>
+    } catch err {
+        kill buffer
+        do err.Log()
+        &html<<div class="alert alert-danger">An error occurred and has been logged to the application error log.</div>>
+    }
 }
 </server>
 <div class = 'container'>    
@@ -546,9 +560,6 @@ body {
         </div>
         
     </form>
-    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
-        <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
-    </csp:if>
 </div>
 <script src="js/polyfills.js"></script>
 <script src="js/jquery.min.js"></script>

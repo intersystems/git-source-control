@@ -2059,6 +2059,10 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
         quit relativePath
     }
+    if ($zconvert(InternalName,"l") = $zconvert(##class(SourceControl.Git.Settings.Document).#INTERNALNAME,"l")) {
+        // git-source-control settings file will always live at repository root
+        quit ##class(SourceControl.Git.Settings.Document).#EXTERNALNAME
+    }
     
     // For an abstract document, use the GetOther() method to try to determine its "real" class
     if ..UserTypeCached(InternalName,.docclass,.doctype) {
@@ -2218,6 +2222,9 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         }
     } elseif ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
         set Name = ..TempFolder()_Name
+    }
+    if ($zconvert(Name,"l") = $zconvert(..TempFolder()_##class(SourceControl.Git.Settings.Document).#EXTERNALNAME,"l")) {
+        quit ##class(SourceControl.Git.Settings.Document).#INTERNALNAME
     }
     if (##class(%File).Exists(Name)) {
         set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)

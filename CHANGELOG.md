@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed pull event handler handling of extremely long class names from diff (#467)
 - Fixed Git web UI prompt to update file list when file selected/unselected (#478)
 - Fixed folder settings in mappings to be saved and persist (#483)
+- Preview on the pull.csp page now shows commits from the correct branch (#490)
 
 ## [2.4.1] - 2024-08-02
 

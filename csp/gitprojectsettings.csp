@@ -668,6 +668,15 @@ $('[id^=noFoldersSwitch]').click(toggleNoFolders);
 </script>
 </body>
 </html>
+<script method='OnPreHTTP' type="text/javascript">
+    // Check to persist state of no folder switches  
+    $('.mapping-input-group').children('.voca').each(function(){
+        var currElement = $(this).children().children(".custom-control").children()[0]
+        if(!$(currElement).hasClass("active")) {
+            $(currElement).parent().siblings("#NoFolders")[0].value = "NoFolders";
+        }
+    });
+</script>
 <script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
 	try {
 		set %session.UseSessionCookie = 1 // Always set back to autodetect

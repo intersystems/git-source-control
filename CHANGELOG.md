@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for editing repo from filesystem perspective via web application (#464)
 - Support for downloading a VSCode workspace file from web UI
 - IncrementalLoad pull event handler will update the running production, if any (#473)
+- Warnings to users if git version is incompatible (#488)
 
 ### Fixed
 - Instance wide settings are placed in proper global (#444)

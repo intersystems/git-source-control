@@ -18,7 +18,7 @@ Parameter GitContextMenuItems = ",%Diff,%Blame,";
 
 ClassMethod %SYSNamespaceStorage() As %String [ CodeMode = expression ]
 {
-$Replace(..#Storage,"^","^["""_..#InstallNamespace_"""]")
+$Replace(..#Storage,"^SYS","^%SYS")
 }
 
 /// Returns root temp folder
@@ -183,6 +183,14 @@ ClassMethod IsImportAfter(menuItemName As %String) As %Boolean [ CodeMode = expr
 $Find(..#ImportAfterGitMenuItems, ","_menuItemName_",") > 0
 }
 
+ClassMethod MigrateInstanceSettings()
+{
+    if $data(^["%SYS"]SYS("SourceControl", "Git")) {
+        merge ^%SYS("SourceControl", "Git") = ^["%SYS"]SYS("SourceControl", "Git")
+        kill ^["%SYS"]SYS("SourceControl", "Git")
+    }
+}
+
 ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Target As %String, ByRef Action As %String, ByRef Reload As %Boolean, ByRef Msg As %String) As %Status
 {
     #define Force 1
@@ -253,17 +261,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Sync") {
-        if ..CheckForUncommittedFiles() {
-            set Target = "Enter a commit message for the sync operation"
-            set Action = 7
-            set Msg = ..PreSync()
-        } else {
-            set Target = ""
-            do ..Sync("",.Target)
-            if (Target '= "") {
-                set Action = 6
-            }
-        }
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/sync.csp?Namespace="_$NAMESPACE
         
         quit $$$OK
     } elseif (menuItemName = "Push") {
@@ -547,14 +546,19 @@ ClassMethod GetCurrentBranch() As %String
 
 ClassMethod Pull(remote As %String = "origin") As %Status
 {
+    New %gitSCOutputFlag
+    Set %gitSCOutputFlag = 1
     #define Force 1
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     write !, "Pulling from branch: ", branchName
     kill errStream, outStream
     set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
-    
-    w !, "Pull ran with return code: " _ returnCode
+    write !
+    do outStream.OutputToDevice()
+    write !
+    do errStream.OutputToDevice()
+    write !, "Pull ran with return code: " _ returnCode
     quit $$$OK
 }
 
@@ -627,10 +631,13 @@ ClassMethod ExternalName(InternalName As %String, ByRef MappingExists As %Boolea
 
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 {
-     #dim i as %Integer
+    #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
         #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        if (item = "") {
+            continue
+        }
         set @..#Storage@("items", item) = ""
         #dim sc as %Status =  ..ImportItem(item, 1)
         if 'sc {
@@ -1117,7 +1124,7 @@ ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists 
 ..TempFolder()_..ExternalName(.InternalName, .MappingExists)
 }
 
-ClassMethod NormalizeInternalName(ByRef name As %String) As %String
+ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %Boolean = 0, Output cspFilename) As %String
 {
     //Studio passes name of routine with dots as it is in folders
     //e.g. Package.SubPackage.Routine.mac has InternalName =  /Package/SubPackage/Routine.mac
@@ -1132,6 +1139,16 @@ ClassMethod NormalizeInternalName(ByRef name As %String) As %String
     
     if ($extract(name) '= "/") && (type'="csp") {
         quit $piece(name,".",1,*-1)_"."_$zconvert($piece(name,".",*),"U")
+    }
+
+    if (name [ "/") && (type = "csp") {
+        set cspFilename = $System.CSP.GetFileName(name)
+        if (cspFilename '= "") && (cspFilename [ ..TempFolder()) {
+            set name = ..NameToInternalName(cspFilename,,,,0)
+            set fromWebApp = 1
+        } else {
+            kill cspFilename
+        }
     }
     
     if (type = "inc") || (type = "mac") || (type = "int") {
@@ -1247,7 +1264,7 @@ ClassMethod FixProjectCspReferences(projectName As %String) As %Status
 
 /// imports file if version in system is newer then version on disk.
 /// if <var>force</var> = 1 then imports in any case.
-ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose As %Boolean = 1) As %Status
+ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose As %Boolean = 1, compile As %Boolean = 0) As %Status
 {
     #dim filename as %String = ..FullExternalName(.InternalName)
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
@@ -1266,7 +1283,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             if ($extract(InternalName, 1) = "/"){
                 set sc = ..ImportCSPFile(InternalName)
             } else{
-                set sc = $system.OBJ.Load(filename,"-l-d")
+                set sc = $system.OBJ.Load(filename,$Select(compile:"ck-l",1:"-l-d"))
             }
         }
         if sc {
@@ -1782,12 +1799,16 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             }
         }
     } elseif syncIrisWithCommand {
-        do ..PrintStreams(errStream, outStream)
+        if '$data(%gitSCOutputFlag)#2 {
+            do ..PrintStreams(errStream, outStream)
+        }
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughCommand(.outStream)
         set out = ##class(%Stream.GlobalCharacter).%New()
         do buffer.EndCaptureOutput(.out)
+        do outStream.MoveToEnd()
+        do errStream.MoveToEnd()
         if $$$ISOK(st) {
             while 'out.AtEnd {
                 do outStream.WriteLine(out.ReadLine())
@@ -1827,11 +1848,31 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
             }
         } elseif (line [ "|") {
             set externalName = $zstrip($piece(line,"|",1),"<>W")
-            set modification = ##class(SourceControl.Git.Modification).%New()
-            set modification.changeType = "C"
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
-            set modification.externalName = externalName
-            set files($i(files)) = modification
+            if $Extract(externalName,1,3) = "..." {
+                // For extremely long file names, git may truncate the path.
+                // Simplifying assumption: this is a class, because nothing else would have that long a name.
+                // In other cases, we'll just end up logging the invalid externalName.
+                if $Piece(externalName,".",*) = "cls" {
+                    set possibleClasses = ..ExpandClasses(externalName)
+                    set pointer = 0
+                    while $ListNext(possibleClasses,pointer,class) {
+                        set modification = ##class(SourceControl.Git.Modification).%New()
+                        set modification.changeType = "C"
+                        set modification.internalName = class_".CLS"
+                        set modification.externalName = ..ExternalName(modification.internalName)
+                        set files($i(files)) = modification
+                    }
+                } else {
+                    write !,"WARNING: unable to translate external name ",externalName
+                    continue
+                }
+            } else {
+                set modification = ##class(SourceControl.Git.Modification).%New()
+                set modification.changeType = "C"
+                set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
+                set modification.externalName = externalName
+                set files($i(files)) = modification
+            }
         }
     }
     
@@ -1847,6 +1888,18 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
 
     do outStream.Rewind()
     quit ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
+}
+
+ClassMethod ExpandClasses(externalName As %String) As %List
+{
+    set internalName = $Piece(externalName,".",1,*-1)
+    set internalName = $Extract(internalName,4,*)
+    set internalName = $Translate(internalName,"/\%",".."_..PercentClassReplace())
+    &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
+    if (SQLCODE < 0) {
+        Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+    }
+    quit classes
 }
 
 ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, Output files)
@@ -1947,7 +2000,7 @@ ClassMethod GenerateCommitMessageFromFiles(filesWithActions) As %String
         set commitMsg = commitMsg_$LISTBUILD(oneFileMsg)
         
     }
-    quit $LISTTOSTRING(commitMsg, ",")
+    quit $LISTTOSTRING(commitMsg, ", ")
 }
 
 ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
@@ -2137,7 +2190,7 @@ ClassMethod FileIsMapped(InternalName As %String) As %Boolean
 	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
 	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
 */
-ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, Verbose As %Boolean = 0) As %String
+ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, Verbose As %Boolean = 0, normalize As %Boolean = 1) As %String
 {
     set InternalName=""
     set Deleted = 0
@@ -2153,7 +2206,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)
         if (InternalName '= "") && (context.IsInGitEnabledPackage) {
             // Don't need mappings!
-            return ..NormalizeInternalName(InternalName)
+            return $select(normalize:..NormalizeInternalName(InternalName),1:InternalName)
         }
     } else {
         // check for file in uncommitted queue
@@ -2296,7 +2349,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
     }
     if ((IgnorePercent)&&($extract(InternalName)="%")) { set InternalName = "" }	// don't return a result for % items if instructed to ignore them
     if ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))&&('Deleted)) { set InternalName = "" }	// only return item names which exist in the DB
-    quit ..NormalizeInternalName(InternalName)
+    return $select(normalize:..NormalizeInternalName(InternalName),1:InternalName)
 }
 
 ClassMethod OutputConfigureMessage()
@@ -2314,6 +2367,27 @@ ClassMethod Localize()
     if $$$DefaultLanguage '= "en" {
         merge ^IRIS.Msg("Studio",$$$DefaultLanguage) = ^IRIS.Msg("Studio","en")
     }
+}
+
+ClassMethod GetContexts() As %DynamicArray
+{
+    set contexts = []
+    set namespaces = ..GetGitEnabledNamespaces()
+    set ptr = 0
+    while $listnext(namespaces,ptr,value) {
+        do contexts.%Push(value)
+    }
+
+    set query = "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')"
+    set statement = ##class(%SQL.Statement).%New()
+    $$$ThrowOnError(statement.%Prepare(query, 0))
+    set packagesResultSet = statement.%Execute()
+    throw:packagesResultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(packagesResultSet.%SQLCODE,packagesResultSet.%Message)
+    while packagesResultSet.%Next() {
+        set package = packagesResultSet.Name
+        do contexts.%Push(package)
+    }
+    return contexts
 }
 
 ClassMethod ConfigureWeb()
@@ -2376,10 +2450,10 @@ ClassMethod GetPackageVersion() As %String [ CodeMode = objectgenerator ]
     quit $$$OK
 }
 
-ClassMethod GetSourceControlInclude() As %String
+ClassMethod GetSourceControlInclude(prefix As %String = "") As %String
 {
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
-        "<script type=""text/javascript"" src=""/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
+        "<script type=""text/javascript"" src="""_prefix_"/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
 }
 
@@ -2416,6 +2490,29 @@ ClassMethod UncommittedWithAction() As %Library.DynamicObject
     do fileToOtherDevelopers.%Set("user", editedByCurrentUser)
     do fileToOtherDevelopers.%Set("other", ##class(SourceControl.Git.Change).GetOtherDeveloperChanges())
     quit fileToOtherDevelopers
+}
+
+/// Retrieve the list of Namespaces that have git enabled
+ClassMethod GetGitEnabledNamespaces() As %String
+{
+    // Get all namespaces
+    set allNamespaces = ""
+    do ##class(%SYS.Namespace).ListAll(.allNamespaces)
+
+    set enabledNamespaces = ""
+    set namespace = ""
+    for {
+        set namespace = $ORDER(allNamespaces(namespace))
+        quit:namespace=""
+        try {
+            set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet(namespace)
+        } catch err {
+            set sourceControlClass = "" // user does not have access to this namespace
+        }
+        if (sourceControlClass = "SourceControl.Git.Extension") set enabledNamespaces = enabledNamespaces _ $listbuild(namespace)
+    }
+
+    quit enabledNamespaces
 }
 
 ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status

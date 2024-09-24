@@ -11,36 +11,40 @@ Property OriginalDevice;
 
 ClassMethod Run()
 {
-     If %request.Get("method") = "preview" {
-		set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
-		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
-		kill errStream, outStream
-		do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "log", "HEAD..origin", "--name-status")
-		do ##class(SourceControl.Git.Utils).PrintStreams(errStream, outStream)
-     } ElseIf %request.Get("method") = "pull" {
-         Do ##class(SourceControl.Git.API).Pull()
-     } ElseIf %request.Get("method") = "init" {
-         Do ##class(SourceControl.Git.Utils).Init()
+	If %request.Get("method") = "preview" {
+		Set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
+		Write !,"Current branch: ",branchName
+		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
+		Kill errStream, outStream
+		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "log", "HEAD..origin/"_branchName, "--name-status")
+		Do ##class(SourceControl.Git.Utils).PrintStreams(errStream, outStream)
+		If (outStream.Size = 0) && (errStream.Size = 0) {
+			Write !,"Already up to date."
+		}
+	} ElseIf %request.Get("method") = "pull" {
+		Do ##class(SourceControl.Git.API).Pull()
+	} ElseIf %request.Get("method") = "init" {
+		Do ##class(SourceControl.Git.Utils).Init()
 		Write !,"Done."
-     } ElseIf %request.Get("method") = "clone" {
-         Set remote = %request.Get("remote")
-         Do ##class(SourceControl.Git.Utils).Clone(remote)
+	} ElseIf %request.Get("method") = "clone" {
+		Set remote = %request.Get("remote")
+		Do ##class(SourceControl.Git.Utils).Clone(remote)
 		Write !,"Done."
-     } ElseIf %request.Get("method") = "sshkeygen" {
-         Do ##class(SourceControl.Git.Utils).GenerateSSHKeyPair()
+	} ElseIf %request.Get("method") = "sshkeygen" {
+		Do ##class(SourceControl.Git.Utils).GenerateSSHKeyPair()
 		Write !,"Done."
-     } Else {
-         Write !!,"Invalid method selected.",!!
-     }
+	} Else {
+		Write !!,"Invalid method selected.",!!
+	}
 }
 
 Method OnPreServer() As %Status
 {
-     If '$System.Security.Check("%Development","USE") {
-         Quit $$$ERROR($$$AccessDenied)
-     }
+	If '$SYSTEM.Security.Check("%Development","USE") {
+		Quit $$$ERROR($$$AccessDenied)
+	}
 	If (%request.Get("$NAMESPACE") '= "") {
-		Set $Namespace = %request.Get("$NAMESPACE")
+		Set $NAMESPACE = %request.Get("$NAMESPACE")
 	}
 	Quit $$$OK
 }
@@ -56,9 +60,11 @@ Method Server() As %Status
 		
 		// In subclasses: Do Something that produces output to the current device.
 		// It will be sent back to the client, Base64-encoded, over the web socket connection.
-         Do ..Run()
+		Do ..Run()
 	} Catch e {
 		Do e.Log()
+		Write !,"An error occurred. More details can be found in the Application error log."
+		Write !,$SYSTEM.Status.GetErrorText(e.AsStatus())
 		Set tSC = e.AsStatus()
 	}
 	
@@ -77,7 +83,7 @@ Method StartOutputCapture() [ ProcedureBlock = 0 ]
 	#dim tSC As %Status = $$$OK
 	#dim tRedirected As %Boolean = 0
 	Try {
-		Set %server = $this
+		Set %server = $THIS
 		Set ..OriginallyRedirected = 0
 		Set ..OriginalMnemonic = ""
 		Set ..OriginalDevice = $IO
@@ -107,27 +113,27 @@ Method StartOutputCapture() [ ProcedureBlock = 0 ]
  #; Public entry points for I/O redirection
 wstr(s)	Do write(s)
 		Quit
-wchr(a) Do write($char(a))
+wchr(a) Do write($CHAR(a))
 		Quit
 wnl	Do write($$$EOL)
 		Set $X = 0
 		Quit
 wff	Do wnl Quit
 wtab(n) New tTab
-		Set tTab = $J("",$S(n>$X:n-$X,1:0))
+		Set tTab = $JUSTIFY("",$SELECT(n>$X:n-$X,1:0))
 		Do write(tTab)
 		Quit
 write(str)
 		// If there was an argumentless NEW, cache the output and leave it at that.
 		// This will be output next time there's a write with %server in scope.
-		If '$IsObject($Get(%server)) {
-			Set ^||OutputCapture.Cache($i(^||OutputCapture.Cache)) = str
+		If '$ISOBJECT($GET(%server)) {
+			Set ^||OutputCapture.Cache($INCREMENT(^||OutputCapture.Cache)) = str
 			Quit
 		}
 		
 		// Restore previous I/O redirection settings.
 		New tOriginalDevice,i
-		Set tOriginalDevice = $io
+		Set tOriginalDevice = $IO
 		If ##class(%Library.Device).ReDirectIO(0) {
 			Use tOriginalDevice
 		}
@@ -138,8 +144,8 @@ write(str)
 			Do ##class(%Library.Device).ReDirectIO(1)
 		}
 		
-		If $Data(^||OutputCapture.Cache) {
-			For i=1:1:$Get(^||OutputCapture.Cache) {
+		If $DATA(^||OutputCapture.Cache) {
+			For i=1:1:$GET(^||OutputCapture.Cache) {
 				Do reallywrite(^||OutputCapture.Cache(i))
 			}
 			Kill ^||OutputCapture.Cache
@@ -155,7 +161,7 @@ write(str)
 reallywrite(pString)
 		New tMsg
 		Set tMsg = {"content":(pString)} // This is handy because it handles escaping of newlines, etc.
-		Do %server.Write($System.Encryption.Base64Encode(tMsg.%ToJSON()))
+		Do %server.Write($SYSTEM.Encryption.Base64Encode(tMsg.%ToJSON()))
 		Quit
 rstr(len, time) Quit ""
 rchr(time) Quit ""
@@ -179,7 +185,7 @@ Method EndOutputCapture()
 
 Method SendJSON(pObject As %DynamicAbstractObject)
 {
-	Set tOriginalDevice = $io
+	Set tOriginalDevice = $IO
 	If ##class(%Library.Device).ReDirectIO(0) {
 		Use tOriginalDevice
 	}
@@ -189,7 +195,7 @@ Method SendJSON(pObject As %DynamicAbstractObject)
 	If ..OriginallyRedirected {
 		Do ##class(%Library.Device).ReDirectIO(1)
 	}
-	Do ..Write($System.Encryption.Base64Encode(pObject.%ToJSON()))
+	Do ..Write($SYSTEM.Encryption.Base64Encode(pObject.%ToJSON()))
 	Do ##class(%Library.Device).ReDirectIO(1)
 	Use tOriginalDevice::("^"_$ZNAME)
 }

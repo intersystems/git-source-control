@@ -5,10 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.0] - Unreleased
+## [2.5.1] - Unreleased
 
 ### Added
 - Discards safeguarded by discard stash and warning modal (#455)
+
+### Fixed
+- Added warnings when user is using incompatible git version (#488)
+
+## [2.5.0] - 2024-09-24
+
+### Added
+- New UI for the basic mode Sync (#415)
+- Allow changing namespaces and IPM package context from web UI (#280)
+- Support for editing repo from filesystem perspective via web application (#464)
+- Support for downloading a VSCode workspace file from web UI
+- IncrementalLoad pull event handler will update the running production, if any (#473)
+
+### Fixed
+- Instance wide settings are placed in proper global (#444)
+- Avoid delay/errors in loading interop JS when there is a URL prefix (e.g., instance name in multi-instance webserver configuration)
+- Added proper JS escaping in sync output
+- Added support to switch branch in basic mode from menu (#451)
+- Pull event handler will not fail when change set includes unmapped files (#453)
+- Pull event handler will attempt compile even if there are failures to load (#457)
+- Improved logging in preview and when errors occur via WebSocket commands (#467)
+- Fixed pull event handler handling of extremely long class names from diff (#467)
+- Fixed Git web UI prompt to update file list when file selected/unselected (#478)
+- Fixed folder settings in mappings to be saved and persist (#483)
+- Preview on the pull.csp page now shows commits from the correct branch (#490)
 
 ## [2.4.1] - 2024-08-02
 
@@ -158,4 +183,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.1] - 2022-06-02
 - Last released version before CHANGELOG existed.
-

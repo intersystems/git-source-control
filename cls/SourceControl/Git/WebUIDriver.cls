@@ -20,6 +20,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..GetSettingsURL(%request)
         } elseif $extract(pagePath, 6, *) = "get-package-version"{
             set responseJSON = ..GetPackageVersion()
+        } elseif $extract(pagePath, 6, *) = "git-version" {
+            set responseJSON = ..GetGitVersion()
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -27,7 +29,66 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         if $isobject($get(responseJSON)) {
             do responseJSON.%ToJSON(%data)
         }
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded") {
+    } elseif pathStart = "vscode-workspace" {
+        set handled = 1
+        set namespace = $Namespace
+        set instanceName = $ZConvert(##class(%SYS.System).InstanceGUID(),"L")
+        set hasCSP = 0
+        if context.IsInGitEnabledPackage && 'context.IsInDefaultPackage {
+            set workspaceFilename = context.Package.Name_"-"_instanceName_".code-workspace"
+            // Loading an IPM package in dev mode automatically creates a project for it, so filter to that.
+            set filter = "?project="_context.Package.Name
+        } else {
+            set hasCSP = ##class(SourceControl.Git.Settings).HasNamespaceWebApp()
+            set workspaceFilename = namespace_"-"_instanceName_".code-workspace"
+            set filter = "?mapped=0"
+        }
+        set server = {
+            "webServer": {
+                "host": (%request.CgiEnvs("SERVER_NAME")),
+                "port": (+%request.CgiEnvs("SERVER_PORT")),
+                "scheme": ($Select(%request.Secure:"https",1:"http"))
+            },
+            "username": ($Username)
+        }
+        if (%request.URLPrefix '= "") {
+            set server.webServer.pathPrefix = %request.URLPrefix
+        }
+        set workspaceDef = {
+            "folders": [
+            ],
+            "settings": {
+                "intersystems.servers": {
+                    "/default": (instanceName)
+                },
+                "objectscript.conn": {
+                    "active": false
+                }
+            }
+        }
+        if hasCSP {
+            do workspaceDef.folders.%Push({
+                "name": ($Namespace),
+                "uri": ("isfs://"_instanceName_":"_$Namespace_"/git/"_$Namespace_"?csp")
+            })
+        } else {
+            do workspaceDef.folders.%Push({
+                "name": ($Namespace),
+                "uri": ("isfs://"_instanceName_":"_$Namespace_"/"_filter)
+            })
+        }
+        set $Property(workspaceDef.settings."intersystems.servers",instanceName) = server
+        set stream = ##class(%CSP.CharacterStream).%New()
+        do stream.SetAttribute("ContentDisposition","attachment; filename="_workspaceFilename)
+        set formatter = ##class(%JSON.Formatter).%New()
+        do formatter.FormatToStream(workspaceDef,stream)
+        $$$ThrowOnError(stream.%Save())
+        do %request.Set("STREAMOID",##class(%CSP.Page).Encrypt(stream.%Oid()))
+        set %request.Data("EXPIRES",1,"encrypt") = 1
+        do %request.Set("EXPIRES",0)
+        do ##class(%CSP.StreamServer).OnPreHTTP() // Need to call this to set headers properly
+        set %stream = 1 // Leak this to webuidriver.csp
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -76,9 +137,9 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             } elseif (pathStart = "dirname") {
                 do %data.Write(##class(SourceControl.Git.Utils).TempFolder())
                 set handled = 1
-            } elseif (pathStart = "discarded-states") {
-                set discardsInBranch = ##class(SourceControl.Git.DiscardState).DiscardStatesInBranch()
-                do %data.Write(discardsInBranch.%ToJSON())
+            } elseif (pathStart = "contexts") {
+                set contexts = ##class(SourceControl.Git.Utils).GetContexts()
+                do contexts.%ToJSON(%data)
                 set handled = 1
             }
         } elseif (%request.Method = "POST") {
@@ -302,6 +363,13 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 ClassMethod GetPackageVersion() As %Library.DynamicObject
 {
     set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
+    quit {"version": (version)}
+}
+
+ClassMethod GetGitVersion() As %Library.DynamicObject
+{
+    set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
+    set version = +$PIECE(version,"version ",2)
     quit {"version": (version)}
 }
 

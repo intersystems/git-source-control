@@ -689,6 +689,13 @@ function toggleNoFolders(e){
 
 $('[id^=noFoldersSwitch]').click(toggleNoFolders);
 
+// Check to persist state of no folder switches  
+$('.mapping-input-group').children('.voca').each(function(){
+    var currElement = $(this).children().children(".custom-control").children()[0]
+    if(!$(currElement).hasClass("active")) {
+        $(currElement).parent().siblings("#NoFolders")[0].value = "NoFolders";
+    }
+});
 </script>
 </body>
 </html>

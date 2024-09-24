@@ -152,7 +152,12 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")
         set promptQuoted = $replace(promptQuoted,"${username}","'""_$Username_""'")
-        do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
+        set propertyDef = ##class(%Dictionary.PropertyDefinition).%OpenId("SourceControl.Git.Settings||"_property_"")
+        if (propertyDef) && ((propertyDef.Type = "%Boolean") || (propertyDef.Name = "basicMode")) {
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetYesNo("_promptQuoted_",.value,,"_defaultPromptFlag_")")
+        } else {
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
+        }
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
         do %code.WriteLine(" set inst."_property_" = value")
         

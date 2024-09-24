@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.5.1] - Unreleased
 
 ### Fixed
-- Added warnings when user is using incompatible git version
+- Added warnings when user is using incompatible git version (#488)
 
 ## [2.5.0] - 2024-09-24
 

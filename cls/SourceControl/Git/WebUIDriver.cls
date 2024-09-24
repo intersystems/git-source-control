@@ -175,7 +175,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     while iter.%GetNext(,.value) {
                         if isFile {
                             set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(value)
-                            do ##class(SourceControl.Git.DiscardState).SaveDiscardState(internalName)
+                            do ##class(SourceControl.Git.DiscardState).SaveDiscardState(internalName, value)
                         }
                         if value = "--"{
                             set isFile = 1
@@ -306,4 +306,3 @@ ClassMethod GetPackageVersion() As %Library.DynamicObject
 }
 
 }
-

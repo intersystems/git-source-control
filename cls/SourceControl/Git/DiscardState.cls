@@ -3,7 +3,7 @@ Class SourceControl.Git.DiscardState Extends (%Persistent, %JSON.Adaptor)
 
 Property FullExternalName As %String(MAXLEN = "") [ Required ];
 
-Property InternalName As %String [ Required ];
+Property Name As %String [ Required ];
 
 Property Contents As %Stream.GlobalCharacter(LOCATION = "^DiscardStateContents");
 
@@ -13,25 +13,41 @@ Property Branch As %String [ Required ];
 
 Property Timestamp As %TimeStamp [ Required ];
 
+Property ExternalFile As %Boolean [ Required ];
+
 Method RestoreToFileTree()
 {
         set fileStream = ##class(%Stream.FileCharacter).%OpenId(..FullExternalName,,.sc)
         $$$ThrowOnError(sc)
         do fileStream.CopyFrom(..Contents)
         $$$ThrowOnError(fileStream.%Save())
-        do ##class(SourceControl.Git.Utils).ImportItem(..InternalName, 1, 1)
-        do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..InternalName)
+        if '..ExternalFile {
+            do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1)
+            do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
+        }
+
         $$$ThrowOnError(..%DeleteId(..%Id()))
 }
 
-ClassMethod SaveDiscardState(InternalName As %String) As %Status
+ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Status
 {
         set discardState = ..%New()
-        set discardState.FullExternalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
-        set discardState.InternalName = InternalName
+
+        // If not an IRIS file
+        if (InternalName = "") {
+            set externalName = ##class(%File).Construct($Get(^SYS("SourceControl","Git","settings","namespaceTemp")),name)
+            set discardState.FullExternalName = externalName
+            set discardState.Name = name
+            set discardState.ExternalFile = 1
+        } else {
+            set discardState.FullExternalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+            set discardState.Name = InternalName
+            set discardState.ExternalFile = 0
+        }
 
         set fileStream = ##class(%Stream.FileCharacter).%New()
         set fileStream.Filename = discardState.FullExternalName
+            
         do fileStream.%Open()
         do discardState.Contents.CopyFrom(fileStream)
         do fileStream.%Close()
@@ -85,6 +101,12 @@ Storage Default
 <Value name="7">
 <Value>Timestamp</Value>
 </Value>
+<Value name="8">
+<Value>Name</Value>
+</Value>
+<Value name="9">
+<Value>ExternalFile</Value>
+</Value>
 </Data>
 <DataLocation>^SourceControl22B9.DiscardStateD</DataLocation>
 <DefaultData>DiscardStateDefaultData</DefaultData>
@@ -95,4 +117,3 @@ Storage Default
 }
 
 }
-

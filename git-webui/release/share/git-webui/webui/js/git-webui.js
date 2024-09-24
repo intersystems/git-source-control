@@ -1870,7 +1870,7 @@ webui.DiscardedView = function(mainView) {
             var discardedListEntry = $(
                 '<a class="log-entry list-group-item">' + 
                     '<header>' + 
-                        '<h6 class="file-internalname">' + discardedState.InternalName + '</h6>' + 
+                        '<h6 class="file-internalname">' + discardedState.Name + '</h6>' + 
                         '<span class="discard-date">' + self.formatTimestamp(discardedState.Timestamp) + '</span>' +
                     '</header>' +
                     '<span> Branch: ' + discardedState.Branch + ' </span> <br>' +

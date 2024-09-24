@@ -20,6 +20,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..GetSettingsURL(%request)
         } elseif $extract(pagePath, 6, *) = "get-package-version"{
             set responseJSON = ..GetPackageVersion()
+        } elseif $extract(pagePath, 6, *) = "git-version" {
+            set responseJSON = ..GetGitVersion()
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -328,6 +330,13 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
 ClassMethod GetPackageVersion() As %Library.DynamicObject
 {
     set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
+    quit {"version": (version)}
+}
+
+ClassMethod GetGitVersion() As %Library.DynamicObject
+{
+    set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
+    set version = +$PIECE(version,"version ",2)
     quit {"version": (version)}
 }
 

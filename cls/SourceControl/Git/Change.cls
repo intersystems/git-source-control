@@ -198,16 +198,18 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
     new $namespace
     while $LISTNEXT(namespaces, tPtr, tValue) {
         set namespace = $ZCONVERT(tValue, "U")
-        set $NAMESPACE = namespace
-        set statement = ##class(%SQL.Statement).%New()
-        $$$ThrowOnError(statement.%Prepare(qHandle("q"), 0))
-        set resultSet = statement.%Execute()
-        throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
-        while resultSet.%Next(.sc) {
-            $$$ThrowOnError(sc)
-            set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
-            set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
-            set qHandle("changes", qHandle("changes"), "Namespace") = namespace
+        if '(namespace [ "^") {
+            set $NAMESPACE = namespace
+            set statement = ##class(%SQL.Statement).%New()
+            $$$ThrowOnError(statement.%Prepare(qHandle("q"), 0))
+            set resultSet = statement.%Execute()
+            throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
+            while resultSet.%Next(.sc) {
+                $$$ThrowOnError(sc)
+                set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
+                set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
+                set qHandle("changes", qHandle("changes"), "Namespace") = namespace
+            }
         }
     }
     

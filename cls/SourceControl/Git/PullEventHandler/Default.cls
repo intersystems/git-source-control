@@ -16,4 +16,3 @@ Method OnPull() As %Status
 }
 
 }
-

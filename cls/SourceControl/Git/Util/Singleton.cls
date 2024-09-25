@@ -167,4 +167,3 @@ Method %RemoveOref() As %Status [ CodeMode = objectgenerator, Final, Internal, P
 }
 
 }
-

@@ -15,4 +15,3 @@ ClassMethod BuildUIForDevMode(devMode As %Boolean, rootDirectory As %String)
 }
 
 }
-

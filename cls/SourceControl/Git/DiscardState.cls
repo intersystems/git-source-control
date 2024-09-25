@@ -17,16 +17,17 @@ Property ExternalFile As %Boolean [ Required ];
 
 Method RestoreToFileTree()
 {
-        set fileStream = ##class(%Stream.FileCharacter).%OpenId(..FullExternalName,,.sc)
-        $$$ThrowOnError(sc)
-        do fileStream.CopyFrom(..Contents)
-        $$$ThrowOnError(fileStream.%Save())
-        if '..ExternalFile {
-            do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1)
-            do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
-        }
+    set fileStream = ##class(%Stream.FileCharacter).%New()
+    set fileStream.Filename = ..FullExternalName
+    $$$THROWONERROR(fileStream.CopyFrom(..Contents))
+    $$$THROWONERROR(fileStream.%Save())
 
-        $$$ThrowOnError(..%DeleteId(..%Id()))
+    if '..ExternalFile {
+        do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1)
+        do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
+    }
+
+    $$$ThrowOnError(..%DeleteId(..%Id()))
 }
 
 ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Status
@@ -63,8 +64,16 @@ ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Statu
 ClassMethod DiscardStatesInBranch() As %DynamicArray
 {
     set currentBranch = ##class(SourceControl.Git.Utils).GetCurrentBranch()
-    set statement = "SELECT ID FROM SourceControl_Git.DiscardState WHERE branch = ?"
-    set resultSet = ##class(%SQL.Statement).%ExecDirect(, statement, currentBranch)
+
+    set query = "SELECT ID FROM SourceControl_Git.DiscardState WHERE branch = ?"
+    set statement = ##class(%SQL.Statement).%New()
+    set status = statement.%Prepare(query, 0)
+    $$$ThrowOnError(status)
+    set resultSet = statement.%Execute(currentBranch)
+    if (resultSet.%SQLCODE < 0) {
+        throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
+    }
+
     set discardStates = []
     while resultSet.%Next() {
         set discardState = ..%OpenId(resultSet.ID)

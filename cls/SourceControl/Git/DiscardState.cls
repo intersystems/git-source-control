@@ -19,8 +19,8 @@ Method RestoreToFileTree()
 {
     set fileStream = ##class(%Stream.FileCharacter).%New()
     set fileStream.Filename = ..FullExternalName
-    $$$THROWONERROR(fileStream.CopyFrom(..Contents))
-    $$$THROWONERROR(fileStream.%Save())
+    $$$ThrowOnError(fileStream.CopyFrom(..Contents))
+    $$$ThrowOnError(fileStream.%Save())
 
     if '..ExternalFile {
         do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1)

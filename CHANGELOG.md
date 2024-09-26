@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.1] - Unreleased
+## [2.6.0] - Unreleased
+
+### Added 
+- Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
 
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)
@@ -15,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - New UI for the basic mode Sync (#415)
-- Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
 - Allow changing namespaces and IPM package context from web UI (#280)
 - Support for editing repo from filesystem perspective via web application (#464)
 - Support for downloading a VSCode workspace file from web UI

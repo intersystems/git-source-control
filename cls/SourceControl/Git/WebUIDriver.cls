@@ -234,6 +234,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
 
                 set gitCmd = command.%Get(0)
 
+                set discardedFiles = []
                 if gitCmd = "restore" {
                     set iter = command.%GetIterator()
                     set isFile = 0
@@ -241,9 +242,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                         if isFile {
                             set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(value)
                             do ##class(SourceControl.Git.DiscardState).SaveDiscardState(internalName, value)
-                            if (internalName) {
-                                set externalName = ##class(Source.Git.Utils).FullExternalName(internalName)
+                            if (internalName'="") {
+                                set externalName = ##class(SourceControl.Git.Utils).FullExternalName(internalName)
                                 $$$ThrowOnError(##class(SourceControl.Git.Change).RemoveUncommitted(externalName,0,1))
+                                do discardedFiles.%Push(externalName)
                             }
 
                         }
@@ -284,6 +286,14 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 set handled = 1
+
+                // Make sure discarded items are not in the uncommitted queue
+                set item = discardedFiles.%Pop()
+                while (item '= "") {
+                    do ##class(SourceControl.Git.Change).RemoveUncommitted(externalName,0,1)
+                    set item = discardedFiles.%Pop()
+                }
+                
             } elseif (pathStart = "restore-discarded") {
                 merge data = %request.Data 
                 set fileId = data("file",1)

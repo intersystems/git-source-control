@@ -246,7 +246,6 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                             set isFile = 1
                         }
                     }
-                    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
 
                 set argsArr = ""
@@ -278,6 +277,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
+                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 set handled = 1
             } elseif (pathStart = "restore-discarded") {
                 merge data = %request.Data 

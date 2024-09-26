@@ -991,9 +991,10 @@ body {
 #discardedView header .discard-date {
   margin-left: auto;
 }
-#discardedView .external-name {
-  font-size: 1rem;
-  padding: 20px 15px 0 0;
+#discardedView .restore-discarded {
+  padding-top: 15px;
+  margin-left: 15px;
+  margin-right: 15px;
 }
 #discardedView .contents-menu {
   display: flex;
@@ -1001,10 +1002,9 @@ body {
   min-height: 0;
   min-width: 0;
 }
-#discardedView .contents-menu .restore-discarded {
-  padding-top: 15px;
-  margin-left: auto;
-  margin-right: 15px;
+#discardedView .contents-menu .external-name {
+  font-size: 1rem;
+  padding: 20px 15px 0 0;
 }
 #discardedView .has-items {
   padding-bottom: 20px;

@@ -1961,8 +1961,9 @@ webui.DiscardedView = function(mainView) {
         discardedList.innerHTML = '';
         $('.file-contents').html('');
         $('.contents-menu').removeClass("has-items");
-        $('.external-name').text('');
         $('.restore-discarded').html('');
+        $('.external-name').text('');
+        
 
         // TODO: Empty the discarded list properly
         $.get("discarded-states", function(discarded) {
@@ -2032,13 +2033,13 @@ webui.DiscardedView = function(mainView) {
 
     self.element = $(
         '<div class="row" id="discardedView">' +
-            '<div class="col-sm-7">' +
+            '<div class="col-sm-5">' +
                 '<div id="discardedList"></div>' +
             '</div>' +
             '<div class="col-sm-5">' +
                 '<div class="contents-menu">' +
-                    '<div class="nav-item external-name"></div>' +
                     '<div class="nav-item restore-discarded"></div>' +
+                    '<div class="nav-item external-name"></div>' +
                 '</div>' +
                 '<div class="container file-contents">' +
 

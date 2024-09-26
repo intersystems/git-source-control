@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Discards safeguarded by discard stash and warning modal (#455)
 
 ### Fixed
+- Changed prompts in configure from 0/1 to no/yes (#461)
 - Added warnings when user is using incompatible git version (#488)
 
 ## [2.5.0] - 2024-09-24

@@ -152,7 +152,24 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")
         set promptQuoted = $replace(promptQuoted,"${username}","'""_$Username_""'")
-        do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
+        set propertyDef = ##class(%Dictionary.PropertyDefinition).%OpenId("SourceControl.Git.Settings||"_property_"")
+        if ((propertyDef) && (propertyDef.Type = "%Boolean")) {
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetYesNo("_promptQuoted_",.value,,"_defaultPromptFlag_")")
+        } elseif ((propertyDef) && (propertyDef.Name = "basicMode")) {
+            set basicModePromptFlag = defaultPromptFlag + $$$MatchExactArrayMask + $$$InitialDisplayMask
+            do %code.WriteLine(" set list(1) = ""Yes""")
+            do %code.WriteLine(" set list(2) = ""No""")
+            do %code.WriteLine(" set list(3) = ""System's Default Mode""")
+            do %code.WriteLine(" if inst.userBasicMode = ""system"" { set value = ""System's Default Mode""}")
+            do %code.WriteLine(" elseif inst.userBasicMode = 1 { set value = ""Yes""}")
+            do %code.WriteLine(" elseif inst.userBasicMode = 0 { set value = ""No""}")
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetArray("_promptQuoted_",.value,.list,,,,"_basicModePromptFlag_")")
+            do %code.WriteLine(" if value = ""System's Default Mode"" { set value = ""system""}")
+            do %code.WriteLine(" elseif value = ""Yes"" { set value = 1}")
+            do %code.WriteLine(" elseif value = ""No"" { set value = 0}")
+        } else {
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
+        }
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
         do %code.WriteLine(" set inst."_property_" = value")
         

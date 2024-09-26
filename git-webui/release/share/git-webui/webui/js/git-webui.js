@@ -110,6 +110,15 @@ webui.showWarning = function(message) {
         '</div>').appendTo(messageBox);
 }
 
+webui.gitVersion = function() {
+    $.get("api/git-version", function(version) {
+        var ver = JSON.parse(version)["version"];
+        if (ver < 2.31) {
+            alert("Your git version is incompatible with git-source-control. Please upgrade to git 2.31.0 or greater.")
+        }
+    })
+}
+
 webui.git_command = function(command, callback) {
     $.ajax({
         url: "git-command",
@@ -312,6 +321,7 @@ webui.getNodeIndex = function(element) {
 }
 
 webui.TabBox = function(buttons) {
+
 
     var self = this;
 
@@ -2641,7 +2651,7 @@ webui.NewChangedFilesView = function(workspaceView) {
             }
 
             if ($(element).hasClass("other-user") && (selectedItemsFromOtherUser.indexOf(fileName) > -1)) {
-                selectedItemsFromOtherUser.splice(selectedItems.indexOf(fileName), 1);
+                selectedItemsFromOtherUser.splice(selectedItemsFromOtherUser.indexOf(fileName), 1);
             }
         }
         self.updateButtons();
@@ -2808,6 +2818,7 @@ webui.NewChangedFilesView = function(workspaceView) {
 function MainUi() {
 
     var self = this;
+    webui.gitVersion();
 
     self.switchTo = function(element) {
         webui.detachChildren(self.mainView);

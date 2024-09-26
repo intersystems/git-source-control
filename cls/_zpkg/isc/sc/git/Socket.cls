@@ -16,7 +16,7 @@ ClassMethod Run()
 		Write !,"Current branch: ",branchName
 		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
 		Kill errStream, outStream
-		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "log", "HEAD..origin", "--name-status")
+		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "log", "HEAD..origin/"_branchName, "--name-status")
 		Do ##class(SourceControl.Git.Utils).PrintStreams(errStream, outStream)
 		If (outStream.Size = 0) && (errStream.Size = 0) {
 			Write !,"Already up to date."

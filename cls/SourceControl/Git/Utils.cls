@@ -1149,7 +1149,7 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
     if (name [ "/") && (type = "csp") {
         set cspFilename = $System.CSP.GetFileName(name)
         if (cspFilename '= "") && (cspFilename [ ..TempFolder()) {
-            set name = ..NameToInternalName(cspFilename)
+            set name = ..NameToInternalName(cspFilename,,,,0)
             set fromWebApp = 1
         } else {
             kill cspFilename
@@ -2195,7 +2195,7 @@ ClassMethod FileIsMapped(InternalName As %String) As %Boolean
 	NameToInternalName(name): given a Unix-style slash path relative to repo root, 
 	returns the internal name for that file (e.g., cls/SourceControl/Git/Utils.cls -> SourceControl.Git.Utils.CLS)
 */
-ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, Verbose As %Boolean = 0) As %String
+ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, Verbose As %Boolean = 0, normalize As %Boolean = 1) As %String
 {
     set InternalName=""
     set Deleted = 0
@@ -2211,7 +2211,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)
         if (InternalName '= "") && (context.IsInGitEnabledPackage) {
             // Don't need mappings!
-            return ..NormalizeInternalName(InternalName)
+            return $select(normalize:..NormalizeInternalName(InternalName),1:InternalName)
         }
     } else {
         // check for file in uncommitted queue
@@ -2354,7 +2354,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
     }
     if ((IgnorePercent)&&($extract(InternalName)="%")) { set InternalName = "" }	// don't return a result for % items if instructed to ignore them
     if ((IgnoreNonexistent)&&('##class(%RoutineMgr).Exists(InternalName))&&('Deleted)) { set InternalName = "" }	// only return item names which exist in the DB
-    quit ..NormalizeInternalName(InternalName)
+    return $select(normalize:..NormalizeInternalName(InternalName),1:InternalName)
 }
 
 ClassMethod OutputConfigureMessage()

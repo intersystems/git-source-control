@@ -290,7 +290,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 // Make sure discarded items are not in the uncommitted queue
                 set item = discardedFiles.%Pop()
                 while (item '= "") {
-                    do ##class(SourceControl.Git.Change).RemoveUncommitted(externalName,0,1)
+                    do ##class(SourceControl.Git.Change).RemoveUncommitted(item,0,1)
                     set item = discardedFiles.%Pop()
                 }
                 

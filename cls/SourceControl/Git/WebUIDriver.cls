@@ -246,6 +246,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                             set isFile = 1
                         }
                     }
+                    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
 
                 set argsArr = ""

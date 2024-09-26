@@ -17,25 +17,34 @@ Property ExternalFile As %Boolean [ Required ];
 
 Method RestoreToFileTree()
 {
+    // Make sure directory for file exists
+    set dir = ##class(%File).GetDirectory(..FullExternalName)
+    if ('##class(%File).DirectoryExists(dir)) {
+        do ##class(%File).CreateDirectoryChain(dir)
+    }
+    
+    // Recreate File
     set fileStream = ##class(%Stream.FileCharacter).%New()
     set fileStream.Filename = ..FullExternalName
     $$$ThrowOnError(fileStream.CopyFrom(..Contents))
     $$$ThrowOnError(fileStream.%Save())
 
+    // Add file to source-control / IRIS
     if '..ExternalFile {
         do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1)
         do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
     }
 
+    // Delete discard record
     $$$ThrowOnError(..%DeleteId(..%Id()))
 }
 
 ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Status
 {
         set discardState = ..%New()
-
-        // If not an IRIS file
+        
         if (InternalName = "") {
+            // If not in IRIS
             set externalName = ##class(%File).Construct($Get(^SYS("SourceControl","Git","settings","namespaceTemp")),name)
             set discardState.FullExternalName = externalName
             set discardState.Name = name
@@ -45,13 +54,14 @@ ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Statu
             set discardState.Name = InternalName
             set discardState.ExternalFile = 0
         }
-
+        // Copy over file contents
         set fileStream = ##class(%Stream.FileCharacter).%New()
         set fileStream.Filename = discardState.FullExternalName
-            
         do fileStream.%Open()
         do discardState.Contents.CopyFrom(fileStream)
         do fileStream.%Close()
+
+        // Save extra information
         set discardState.Username = $USERNAME
         set discardState.Branch = ##class(SourceControl.Git.Utils).GetCurrentBranch()
         set discardState.Timestamp = $zdatetime($horolog, 3)

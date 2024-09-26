@@ -2033,7 +2033,7 @@ webui.DiscardedView = function(mainView) {
 
     self.element = $(
         '<div class="row" id="discardedView">' +
-            '<div class="col-sm-7">' +
+            '<div class="col-sm-5">' +
                 '<div id="discardedList"></div>' +
             '</div>' +
             '<div class="col-sm-5">' +

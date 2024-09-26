@@ -241,12 +241,18 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                         if isFile {
                             set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(value)
                             do ##class(SourceControl.Git.DiscardState).SaveDiscardState(internalName, value)
+                            if (internalName) {
+                                set externalName = ##class(Source.Git.Utils).FullExternalName(internalName)
+                                $$$ThrowOnError(##class(SourceControl.Git.Change).RemoveUncommitted(externalName,0,1))
+                            }
+
                         }
                         if value = "--"{
                             set isFile = 1
                         }
                     }
                 }
+                $$$ThrowOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1,,1))
 
                 set argsArr = ""
                 set argsArr($increment(argsArr)) = "color.ui=true"
@@ -277,7 +283,6 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
-                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 set handled = 1
             } elseif (pathStart = "restore-discarded") {
                 merge data = %request.Data 

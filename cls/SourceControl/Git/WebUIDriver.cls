@@ -286,6 +286,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set %data = ##class(%Stream.TmpCharacter).%New()
 
                 set discardState = ##class(SourceControl.Git.DiscardState).%OpenId(fileId)
+                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 if ##class(SourceControl.Git.Change).IsUncommitted(discardState.FullExternalName) {
                     do %data.WriteLine("Please commit changes to file before restoring discarded state")
                 } else {

@@ -653,7 +653,6 @@ $(function()
 
     $(document).on('click', "#goToWebUI", function(e){
         e.preventDefault();
-        console.log($("#webuiURL")[0].innerText);
         window.location.href = $("#webuiURL")[0].innerText;
     })
 

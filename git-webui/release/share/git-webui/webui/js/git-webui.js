@@ -993,6 +993,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +
                                 '</section>' +
+                                '<section id="sidebar-tags">' +
+                                    '<h4>Tags</h4>' +
+                                '</section>' +
                                 '<section id="sidebar-settings">' +
                                     '<h4>Settings</h4>' +
                                 '</section>' +

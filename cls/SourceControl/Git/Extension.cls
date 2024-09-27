@@ -44,11 +44,28 @@ XData Menu
 
 Method UserAction(Type As %Integer, Name As %String, InternalName As %String, SelectedText As %String, ByRef Action As %String, ByRef Target As %String, ByRef Msg As %String, ByRef Reload As %Boolean) As %Status
 {
+    set settings = ##class(SourceControl.Git.Settings).%New()
     // If namespace change event
     if Type = 1, Name = 5 {
         // reroute to Status menu option
         set Name = "%SourceMenu,Status"
     } 
+
+    if (Type = 1) && (Name = 3) {
+        if settings.warnInstanceWideUncommitted {
+            // if item is being edited in a different namespace, opening it will display an alert. Editing in this namespace will remove the alert.
+            set filename = ##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
+            do ##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction)
+            if '$data(tAction) {
+                set user = "", inNamespace = ""
+                if ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
+                    set Target = "Warning: Item " _ InternalName _ " is currently being modified by " _ user _ " in namespace " _ inNamespace _ "."
+                    write !, Target
+                    set Action = 6
+                }
+            }
+        }
+    }
 
     if (Type = 1) && ((Name = 1) || (Name = 7)) {
         do ..AddToSourceControl(InternalName)

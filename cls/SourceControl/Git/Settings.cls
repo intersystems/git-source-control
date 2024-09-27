@@ -50,6 +50,9 @@ Property compileOnImport As %Boolean [ InitialExpression = {##class(SourceContro
 /// Define a namespace-level web application allowing access to multiple git repos across separate namespaces
 Property namespaceLevelGitWebApp As %Boolean [ InitialExpression = {##class(SourceControl.Git.Settings).HasNamespaceWebApp()} ];
 
+/// Warn when an item has uncommitted changes in a different namespace in this instance
+Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).WarnInstanceWideUncommitted()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -105,6 +108,7 @@ Method %Save() As %Status
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
     set @storage@("settings", "defaultMergeBranch") = ..defaultMergeBranch
     set @storage@("settings", "compileOnImport") = ..compileOnImport
+    set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
     set @storage@("settings", "basicMode") = ..systemBasicMode
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
@@ -320,4 +324,3 @@ Method OnAfterConfigure() As %Boolean
 }
 
 }
-

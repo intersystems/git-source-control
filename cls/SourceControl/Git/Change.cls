@@ -185,6 +185,51 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     quit sc
 }
 
+Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%String,Namespace:%String")
+{
+}
+
+ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
+{
+    set qHandle("q") = "SELECT InternalName, ChangedBy FROM SourceControl_Git.Change"
+    set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
+    set tPtr = 0
+    set qHandle("i") = 1
+    new $namespace
+    while $LISTNEXT(namespaces, tPtr, tValue) {
+        set namespace = $ZCONVERT(tValue, "U")
+        if '(namespace [ "^") {
+            set $NAMESPACE = namespace
+            set statement = ##class(%SQL.Statement).%New()
+            $$$ThrowOnError(statement.%Prepare(qHandle("q"), 0))
+            set resultSet = statement.%Execute()
+            throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
+            while resultSet.%Next(.sc) {
+                $$$ThrowOnError(sc)
+                set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
+                set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
+                set qHandle("changes", qHandle("changes"), "Namespace") = namespace
+            }
+        }
+    }
+    
+    Quit $$$OK
+}
+
+ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = InstanceUncommittedExecute ]
+{
+    set i = qHandle("i")
+    if $data(qHandle("changes",i))=10 {
+        set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"), qHandle("changes", i, "Namespace"))
+    }
+    if i >= $get(qHandle("changes"),0) {
+        set AtEnd = 1
+    } else {
+        set qHandle("i") = $increment(qHandle("i"))
+    }
+    Quit $$$OK
+}
+
 Storage Default
 {
 <Data name="ChangeDefaultData">
@@ -237,3 +282,4 @@ Storage Default
 }
 
 }
+

@@ -19,3 +19,17 @@ The following is a testing plan that should be followed prior to release of a ne
   - Add, edit, and delete items on the remote. Add, edit, and delete unrelated items through Studio/VSCode. All changes should be pulled, committed, and pushed.
   - Add an item to an interoperability production and sync. Check out a new feature branch. The item should no longer exist in the production. Set the previous branch as the remote merge branch. Sync. The new item should exist in the production.
   - Add an item to a production and sync. Check out a new feature branch. The item should no longer exist in the production. Set the previous branch as the remote merge branch. Add a new item to the production. Sync. The production should now have both new items, and the source control output should show it automatically resolved a conflict.
+
+  ## Testing production decomposition
+  - Enable production decomposition in the git-source-control settings,  and add a mapping for PTD items to the /ptd subdirectory.
+  - In Basic mode, check out a new branch. Create a new production, add some items, and sync. Confirm a file for production settings and a file for each production item has been added to the /ptd subdirectory and pushed to the remote repository.
+  - In Advanced mode, create a new user. Log in and modify some items on the production. As the previous user, try to modify items in the production. I should not be able to modify those items modified by the other users.
+  - Revert some production items through the workspace view in the Web UI. The production should automatically update.
+  - In Basic mode, test deployment: 
+    - Create a new namespace and enable basic mode and production decomposition. Set the default merge branch to the branch checked out on the other namespace. Sync and confirm that the new production has been created with all expected items. 
+    - On the original namespace, delete and modify some items from the production, then sync. On the second namespace, sync again. The items should be deleted and modified to match.
+  - Test migration of a production to decomposed format:
+    - On the initial namespace, disable production decomposition. Create a new production and add a number of items. Sync and confirm it has been pushed to the remote repository.
+    - On the second namespace, sync and confirm the new production has been created.
+    - On the initial namespace, turn on production decomposition. From terminal, run `do ##class(SourceControl.Git.API).BaselineProductions()`. Confirm the Web UI includes changes for delete of the old production class and adds for all production items. Commit all items and push the branch.
+    - On the second namespace, turn on production decomposition. Sync. The production should be reloaded with no changes.

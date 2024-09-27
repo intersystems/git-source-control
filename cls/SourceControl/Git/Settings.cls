@@ -144,6 +144,9 @@ Method %Save() As %Status
     set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
     
     set @storage@("settings","decomposeProductions") = ..decomposeProductions
+    if (..decomposeProductions & ($data(..Mappings("PTD"))<10)) {
+        set ..Mappings("PTD","*") = "ptd/" // configure a default mapping for PTD items
+    }
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings

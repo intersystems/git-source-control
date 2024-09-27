@@ -21,7 +21,7 @@ The following is a testing plan that should be followed prior to release of a ne
   - Add an item to a production and sync. Check out a new feature branch. The item should no longer exist in the production. Set the previous branch as the remote merge branch. Add a new item to the production. Sync. The production should now have both new items, and the source control output should show it automatically resolved a conflict.
 
   ## Testing production decomposition
-  - Enable production decomposition in the git-source-control settings,  and add a mapping for PTD items to the /ptd subdirectory.
+  - Enable production decomposition in the git-source-control settings.
   - In Basic mode, check out a new branch. Create a new production, add some items, and sync. Confirm a file for production settings and a file for each production item has been added to the /ptd subdirectory and pushed to the remote repository.
   - In Advanced mode, create a new user. Log in and modify some items on the production. As the previous user, try to modify items in the production. I should not be able to modify those items modified by the other users.
   - Revert some production items through the workspace view in the Web UI. The production should automatically update.

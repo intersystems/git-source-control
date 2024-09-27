@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Discards safeguarded by discard stash and warning modal (#455)
+- Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
 
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)

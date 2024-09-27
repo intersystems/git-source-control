@@ -76,7 +76,7 @@ body {
  set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
  set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
- set homeURL = "/csp/sys/UtilHome.csp"
+ set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
  set settings = ##class(SourceControl.Git.Settings).%New()
  if $Data(%request.Data("gitsettings",1)) {

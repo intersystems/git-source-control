@@ -23,7 +23,9 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         } elseif $extract(pagePath, 6, *) = "git-version" {
             set responseJSON = ..GetGitVersion()
         } elseif $extract(pagePath,6,*) = "home"{
-            set responseJSON = ..GetHomeURL()
+            set responseJSON = {
+                "url": (..GetHomeURL())
+            }
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -342,10 +344,13 @@ ClassMethod GetGitVersion() As %Library.DynamicObject
     quit {"version": (version)}
 }
 
-ClassMethod GetHomeURL() As %SystemBase
+ClassMethod GetHomeURL() As %String
 {
-    set homeURL = "/csp/sys/UtilHome.csp"
-    quit {"url": (homeURL)}
+    set prefix = ""
+    if $IsObject($Get(%request)) {
+        set prefix = $Piece(%request.Application,%request.AppMatch)
+    }
+    quit prefix_"/csp/sys/UtilHome.csp"
 }
 
 }

@@ -69,6 +69,12 @@ $.get("api/settings", function(settingsURL){
     webui.settingsURL = url.url;
 });
 
+webui.homeURL = "";
+$.get("api/home", function(homeURL){
+    var url = JSON.parse(homeURL);
+    webui.homeURL = url.url;
+});
+
 webui.showSuccess = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
@@ -108,6 +114,15 @@ webui.showWarning = function(message) {
             '</button>' +
             message +
         '</div>').appendTo(messageBox);
+}
+
+webui.gitVersion = function() {
+    $.get("api/git-version", function(version) {
+        var ver = JSON.parse(version)["version"];
+        if (ver < 2.31) {
+            alert("Your git version is incompatible with git-source-control. Please upgrade to git 2.31.0 or greater.")
+        }
+    })
 }
 
 webui.git_command = function(command, callback) {
@@ -312,6 +327,7 @@ webui.getNodeIndex = function(element) {
 }
 
 webui.TabBox = function(buttons) {
+
 
     var self = this;
 
@@ -903,7 +919,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     }
 
     self.goToSettingsPage = function() {
-        window.location.replace(webui.settingsURL);
+        window.location.href = webui.settingsURL;
+    }
+
+    self.goToHomePage = function() {
+        window.location.href = webui.homeURL;
     }
 
     self.fetchSection = function(section, title, id, gitCommand) {
@@ -976,14 +996,17 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-vscode">' +
-                                    '<h4><a href="vscode-workspace" target="_blank">Code Workspace</a></h4>' +
+                                '<section id="sidebar-settings">' +
+                                    '<h4>Settings</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '">' + 
                                     '<h4>Change Context</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-settings">' +
-                                    '<h4>Settings</h4>' +
+                                '<section id="sidebar-vscode">' +
+                                    '<h4><a href="vscode-workspace" target="_blank">Code Workspace</a></h4>' +
+                                '</section>' +
+                                '<section id="sidebar-home">' +
+                                    '<h4>Home</h4>' +
                                 '</section>' +
                             '</div>' +
                         '</div>')[0];
@@ -1009,8 +1032,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
         $("#sidebar-context", self.element).click(self.changeContextGet);
+        $("#sidebar-home", self.element).click(self.goToHomePage);
     }
 
+    // Removing the link to home if not a top-level page
+    if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
+        $("#sidebar-home", self.element).remove();
+    }
     
     self.getPackageVersion();
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
@@ -2808,6 +2836,7 @@ webui.NewChangedFilesView = function(workspaceView) {
 function MainUi() {
 
     var self = this;
+    webui.gitVersion();
 
     self.switchTo = function(element) {
         webui.detachChildren(self.mainView);

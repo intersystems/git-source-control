@@ -40,6 +40,9 @@ body {
 #webuiURL {
     display: none;
 }
+#homeURL {
+    display: none;
+}
 
 .custom-switch {
     padding: 0.4rem 0.5rem 0 2.75rem;
@@ -73,6 +76,7 @@ body {
  set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
  set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
+ set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
  set settings = ##class(SourceControl.Git.Settings).%New()
  if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
@@ -143,12 +147,17 @@ body {
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">
-            <div class="offset-sm-1 col-sm-8">
+            <div class="offset-sm-1 col-sm-7" id="settingsTitle">
                 <h1>Git Project Settings</h1>
                 <h3> Package version: #(version)# </h3>
             </div>
 
-            <div class="col-sm-2">
+            <div class="col-sm-4" id="settingsNavBtn">
+                <button class="btn btn-lg btn-outline-dark" id="goToHome">Home
+                </button>
+                <div id="homeURL">
+                    #(homeURL)#
+                </div>
                 <button class="btn btn-lg btn-outline-dark" id="goToWebUI">Go to WebUI
                 </button>
                 <div id="webuiURL">
@@ -566,6 +575,17 @@ body {
 <script src="js/popper.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script type="text/javascript">
+
+// Removing the home button if not a top-level page
+if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
+    $("#goToHome", self.element).remove();
+    $("#homeURL", self.element).remove();
+    $('#settingsTitle').removeClass('col-sm-7');
+    $('#settingsNavBtn').removeClass('col-sm-4');
+    $('#settingsTitle').addClass('col-sm-8');
+    $('#settingsNavBtn').addClass('col-sm-2');
+}
+
 function getSocket(urlPostfix) {
     var socketURL = window.location.href.replace('http','ws').replace('gitprojectsettings.csp','_zpkg.isc.sc.git.Socket.cls') + "&" + urlPostfix;
 	return new WebSocket(socketURL);
@@ -657,8 +677,12 @@ $(function()
 
     $(document).on('click', "#goToWebUI", function(e){
         e.preventDefault();
-        console.log($("#webuiURL")[0].innerText);
-        window.location.replace($("#webuiURL")[0].innerText);
+        window.location.href = $("#webuiURL")[0].innerText;
+    })
+
+    $(document).on('click', "#goToHome", function(e){
+        e.preventDefault();
+        window.location.href = $("#homeURL")[0].innerText;
     })
 });
 

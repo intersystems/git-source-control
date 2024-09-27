@@ -139,7 +139,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set handled = 1
             } elseif (pathStart = "discarded-states") {
                 set discardsInBranch = ##class(SourceControl.Git.DiscardState).DiscardStatesInBranch()
-                do %data.Write(discardsInBranch.%ToJSON())
+                do discardsInBranch.%ToJSON(%data)
                 set handled = 1
             } elseif (pathStart = "contexts") {
                 set contexts = ##class(SourceControl.Git.Utils).GetContexts()

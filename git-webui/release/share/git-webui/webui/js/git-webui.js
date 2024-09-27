@@ -1964,8 +1964,6 @@ webui.DiscardedView = function(mainView) {
         $('.restore-discarded').html('');
         $('.external-name').text('');
         
-
-        // TODO: Empty the discarded list properly
         $.get("discarded-states", function(discarded) {
             self.discarded = JSON.parse(discarded);
             if (self.discarded.length == 0) {
@@ -1977,8 +1975,6 @@ webui.DiscardedView = function(mainView) {
 
         
     }
-
-        
 
     self.populateUiWithDiscardedStates = function() {
         self.discarded.forEach((discardedState, ind) => {

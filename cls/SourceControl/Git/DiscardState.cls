@@ -5,7 +5,7 @@ Property FullExternalName As %String(MAXLEN = "") [ Required ];
 
 Property Name As %String [ Required ];
 
-Property Contents As %Stream.GlobalCharacter(LOCATION = "^DiscardStateContents");
+Property Contents As %Stream.GlobalCharacter(LOCATION = "^SourceControl.Git.DiscardS");
 
 Property Username As %String [ Required ];
 
@@ -14,6 +14,8 @@ Property Branch As %String [ Required ];
 Property Timestamp As %TimeStamp [ Required ];
 
 Property ExternalFile As %Boolean [ Required ];
+
+Index BranchMap On Branch [ Type = bitmap ];
 
 Method RestoreToFileTree()
 {
@@ -45,7 +47,7 @@ ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Statu
         
         if (InternalName = "") {
             // If not in IRIS
-            set externalName = ##class(%File).Construct($Get(^SYS("SourceControl","Git","settings","namespaceTemp")),name)
+            set externalName = ##class(%File).Construct(##class(SourceControl.Git.Utils).DefaultTempFolder(),name)
             set discardState.FullExternalName = externalName
             set discardState.Name = name
             set discardState.ExternalFile = 1

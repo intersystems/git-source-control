@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.5.1] - Unreleased
 
+### Added
+- Added link back to IRIS management portal from Settings, Git WebUI pages (#449)
+
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)
 - Added warnings when user is using incompatible git version (#488)
+- Fixed the back button navigation between WebUI and Settings page (#361)
 
 ## [2.5.0] - 2024-09-24
 

@@ -337,8 +337,9 @@ ClassMethod Init() As %Status
 {
     do ..RunGitCommand("init",.errStream,.outStream)
     do ..PrintStreams(outStream, errStream)
-    
-    quit $$$OK
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    $$$QuitOnError(settings.SaveWithSourceControl())
+    quit ..Commit(##class(SourceControl.Git.Settings.Document).#INTERNALNAME,"initial commit")
 }
 
 ClassMethod Revert(InternalName As %String) As %Status
@@ -2097,12 +2098,6 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
     }
 }
 
-ClassMethod EmptyInitialCommit()
-{
-    set ret = ..RunGitCommandWithInput("commit",, .errStream, .outStream, "--allow-empty", "-m", "empty initial commit")
-    do ..PrintStreams(errStream, outStream)
-}
-
 /*
     Internal name: e.g. SourceControl.Git.Utils.CLS
     External name e.g. cls/SourceControl/Git/Utils.cls
@@ -2772,4 +2767,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

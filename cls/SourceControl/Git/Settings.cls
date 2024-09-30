@@ -79,20 +79,25 @@ Method SaveWithSourceControl() As %Status
     if '$isobject($get(%SourceControl)) {
         do ##class(%Studio.SourceControl.Interface).SourceControlCreate($username)
     }
-    // Source control settings naively by only calling OnAfterSave hooks
-    // Future enhancement: add full source control support with settings UI
+    set gitDir = ##class(%File).NormalizeDirectory(..namespaceTemp)_".git"
+    set skipSourceControl = ('##class(%File).DirectoryExists(gitDir) && 
+        (##class(%Studio.SourceControl.Interface).SourceControlClassGet() = ##class(SourceControl.Git.Extension).%ClassName(1)))
+    $$$QuitOnError(..%Save())
     set internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME
     set settingsDoc = ##class(SourceControl.Git.Settings.Document).%New(internalName)
-    if (##class(%Studio.SourceControl.Interface).SourceControlClassGet() = ##class(SourceControl.Git.Extension).%ClassName(1)) {
-        if '##class(SourceControl.Git.Utils).IsInSourceControl(internalName) {
-            set sc = ##class(SourceControl.Git.Utils).AddToSourceControl(internalName)
-            $$$QuitOnError(sc)
-        }
-    }
-    $$$QuitOnError(..%Save())
     $$$QuitOnError(settingsDoc.Load()) // reload doc to update timestamps
-    if ($IsObject(%SourceControl)) {
-        $$$QuitOnError(%SourceControl.OnAfterSave(internalName))
+    if 'skipSourceControl {
+        // Source control settings naively by only calling OnAfterSave hooks
+        // Future enhancement: add full source control support with settings UI
+        if (##class(%Studio.SourceControl.Interface).SourceControlClassGet() = ##class(SourceControl.Git.Extension).%ClassName(1)) {
+            if '##class(SourceControl.Git.Utils).IsInSourceControl(internalName) {
+                set sc = ##class(SourceControl.Git.Utils).AddToSourceControl(internalName)
+                $$$QuitOnError(sc)
+            }
+        }
+        if ($IsObject(%SourceControl)) {
+            $$$QuitOnError(%SourceControl.OnAfterSave(internalName))
+        }
     }
     quit sc
 }
@@ -376,8 +381,6 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.WaitForComplete())
-            
-            do ##class(SourceControl.Git.Utils).EmptyInitialCommit()
         } elseif (value = 2) {
             set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
             if (response '= $$$SuccessResponse) {
@@ -390,6 +393,8 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.WaitForComplete())
+            // export settings file without committing
+            $$$ThrowOnError(..SaveWithSourceControl())
         }
     }
 }

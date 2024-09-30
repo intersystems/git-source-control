@@ -433,32 +433,29 @@ ClassMethod StageAddedFiles()
 /// Returns true if this resulted in durable changes to the local git repo
 ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
 {
-    set rebased = 0
+    set merged = 0
     set settings = ##class(SourceControl.Git.Settings).%New()
     set defaultMergeBranch = settings.defaultMergeBranch
     if defaultMergeBranch '= "" {
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
-        do ..RunGitWithArgs(,.outStream, "rev-parse", defaultMergeBranch)
-        set startSha = outStream.ReadLine()
-
         // Start a transaction so code changes can be rolled back
         set initTLevel = $TLevel
         try {
             TSTART
-            set code = ..RunGitWithArgs(.errStream, .outStream, "rebase", defaultMergeBranch)
+            set code = ..RunGitWithArgs(.errStream, .outStream, "merge", defaultMergeBranch)
             if (code '= 0) {
-                $$$ThrowStatus($$$ERROR($$$GeneralError,"git rebase reported failure"))
+                $$$ThrowStatus($$$ERROR($$$GeneralError,"git merge reported failure"))
             }
-            set rebased = 1
+            set merged = 1
             TCOMMIT
         } catch e {
-            // "rebase" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the rebase.
+            // "merge" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the merge.
             write !,"Attempting to resolve differences in production definition..."
             set resolver = ##class(SourceControl.Git.Util.ProductionConflictResolver).FromLog(outStream)
             if resolver.resolved {
-                set rebased = 1
+                set merged = 1
                 TCOMMIT
                 write " success!"
             } else {
@@ -468,18 +465,14 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         while $TLevel > initTLevel {
             TROLLBACK 1
         }
-        if rebased {
-            do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "diff", startSha, "HEAD", "--name-status")
-            do ##class(SourceControl.Git.Utils).ParseDiffStream(outStream,,.finalFileSet)
-            do ##class(SourceControl.Git.Utils).SyncIrisWithRepoThroughDiff(.finalFileSet)
-        } else {
-            do ..RunGitCommand("rebase",.errStream, .outStream,"--abort")
+        if 'merged {
+            do ..RunGitCommand("merge",.errStream, .outStream,"--abort")
             do ..PrintStreams(errStream, outStream)
             set alert = "WARNING: Remote branch '"_defaultMergeBranch_"' could not be merged due to conflicts. Changes have been pushed to '"_..GetCurrentBranch()_"' and must be resolved in your git remote. See log for more details."
             write !,alert,!
         }
     }
-    quit rebased
+    quit merged
 }
 
 /// Converts the DynamicArray into a list and calls the SourceControl.Git.Change RemoveUncommitted method on the newly created list
@@ -2693,4 +2686,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

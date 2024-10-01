@@ -1334,9 +1334,6 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             if ..Type(InternalName) = "prj" {
                 set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
             }
-            if ..Type(InternalName) = "hl7" {
-                set sc = $system.OBJ.Load(..NormalizeExtension(filename),$Select(compile:"ck-l",1:"-l-d"))
-            }
             write !, InternalName," has been imported from ", filename
         } else {
             write !, "ERROR importing" ,InternalName, !

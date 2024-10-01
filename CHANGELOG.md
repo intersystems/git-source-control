@@ -9,9 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added 
 - Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
-
-### Added
 - Added link back to IRIS management portal from Settings, Git WebUI pages (#449)
+- Added Import all and Import All (Force) to basic mode menu (#498)
 
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)

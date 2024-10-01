@@ -631,7 +631,45 @@ ClassMethod NormalizeFolder(folder As %String) As %String
 
 ClassMethod ExternalName(InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
-    quit $Replace(..Name(.InternalName,.MappingExists),"/",..#Slash)
+    set root = ..TempFolder()
+    set file = $Replace(..Name(.InternalName,.MappingExists),"/",..#Slash)
+    set fullFile = root_file
+    if '..Exists(.fullFile) {
+        quit ""
+    }
+    quit $Piece(fullFile,root,2,*)
+}
+
+/// Check if file exists but case insensitive
+/// Stolen from %IPM.Utils.File
+ClassMethod Exists(ByRef pFilename) As %Boolean
+{
+	If ##class(%File).Exists(pFilename) {
+		Return 1
+	}
+	Set tDirectory = ##class(%File).ParentDirectoryName(pFilename)
+	If '##class(%File).DirectoryExists(tDirectory) {
+		Return 0
+	}
+	Set tName = $Piece(pFilename, tDirectory, 2, *)
+	Set tFileName = $Piece(tName, ".", 1, * - 1)
+	Set tFileExt = $Piece(tName, ".", *)
+	for tExt = $$$LOWER(tFileExt), $$$UPPER(tFileExt) {
+		If ##class(%File).Exists(tDirectory _ tFileName _ "." _ tExt) {
+			Set pFilename = tDirectory _ tFileName _ "." _ tExt
+			Return 1
+		}
+	}
+	set tNameLower = $$$LOWER(tName)
+	Set rs = ##class(%File).FileSetFunc(tDirectory, "*", , 0)
+	While rs.%Next() {
+		set tItemNameLower = $$$LOWER(rs.ItemName)
+		If tItemNameLower = tNameLower {
+			Set pFilename = tDirectory _ rs.ItemName
+			Return 1
+		}
+	}
+	Return 0
 }
 
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
@@ -2696,4 +2734,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

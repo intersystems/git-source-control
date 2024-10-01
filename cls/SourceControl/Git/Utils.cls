@@ -440,7 +440,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
-        do ..RunGitWithArgs(,.outStream, "rev-parse", defaultMergeBranch)
+        do ..RunGitWithArgs(,.outStream, "rev-parse", "HEAD")
         set startSha = outStream.ReadLine()
 
         // Start a transaction so code changes can be rolled back
@@ -2693,4 +2693,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

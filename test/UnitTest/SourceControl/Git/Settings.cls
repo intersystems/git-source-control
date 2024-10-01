@@ -13,11 +13,18 @@ Method SampleSettingsJSON()
         "decomposeProductions": true,
         "Mappings": {
             "TUV": { 
-                "*": "tuv/",
-                "UnitTest": "tuv2/"
+                "*": {
+                    "directory": "tuv/"
+                },
+                "UnitTest": {
+                    "directory": "tuv2/",
+                    "noFolders": true
+                }
             },
             "XYZ": {
-                "*": "xyz/"
+                "*": {
+                    "directory": "xyz/"
+                }
             }
         }
     }
@@ -36,6 +43,7 @@ Method TestJSONImportExport()
     do $$$AssertEquals(settings.pullEventClass, "pull event class")
     do $$$AssertEquals($get(settings.Mappings("TUV","*")),"tuv/")
     do $$$AssertEquals($get(settings.Mappings("TUV","UnitTest")),"tuv2/")
+    do $$$AssertTrue($get(settings.Mappings("TUV","UnitTest","NoFolders")))
     do $$$AssertEquals($get(settings.Mappings("XYZ","*")),"xyz/")
 
     $$$ThrowOnError(settings.%Save())
@@ -44,9 +52,10 @@ Method TestJSONImportExport()
     do $$$AssertEquals(settingsDynObj.decomposeProductions, 1)
     do $$$AssertEquals(settingsDynObj.percentClassReplace, "x")
     do $$$AssertEquals(settingsDynObj.pullEventClass, "pull event class")
-    do $$$AssertEquals(settingsDynObj.Mappings."TUV"."*","tuv/")
-    do $$$AssertEquals(settingsDynObj.Mappings."TUV"."UnitTest","tuv2/")
-    do $$$AssertEquals(settingsDynObj.Mappings."XYZ"."*","xyz/")
+    do $$$AssertEquals(settingsDynObj.Mappings."TUV"."*".directory,"tuv/")
+    do $$$AssertEquals(settingsDynObj.Mappings."TUV"."UnitTest".directory,"tuv2/")
+    do $$$AssertTrue(settingsDynObj.Mappings."TUV"."UnitTest".noFolders)
+    do $$$AssertEquals(settingsDynObj.Mappings."XYZ"."*".directory,"xyz/")
 }
 
 Method TestSaveAndImportSettings()

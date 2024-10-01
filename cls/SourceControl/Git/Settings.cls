@@ -177,7 +177,10 @@ Method ToDynamicObject() As %DynamicObject
         do settingsJSON.Mappings.%Set(k1, {})
         set k2 = $order(..Mappings(k1,""))
         while (k2 '= "") {
-            do settingsJSON.Mappings.%Get(k1).%Set(k2,..Mappings(k1,k2))
+            do settingsJSON.Mappings.%Get(k1).%Set(k2,{"directory": (..Mappings(k1,k2))})
+            if $get(..Mappings(k1,k2,"NoFolders")) {
+                do settingsJSON.Mappings.%Get(k1).%Get(k2).%Set("noFolders", 1, "boolean")
+            }
             set k2 = $order(..Mappings(k1, k2))
         }
         set k1 = $order(..Mappings(k1))
@@ -196,7 +199,10 @@ Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
     while i1.%GetNext(.k1, .v1) {
         set i2 = v1.%GetIterator()
         while i2.%GetNext(.k2, .v2) {
-            set ..Mappings(k1, k2) = v2
+            set ..Mappings(k1, k2) = v2.%Get("directory")
+            if v2.%Get("noFolders") {
+                set ..Mappings(k1, k2, "NoFolders") = 1
+            }
         }
     }
 }

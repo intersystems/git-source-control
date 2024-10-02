@@ -216,7 +216,7 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
     merge ^IRIS.Temp("sscProd",$job,"modifiedItems") = modifiedItems
     // FUTURE: use a percent variable or PPG instead
     kill ^IRIS.Temp("sscProd",$job,"items")
-    set rs = ##class(%SQL.Statement).%ExecDirect(
+    set rs = ##class(%SQL.Statement).%ExecDirectNoPriv(
         ,"select Name, ClassName from Ens_Config.Item where Production = ?"
         , productionName)
     $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
@@ -231,7 +231,7 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
     set productionName = $piece(internalName,".",1,*-1)
     if ..IsEnsPortal() {
         // If adding/deleting from SMP, get the modified items by comparing items in temp global with items now
-        set rs = ##class(%SQL.Statement).%ExecDirect(
+        set rs = ##class(%SQL.Statement).%ExecDirectNoPriv(
             ,"select Name, ClassName from Ens_Config.Item where Production = ?"
             , productionName)
         $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)

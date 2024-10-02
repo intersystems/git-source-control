@@ -287,6 +287,10 @@ body {
             content: url(../img/inboxes.svg);
         }
 
+        #sidebarDiscarded h4:before {
+            content: url(../img/discarded.svg);
+        }
+
         #sidebar-remote h4:before {
             content: url(../img/daemon.svg);
         }
@@ -988,4 +992,64 @@ body {
             }
         }
     }
+}
+
+#discardedView {
+    width: 100%;
+
+    #discardedList {
+        height: 100%;
+        border-right: 1px @separator-line solid;
+
+        h4{
+            text-align: center;
+            padding-top: 100px;
+        }
+    }
+
+
+    .active {
+        background-color: rgba(13, 110, 253, 0.9) !important;
+        color: #fff;
+    }
+
+    header {
+        .display-flex();
+        .file-internalname {
+            display: inline-block;
+        }
+
+        .discard-date {
+            margin-left: auto;
+        }
+    }
+
+
+    .restore-discarded {
+        padding-top: 15px;
+        margin-left: 15px;
+        margin-right: 15px;
+    }
+    
+
+    .contents-menu {
+        .display-flex();
+
+        .external-name {
+            font-size: 1rem;
+            padding: 20px 15px 0 0;
+        }
+
+    }
+
+    .has-items {
+        padding-bottom: 20px;
+        border-bottom: 1px solid lightgrey;
+    }
+
+    .file-contents {
+        padding-top: 20px;
+    }
+
+    
 }

@@ -281,4 +281,3 @@ Method UsePreviousDeviceAndSettings() [ Internal, Private ]
 }
 
 }
-

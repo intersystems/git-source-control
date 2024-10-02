@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed prompts in configure from 0/1 to no/yes (#461)
 - Added warnings when user is using incompatible git version (#488)
 - Fixed the back button navigation between WebUI and Settings page (#361)
+- Fixed issues with HL7 file extension inconsistencies (#495)
 - Basic mode Sync operation now imports items changed on the remote merge branch (#506)
 - Fetch diff output uses correct remote branch (#509)
 - Properly handle more cases of truncated filenames from git pull (#511)

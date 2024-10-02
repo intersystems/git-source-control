@@ -262,7 +262,6 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Commit") {
-        do ..CheckUserIdentity()
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
@@ -401,7 +400,10 @@ ClassMethod SyncCommit(Msg As %String) As %Status
         set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
         set username = ..GitUserName()
         set email = ..GitUserEmail()
-        set author = username_" <"_email_">"
+        set author = ""
+        if ((username '= "") && (email '= "")) {
+            set author = username_" <"_email_">"
+        }
         do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Msg)
         do ..PrintStreams(errStream, outStream)
         $$$QuitOnError(..ClearUncommitted(uncommittedFilesWithAction))
@@ -1798,7 +1800,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set errStreamLine = errStream.ReadLine()
         if (((errStreamLine = "Committer identity unknown") || (errStreamLine = "Author identity unknown"))) {
             do errStream.Clear()
-            do errStream.WriteLine("Commit failed as user identity unknown."_$c(13,10)_$c(13,10)_"Go to settings to configure Git committer name and email."_$c(13,10))
+            do errStream.WriteLine("Commit failed as user identity unknown."_$c(13,10)_$c(13,10)_"Go to settings."_$c(13,10))
         }
     }
 
@@ -2709,16 +2711,6 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         set sc = err.AsStatus()
     }
     return sc
-}
-
-ClassMethod CheckUserIdentity()
-{
-    if ..GitUserName() = "" {
-        write !, "WARNING: Git committer name is not configured. Go to settings to configure the committer name."
-    }
-    if ..GitUserEmail() = "" {
-        write !, "WARNING: Git committer email is not configured. Go to settings to configure the committer email."
-    }
 }
 
 }

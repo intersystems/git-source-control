@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Discards safeguarded by discard stash and warning modal (#455)
 - Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
+- Added link back to IRIS management portal from Settings, Git WebUI pages (#449)
+- Added Import all and Import All (Force) to basic mode menu (#498)
 
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)
 - Added warnings when user is using incompatible git version (#488)
+- Fixed the back button navigation between WebUI and Settings page (#361)
+- Basic mode Sync operation now imports items changed on the remote merge branch (#506)
+- Fetch diff output uses correct remote branch (#509)
 
 ## [2.5.0] - 2024-09-24
 

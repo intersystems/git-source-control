@@ -145,6 +145,8 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             set Enabled = $CASE(name,
                 "Status": 1,
                 "GitWebUI" : 1,
+                "Import": 1,
+                "ImportForce": 1,
                 "NewBranch": 1,
                 "SwitchBranch": 1,
                 "Sync": 1,

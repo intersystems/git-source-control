@@ -441,7 +441,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
-        do ..RunGitWithArgs(,.outStream, "rev-parse", defaultMergeBranch)
+        do ..RunGitWithArgs(,.outStream, "rev-parse", "HEAD")
         set startSha = outStream.ReadLine()
 
         // Start a transaction so code changes can be rolled back
@@ -535,7 +535,7 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
     do ..RunGitCommand("fetch", .errStream, .outStream)
     write !, "Fetch done"
     kill errStream, outStream
-    do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
+    do ..RunGitCommand("diff", .errStream, .outStream, "..origin/"_..GetCurrentBranch(), "--name-only")
     set diffFiles = ""
     while (outStream.AtEnd = 0) {
         set diffFiles = diffFiles_$listbuild(outStream.ReadLine())
@@ -2694,4 +2694,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

@@ -33,7 +33,7 @@ Method RestoreToFileTree()
 
     // Add file to source-control / IRIS
     if '..ExternalFile {
-        do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1)
+        do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1, 1)
         do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
     }
 

@@ -2019,6 +2019,7 @@ webui.DiscardedView = function(mainView) {
                 var discardElement = $('.restore-discarded')[0];
                 discardElement.innerHTML = '';
                 discardElement.appendChild(btn);
+                var contents = discardedState.Contents.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 
                 $('.restore-discarded-btn').off("click").on("click", function() {
                     $.post("restore-discarded", {file: discardedState.Id}, function(message) {
@@ -2032,7 +2033,7 @@ webui.DiscardedView = function(mainView) {
                     });
                 });
 
-                $('.file-contents').html('<pre>' + discardedState.Contents + '</pre>');
+                $('.file-contents').html('<pre>' + contents + '</pre>');
             });
 
             

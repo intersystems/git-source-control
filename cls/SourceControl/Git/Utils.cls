@@ -534,7 +534,7 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
     do ..RunGitCommand("fetch", .errStream, .outStream)
     write !, "Fetch done"
     kill errStream, outStream
-    do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
+    do ..RunGitCommand("diff", .errStream, .outStream, "..origin/"_..GetCurrentBranch(), "--name-only")
     set diffFiles = ""
     while (outStream.AtEnd = 0) {
         set diffFiles = diffFiles_$listbuild(outStream.ReadLine())

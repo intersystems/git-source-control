@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the back button navigation between WebUI and Settings page (#361)
 - Fixed issues with HL7 file extension inconsistencies (#495)
 - Basic mode Sync operation now imports items changed on the remote merge branch (#506)
+- Fetch diff output uses correct remote branch (#509)
 
 ## [2.5.0] - 2024-09-24
 

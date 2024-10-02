@@ -683,6 +683,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 
 ClassMethod AddToSourceControl(InternalName As %String) As %Status
 {
+    do ..NormalizeInternalName(.InternalName)
     do ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set settings = ##class(SourceControl.Git.Settings).%New()
     #dim i as %Integer
@@ -2722,4 +2723,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

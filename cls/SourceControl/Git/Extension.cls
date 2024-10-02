@@ -378,6 +378,7 @@ Method IsReadOnly(InternalName As %String) As %Boolean
 /// Check if another user has committed any changes to the item and return the status
 Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
+    do ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(.InternalName)
     set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
     set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)

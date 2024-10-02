@@ -67,9 +67,16 @@ Method DeleteFile(item As %String) As %Status
         do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
         kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
     } else {
-        if +$system.Status.GetErrorCodes(sc) = $$$ClassDoesNotExist {
+        set code = $system.Status.GetErrorCodes(sc)
+        if +code = $$$ClassDoesNotExist {
             // if something we wanted to delete is already deleted -- good!
             set sc = $$$OK
+        } elseif +code = $$$FileCanNotDelete {
+            // Same; couldn't delete the file presumably because it doesn't exist
+            set sc = $$$OK
+        }
+        if (sc = $$$OK) {
+            do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
         }
     }
     return sc

@@ -1900,10 +1900,22 @@ ClassMethod ExpandClasses(externalName As %String) As %List
     set internalName = $Piece(externalName,".",1,*-1)
     set internalName = $Extract(internalName,4,*)
     set internalName = $Translate(internalName,"/\%",".."_..PercentClassReplace())
-    &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
-    if (SQLCODE < 0) {
-        Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-    }
+    do {
+        &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
+        if (SQLCODE < 0) {
+            Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+        }
+        
+        // If nothing was found then remove period-delimited pieces from the start of internalName
+        // until we either find something or run out of pieces.
+        // This will allow for classes to potentially still be identified when the
+        // repository directory structure does not align with class packages.
+        if ($ListLength(classes) = 0) {
+            set internalName = $Piece(internalName,".",2,*)
+        } else {
+            set internalName = ""
+        }
+    } while (internalName '= "")
     quit classes
 }
 

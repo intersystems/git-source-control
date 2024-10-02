@@ -205,6 +205,9 @@ body {
 #sidebar #sidebar-content #sidebar-stash h4:before {
   content: url(../img/inboxes.svg);
 }
+#sidebar #sidebar-content #sidebarDiscarded h4:before {
+  content: url(../img/discarded.svg);
+}
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
 }
@@ -972,4 +975,53 @@ body {
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;
   overflow: auto;
+}
+#discardedView {
+  width: 100%;
+}
+#discardedView #discardedList {
+  height: 100%;
+  border-right: 1px #dddddd solid;
+}
+#discardedView #discardedList h4 {
+  text-align: center;
+  padding-top: 100px;
+}
+#discardedView .active {
+  background-color: rgba(13, 110, 253, 0.9) !important;
+  color: #fff;
+}
+#discardedView header {
+  display: flex;
+  display: -webkit-flex;
+  min-height: 0;
+  min-width: 0;
+}
+#discardedView header .file-internalname {
+  display: inline-block;
+}
+#discardedView header .discard-date {
+  margin-left: auto;
+}
+#discardedView .restore-discarded {
+  padding-top: 15px;
+  margin-left: 15px;
+  margin-right: 15px;
+}
+#discardedView .contents-menu {
+  display: flex;
+  display: -webkit-flex;
+  min-height: 0;
+  min-width: 0;
+}
+#discardedView .contents-menu .external-name {
+  font-size: 1rem;
+  padding: 20px 15px 0 0;
+}
+#discardedView .has-items {
+  padding-bottom: 20px;
+  border-bottom: 1px solid lightgrey;
+}
+#discardedView .file-contents {
+  padding-top: 20px;
 }

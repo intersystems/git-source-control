@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the back button navigation between WebUI and Settings page (#361)
 - Basic mode Sync operation now imports items changed on the remote merge branch (#506)
 - Fetch diff output uses correct remote branch (#509)
+- Properly handle more cases of truncated filenames from git pull (#511)
 
 ## [2.5.0] - 2024-09-24
 

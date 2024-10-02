@@ -262,6 +262,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Action = 7
         quit $$$OK
     } elseif (menuItemName = "Commit") {
+        do ..CheckUserIdentity()
         set Target = "Please enter a commit message"
         set Action = 7
         quit $$$OK
@@ -350,9 +351,12 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     set filename = ..FullExternalName(.InternalName)
     set username = ..GitUserName()
     set email = ..GitUserEmail()
-    set author = username_" <"_email_">"
+    set author = ""
+    if ((username '= "") && (email '= "")) {
+        set author = username_" <"_email_">"
+    }
     do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
-    do ..PrintStreams(outStream, outStream)
+    do ..PrintStreams(errStream, outStream)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
     quit $$$OK
@@ -1659,6 +1663,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set diffCompare = ""
     set invert = 0
     set whichStash = ""
+    set isCommit = 0
 
     // Find / build file list
     set hasFileList = 0
@@ -1705,6 +1710,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set syncIrisWithDiff = 1
             set diffCompare = whichStash
         }
+    } elseif (command = "commit") {
+        set isCommit = 1
     }
     
     // WebUI prefixes with "color.ui=true" so we need to grab the command
@@ -1740,6 +1747,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
                 set syncIrisWithCommand = 1
                 set diffCompare = args(i + 1)
+            } elseif (args(i) = "commit") {
+                set isCommit = 1
             }
         }
     }
@@ -1783,6 +1792,15 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
     set outStream.TranslateTable="UTF8"
+
+    if ((isCommit) && (returnCode = 128)){
+        set errStreamLine = errStream.ReadLine()
+        if (((errStreamLine = "Committer identity unknown") || (errStreamLine = "Author identity unknown"))) {
+            do errStream.Clear()
+            do errStream.WriteLine("Commit failed as user identity unknown."_$c(13,10)_$c(13,10)_"Go to settings to configure Git committer name and email."_$c(13,10))
+        }
+    }
+
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
@@ -2690,6 +2708,16 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         set sc = err.AsStatus()
     }
     return sc
+}
+
+ClassMethod CheckUserIdentity()
+{
+    if ..GitUserName() = "" {
+        write !, "WARNING: Git committer name is not configured. Go to settings to configure the committer name."
+    }
+    if ..GitUserEmail() = "" {
+        write !, "WARNING: Git committer email is not configured. Go to settings to configure the committer email."
+    }
 }
 
 }

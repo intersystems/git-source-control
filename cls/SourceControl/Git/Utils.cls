@@ -345,6 +345,7 @@ ClassMethod Init() As %Status
 ClassMethod Revert(InternalName As %String) As %Status
 {
     set filename = ..FullExternalName(.InternalName)
+    do ##class(SourceControl.Git.DiscardState).SaveDiscardState(InternalName)
     do ..RunGitCommand("checkout", .errStream, .outStream, "--", filename)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename,0,1))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1,,1))
@@ -540,7 +541,7 @@ ClassMethod Fetch(ByRef diffFiles) As %Status
     do ..RunGitCommand("fetch", .errStream, .outStream)
     write !, "Fetch done"
     kill errStream, outStream
-    do ..RunGitCommand("diff", .errStream, .outStream, "..origin", "--name-only")
+    do ..RunGitCommand("diff", .errStream, .outStream, "..origin/"_..GetCurrentBranch(), "--name-only")
     set diffFiles = ""
     while (outStream.AtEnd = 0) {
         set diffFiles = diffFiles_$listbuild(outStream.ReadLine())

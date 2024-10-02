@@ -92,7 +92,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         do %request.Set("EXPIRES",0)
         do ##class(%CSP.StreamServer).OnPreHTTP() // Need to call this to set headers properly
         set %stream = 1 // Leak this to webuidriver.csp
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|contexts") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -140,6 +140,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set handled = 1
             } elseif (pathStart = "dirname") {
                 do %data.Write(##class(SourceControl.Git.Utils).TempFolder())
+                set handled = 1
+            } elseif (pathStart = "discarded-states") {
+                set discardsInBranch = ##class(SourceControl.Git.DiscardState).DiscardStatesInBranch()
+                do discardsInBranch.%ToJSON(%data)
                 set handled = 1
             } elseif (pathStart = "contexts") {
                 set contexts = ##class(SourceControl.Git.Utils).GetContexts()
@@ -232,6 +236,30 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set requestBody = ##class(%Library.DynamicObject).%FromJSON(%request.Content)
                 set command = requestBody.command
 
+                set gitCmd = command.%Get(0)
+
+                set discardedFiles = []
+                if gitCmd = "restore" {
+                    set iter = command.%GetIterator()
+                    set isFile = 0
+                    while iter.%GetNext(,.value) {
+                        if isFile {
+                            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(value)
+                            do ##class(SourceControl.Git.DiscardState).SaveDiscardState(internalName, value)
+                            if (internalName'="") {
+                                set externalName = ##class(SourceControl.Git.Utils).FullExternalName(internalName)
+                                $$$ThrowOnError(##class(SourceControl.Git.Change).RemoveUncommitted(externalName,0,1))
+                                do discardedFiles.%Push(externalName)
+                            }
+
+                        }
+                        if value = "--"{
+                            set isFile = 1
+                        }
+                    }
+                }
+                $$$ThrowOnError(##class(SourceControl.Git.Change).RefreshUncommitted(0,1,,1))
+
                 set argsArr = ""
                 set argsArr($increment(argsArr)) = "color.ui=true"
                 set iterator = command.%GetIterator()
@@ -262,6 +290,32 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 set handled = 1
+
+                // Make sure discarded items are not in the uncommitted queue
+                set item = discardedFiles.%Pop()
+                while (item '= "") {
+                    do ##class(SourceControl.Git.Change).RemoveUncommitted(item,0,1)
+                    set item = discardedFiles.%Pop()
+                }
+                
+            } elseif (pathStart = "restore-discarded") {
+                merge data = %request.Data 
+                set fileId = data("file",1)
+                
+                set %data = ##class(%Stream.TmpCharacter).%New()
+
+                set discardState = ##class(SourceControl.Git.DiscardState).%OpenId(fileId)
+                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+                if ##class(SourceControl.Git.Change).IsUncommitted(discardState.FullExternalName) {
+                    do %data.WriteLine("Please commit changes to file before restoring discarded state")
+                } else {
+                    do discardState.RestoreToFileTree()
+                    do %data.WriteLine("Successfully restored discarded file state")
+                }
+
+                do %data.Rewind()
+                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+                set handled = 1  
             }
         }
     }

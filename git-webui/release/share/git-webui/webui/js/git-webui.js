@@ -981,6 +981,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-stash">' +
                                     '<h4>Stash</h4>' +
                                 '</section>' +
+                                '<section id="sidebarDiscarded">' +
+                                    '<h4>Discarded Files</h4>' +
+                                '</section>' +
                                 '<section id="sidebar-local-branches">' +
                                     '<h4 class="mt-3">Local Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
@@ -1026,6 +1029,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             $("*", self.element).removeClass("active");
             stashElement.addClass("active");
             self.mainView.stashView.update(0);
+        });
+
+        var discardedElement = $("#sidebarDiscarded", self.element);
+        discardedElement.click(function() {
+            $("*", self.element).removeClass("active");
+            discardedElement.addClass("active");
+            self.mainView.discardedView.show();
         });
 
         $(".btn-add", self.element).click(self.createNewLocalBranch);
@@ -1955,6 +1965,109 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     var gitApplyType = "stage";
 };
 
+webui.DiscardedView = function(mainView) {
+    var self = this;
+
+    self.show = function() {
+        self.update();
+        mainView.switchTo(self.element);
+    };
+
+
+    self.update = function() {
+        self.discarded = [];
+        discardedList.innerHTML = '';
+        $('.file-contents').html('');
+        $('.contents-menu').removeClass("has-items");
+        $('.restore-discarded').html('');
+        $('.external-name').text('');
+        
+        $.get("discarded-states", function(discarded) {
+            self.discarded = JSON.parse(discarded);
+            if (self.discarded.length == 0) {
+                discardedList.innerHTML = '<h4>You have no saved discarded states</h4>';
+            }
+            
+            self.populateUiWithDiscardedStates();
+        });
+
+        
+    }
+
+    self.populateUiWithDiscardedStates = function() {
+        self.discarded.forEach((discardedState, ind) => {
+            var discardedListEntry = $(
+                '<a class="log-entry list-group-item">' + 
+                    '<header>' + 
+                        '<h6 class="file-internalname">' + discardedState.Name + '</h6>' + 
+                        '<span class="discard-date">' + self.formatTimestamp(discardedState.Timestamp) + '</span>' +
+                    '</header>' +
+                    '<span> Branch: ' + discardedState.Branch + ' </span> <br>' +
+                    '<span> User: '+ discardedState.Username + '</span>' +
+
+                '</a>'
+            );
+            
+            discardedListEntry.on("click", function() {
+                $('.log-entry.list-group-item').removeClass('active');
+                $(this).addClass('active');
+
+                $('.contents-menu').addClass("has-items");
+                $('.external-name').text(self.discarded[ind].FullExternalName);
+                
+                var btn = $('<button class="btn btn-sm btn-primary restore-discarded-btn">Restore</button>')[0];
+                var discardElement = $('.restore-discarded')[0];
+                discardElement.innerHTML = '';
+                discardElement.appendChild(btn);
+                var contents = discardedState.Contents.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+                $('.restore-discarded-btn').off("click").on("click", function() {
+                    $.post("restore-discarded", {file: discardedState.Id}, function(message) {
+                        if (message.trim() == "Please commit changes to file before restoring discarded state") {
+                            webui.showError(message);
+                        } else {
+                            webui.showSuccess(message);
+                        }
+                        
+                        self.update();
+                    });
+                });
+
+                $('.file-contents').html('<pre>' + contents + '</pre>');
+            });
+
+            
+            discardedListEntry.prependTo(discardedList)[0];
+        });
+    }
+    /// This function takes in an IRIS timestamp format makes it use the "date, time" format
+    self.formatTimestamp = function(timestamp) {
+        var timestampArr = timestamp.split("T");
+        return timestampArr[0] + ', ' + timestampArr[1].slice(0, -1);
+    }
+
+    self.element = $(
+        '<div class="row" id="discardedView">' +
+            '<div class="col-sm-5">' +
+                '<div id="discardedList"></div>' +
+            '</div>' +
+            '<div class="col-sm-5">' +
+                '<div class="contents-menu">' +
+                    '<div class="nav-item restore-discarded"></div>' +
+                    '<div class="nav-item external-name"></div>' +
+                '</div>' +
+                '<div class="container file-contents">' +
+
+                '</div>' +
+            '</div>' +
+        '</div>'
+        
+    )[0];
+    self.discarded = [];
+    var discardedList = $("#discardedList", self.element)[0];
+
+}
+
 /*
  * == TreeView ================================================================
  */
@@ -2498,7 +2611,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     if (selectedItemsFromOtherUser.length > 0) {
                         self.confirmActionOnOtherUsersChanges("discard");
                     } else {
-                        self.discard();
+                        self.confirmDiscard();
                     }
                 });
 
@@ -2515,6 +2628,59 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     }
 
+    self.confirmDiscard = function() {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#confirmDiscard").remove();
+        }
+
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="confirmDiscard" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Confirm Discard</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body">' + 
+                            '<div class="row">' +
+                                '<div class="col-sm-1">' +
+                                    webui.warningIcon +
+                                '</div>' +
+                                '<div class="col-sm-11">' +
+                                    '<p>Careful, discarding changes will delete all changes made to your file since the last commit. This will mean deleting a newly created file.</p>' + // Removed extra closing </p> tag
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+
+        $("body").append(popup);
+
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+
+        $(
+            '<button class="btn btn-sm btn-warning action-btn" id="confirmDiscardBtn">Confirm discard</button>' +
+            '<button class="btn btn-sm btn-secondary action-btn" id="cancelDiscardBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+
+        $(popup).modal('show');
+
+        $("#confirmDiscardBtn").on('click', function() {
+            removePopup(popup);
+            self.discard();
+        });
+
+        $("#confirmDiscard").find(".close, #cancelDiscardBtn").click(function() {
+            removePopup(popup);
+        })
+    }
+
     self.confirmAmend = function() {
         function removePopup(popup) {
             $(popup).children(".modal-fade").modal("hide");
@@ -2527,7 +2693,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 '<div class="modal-dialog modal-md" role="document">' +
                     '<div class="modal-content">' + 
                         '<div class="modal-header">' +
-                            '<h5 class="modal-title">Confirm amend</h5>' +
+                            '<h5 class="modal-title">Confirm Amend</h5>' +
                             '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
                         '</div>' +
                         '<div class="modal-body"></div>' +
@@ -2614,6 +2780,11 @@ webui.NewChangedFilesView = function(workspaceView) {
                 $(  '<div>' +
                         '<p>Careful, amending commits will rewrite the branch history. The amended commit will not be pushed to remote, even if the previous commit was.</p>' +
                     '</div>').appendTo(popupContent);
+            } else if (action == "discard") {
+                $(  
+                '<div>' +
+                    '<p>Careful, discarding changes will delete all changes made to your file since the last commit. This will mean deleting a newly created file.</p>' +
+                '</div>').appendTo(popupContent);
             }
     
             var popupFooter = $(".modal-footer", popup)[0];
@@ -2756,9 +2927,8 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.discard = function() {
-        var selectedFilesAsString = selectedItems.join(" ");
-        webui.git("add -- " + selectedFilesAsString, function() {
-            webui.git("restore --staged --worktree -- " + selectedFilesAsString, function() {
+        webui.git_command(["add", "--"].concat(selectedItems), function() {
+            webui.git_command(["restore", "--staged", "--worktree", "--"].concat(selectedItems), function() {
                 workspaceView.update();
             });
         });
@@ -2866,6 +3036,7 @@ function MainUi() {
                 if (!webui.viewonly) {
                     self.workspaceView = new webui.WorkspaceView(self);
                     self.stashView = new webui.StashView(self);
+                    self.discardedView = new webui.DiscardedView(self);
                 }
                 self.sideBarView.selectRef("HEAD");
             });

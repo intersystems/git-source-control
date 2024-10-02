@@ -45,4 +45,3 @@ ClassMethod ForInternalNames(InternalName As %String) As %Status
 }
 
 }
-

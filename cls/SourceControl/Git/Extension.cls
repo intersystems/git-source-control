@@ -49,7 +49,11 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     if Type = 1, Name = 5 {
         // reroute to Status menu option
         set Name = "%SourceMenu,Status"
-    } 
+        if (settings.gitUserName = "") || (settings.gitUserEmail = "") {
+            set Target = "Warning: Git committer name or email is not configured. Go to settings."
+            set Action = 6
+        }
+    }
 
     if (Type = 1) && (Name = 3) {
         if settings.warnInstanceWideUncommitted {

@@ -1859,13 +1859,18 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
                 // In other cases, we'll just end up logging the invalid externalName.
                 if $Piece(externalName,".",*) = "cls" {
                     set possibleClasses = ..ExpandClasses(externalName)
-                    set pointer = 0
-                    while $ListNext(possibleClasses,pointer,class) {
-                        set modification = ##class(SourceControl.Git.Modification).%New()
-                        set modification.changeType = "C"
-                        set modification.internalName = class_".CLS"
-                        set modification.externalName = ..ExternalName(modification.internalName)
-                        set files($i(files)) = modification
+                    if $ListLength(possibleClasses) '= 0 {
+                        set pointer = 0
+                        while $ListNext(possibleClasses,pointer,class) {
+                            set modification = ##class(SourceControl.Git.Modification).%New()
+                            set modification.changeType = "C"
+                            set modification.internalName = class_".CLS"
+                            set modification.externalName = ..ExternalName(modification.internalName)
+                            set files($i(files)) = modification
+                        }
+                    } else {
+                        write !,"WARNING: unable to translate external name ",externalName
+                        continue
                     }
                 } else {
                     write !,"WARNING: unable to translate external name ",externalName

@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.6.0] - Unreleased
 
-### Added 
+### Added
+- Discards safeguarded by discard stash and warning modal (#455)
 - Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
 - Added link back to IRIS management portal from Settings, Git WebUI pages (#449)
 - Added Import all and Import All (Force) to basic mode menu (#498)

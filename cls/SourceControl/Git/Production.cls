@@ -35,6 +35,37 @@ ClassMethod ExportProductionDefinitionShards(productionClass As %String, nameMet
     Return $$$OK
 }
 
+/// Removes settings for a given Production and each Config Item from
+/// source control. This marks each of them for delete and is triggered
+/// by deleting a decomposed Production.
+ClassMethod DeleteProductionDefinitionShards(productionClass As %String, deleteMethod As %String, nameMethod As %String) As %Status
+{
+	set sc = $$$OK
+	if '$isobject($get(%SourceControl)) {
+		new %SourceControl
+		$$$ThrowOnError(##class(%Studio.SourceControl.Interface).SourceControlCreate())
+	}
+	set settingsPTD = ..CreateInternalName(productionClass,,,1)
+	set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
+	set settingsPTDFile = $classmethod(sourceControlClass, nameMethod, settingsPTD)
+	// if the Production settings PTD exists, delete all PTDs for this Production
+	if ##class(%File).Exists(settingsPTDFile) {
+		set ptdDir = ##class(%File).GetDirectory(settingsPTDFile)
+		set rs = ##class(%ResultSet).%New("%File:FileSet")
+		$$$ThrowOnError(rs.Execute(ptdDir, "*.xml"))
+		$$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+		while rs.Next() {
+			set ptdFilename = rs.Data("Name")
+			set sc = ##class(%Studio.SourceControl.Production).ParseExternalName(ptdFilename, .ptdInternalName)
+			quit:$$$ISERR(sc)
+			// TODO: Consider reverting delete if any ptd is not editable by current user
+			set sc = $method(%SourceControl, deleteMethod, ptdInternalName)
+			quit:$$$ISERR(sc)
+		}
+	}
+	return sc
+}
+
 /// Exports a Studio project including both the provided PTD and export notes for the PTD
 ClassMethod ExportProjectForPTD(productionClass, ptdName, exportPath) As %Status
 {
@@ -101,6 +132,15 @@ ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
     Return sc
 }
 
+/// Imports a PTD into a produciton given an external name and produciton name
+ClassMethod ImportPTD(externalName As %String, productionName As %String) As %Status
+{
+	set rollbackFile = ##class(%File).TempFilename()
+	set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
+	do ##class(%File).Delete(rollbackFile)
+	return sc
+}
+
 /// Export a single Production Config Item. For a given Ens.Config.Item, the 
 /// exports the PTD for this item to the file system under the directory specified
 ClassMethod ExportConfigItemSettings(productionClass As %String, item As %RegisteredObject, nameMethod As %String, Output internalName As %String) As %Status
@@ -164,7 +204,7 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
                 set modifiedInternalName = ..CreateInternalName(productionName,,,1)
             }
         }
-        if (modifiedInternalName '= "") {
+        if ($get(modifiedInternalName) '= "") {
             set modifiedItems(modifiedInternalName) = "M"
         }
     } else {
@@ -234,10 +274,18 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 	if (className '= "") && $$$comClassDefined(className) {
 		return $classmethod(className, "%Extends", "Ens.Production")
 	} else {
+		// check if there exists a Production settings PTD export for ths Production
+		set settingsPTD = ..CreateInternalName(className,,,1)
+		set settingsPTDFilename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, settingsPTD)
+		if ##class(%File).Exists(settingsPTDFilename) {
+			return 1
+		}
+		// check if there is a class export for this Production, load it for class definition
 		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
 		if ##class(%File).Exists(filename) {
 			$$$ThrowOnError($System.OBJ.Load(filename))
 		}
+		// if Production exists as a class definition on the server, check if extending Ens.Production
 		set classDef = ##class(%Dictionary.ClassDefinition).%OpenId(className)
 		if $isobject(classDef) && ##class(%Dictionary.ClassDefinition).%ExistsId(classDef.Super) {
 			return $classmethod(classDef.Super, "%Extends", "Ens.Production")
@@ -247,25 +295,31 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 }
 
 /// Given a file name for a PTD item, returns a suggested internal name. This method assumes that the file exists on disk.
-ClassMethod ParseExternalName(externalName, Output internalName = "", Output productionName = "")
+ClassMethod ParseExternalName(externalName, Output internalName = "", Output productionName = "") As %Status
 {
-    if ##class(%File).Exists(externalName) {
-        set file = $piece(externalName, "/", *)
-        set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
-        set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
-        set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
-        set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")
-        if $extract(file,1,9) = "ProdStgs-" {
-            set internalName = ..CreateInternalName(productionName,,,1)
-        } else {
-            // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
+	set sc = $$$OK
+	set extNameNormalized = $replace(externalName, "\", "/")
+    set file = $piece(extNameNormalized, "/", *)
+    if $extract(file,1,9) = "ProdStgs-" {
+	    set productionName = $replace($extract(file,10,*-4), "_", ".")
+		set internalName = ..CreateInternalName(productionName,,,1)
+    } else {
+	    if ##class(%File).Exists(externalName) {
+		    // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
+	        set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
+	        set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
+	        set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
+	        set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")
             set settingsPTDText = $zconvert(deployDoc.GetValueAt("/Export/Document[2]/1"),"I","XML")
             set settingsPTD = ##class(EnsLib.EDI.XML.Document).%New(settingsPTDText)
             set itemClass = settingsPTD.GetValueAt("/Item/@ClassName")
             set itemName = settingsPTD.GetValueAt("/Item/@Name")
             set internalName = ..CreateInternalName(productionName, itemName, itemClass, 0)
-        }
+	    } else {
+		   set sc = $$$ERROR($$$GeneralError, "Item settings PTD file " _ externalName _ " does not exist. Cannot parse external name.")
+	    }
     }
+    return sc
 }
 
 /// Given an internal name for a PTD item, returns a suggested filename for export, as well as:
@@ -295,7 +349,7 @@ ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fi
 }
 
 /// Calculates the internal name for a decomposed production item
-ClassMethod CreateInternalName(productionName = "", itemName = "", itemClassName = "", isProductionSettings As %Boolean = 0)
+ClassMethod CreateInternalName(productionName = "", itemName = "", itemClassName = "", isProductionSettings As %Boolean = 0) As %String
 {
     return $select(
         isProductionSettings: productionName_"||ProductionSettings-"_productionName_".PTD",
@@ -368,6 +422,19 @@ ClassMethod CreateProduction(productionName As %String, superClasses = "") As %S
 	if $$$ISERR(sc) return sc
 	set sc = $System.OBJ.Compile(productionName)
 	return sc
+}
+
+/// Given an internal name of a Production and an IRIS user, populate an array with the filenames
+/// for each of their current uncommitted changes associated with the given Production
+ClassMethod GetUserProductionChanges(productionName As %String, ByRef items)
+{
+	set sql = "SELECT InternalName, Action FROM %Studio_SourceControl.Change WHERE ChangedBy = ? AND Committed = 0 AND InternalName %STARTSWITH ?"
+	set rs = ##class(%SQL.Statement).%ExecDirect(,sql,$username,productionName_"||")
+	$$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+	while rs.%Next() {
+		set items(rs.InternalName) = rs.Action
+	}
+	quit $$$OK
 }
 
 }

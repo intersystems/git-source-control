@@ -1649,8 +1649,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
         }
 
-        set username = ..GitUserName()
-        set email = ..GitUserEmail()
+        set username = ""
+        set email = ""
+        
+        if (..GitUserName() '= "") && (..GitUserEmail() '= "") {
+            set username = ..GitUserName()
+            set email = ..GitUserEmail()
+        }
 
         set newArgs($increment(newArgs)) = "-c"
         set newArgs($increment(newArgs)) = "user.name="_username
@@ -1800,7 +1805,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set errStreamLine = errStream.ReadLine()
         if (((errStreamLine = "Committer identity unknown") || (errStreamLine = "Author identity unknown"))) {
             do errStream.Clear()
-            do errStream.WriteLine("Commit failed as user identity unknown."_$c(13,10)_$c(13,10)_"Go to settings."_$c(13,10))
+            do errStream.WriteLine("Commit failed as user identity unknown."_$c(13,10)_$c(13,10)_"Go to the Settings page in the Source Control menu to fix this."_$c(13,10))
         }
     }
 

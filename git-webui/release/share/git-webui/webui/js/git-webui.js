@@ -1995,7 +1995,7 @@ webui.DiscardedView = function(mainView) {
     }
 
     self.populateUiWithDiscardedStates = function() {
-        self.discarded.forEach((discardedState, ind) => {
+        self.discarded.forEach(function (discardedState, ind) {
             var discardedListEntry = $(
                 '<a class="log-entry list-group-item">' + 
                     '<header>' + 

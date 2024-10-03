@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic mode Sync operation now imports items changed on the remote merge branch (#506)
 - Fetch diff output uses correct remote branch (#509)
 - Properly handle more cases of truncated filenames from git pull (#511)
+- Made git-source-control backwards compatible with IRIS 2021.1 (#513)
 
 ## [2.5.0] - 2024-09-24
 

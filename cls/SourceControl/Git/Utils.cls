@@ -2430,15 +2430,20 @@ ClassMethod GetContexts() As %DynamicArray
         do contexts.%Push(value)
     }
 
-    set query = "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')"
-    set statement = ##class(%SQL.Statement).%New()
-    $$$ThrowOnError(statement.%Prepare(query, 0))
-    set packagesResultSet = statement.%Execute()
-    throw:packagesResultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(packagesResultSet.%SQLCODE,packagesResultSet.%Message)
-    while packagesResultSet.%Next() {
-        set package = packagesResultSet.Name
+    set name = ""
+
+    // Using embedded for backwards compatability
+    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+    &sql(OPEN C1)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+    &sql(FETCH C1)
+    while(SQLCODE = 0) {
+        set package = name
         do contexts.%Push(package)
+        &sql(FETCH C1)
     }
+    &sql(CLOSE C1)
+
     return contexts
 }
 
@@ -2740,4 +2745,3 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 }
-

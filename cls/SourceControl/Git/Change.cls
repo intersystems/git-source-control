@@ -82,29 +82,25 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
 {
     set numEntries = 0
     set fileToOtherDevelopers = {}
-    set query = "Select ItemFile, ChangedBy FROM SourceControl_Git.Change WHERE Committed = '0' AND ChangedBy <> ?"
-    set statement = ##class(%SQL.Statement).%New()
-    set status = statement.%Prepare(query, 0)
-    $$$ThrowOnError(status)
-    set rset = statement.%Execute($username)
-    if (rset.%SQLCODE < 0) {
-        throw ##class(%Exception.SQL).CreateFromSQLCODE(rset.%SQLCODE,rset.%Message)
-    }
-    set tempFolder = ##class(SourceControl.Git.Utils).TempFolder()
-    while rset.%Next(.sc) {
-        $$$ThrowOnError(sc)
 
-        if $FIND(rset.ItemFile, tempFolder) {
-            set filePath = $PIECE(rset.ItemFile, tempFolder, 2)
-        } else {
-            continue
+    set username = $username
+    &sql(DECLARE DeveloperCursor CURSOR FOR SELECT ItemFile, ChangedBy into :itemFile, :changedBy from SourceControl_Git.Change WHERE Committed = 0 and ChangedBy <> :username)
+    &sql(OPEN DeveloperCursor)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+    &sql(FETCH DeveloperCursor)
+    set tempFolder = ##class(SourceControl.Git.Utils).TempFolder()
+    while(SQLCODE = 0) {
+        if $FIND(itemFile, tempFolder) {
+            set filePath = $PIECE(itemFile, tempFolder, 2)
+            set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
+            do otherDevelopers.%Push(changedBy)
+            do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
         }
         
-        set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
-        do otherDevelopers.%Push(rset.ChangedBy)
-        do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
+        &sql(FETCH DeveloperCursor)
     }
-    $$$ThrowOnError(sc)
+    &sql(CLOSE DeveloperCursor)
+
     return fileToOtherDevelopers
 }
 
@@ -193,6 +189,7 @@ Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%Stri
 ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
 {
     set qHandle("q") = "SELECT InternalName, ChangedBy FROM SourceControl_Git.Change"
+    &sql(DECLARE InstanceCursor CURSOR FOR SELECT InternalName, ChangedBy into :internalName, :changedBy from SourceControl_Git.Change)
     set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
     set tPtr = 0
     set qHandle("i") = 1
@@ -201,16 +198,17 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
         set namespace = $ZCONVERT(tValue, "U")
         if '(namespace [ "^") {
             set $NAMESPACE = namespace
-            set statement = ##class(%SQL.Statement).%New()
-            $$$ThrowOnError(statement.%Prepare(qHandle("q"), 0))
-            set resultSet = statement.%Execute()
-            throw:resultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
-            while resultSet.%Next(.sc) {
-                $$$ThrowOnError(sc)
-                set qHandle("changes", $increment(qHandle("changes")), "InternalName") = resultSet.%GetData(1)
-                set qHandle("changes", qHandle("changes"), "User") = resultSet.%GetData(2)
-                set qHandle("changes", qHandle("changes"), "Namespace") = namespace
-            }
+                
+                &sql(OPEN InstanceCursor)
+                    throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+                &sql(FETCH InstanceCursor)
+                while(SQLCODE = 0) {
+                    set qHandle("changes", $increment(qHandle("changes")), "InternalName") = internalName
+                    set qHandle("changes", qHandle("changes"), "User") = changedBy
+                    set qHandle("changes", qHandle("changes"), "Namespace") = namespace
+                    &sql(FETCH InstanceCursor)
+                }
+                &sql(CLOSE InstanceCursor)
         }
     }
     
@@ -283,4 +281,3 @@ Storage Default
 }
 
 }
-

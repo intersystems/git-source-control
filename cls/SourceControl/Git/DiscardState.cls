@@ -77,23 +77,21 @@ ClassMethod DiscardStatesInBranch() As %DynamicArray
 {
     set currentBranch = ##class(SourceControl.Git.Utils).GetCurrentBranch()
 
-    set query = "SELECT ID FROM SourceControl_Git.DiscardState WHERE branch = ?"
-    set statement = ##class(%SQL.Statement).%New()
-    set status = statement.%Prepare(query, 0)
-    $$$ThrowOnError(status)
-    set resultSet = statement.%Execute(currentBranch)
-    if (resultSet.%SQLCODE < 0) {
-        throw ##class(%Exception.SQL).CreateFromSQLCODE(resultSet.%SQLCODE,resultSet.%Message)
-    }
-
+    // Use embedded SQL for backwards compatability
+    &sql(DECLARE DiscardCursor CURSOR FOR SELECT ID into :id from SourceControl_Git.DiscardState WHERE branch = :currentBranch)
+    &sql(OPEN DiscardCursor)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+    &sql(FETCH DiscardCursor)
     set discardStates = []
-    while resultSet.%Next() {
-        set discardState = ..%OpenId(resultSet.ID)
+    while(SQLCODE = 0) {
+        set discardState = ..%OpenId(id)
         do discardState.%JSONExportToString(.JSONStr)
         set discardStateObject = ##class(%DynamicAbstractObject).%FromJSON(JSONStr)
-        set discardStateObject.Id = resultSet.ID
+        set discardStateObject.Id = id
         do discardStates.%Push(discardStateObject)
+        &sql(FETCH DiscardCursor)
     }
+    &sql(CLOSE DiscardCursor)
 
     quit discardStates
 }

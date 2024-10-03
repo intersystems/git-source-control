@@ -1885,22 +1885,18 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
             set externalName = $zstrip($piece(line,"|",1),"<>W")
             if $Extract(externalName,1,3) = "..." {
                 // For extremely long file names, git may truncate the path.
-                // Simplifying assumption: this is a class, because nothing else would have that long a name.
-                // In other cases, we'll just end up logging the invalid externalName.
-                if $Piece(externalName,".",*) = "cls" {
-                    set possibleClasses = ..ExpandClasses(externalName)
-                    if $ListLength(possibleClasses) '= 0 {
-                        set pointer = 0
-                        while $ListNext(possibleClasses,pointer,class) {
-                            set modification = ##class(SourceControl.Git.Modification).%New()
-                            set modification.changeType = "C"
-                            set modification.internalName = class_".CLS"
-                            set modification.externalName = ..ExternalName(modification.internalName)
-                            set files($i(files)) = modification
-                        }
-                    } else {
-                        write !,"WARNING: unable to translate external name ",externalName
-                        continue
+                // Attempt to expand truncated names by matching them against one or more internal names.
+                // Not all file types may be supported, where they are then a list of possible internal names is returned.
+                // In other cases no names are returned, we'll just end up logging the invalid externalName.
+                set possibleNames = ..ExpandTruncatedNames(externalName)
+                if $ListLength(possibleNames) '= 0 {
+                    set pointer = 0
+                    while $ListNext(possibleNames,pointer,name) {
+                        set modification = ##class(SourceControl.Git.Modification).%New()
+                        set modification.changeType = "C"
+                        set modification.internalName = name_"."_$Piece(externalName,".",*)
+                        set modification.externalName = ..ExternalName(modification.internalName)
+                        set files($i(files)) = modification
                     }
                 } else {
                     write !,"WARNING: unable to translate external name ",externalName
@@ -1930,28 +1926,42 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
     quit ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
 }
 
-ClassMethod ExpandClasses(externalName As %String) As %List
+ClassMethod ExpandTruncatedNames(externalName As %String) As %List
 {
     set internalName = $Piece(externalName,".",1,*-1)
     set internalName = $Extract(internalName,4,*)
-    set internalName = $Translate(internalName,"/\%",".."_..PercentClassReplace())
+    set internalName = $Translate(internalName,"/\","..")
+    
+    set externalNameExtension = $Piece(externalName,".",*)
+    if (externalNameExtension = "cls") {
+        set internalName = $Translate(internalName,"%",..PercentClassReplace())
+    }
+    
+    set possibleNames = ""
     do {
-        &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
+        if (externalNameExtension = "cls") {
+            &sql(select %DLIST(Name) into :possibleNames from %Dictionary.ClassDefinition where Name like '%'||:internalName)
+        } elseif (externalNameExtension = "lut") {
+            &sql(select %DLIST(distinct TableName) into :possibleNames from Ens_Util.LookupTable where TableName like '%'||:internalName)
+        } else {
+            // Unsupported extension, do nothing.
+            quit
+        }
         if (SQLCODE < 0) {
             Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
         }
         
         // If nothing was found then remove period-delimited pieces from the start of internalName
         // until we either find something or run out of pieces.
-        // This will allow for classes to potentially still be identified when the
-        // repository directory structure does not align with class packages.
-        if ($ListLength(classes) = 0) {
+        // This will allow for truncated names to potentially still be identified when the
+        // repository directory structure does not align with internal names.
+        if ($ListLength(possibleNames) = 0) {
             set internalName = $Piece(internalName,".",2,*)
         } else {
             set internalName = ""
         }
     } while (internalName '= "")
-    quit classes
+    quit possibleNames
 }
 
 ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, Output files)

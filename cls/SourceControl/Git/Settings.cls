@@ -54,7 +54,7 @@ Property namespaceLevelGitWebApp As %Boolean [ InitialExpression = {##class(Sour
 Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).WarnInstanceWideUncommitted()} ];
 
 /// The name of the environment (DEVELOPMENT, TEST, LIVE)
-Property environmentName As %String(MAXLEN = "", VALUELIST = ",DEVELOPMENT,TEST,LIVE") [ InitialExpression = {##class(SourceControl.Git.Utils).EnvironmentName()} ];
+Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).EnvironmentName()} ];
 
 Property Mappings [ MultiDimensional ];
 

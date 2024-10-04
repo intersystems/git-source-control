@@ -1809,20 +1809,20 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set command = $extract(..GitBinPath(),2,*-1)
+    set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
         set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
-        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,command,newArgs...)
+        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,command,newArgs...)
+            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
         } else {
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,command,newArgs...)
+            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
         }
     }
 

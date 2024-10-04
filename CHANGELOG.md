@@ -12,13 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Files in uncommitted queue in any namespace warn users when opened except for in VSCode (#370)
 - Added link back to IRIS management portal from Settings, Git WebUI pages (#449)
 - Added Import all and Import All (Force) to basic mode menu (#498)
+- Improved behavior for commits when attribution settings are not configured (#450)
 
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)
 - Added warnings when user is using incompatible git version (#488)
 - Fixed the back button navigation between WebUI and Settings page (#361)
+- Fixed issues with HL7 file extension inconsistencies (#495)
 - Basic mode Sync operation now imports items changed on the remote merge branch (#506)
 - Fetch diff output uses correct remote branch (#509)
+- Properly handle more cases of truncated filenames from git pull (#511)
+- Made git-source-control backwards compatible with IRIS 2021.1 (#513)
+- Sync, pull properly handle more change edge cases for import (#517, #496)
 
 ## [2.5.0] - 2024-09-24
 

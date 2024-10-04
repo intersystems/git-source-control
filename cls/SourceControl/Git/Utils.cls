@@ -357,9 +357,12 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     set filename = ..FullExternalName(.InternalName)
     set username = ..GitUserName()
     set email = ..GitUserEmail()
-    set author = username_" <"_email_">"
+    set author = ""
+    if ((username '= "") && (email '= "")) {
+        set author = username_" <"_email_">"
+    }
     do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Message, filename)
-    do ..PrintStreams(outStream, outStream)
+    do ..PrintStreams(errStream, outStream)
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
     quit $$$OK
@@ -403,7 +406,10 @@ ClassMethod SyncCommit(Msg As %String) As %Status
         set uncommittedFilesWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
         set username = ..GitUserName()
         set email = ..GitUserEmail()
-        set author = username_" <"_email_">"
+        set author = ""
+        if ((username '= "") && (email '= "")) {
+            set author = username_" <"_email_">"
+        }
         do ..RunGitWithArgs(.errStream, .outStream, "commit", "--author", author, "-m", Msg)
         do ..PrintStreams(errStream, outStream)
         $$$QuitOnError(..ClearUncommitted(uncommittedFilesWithAction))
@@ -447,8 +453,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
-        do ..RunGitWithArgs(,.outStream, "rev-parse", "HEAD")
-        set startSha = outStream.ReadLine()
+        set startSha = ..GetCurrentRevision()
 
         // Start a transaction so code changes can be rolled back
         set initTLevel = $TLevel
@@ -556,6 +561,13 @@ ClassMethod GetCurrentBranch() As %String
     quit branchName
 }
 
+ClassMethod GetCurrentRevision() As %String
+{
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("rev-parse",,.errStream,.outStream,"HEAD")
+    set revision = outStream.ReadLine(outStream.Size)
+    quit revision
+}
+
 ClassMethod Pull(remote As %String = "origin") As %Status
 {
     New %gitSCOutputFlag
@@ -638,7 +650,36 @@ ClassMethod NormalizeFolder(folder As %String) As %String
 
 ClassMethod ExternalName(InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
-    quit $Replace(..Name(.InternalName,.MappingExists),"/",..#Slash)
+    set root = ..TempFolder()
+    set file = $Replace(..Name(.InternalName,.MappingExists),"/",..#Slash)
+    set fullFile = root_file
+    if '..Exists(.fullFile) {
+        quit file
+    }
+    quit $Piece(fullFile,root,2,*)
+}
+
+/// Check if file exists but case insensitive on file extension
+/// Stolen from %IPM.Utils.File
+ClassMethod Exists(ByRef pFilename) As %Boolean
+{
+	If ##class(%File).Exists(pFilename) {
+		Return 1
+	}
+	Set tDirectory = ##class(%File).ParentDirectoryName(pFilename)
+	If '##class(%File).DirectoryExists(tDirectory) {
+		Return 0
+	}
+	Set tName = $Piece(pFilename, tDirectory, 2, *)
+	Set tFileName = $Piece(tName, ".", 1, * - 1)
+	Set tFileExt = $Piece(tName, ".", *)
+	for tExt = $$$LOWER(tFileExt), $$$UPPER(tFileExt) {
+		If ##class(%File).Exists(tDirectory _ tFileName _ "." _ tExt) {
+			Set pFilename = tDirectory _ tFileName _ "." _ tExt
+			Return 1
+		}
+	}
+	Return 0
 }
 
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
@@ -1713,8 +1754,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
         }
 
-        set username = ..GitUserName()
-        set email = ..GitUserEmail()
+        set username = ""
+        set email = ""
+        
+        if (..GitUserName() '= "") && (..GitUserEmail() '= "") {
+            set username = ..GitUserName()
+            set email = ..GitUserEmail()
+        }
 
         set newArgs($increment(newArgs)) = "-c"
         set newArgs($increment(newArgs)) = "user.name="_username
@@ -1730,6 +1776,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set diffCompare = ""
     set invert = 0
     set whichStash = ""
+    set isCommit = 0
 
     // Find / build file list
     set hasFileList = 0
@@ -1760,7 +1807,11 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     } elseif (command = "restore") {
         // Leave diffCompare empty, this actually does the right thing.
         set syncIrisWithDiff = 1
-    } elseif (command = "merge") || (command = "rebase")  || (command = "pull") {
+    } elseif (command = "pull") {
+        set syncIrisWithDiff = 1
+        // The current revision, prior to the pull, will be compared against
+        set diffCompare = ..GetCurrentRevision()
+    } elseif (command = "merge") || (command = "rebase") {
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
@@ -1776,6 +1827,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set syncIrisWithDiff = 1
             set diffCompare = whichStash
         }
+    } elseif (command = "commit") {
+        set isCommit = 1
     }
     
     // WebUI prefixes with "color.ui=true" so we need to grab the command
@@ -1811,6 +1864,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             } elseif (args(i) = "merge") || (args(i) = "rebase") || (args(i) = "pull") {
                 set syncIrisWithCommand = 1
                 set diffCompare = args(i + 1)
+            } elseif (args(i) = "commit") {
+                set isCommit = 1
             }
         }
     }
@@ -1820,7 +1875,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set syncIrisWithCommand = 0
     }
 
-    if syncIrisWithDiff {
+    // If performing a pull don't perform a diff until after the pull has occured.
+    // This is to avoid a double fetch, as pull performs one for us and also to avoid a potential
+    // race condition if the remote changes between now and the pull actually being performed.
+    if syncIrisWithDiff && (command '= "pull") {
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
@@ -1834,26 +1892,42 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set command = $extract(..GitBinPath(),2,*-1)
+    set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
         set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
-        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,command,newArgs...)
+        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,command,newArgs...)
+            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
         } else {
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,command,newArgs...)
+            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
         }
+    }
+
+    // If performing a pull then do a diff now after the pull has occured.
+    if syncIrisWithDiff && (command = "pull") {
+        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffCompare, "--name-status")
+        // Verbose output should not be required as pull already outputs a summary
+        do ..ParseDiffStream(outputStream,0,.files)
     }
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)
     set outStream = ##class(%Stream.FileCharacter).%OpenId(outLog,,.sc)
     set outStream.TranslateTable="UTF8"
+
+    if ((isCommit) && (returnCode = 128)){
+        set errStreamLine = errStream.ReadLine()
+        if (((errStreamLine = "Committer identity unknown") || (errStreamLine = "Author identity unknown"))) {
+            do errStream.Clear()
+            do errStream.WriteLine("Commit failed as user identity unknown."_$c(13,10)_$c(13,10)_"Go to the Settings page in the Source Control menu to fix this."_$c(13,10))
+        }
+    }
+
     for stream=errStream,outStream {
         set stream.RemoveOnClose = 1
     }
@@ -1930,13 +2004,18 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
                 // In other cases, we'll just end up logging the invalid externalName.
                 if $Piece(externalName,".",*) = "cls" {
                     set possibleClasses = ..ExpandClasses(externalName)
-                    set pointer = 0
-                    while $ListNext(possibleClasses,pointer,class) {
-                        set modification = ##class(SourceControl.Git.Modification).%New()
-                        set modification.changeType = "C"
-                        set modification.internalName = class_".CLS"
-                        set modification.externalName = ..ExternalName(modification.internalName)
-                        set files($i(files)) = modification
+                    if $ListLength(possibleClasses) '= 0 {
+                        set pointer = 0
+                        while $ListNext(possibleClasses,pointer,class) {
+                            set modification = ##class(SourceControl.Git.Modification).%New()
+                            set modification.changeType = "C"
+                            set modification.internalName = class_".CLS"
+                            set modification.externalName = ..ExternalName(modification.internalName)
+                            set files($i(files)) = modification
+                        }
+                    } else {
+                        write !,"WARNING: unable to translate external name ",externalName
+                        continue
                     }
                 } else {
                     write !,"WARNING: unable to translate external name ",externalName
@@ -1971,10 +2050,22 @@ ClassMethod ExpandClasses(externalName As %String) As %List
     set internalName = $Piece(externalName,".",1,*-1)
     set internalName = $Extract(internalName,4,*)
     set internalName = $Translate(internalName,"/\%",".."_..PercentClassReplace())
-    &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
-    if (SQLCODE < 0) {
-        Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
-    }
+    do {
+        &sql(select %DLIST(Name) into :classes from %Dictionary.ClassDefinition where Name like '%'||:internalName)
+        if (SQLCODE < 0) {
+            Throw ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE,%msg)
+        }
+        
+        // If nothing was found then remove period-delimited pieces from the start of internalName
+        // until we either find something or run out of pieces.
+        // This will allow for classes to potentially still be identified when the
+        // repository directory structure does not align with class packages.
+        if ($ListLength(classes) = 0) {
+            set internalName = $Piece(internalName,".",2,*)
+        } else {
+            set internalName = ""
+        }
+    } while (internalName '= "")
     quit classes
 }
 
@@ -2457,15 +2548,20 @@ ClassMethod GetContexts() As %DynamicArray
         do contexts.%Push(value)
     }
 
-    set query = "SELECT name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM')"
-    set statement = ##class(%SQL.Statement).%New()
-    $$$ThrowOnError(statement.%Prepare(query, 0))
-    set packagesResultSet = statement.%Execute()
-    throw:packagesResultSet.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(packagesResultSet.%SQLCODE,packagesResultSet.%Message)
-    while packagesResultSet.%Next() {
-        set package = packagesResultSet.Name
+    set name = ""
+
+    // Using embedded for backwards compatability
+    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+    &sql(OPEN C1)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+    &sql(FETCH C1)
+    while(SQLCODE = 0) {
+        set package = name
         do contexts.%Push(package)
+        &sql(FETCH C1)
     }
+    &sql(CLOSE C1)
+
     return contexts
 }
 

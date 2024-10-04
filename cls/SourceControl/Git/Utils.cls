@@ -1737,7 +1737,11 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     } elseif (command = "restore") {
         // Leave diffCompare empty, this actually does the right thing.
         set syncIrisWithDiff = 1
-    } elseif (command = "merge") || (command = "rebase")  || (command = "pull") {
+    } elseif (command = "pull") {
+        set syncIrisWithDiff = 1
+        // The current revision, prior to the pull, will be compared against
+        set diffCompare = ..GetCurrentRevision()
+    } elseif (command = "merge") || (command = "rebase") {
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
@@ -1801,7 +1805,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set syncIrisWithCommand = 0
     }
 
-    if syncIrisWithDiff {
+    // If performing a pull don't perform a diff until after the pull has occured.
+    // This is to avoid a double fetch, as pull performs one for us and also to avoid a potential
+    // race condition if the remote changes between now and the pull actually being performed.
+    if syncIrisWithDiff && (command '= "pull") {
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
@@ -1830,6 +1837,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
             set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
         }
+    }
+
+    // If performing a pull then do a diff now after the pull has occured.
+    if syncIrisWithDiff && (command = "pull") {
+        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffCompare, "--name-status")
+        // Verbose output should not be required as pull already outputs a summary
+        do ..ParseDiffStream(outputStream,0,.files)
     }
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)

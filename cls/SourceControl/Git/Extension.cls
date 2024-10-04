@@ -49,7 +49,8 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     if Type = 1, Name = 5 {
         // reroute to Status menu option
         set Name = "%SourceMenu,Status"
-    } 
+        do ..CheckCommitterIdentity(settings, .Action, .Target)
+    }
 
     if (Type = 1) && (Name = 3) {
         if settings.warnInstanceWideUncommitted {
@@ -74,8 +75,15 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 
     #dim ec as %Status = $$$OK
     #dim menu as %Status = $piece(Name, ",", 1)
+    #dim menuItemName as %String = $piece(Name,",",2)
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
+    }
+
+    if (menuItemName = "Commit") || (menuItemName = "Sync") {
+        if ..CheckCommitterIdentity(settings, .Action, .Target) {
+            quit $$$OK
+        }
     }
 
     set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(InternalName)
@@ -431,6 +439,17 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
 Method AddToSourceControl(InternalName As %String, Description As %String = "") As %Status
 {
 	Quit ##class(SourceControl.Git.Utils).AddToSourceControl(InternalName)
+}
+
+/// Called to check if committer identity is configured.
+Method CheckCommitterIdentity(Settings As SourceControl.Git.Settings, ByRef Action As %String, ByRef Target As %String) As %Boolean
+{
+    if ((Settings.gitUserName = "") || (Settings.gitUserEmail = "")) {
+        set Target = "Git committer name or email is not configured. Go to the Settings page in the Source Control menu to fix this."
+        set Action = 6
+        return 1
+    }
+    return 0
 }
 
 }

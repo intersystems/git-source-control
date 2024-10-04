@@ -147,15 +147,8 @@
             &js<
                 var outputContainer = document.getElementById('outputBox');
                 var lineText = #(..QuoteJS(escapedLine))#;
-                var lineTextAsArr = lineText.split(" ");
-                lineTextAsArr = lineTextAsArr.map(function(text){
-                    if (text.substring(0,8) === "https://") {
-                        return '<a href="' + text + '" target="_blank">' + text + '</a>';
-                    } else {
-                        return text;
-                    }
-                });
-                lineText = lineTextAsArr.join(" ")
+                var urlRegex = /(https?:\/\/[^ ]*)/;
+                lineText = lineText.replace(urlRegex, "<a href='$1' target=_blank>$1</a>");
                 var lineTextNode = document.createTextNode(lineText);
                 outputContainer.innerHTML += lineText + "<br>";
             >

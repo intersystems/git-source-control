@@ -26,6 +26,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = {
                 "url": (..GetHomeURL())
             }
+        } elseif $extract(pagePath,6,*) = "environment" {
+                set responseJSON = {
+                    "environment": (##class(SourceControl.Git.Utils).EnvironmentName()) 
+                }
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}

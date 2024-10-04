@@ -163,6 +163,16 @@ ClassMethod WarnInstanceWideUncommitted() As %Boolean
     quit $get(@..#Storage@("settings","warnInstanceWideUncommitted"),1)
 }
 
+ClassMethod EnvironmentName() As %String
+{
+    quit $get(@..#Storage@("settings","environmentName"),1)
+}
+
+ClassMethod IsLIVE() As %Boolean
+{
+    quit $get(@..#Storage@("settings","environmentName"),1)="LIVE"
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")

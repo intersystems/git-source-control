@@ -447,8 +447,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
-        do ..RunGitWithArgs(,.outStream, "rev-parse", "HEAD")
-        set startSha = outStream.ReadLine()
+        set startSha = ..GetCurrentRevision()
 
         // Start a transaction so code changes can be rolled back
         set initTLevel = $TLevel
@@ -554,6 +553,13 @@ ClassMethod GetCurrentBranch() As %String
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     quit branchName
+}
+
+ClassMethod GetCurrentRevision() As %String
+{
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("rev-parse",,.errStream,.outStream,"HEAD")
+    set revision = outStream.ReadLine(outStream.Size)
+    quit revision
 }
 
 ClassMethod Pull(remote As %String = "origin") As %Status

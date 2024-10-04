@@ -16,7 +16,7 @@ ClassMethod ExportProductionDefinitionShards(productionClass As %String, nameMet
     Set internalNames(internalName) = 1
 
     // next, export each item to a separate file
-    Set rs = ##class(%SQL.Statement).%ExecDirect(,
+    Set rs = ..ExecDirectNoPriv(
         "select Name, ClassName from Ens_Config.Item where Production = ?"
         , productionClass
     )
@@ -51,10 +51,18 @@ ClassMethod DeleteProductionDefinitionShards(productionClass As %String, deleteM
 	// if the Production settings PTD exists, delete all PTDs for this Production
 	if ##class(%File).Exists(settingsPTDFile) {
 		set ptdDir = ##class(%File).GetDirectory(settingsPTDFile)
-		set rs = ##class(%ResultSet).%New("%File:FileSet")
-		$$$ThrowOnError(rs.Execute(ptdDir, "*.xml"))
-		$$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
-		while rs.Next() {
+        set statement = ##class(%SQL.Statement).%New()
+        try {
+            // execute without priv checking if possible on this IRIS version
+            set sc = statement.%PrepareClassQuery("%File","FileSet",0)
+        } catch err {
+            set sc = statement.%PrepareClassQuery("%File","FileSet")
+        }
+        quit:$$$ISERR(sc)
+		set rs = statement.%Execute(ptdDir, "*.xml")
+        throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
+		while rs.%Next(.sc) {
+			quit:$$$ISERR(sc)
 			set ptdFilename = rs.Data("Name")
 			set sc = ##class(%Studio.SourceControl.Production).ParseExternalName(ptdFilename, .ptdInternalName)
 			quit:$$$ISERR(sc)
@@ -216,10 +224,10 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
     merge ^IRIS.Temp("sscProd",$job,"modifiedItems") = modifiedItems
     // FUTURE: use a percent variable or PPG instead
     kill ^IRIS.Temp("sscProd",$job,"items")
-    set rs = ##class(%SQL.Statement).%ExecDirectNoPriv(
-        ,"select Name, ClassName from Ens_Config.Item where Production = ?"
+    set rs = ..ExecDirectNoPriv(
+        "select Name, ClassName from Ens_Config.Item where Production = ?"
         , productionName)
-    $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+    throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
     while rs.%Next() {
         set ^IRIS.Temp("sscProd",$job,"items",$listbuild(rs.Name, rs.ClassName)) = 1
     }
@@ -231,10 +239,10 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
     set productionName = $piece(internalName,".",1,*-1)
     if ..IsEnsPortal() {
         // If adding/deleting from SMP, get the modified items by comparing items in temp global with items now
-        set rs = ##class(%SQL.Statement).%ExecDirectNoPriv(
-            ,"select Name, ClassName from Ens_Config.Item where Production = ?"
+        set rs = ..ExecDirectNoPriv(
+            "select Name, ClassName from Ens_Config.Item where Production = ?"
             , productionName)
-        $$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+        throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
         while rs.%Next() {
             if '$get(^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))) {
                 set itemInternalName = ..CreateInternalName(productionName, rs.Name, rs.ClassName, 0)
@@ -429,12 +437,23 @@ ClassMethod CreateProduction(productionName As %String, superClasses = "") As %S
 ClassMethod GetUserProductionChanges(productionName As %String, ByRef items)
 {
 	set sql = "SELECT InternalName, Action FROM %Studio_SourceControl.Change WHERE ChangedBy = ? AND Committed = 0 AND InternalName %STARTSWITH ?"
-	set rs = ##class(%SQL.Statement).%ExecDirect(,sql,$username,productionName_"||")
-	$$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+	set rs = ..ExecDirectNoPriv(sql,$username,productionName_"||")
+    throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
 	while rs.%Next() {
 		set items(rs.InternalName) = rs.Action
 	}
 	quit $$$OK
+}
+
+/// Executes a SQL query without privilege checking if possible on this IRIS version
+ClassMethod ExecDirectNoPriv(sql, args...) As %SQL.StatementResult
+{
+    try {
+        set rs = ##class(%SQL.Statement).%ExecDirectNoPriv(,sql,args...)
+    } catch err {
+        set rs = ##class(%SQL.Statement).%ExecDirect(,sql,args...)
+    }
+    return rs
 }
 
 }

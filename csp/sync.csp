@@ -147,9 +147,8 @@
             &js<
                 var outputContainer = document.getElementById('outputBox');
                 var lineText = #(..QuoteJS(escapedLine))#;
-                var urlRegex = /(https?:\/\/[^ ]*)/;
+                var urlRegex = /(https?:\/\/[^ ]*)/gi;
                 lineText = lineText.replace(urlRegex, "<a href='$1' target=_blank>$1</a>");
-                var lineTextNode = document.createTextNode(lineText);
                 outputContainer.innerHTML += lineText + "<br>";
             >
         }

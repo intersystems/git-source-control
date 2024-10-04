@@ -194,7 +194,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
 
     if (name = "Status") {
         set DisplayName = ..LocalizeName(name)_" (branch: "_##class(SourceControl.Git.Utils).GetCurrentBranch()_")"
-    } if (name '= "") {
+    } elseif (name '= "") {
 	    set DisplayName = ..LocalizeName(name)
     }
     quit $$$OK

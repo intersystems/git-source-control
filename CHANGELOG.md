@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fetch diff output uses correct remote branch (#509)
 - Properly handle more cases of truncated filenames from git pull (#511)
 - Made git-source-control backwards compatible with IRIS 2021.1 (#513)
+- Fix to convert URLs in Sync output UI into clickable links (#497)
 
 ## [2.5.0] - 2024-09-24
 

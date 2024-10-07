@@ -22,6 +22,7 @@ XData Menu
 <MenuItem Separator="true"/>
 <MenuItem Name="Sync" />
 <MenuItem Name="Push" />
+<MenuItem Name="PushForce" />
 <MenuItem Name="Fetch" />
 <MenuItem Name="Pull" />
 <MenuItem Separator="true"/>
@@ -127,6 +128,7 @@ Method LocalizeName(name As %String) As %String
         "Commit":$$$Text("@Commit@Commit changes to file"),
         "Sync":$$$Text("@Sync@Sync"),
         "Push":$$$Text("@Push@Push to remote branch"),
+        "PushForce":$$$Text("@PushForce@Push to remote branch (Force)"),
         "Fetch":$$$Text("@Fetch@Fetch from remote"),
         "Pull":$$$Text("@Pull@Pull changes from remote branch"),
         "Status": $$$Text("@Status@Status"),
@@ -174,6 +176,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "NewBranch": 1,
                 "SwitchBranch": 1,
                 "Push": 1,
+                "PushForce": 1,
                 "Fetch": 1,
                 "Pull": 1,
                 "Sync": -1,

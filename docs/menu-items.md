@@ -20,6 +20,8 @@ This menu option is analogous to the [git add](https://git-scm.com/docs/git-add)
 This menu option will only appear if the currently open file has been already added using the 'Add' menu option. It undoes the effect of adding the file, similar to running [git reset](https://git-scm.com/docs/git-reset) on a specific file.
 ## Push to remote branch
 This option pushes the commits in the branch to the remote repository. This exhibits the same behavior as the [git push](https://git-scm.com/docs/git-push) command.
+## Push to remote branch (force)
+This option forcibly pushes the commits in the branch to the remote repository. This is potentially destructive and may overwrite the commit history of the remote branch. This exhibits the same behavior as the [git push --force](https://git-scm.com/docs/git-push) command.
 ## Fetch from remote
 Much like the [git fetch](https://git-scm.com/docs/git-fetch) command, this option fetches the most recent versions of the branch without merging that version into the local copy of the branch.
 ## Pull changes from remote branch

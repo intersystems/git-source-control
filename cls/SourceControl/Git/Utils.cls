@@ -282,6 +282,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         quit $$$OK
     } elseif (menuItemName = "Push") {
         quit ..Push()
+    } elseif (menuItemName = "PushForce") {
+        set Target = "Force pushing is potentially destructive and may overwrite the commit history of the remote branch. Are you sure you want to proceed?"
+        set Action = 1 // Make sure the user confirms that they want to do this
+        quit $$$OK
     } elseif (menuItemName = "Fetch") {
         $$$QuitOnError(..Fetch(.diffFiles))
         set pointer = 0
@@ -329,6 +333,11 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     } elseif (menuItemName = "Sync") {
         if (Answer = 1) {
             do ..Sync(Msg)
+            set Reload = 1
+        }
+    } elseif (menuItemName = "PushForce") {
+        if (Answer = 1) {
+            do ..Push(,1)
             set Reload = 1
         }
     } elseif (menuItemName = "GitWebUI") {
@@ -457,8 +466,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         do ..RunGitWithArgs(.errStream, .outStream, "fetch", "origin", defaultMergeBranch_":"_defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
 
-        do ..RunGitWithArgs(,.outStream, "rev-parse", "HEAD")
-        set startSha = outStream.ReadLine()
+        set startSha = ..GetCurrentRevision()
 
         // Start a transaction so code changes can be rolled back
         set initTLevel = $TLevel
@@ -564,6 +572,13 @@ ClassMethod GetCurrentBranch() As %String
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
     set branchName = outStream.ReadLine(outStream.Size)
     quit branchName
+}
+
+ClassMethod GetCurrentRevision() As %String
+{
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("rev-parse",,.errStream,.outStream,"HEAD")
+    set revision = outStream.ReadLine(outStream.Size)
+    quit revision
 }
 
 ClassMethod Pull(remote As %String = "origin") As %Status
@@ -1741,7 +1756,11 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     } elseif (command = "restore") {
         // Leave diffCompare empty, this actually does the right thing.
         set syncIrisWithDiff = 1
-    } elseif (command = "merge") || (command = "rebase")  || (command = "pull") {
+    } elseif (command = "pull") {
+        set syncIrisWithDiff = 1
+        // The current revision, prior to the pull, will be compared against
+        set diffCompare = ..GetCurrentRevision()
+    } elseif (command = "merge") || (command = "rebase") {
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {
             // no-op
@@ -1805,7 +1824,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set syncIrisWithCommand = 0
     }
 
-    if syncIrisWithDiff {
+    // If performing a pull don't perform a diff until after the pull has occured.
+    // This is to avoid a double fetch, as pull performs one for us and also to avoid a potential
+    // race condition if the remote changes between now and the pull actually being performed.
+    if syncIrisWithDiff && (command '= "pull") {
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
@@ -1819,21 +1841,28 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set outLog = ##class(%Library.File).TempFilename()
     set errLog = ##class(%Library.File).TempFilename()
 
-    set command = $extract(..GitBinPath(),2,*-1)
+    set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
         set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
-        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,command,newArgs...)
+        set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,command,newArgs...)
+            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
         } else {
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,command,newArgs...)
+            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
         }
+    }
+
+    // If performing a pull then do a diff now after the pull has occured.
+    if syncIrisWithDiff && (command = "pull") {
+        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffCompare, "--name-status")
+        // Verbose output should not be required as pull already outputs a summary
+        do ..ParseDiffStream(outputStream,0,.files)
     }
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)

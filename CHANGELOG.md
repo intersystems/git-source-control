@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.6.0] - Unreleased
+## [2.7.0] - Unreleased
+
+### Added
+- Added 'git push --force' in expert mode (#527)
+- Added environment awareness in configuration, and showing of environment name in UI (#124)
+
+## [2.6.0] - 2024-10-07
 
 ### Added
 - Discards safeguarded by discard stash and warning modal (#455)
@@ -13,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added link back to IRIS management portal from Settings, Git WebUI pages (#449)
 - Added Import all and Import All (Force) to basic mode menu (#498)
 - Improved behavior for commits when attribution settings are not configured (#450)
-- Added environment awareness in configuration, and showing of environment name in UI (#124)
+- Convert URLs in Sync output UI into clickable links (#497)
 
 ### Fixed
 - Changed prompts in configure from 0/1 to no/yes (#461)
@@ -24,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fetch diff output uses correct remote branch (#509)
 - Properly handle more cases of truncated filenames from git pull (#511)
 - Made git-source-control backwards compatible with IRIS 2021.1 (#513)
+- Sync, pull properly handle more change edge cases for import (#517, #496)
+- "Status" menu item actually includes branch when IRIS version allows (#472)
 
 ## [2.5.0] - 2024-09-24
 

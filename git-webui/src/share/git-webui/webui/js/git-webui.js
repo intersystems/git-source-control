@@ -2560,7 +2560,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     if (isForCurrentUser) {
                         addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
                     } else {
-                        var otherUser = otherUserUncommittedItems[model.replace(/\//g, '\\')];
+                        var otherUser = otherUserUncommittedItems[model] || otherUserUncommittedItems[model.replace(/\//g, '\\')];
                         addItemToFileList(fileList, indexStatus, workingTreeStatus, model, true, otherUser);
                     }
                     

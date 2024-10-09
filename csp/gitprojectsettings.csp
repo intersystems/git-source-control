@@ -297,7 +297,7 @@ body {
             <div class="col-sm-7">
                 <select class="form-control" id="environmentName" name="environmentName">
                     <server>
-                        for envName = "TEST","DEVELOPMENT","LIVE","" {
+                        for envName = "TEST","DEVELOPMENT","LIVE","FAILOVER","" {
                             // create option with envName, set selected if envName == current environmentName
                             &html<<option #($CASE(envName, settings.environmentName: "selected", :""))# value=#(envName)#>#(envName)# </option>>
                         }

@@ -165,12 +165,12 @@ ClassMethod WarnInstanceWideUncommitted() As %Boolean
 
 ClassMethod EnvironmentName() As %String
 {
-    quit $get(@..#Storage@("settings","environmentName"),"")
+    quit $SYSTEM.Version.SystemMode()
 }
 
 ClassMethod IsLIVE() As %Boolean
 {
-    quit $get(@..#Storage@("settings","environmentName"),1)="LIVE"
+    quit ..EnvironmentName()="LIVE"
 }
 
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]

@@ -79,7 +79,7 @@ body {
  set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
  set settings = ##class(SourceControl.Git.Settings).%New()
- set remote = ##class(SourceControl.Git.Utils).GetCensoredRemote()
+ set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
  /// After Save
  if $Data(%request.Data("gitsettings",1)) {
     for param="gitUserName","gitUserEmail" {
@@ -98,7 +98,7 @@ body {
 
         set newRemote = $Get(%request.Data("remoteRepo",1))
         // If entry was modified, set new remote repo
-        if (newRemote '= ##class(SourceControl.Git.Utils).GetCensoredRemote()) {
+        if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
             do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
         }
 
@@ -340,7 +340,7 @@ body {
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML(remote))#' placeholder="ex. git@github.com:User/UserRepo.git"/>
                 <div class = "neutral-feedback">
-                    (Username is censored)
+                    (Username is redacted)
                 </div>
             </div>
         </div>

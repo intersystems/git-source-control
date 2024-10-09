@@ -411,7 +411,7 @@ ClassMethod GetHomeURL() As %String
 
 ClassMethod GetRemote() As %Library.DynamicObject
 {
-    set remote = ##class(SourceControl.Git.Utils).GetCensoredRemote()
+    set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
     quit {"remote": (remote)}
 }
 

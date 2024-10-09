@@ -2807,7 +2807,7 @@ ClassMethod GetConfiguredRemote() As %String
     return url
 }
 
-ClassMethod GetCensoredRemote() As %String
+ClassMethod GetRedactedRemote() As %String
 {
     set url = ..GetConfiguredRemote()
     set username= $piece($piece(url,":",3),"@",1)

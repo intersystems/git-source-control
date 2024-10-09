@@ -2798,4 +2798,28 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     return sc
 }
 
+/// Returns the url for the remote repository (censoring the username)
+ClassMethod GetConfiguredRemote() As %String
+{
+    d ..RunGitCommand("remote",.err,.out,"-v")
+    set line = out.ReadLine()
+    set url = $piece($piece(line,$char(9),2)," ",1)
+    return url
+}
+
+ClassMethod GetRedactedRemote() As %String
+{
+    set url = ..GetConfiguredRemote()
+    set username= $piece($piece(url,":",3),"@",1)
+    set censoredUrl = $replace(url, username,"*******")
+    return censoredUrl
+}
+
+ClassMethod SetConfiguredRemote(url) As %String
+{
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url)
+    set output = outStream.ReadLine(outStream.Size)
+    quit output
+}
+
 }

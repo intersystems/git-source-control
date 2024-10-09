@@ -165,7 +165,7 @@ ClassMethod WarnInstanceWideUncommitted() As %Boolean
 
 ClassMethod EnvironmentName() As %String
 {
-    quit $get(@..#Storage@("settings","environmentName"),1)
+    quit $get(@..#Storage@("settings","environmentName"),"")
 }
 
 ClassMethod IsLIVE() As %Boolean

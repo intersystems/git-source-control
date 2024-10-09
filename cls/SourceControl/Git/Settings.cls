@@ -120,7 +120,7 @@ Method %Save() As %Status
         set @storage@("settings", "user", $username, "basicMode") = ..basicMode
     } 
 
-    set ^%SYS("SystemMode") = ..environmentName
+    do $SYSTEM.Version.SystemMode(..environmentName)
     
 
     // update value of basicUserMode to reflect the updated setting for basicMode

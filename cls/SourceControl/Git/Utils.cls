@@ -277,6 +277,10 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         quit $$$OK
     } elseif (menuItemName = "Push") {
         quit ..Push()
+    } elseif (menuItemName = "PushForce") {
+        set Target = "Force pushing is potentially destructive and may overwrite the commit history of the remote branch. Are you sure you want to proceed?"
+        set Action = 1 // Make sure the user confirms that they want to do this
+        quit $$$OK
     } elseif (menuItemName = "Fetch") {
         $$$QuitOnError(..Fetch(.diffFiles))
         set pointer = 0
@@ -324,6 +328,11 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
     } elseif (menuItemName = "Sync") {
         if (Answer = 1) {
             do ..Sync(Msg)
+            set Reload = 1
+        }
+    } elseif (menuItemName = "PushForce") {
+        if (Answer = 1) {
+            do ..Push(,1)
             set Reload = 1
         }
     } elseif (menuItemName = "GitWebUI") {

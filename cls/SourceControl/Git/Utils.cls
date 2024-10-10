@@ -519,6 +519,7 @@ ClassMethod Sync(Msg As %String, Output alert As %String) As %Status
         write "No remote repository configured: skipping fetch, pull and push"
         do ..SyncCommit(Msg)
     } elseif ..InDefaultBranchBasicMode() {
+        // Do not commit to default merge branch in basic mode
         write "In Basic mode on default merge branch: skipping commit and push"
         do ..Fetch()
         do ..Pull()

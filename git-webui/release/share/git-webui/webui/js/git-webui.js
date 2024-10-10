@@ -2588,6 +2588,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 });
                 $("#commitBtn").off("click");
                 $("#commitBtn").on("click", function() {
+                    // Make sure we are not commiting to default merge branch in basic mode
                     $.get("api/basic-and-default", function (data) {
                         var basicAndDefault = JSON.parse(data)["basic-and-default"]
                         if (basicAndDefault == "1") {
@@ -2745,6 +2746,7 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     }
 
+    // Popup for when trying to commit to default merge branch in basic mode
     self.noCommitsOnDefault = function () {
         function removePopup(popup) {
             $(popup).children(".modal-fade").modal("hide");
@@ -2766,7 +2768,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                                     webui.warningIcon +
                                 '</div>' +
                                 '<div class="col-sm-11">' +
-                                    '<p>You cannot commit to the default merge branch while using basic mode. Please switch to another branch.</p>' + 
+                                    '<p>You cannot commit directly to the default merge branch while using basic mode. Please switch to another branch.</p>' + 
                                 '</div>' +
                             '</div>' +
                         '</div>' +

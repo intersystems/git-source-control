@@ -9,6 +9,17 @@
 <link rel="stylesheet" type="text/css" href="css/git-webui.css" />
 </head>
 <body>
+<pre for="contextSelect" style="padding-top: 2em;white-space: pre-wrap;">Change Context:  <select id="newContext" onchange="updateContext()">
+	<server>
+		set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)
+        set iterator = contextList.%GetIterator()
+		&html<<option>Select</option>>
+        while iterator.%GetNext(.key, .value) {
+				&html<<option value=#(value)#>#(value)#</option>>
+		}
+	</server>
+</select>
+</pre>
 <pre id="preview" style="white-space: pre-wrap;">
 </pre>
 <button id="execute" onclick="execute()" disabled="true">Pull and Load Changes</button>
@@ -43,6 +54,13 @@ function execute() {
     ws.onclose = function(event) {
         // TODO: detect errors
     }
+}
+
+function updateContext() {
+    const contextSelect = document.getElementById('newContext');
+    const selectedContext = contextSelect.value;
+	
+	window.location.href = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" + selectedContext;
 }
 
 preview();

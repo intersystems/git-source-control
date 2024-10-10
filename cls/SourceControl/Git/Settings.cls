@@ -55,6 +55,8 @@ Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(
 
 Property Mappings [ MultiDimensional ];
 
+Property favoriteNamespaces As %String [ InitialExpression = {##class(SourceControl.Git.Utils).FavoriteNamespaces()} ];
+
 Method %OnNew() As %Status
 {
     set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
@@ -65,6 +67,10 @@ Method %OnNew() As %Status
     set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
     if ('isDefault) {
         set ..gitBinPath = gitBinPath
+    }
+    if ..favoriteNamespaces= "" {
+        set namespaces = ##class(SourceControl.Git.Utils).GetContexts(1)
+        set ..favoriteNamespaces = namespaces.%ToJSON()
     }
     quit $$$OK
 }
@@ -119,9 +125,11 @@ Method %Save() As %Status
     // update value of basicUserMode to reflect the updated setting for basicMode
     set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
     
-
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
+    
+    do ##class(SourceControl.Git.Utils).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
+
     quit $$$OK
 }
 
@@ -152,6 +160,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
         continue:property="userBasicMode"
+        continue:property="favoriteNamespaces"
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")

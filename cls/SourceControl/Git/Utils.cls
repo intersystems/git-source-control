@@ -72,6 +72,11 @@ ClassMethod SettingsUIReadOnly() As %Status [ CodeMode = expression ]
 $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 }
 
+ClassMethod FavoriteNamespaces() As %String
+{
+    quit $get(@..#Storage@("settings", "user", $username, "favNamespaces"),"")
+}
+
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {
@@ -2475,28 +2480,32 @@ ClassMethod Localize()
     }
 }
 
-ClassMethod GetContexts() As %DynamicArray
+ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 {
     set contexts = []
     set namespaces = ..GetGitEnabledNamespaces()
     set ptr = 0
     while $listnext(namespaces,ptr,value) {
-        do contexts.%Push(value)
+        if '($FIND(value,"^^")){
+            do contexts.%Push(value)
+        }
     }
 
     set name = ""
 
     // Using embedded for backwards compatability
-    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-    &sql(OPEN C1)
-        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-    &sql(FETCH C1)
-    while(SQLCODE = 0) {
-        set package = name
-        do contexts.%Push(package)
+    if '(onlyNamespaces) {
+        &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+        &sql(OPEN C1)
+            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
         &sql(FETCH C1)
+        while(SQLCODE = 0) {
+            set package = name
+            do contexts.%Push(package)
+            &sql(FETCH C1)
+        }
+        &sql(CLOSE C1)
     }
-    &sql(CLOSE C1)
 
     return contexts
 }
@@ -2820,6 +2829,47 @@ ClassMethod SetConfiguredRemote(url) As %String
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url)
     set output = outStream.ReadLine(outStream.Size)
     quit output
+}
+
+ClassMethod ConfigureFavoriteNamespaces(username As %String, favNamespaces As %String)
+{
+    set newNamespaces = [].%FromJSON(favNamespaces)
+    set namespaces = ..GetContexts(1)
+
+    set iterator = namespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        new $Namespace
+        set $Namespace = value
+        kill @..#Storage@("settings", "user", $username, "favNamespaces")
+        set @..#Storage@("settings", "user", $username, "favNamespaces") = favNamespaces
+    }
+
+    // Delete all the GIT favorite links for the user
+    set iterator = newNamespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set sql = "delete from %SYS_Portal.Users where Username='"_username_"' and Page like '%Git%'"
+        set statement = ##class(%SQL.Statement).%New()
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql)
+    }
+
+    set iterator = newNamespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set installNamespace = value
+        new $Namespace
+        set $Namespace = "%SYS"
+        set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
+            "select ID,?,? from Security.Users where ID='"_username_"'"
+        set caption = "Git: "_installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
+        set statement = ##class(%SQL.Statement).%New()
+        set statement.%SelectMode = 0
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link)
+        set caption = "Git Pull: "_installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE="_installNamespace
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link)
+        set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql)
+    }
 }
 
 }

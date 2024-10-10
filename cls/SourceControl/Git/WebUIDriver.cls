@@ -26,6 +26,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = {
                 "url": (..GetHomeURL())
             }
+        } elseif $extract(pagePath,6,*) = "remote" {
+            set responseJSON = ..GetRemote()   
         } elseif $extract(pagePath, 6, *) = "basic-and-default" {
             set responseJSON = {
                 "basic-and-default": (##class(SourceControl.Git.Utils).InDefaultBranchBasicMode())
@@ -409,6 +411,12 @@ ClassMethod GetHomeURL() As %String
         set prefix = $Piece(%request.Application,%request.AppMatch)
     }
     quit prefix_"/csp/sys/UtilHome.csp"
+}
+
+ClassMethod GetRemote() As %Library.DynamicObject
+{
+    set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
+    quit {"remote": (remote)}
 }
 
 }

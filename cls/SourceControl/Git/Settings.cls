@@ -119,8 +119,12 @@ Method %Save() As %Status
     } else {
         set @storage@("settings", "user", $username, "basicMode") = ..basicMode
     } 
+    try {
+        do $SYSTEM.Version.SystemMode(..environmentName)
+    } catch e {
+        // no-op; user might not have privileges.
+    }
 
-    do $SYSTEM.Version.SystemMode(..environmentName)
     
 
     // update value of basicUserMode to reflect the updated setting for basicMode
@@ -184,7 +188,6 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set list(3) = ""LIVE""")
             do %code.WriteLine(" set list(4) = ""FAILOVER""")
             do %code.WriteLine(" set list(5) = """"")
-            do %code.WriteLine(" set value = inst.environmentName")
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetArray("_promptQuoted_",.value,.list,,,,"_defaultPromptFlag_")")
         } else {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")

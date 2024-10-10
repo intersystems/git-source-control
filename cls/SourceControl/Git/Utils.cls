@@ -2475,28 +2475,32 @@ ClassMethod Localize()
     }
 }
 
-ClassMethod GetContexts() As %DynamicArray
+ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 {
     set contexts = []
     set namespaces = ..GetGitEnabledNamespaces()
     set ptr = 0
     while $listnext(namespaces,ptr,value) {
-        do contexts.%Push(value)
+        if '($FIND(value,"^^")){
+            do contexts.%Push(value)
+        }
     }
 
     set name = ""
 
     // Using embedded for backwards compatability
-    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-    &sql(OPEN C1)
-        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-    &sql(FETCH C1)
-    while(SQLCODE = 0) {
-        set package = name
-        do contexts.%Push(package)
+    if '(onlyNamespaces) {
+        &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+        &sql(OPEN C1)
+            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
         &sql(FETCH C1)
+        while(SQLCODE = 0) {
+            set package = name
+            do contexts.%Push(package)
+            &sql(FETCH C1)
+        }
+        &sql(CLOSE C1)
     }
-    &sql(CLOSE C1)
 
     return contexts
 }

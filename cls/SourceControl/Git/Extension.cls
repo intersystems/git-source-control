@@ -220,7 +220,8 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
     } elseif menuItemName = "Commit" {
         set Enabled = 1
         do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-        if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
+        set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+        if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) || (defaultBasic) {
             set Enabled = 0
         }
     } elseif ##class(SourceControl.Git.Utils).IsInSourceControl(itemName) {

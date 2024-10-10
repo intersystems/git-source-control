@@ -606,6 +606,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         })
     }
 
+    self.getEnvironment = function() {
+        $.get("api/environment", function(environment) {
+            var env = JSON.parse(environment)["environment"];
+            $("#environment").text(env)
+    
+        });
+    };
+
     self.changeContextGet = function() {
         $.get("contexts", function(contextList) {
             var contexts = JSON.parse(contextList);
@@ -974,6 +982,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     self.element = $(   '<div id="sidebar">' +
                             '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<h5 id="packageVersion"></h5>' +
+                            '<h4 id="environment"></h4>'+ 
                             '<div id="sidebar-content">' +
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
@@ -1051,6 +1060,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     }
     
     self.getPackageVersion();
+    self.getEnvironment()
     self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
     self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
     self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added 'git push --force' in expert mode (#527)
 - Add remote repository to settings page (#448)
+- Added environment awareness in configuration, and showing of environment name in UI (#124)
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)

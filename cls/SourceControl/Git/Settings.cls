@@ -53,6 +53,9 @@ Property namespaceLevelGitWebApp As %Boolean [ InitialExpression = {##class(Sour
 /// Warn when an item has uncommitted changes in a different namespace in this instance
 Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).WarnInstanceWideUncommitted()} ];
 
+/// The name of the environment (DEVELOPMENT, TEST, LIVE)
+Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).EnvironmentName()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Method %OnNew() As %Status
@@ -110,11 +113,19 @@ Method %Save() As %Status
     set @storage@("settings", "compileOnImport") = ..compileOnImport
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
     set @storage@("settings", "basicMode") = ..systemBasicMode
+    set @storage@("settings", "environmentName") = ..environmentName
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
         set @storage@("settings", "user", $username, "basicMode") = ..basicMode
     } 
+    try {
+        do $SYSTEM.Version.SystemMode(..environmentName)
+    } catch e {
+        // no-op; user might not have privileges.
+    }
+
+    
 
     // update value of basicUserMode to reflect the updated setting for basicMode
     set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
@@ -171,6 +182,13 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" if value = ""System's Default Mode"" { set value = ""system""}")
             do %code.WriteLine(" elseif value = ""Yes"" { set value = 1}")
             do %code.WriteLine(" elseif value = ""No"" { set value = 0}")
+        } elseif ((propertyDef) && (propertyDef.Name = "environmentName")) {
+            do %code.WriteLine(" set list(1) = ""DEVELOPMENT""")
+            do %code.WriteLine(" set list(2) = ""TEST""")
+            do %code.WriteLine(" set list(3) = ""LIVE""")
+            do %code.WriteLine(" set list(4) = ""FAILOVER""")
+            do %code.WriteLine(" set list(5) = """"")
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetArray("_promptQuoted_",.value,.list,,,,"_defaultPromptFlag_")")
         } else {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }

@@ -192,12 +192,12 @@ body {
 }
 #sidebar #sidebar-content h4 {
   vertical-align: baseline;
-  margin: 0.5em 0 0 0;
+  margin: 0.25em 0 0 0;
 }
 #sidebar #sidebar-content > section h4 {
   font-size: 125%;
   cursor: pointer;
-  padding: 10px 0;
+  padding: 5px 0;
 }
 #sidebar #sidebar-content #sidebar-workspace h4:before {
   content: url(../img/computer.svg);
@@ -230,7 +230,7 @@ body {
 }
 #sidebar #sidebar-content #sidebar-vscode {
   position: absolute;
-  bottom: 90px;
+  bottom: 70px;
   width: 16.7em;
   background-color: #333333;
 }
@@ -242,7 +242,7 @@ body {
 }
 #sidebar #sidebar-content #sidebar-context {
   position: absolute;
-  bottom: 50px;
+  bottom: 40px;
   width: 16.7em;
   background-color: #333333;
 }
@@ -266,7 +266,7 @@ body {
 }
 #sidebar #sidebar-content #sidebar-home {
   position: absolute;
-  bottom: 130px;
+  bottom: 100px;
   width: 16.7em;
   background-color: #333333;
 }

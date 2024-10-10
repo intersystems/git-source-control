@@ -985,13 +985,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                     '<h4>Discarded Files</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-local-branches">' +
-                                    '<h4 class="mt-3">Local Branches' +
+                                    '<h4 class="mt-1">Local Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
                                         webui.circlePlusIcon+
                                     '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
-                                    '<h4 class="mt-3">Remote Branches' +
+                                    '<h4 class="mt-1">Remote Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" >'+
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +

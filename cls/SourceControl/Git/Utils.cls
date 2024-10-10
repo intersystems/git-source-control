@@ -518,6 +518,10 @@ ClassMethod Sync(Msg As %String, Output alert As %String) As %Status
     if '..HasRemoteRepo() {
         write "No remote repository configured: skipping fetch, pull and push"
         do ..SyncCommit(Msg)
+    } elseif ..InDefaultBranchBasicMode() {
+        write "In Basic mode on default merge branch: skipping commit and push"
+        do ..Fetch()
+        do ..Pull()
     } else {
         do ..Fetch()
         do ..Pull()
@@ -2796,6 +2800,18 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         set sc = err.AsStatus()
     }
     return sc
+}
+
+// Returns true if the current branch is the default merge branch and we are in basic mode
+
+ClassMethod InDefaultBranchBasicMode() As %Boolean
+{
+    set basicMode = ..BasicMode()
+    set default = ..DefaultMergeBranch()
+    do ##class(SourceControl.Git.Utils).RunGitCommand("branch",.err,.out,"--show-current")
+    set current = out.ReadLine()
+    if (basicMode && (default = current)) { quit 1 }
+    quit 0
 }
 
 }

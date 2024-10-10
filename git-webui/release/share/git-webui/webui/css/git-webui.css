@@ -208,6 +208,9 @@ body {
 #sidebar #sidebar-content #sidebarDiscarded h4:before {
   content: url(../img/discarded.svg);
 }
+#sidebar #sidebar-content #sidebarDiscarded h4 {
+  border-bottom: 1px solid #5e5e5e;
+}
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
 }

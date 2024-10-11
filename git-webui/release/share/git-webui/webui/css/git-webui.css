@@ -903,6 +903,11 @@ body {
 #workspace-view .diff-line-offset {
   cursor: pointer;
 }
+#environment {
+  color: white;
+  font-size: 1em;
+  align-self: center;
+}
 #changedFilesContainer {
   max-width: 100% !important;
   margin: 0 10px;

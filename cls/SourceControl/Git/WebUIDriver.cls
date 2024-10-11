@@ -28,6 +28,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             }
         } elseif $extract(pagePath,6,*) = "remote" {
             set responseJSON = ..GetRemote()   
+        } elseif $extract(pagePath,6,*) = "environment" {
+            set responseJSON = {
+                "environment": (##class(SourceControl.Git.Utils).EnvironmentName()) 
+            }
         } elseif $extract(pagePath, 6, *) = "basic-and-default" {
             set responseJSON = {
                 "basic-and-default": (##class(SourceControl.Git.Utils).InDefaultBranchBasicMode())

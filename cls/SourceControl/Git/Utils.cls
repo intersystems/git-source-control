@@ -163,6 +163,16 @@ ClassMethod WarnInstanceWideUncommitted() As %Boolean
     quit $get(@..#Storage@("settings","warnInstanceWideUncommitted"),1)
 }
 
+ClassMethod EnvironmentName() As %String
+{
+    quit $SYSTEM.Version.SystemMode()
+}
+
+ClassMethod IsLIVE() As %Boolean
+{
+    quit ..EnvironmentName()="LIVE"
+}
+
 ClassMethod NeedSettings() As %Boolean [ CodeMode = expression ]
 {
 (..TempFolder() = "") || (..GitBinPath() = "") ||  (..GitBinPath() = """")
@@ -2566,7 +2576,7 @@ ClassMethod GetPackageVersion() As %String [ CodeMode = objectgenerator ]
     quit $$$OK
 }
 
-ClassMethod GetSourceControlInclude(prefix As %String = "") As %String
+ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As %String
 {
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src="""_prefix_"/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",

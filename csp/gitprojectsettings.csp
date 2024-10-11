@@ -130,6 +130,18 @@ body {
         }
             set i = i+1
         }
+
+        set i = 1
+        set contexts = []
+
+        while ( $Data(%request.Data("favNamespace",i)) ){
+        if ($Get(%request.Data("favNamespace",i)) '= "") {
+            do contexts.%Push($Get(%request.Data("favNamespace",i)))
+        }
+        set i = i+1
+        }
+
+        set settings.favoriteNamespaces = contexts
     }
     do settings.%Save()
 }
@@ -569,23 +581,14 @@ body {
             <div class="col-sm-7">
                 <select multiple class="form-control" id="addToFav" name="favNamespace">
                 <server>
-                    set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)
-                    set selectedNamespaces = [].%FromJSON(settings.favoriteNamespaces)
+                    set nonFavNamespaces = []
+                    set selectedNamespaces = []
+                    do ##class(SourceControl.Git.Utils).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
                     set iterator = selectedNamespaces.%GetIterator()
                     while iterator.%GetNext(.key, .value) {
                         &html<<option selected value=#(value)#>#(value)#</option>>
-                        set k = -1
-                        set citerator = contextList.%GetIterator()
-                        while citerator.%GetNext(.ckey, .cvalue) {
-                            if (cvalue = value) {
-                                set k = ckey
-                            }
-                        }
-                        if (k > -1) {
-                            do contextList.%Remove(k)
-                        }
                     }
-                    set iterator = contextList.%GetIterator()
+                    set iterator = nonFavNamespaces.%GetIterator()
                     while iterator.%GetNext(.key, .value) {   
                         &html<<option value=#(value)#>#(value)#</option>>
                     }

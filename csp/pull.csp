@@ -11,6 +11,7 @@
 <body>
 <pre for="contextSelect" style="padding-top: 2em;white-space: pre-wrap;">Change Context:  <select id="newContext" onchange="updateContext()">
 	<server>
+		set $NAMESPACE = %request.Data("$NAMESPACE",1)
 		set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)
         set iterator = contextList.%GetIterator()
 		&html<<option>Select</option>>
@@ -57,10 +58,8 @@ function execute() {
 }
 
 function updateContext() {
-    const contextSelect = document.getElementById('newContext');
-    const selectedContext = contextSelect.value;
-	
-	window.location.href = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" + selectedContext;
+    var contextSelect = document.getElementById('newContext');
+	window.location.href = "#(%request.URLPrefix)#/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" + contextSelect.value;
 }
 
 preview();

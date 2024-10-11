@@ -74,7 +74,9 @@ $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 
 ClassMethod FavoriteNamespaces() As %String
 {
-    quit $get(@..#Storage@("settings", "user", $username, "favNamespaces"),"")
+    set favNamespaces = []
+    do ..GetFavoriteNamespaces(.favNamespaces,[])
+    return favNamespaces
 }
 
 /// Returns the current (or previous) value of the flag.
@@ -2841,19 +2843,8 @@ ClassMethod SetConfiguredRemote(url) As %String
     quit output
 }
 
-ClassMethod ConfigureFavoriteNamespaces(username As %String, favNamespaces As %String)
+ClassMethod ConfigureFavoriteNamespaces(username As %String, newNamespaces As %String)
 {
-    set newNamespaces = [].%FromJSON(favNamespaces)
-    set namespaces = ..GetContexts(1)
-
-    set iterator = namespaces.%GetIterator()
-    while iterator.%GetNext(.key, .value) {
-        new $Namespace
-        set $Namespace = value
-        kill @..#Storage@("settings", "user", $username, "favNamespaces")
-        set @..#Storage@("settings", "user", $username, "favNamespaces") = favNamespaces
-    }
-
     // Delete all the GIT favorite links for the user
     set iterator = newNamespaces.%GetIterator()
     while iterator.%GetNext(.key, .value) {
@@ -2879,6 +2870,22 @@ ClassMethod ConfigureFavoriteNamespaces(username As %String, favNamespaces As %S
         do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link)
         set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
         do ##class(%SQL.Statement).%ExecDirect(statement,sql)
+    }
+}
+
+ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef nonFavNamespaces As %DynamicArray) {
+    set allNamespaces = ..GetContexts(1)
+    set iterator = allNamespaces.%GetIterator()
+
+    while iterator.%GetNext(.key, .value) {
+        set sql = "select * from %SYS_Portal.Users where username='"_$username_"' and page='Git: "_value_"'"
+        set statement = ##class(%SQL.Statement).%New()
+        set res = ##class(%SQL.Statement).%ExecDirect(statement,sql)
+        if (res.%Next()) {
+            do favNamespaces.%Push(value)
+        } else {
+            do nonFavNamespaces.%Push(value)
+        }
     }
 }
 

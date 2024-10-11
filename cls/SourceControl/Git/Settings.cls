@@ -58,7 +58,7 @@ Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(
 
 Property Mappings [ MultiDimensional ];
 
-Property favoriteNamespaces As %String [ InitialExpression = {##class(SourceControl.Git.Utils).FavoriteNamespaces()} ];
+Property favoriteNamespaces As %DynamicArray;
 
 Method %OnNew() As %Status
 {
@@ -71,10 +71,7 @@ Method %OnNew() As %Status
     if ('isDefault) {
         set ..gitBinPath = gitBinPath
     }
-    if ..favoriteNamespaces= "" {
-        set namespaces = ##class(SourceControl.Git.Utils).GetContexts(1)
-        set ..favoriteNamespaces = namespaces.%ToJSON()
-    }
+    set ..favoriteNamespaces = ##class(SourceControl.Git.Utils).FavoriteNamespaces()
     quit $$$OK
 }
 

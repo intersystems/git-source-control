@@ -81,6 +81,15 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         quit $$$OK
     }
 
+    if (menuItemName = "Commit") {
+        set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+        if (defaultBasic) {
+            Set Target = "WARNING: Please create a new branch before committing."
+            set Action = 6
+            quit $$$OK
+        }
+    }
+
     if (menuItemName = "Commit") || (menuItemName = "Sync") {
         if ..CheckCommitterIdentity(settings, .Action, .Target) {
             quit $$$OK
@@ -220,8 +229,7 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
     } elseif menuItemName = "Commit" {
         set Enabled = 1
         do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
-        set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
-        if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) || (defaultBasic) {
+        if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
         }
     } elseif ##class(SourceControl.Git.Utils).IsInSourceControl(itemName) {

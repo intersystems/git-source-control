@@ -7,7 +7,7 @@ Class SourceControl.Git.StreamServer Extends %CSP.StreamServer
 ClassMethod OnPage() As %Status
 {
     if (%stream '= $$$NULLOREF) && $data(%base)#2 {
-        set sourceControlInclude = ##class(SourceControl.Git.Utils).GetSourceControlInclude(%request.URLPrefix)
+        set sourceControlInclude = ##class(SourceControl.Git.Utils).GetSourceControlInclude()
         while '%stream.AtEnd {
             set text = %stream.Read()
             set text = $replace(text,"{{baseHref}}",..EscapeHTML(%base))

@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)
-- Fixed GetContexts utils function to return namespaces for WebUI(#468)
+- Fixed GetContexts utils function to return namespaces for WebUI (#468)
+- Fixed slowness loading some CSP pages with multiple instances sharing a webserver (#540)
 
 ## [2.6.0] - 2024-10-07
 

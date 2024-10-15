@@ -614,8 +614,8 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
     };
 
-    self.changeContextGet = function() {
-        $.get("contexts", function(contextList) {
+    self.changeContextGet = function(onlyNamespaces) {
+        $.get("contexts", { "onlyNamespaces": onlyNamespaces }, function(contextList) {
             var contexts = JSON.parse(contextList);
             self.changeContext(contexts);
         });
@@ -1050,7 +1050,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
-        $("#sidebar-context", self.element).click(self.changeContextGet);
+        $("#sidebar-context", self.element).click(function() {
+            self.changeContextGet(0);
+        });
         $("#sidebar-home", self.element).click(self.goToHomePage);
     }
 

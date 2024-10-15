@@ -2571,7 +2571,7 @@ ClassMethod GetPackageVersion() As %String [ CodeMode = objectgenerator ]
     quit $$$OK
 }
 
-ClassMethod GetSourceControlInclude(prefix As %String = "") As %String
+ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As %String
 {
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src="""_prefix_"/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",

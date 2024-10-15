@@ -34,6 +34,10 @@
 
 ## Basic Use
 
+### Source Control
+
+For this with less experience using source control, we recommend this [page](/docs/scintro.md) for a quick introduction to source control / change control basics.
+
 ### Health Connect Cloud (HCC)
 git-source control is the recommended source control for HCC. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CICD pipelining.
 

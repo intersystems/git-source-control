@@ -34,6 +34,9 @@
 
 ## Basic Use
 
+### Health Connect Cloud (HCC)
+git-source control is the recommended source control for HCC. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CICD pipelining.
+
 ### Studio
 Add a file for tracking by right-clicking on it in the workspace/project view and choosing Git &gt; Add.
 This same menu also has options to remove (stop tracking the file), discard changes (revert to the index), or commit changes.

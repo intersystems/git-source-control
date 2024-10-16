@@ -1345,7 +1345,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 // ideally we could just new %SourceControl, but Ens portal config pages do not use %SourceControl
                 new %gscSkipSaveHooks
                 set %gscSkipSaveHooks = 1
-                do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,,,,.targetProduction)
+                do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,,,,,.targetProduction)
                 if (targetProduction '= "") && '$$$comClassDefined(targetProduction) {
                     set sc = ##class(SourceControl.Git.Production).CreateProduction(targetProduction)
                 }

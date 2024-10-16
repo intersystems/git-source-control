@@ -149,6 +149,34 @@ ClassMethod ImportPTD(externalName As %String, productionName As %String) As %St
 	return sc
 }
 
+/// Imports all PTDs within a given directory. Also recursively imports from all subdirectories
+ClassMethod ImportPTDsDir(directory As %String, isDecompMethod As %String = "") As %Status
+{
+	set sc = $$$OK
+	set rs = ##class(%ResultSet).%New("%File:FileSet")
+	$$$ThrowOnError(rs.Execute(directory, "*.xml", "", 1))
+	$$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+	while rs.Next() {
+		set path = rs.Data("Name")
+		set type = rs.Data("Type")
+		if type = "D" {
+			set sc = ..ImportPTDsDir(path)
+		} else {
+			$$$ThrowOnError(..ParseExternalName(path, .internalName, .prodName))
+			set srcCtrlCls = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
+			set isDecomp = $select(isDecompMethod="":1, 1:$classMethod(srcCtrlCls, isDecompMethod, internalName))
+			if isDecomp {
+				set filename = ##class(%File).GetFilename(path)
+				if ($extract(filename) = "P") && '$$$comClassDefined(prodName) {
+					$$$ThrowOnError(..CreateProduction(prodName))
+				}
+				set sc = ..ImportPTD(path, prodName)
+			}
+		}
+	}
+	return sc
+}
+
 /// Export a single Production Config Item. For a given Ens.Config.Item, the 
 /// exports the PTD for this item to the file system under the directory specified
 ClassMethod ExportConfigItemSettings(productionClass As %String, item As %RegisteredObject, nameMethod As %String, Output internalName As %String) As %Status
@@ -270,10 +298,7 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
 /// Check if current CSP session is EnsPortal page
 ClassMethod IsEnsPortal() As %Boolean
 {
-	If $IsObject($Get(%session)) && ($Get(%request.Data("pageclass","1")) [ "EnsPortal") {
-		Return 1
-	}
-	Return 0
+	Return $Data(%request) && '($IsObject(%request) && (%request.UserAgent [ "Code"))
 }
 
 /// Perform check if Production Decomposition logic should be used for given item
@@ -334,7 +359,7 @@ ClassMethod ParseExternalName(externalName, Output internalName = "", Output pro
 /// - itemName: name of the configuration item
 /// - productionName: name of the associated production
 /// - isProdSettings: if true, this item is a production settings; if false, this item is a configuration item settings
-ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fileName, Output itemName, Output productionName, Output isProdSettings As %Boolean)
+ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fileName, Output itemName, Output itemClassName, Output productionName, Output isProdSettings As %Boolean)
 {
     set name = $piece(internalName,".",1,*-1)
     if 'noFolders {
@@ -394,11 +419,11 @@ ClassMethod RemoveItem(internalName, noFolders As %Boolean = 0) As %Status
         if '##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
             quit
         }
-        do ..ParseInternalName(internalName, noFolders, , .itemName, .productionName, .isProdSettings)
+        do ..ParseInternalName(internalName, noFolders, , .itemName, .itemClassName, .productionName, .isProdSettings)
         if 'isProdSettings {
             set production = ##class(Ens.Config.Production).%OpenId(productionName,,.sc)
             quit:$$$ISERR(sc)
-            set configItem = production.OpenItemByConfigName(itemName,.sc)
+            set configItem = ##class(Ens.Config.Production).OpenItemByConfigName(productionName_"||"_itemName_"|"_itemClassName,.sc)
             quit:$$$ISERR(sc)
             do production.RemoveItem(configItem)
             set sc = production.%Save()

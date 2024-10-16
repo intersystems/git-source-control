@@ -211,10 +211,10 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
 {
     kill modifiedItems
     set productionName = $piece(internalName,".",1,*-1)
+    set productionConfig = ##class(Ens.Config.Production).%OpenId(productionName)
     if ..IsEnsPortal() {
         // If editing from SMP, get the modified items by looking at %IsModified on the items in the production in memory.
         // No way to know if an item has been added or deleted, so ignore it.
-        set productionConfig = ##class(Ens.Config.Production).%OpenId(productionName)
         if $isobject(productionConfig) {
             set modifiedItem = $$$NULLOREF
             for i=1:1:productionConfig.Items.Count() {
@@ -244,8 +244,15 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
             set modifiedItems(modifiedInternalName) = "M"
         }
     } else {
-        // If editing/adding/deleting from Studio, get the modified items by comparing the XDATA in Location with the XDATA in the compiled class.
-        // FUTURE: implement this to support Studio
+        // FUTURE: get the actually modified items by comparing the XDATA in Location with the XDATA in the compiled class
+        // If making changes from Studio, list every item in the production.
+        if $isobject(productionConfig) {
+            set modifiedItems(..CreateInternalName(productionName,,,1)) = "M"
+            for i=1:1:productionConfig.Items.Count() {
+                set item = productionConfig.Items.GetAt(i)
+                set modifiedItems(..CreateInternalName(productionName, item.Name, item.ClassName, 0)) = "M"
+            }
+        }
     }
     // populate data for use in OnAfterSave
     kill ^IRIS.Temp("sscProd",$job,"modifiedItems")
@@ -290,8 +297,16 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
             merge modifiedItems = ^IRIS.Temp("sscProd",$job,"modifiedItems")
         }
     } else {
-        // If editing/adding/deleting from Studio, get the modified items from a percent variable set in OnBeforeSave.
-        // FUTURE: implement this to support Studio.
+        // If editing in the IDE, list every item in the production.
+        // FUTURE: get the actually modified items using the temp global set in OnBeforeSave
+        set productionConfig = ##class(Ens.Config.Production).%OpenId(productionName)
+        if $isobject(productionConfig) {
+            set modifiedItems(..CreateInternalName(productionName,,,1)) = "M"
+            for i=1:1:productionConfig.Items.Count() {
+                set item = productionConfig.Items.GetAt(i)
+                set modifiedItems(..CreateInternalName(productionName, item.Name, item.ClassName, 0)) = "M"
+            }
+        }
     }
 }
 

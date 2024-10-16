@@ -1,48 +1,39 @@
-# git-source-control for Health Connect Cloud
+# git-source-control for Health Connect Cloud Overview
 
 ## Development Workflow
 
-git-source-control has two main use modes: Basic and Expert. For Health Connect Cloud, we recommend beginning with basic mode, since it includes all of the necessary functionality for proper source control development while being easy to use for those with little development / source control experience. The recommended workflow for HCC is to create featyre branches, merge them into development, and then git pull the changes in the shared development namespace. The rest of this section explains this workflow more in depth for those with less source control experience. 
+git-source-control has two main use modes: Basic and Expert. For Health Connect Cloud, we recommend beginning with basic mode, since it includes all of the necessary functionality for proper source control development while being easy to use for those with little development / source control experience. The recommended workflow for Health Connect Cloud is to create interface branches, create merge requests into development, and then pull the changes into the shared development namespace. The rest of this section explains this workflow more in depth for those with less source control experience. 
 
-### Feature branches
 
-The first step in making changes in Health Connect Cloud using git-source-control is making a feature branch. In order for changes to be tracked by source control properly, each change (also called a feature) should be made on it's own branch, so as to not interfere with other changes, and allow for testing of its effects on the production environment. To create a new feature branch, navigate to the Git UI in the namespace you plan on doing development. 
+### Interface branches
 
-First, make sure that you are in the development branch. It should be bolded and at the top of the Local Branches in the sidebar. If it is not, as pictured below, click on the "development" branch and press checkout branch.
+The first step in making changes in Health Connect Cloud using git-source-control is making an interface (feature) branch. In order for changes to be tracked by source control properly, each change (also called a feature) should be made on it's own branch, so as to not interfere with other changes, and allow for testing of its effects on the production environment. To create a new feature branch, use the source control menu and select "Create new branch".
 
-![Development branch in Git UI Sidebar](images/hcc/developmentsidebar.png)
+![Creating a new branch](images/hcc/newbranchmenu.png)
 
-Once you are in the development branch, press the "+" next the the Local Branches tab, and create a new branch by typing out a name for it. (No spaces or special characters are allowed in branch names).
+You will be prompted to enter a name for your new branch (no spaces or special characters), after which your environment will switch to that new branch. All new branches are fresh copies of the development branch.
 
-![Creating a new via sidebar](images/hcc/newbranch.png)
-![Naming new branch](images/hcc/newbranchnaming.png)
+### Making changes
 
-Finally, you should click on the new branch you just made in the sidebar, and then press "Push".
+Now that you are in your new branch (you can see which branch you are in in the source control menu), you can start making changes. As you make changes to different business processes, rules, and productions, make sure that all of these changes are saved properly before you try to sync and merge.
 
-![Push your new branch](images/hcc/pushbranch.png)
+### Syncing and Merge Requests
 
-This makes sure that your branch will be tracked in Gitlab, so that other users can checkout your branch to test your changes on their own namespaces.
+Once you have made all the changes for the specific feature you are working on, and have tested in your namespace, it will be time to merge all of these changes into the development branch.
 
-After this, you can start working on the change.
+To start, press the sync button from the source control menu. 
 
-### Merge Requests
+![Sync option in menu](images/hcc/sync.png)
 
-Once you have made all the changes for the specific feature you are working on, and have tested in your namespace, it will be time to merge all of these changes into the development branch. To start, make sure that all your changes have been commited to your feature branch. To do this, navigate to the Git UI, and after making sure you are in the right feature branch, press the "Workspace" tab at the top of the sidebar. 
+This will bring up the sync interface, where you are able to see all the of the files you have changed, as well as add a descriptive comment for the changes you made. When you sync, these changes will be pushed to the git remote.
 
-![Workspace tab in the sidebar](images/hcc/sidebar.png)
+![Sync Interface](images/hcc/syncinterface.png)
 
-This will bring you to the workspace view. All the changes you made to files should be in the bottom left of the workspace view. ![Changed files in workspace](images/hcc/workspacechanges.png)
+Use the link in the output of the sync in order to create a merge request in the git remote (don't worry if you close out of the sync tab, you can also navigate to GitLab manually). Here, you should make sure that you are merging your interface branch into the development environment, and notify / add the relevant reviewers. Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development.
 
-Clicking on one of these files will bring up a line by line view of the changes that have been made. Make sure that these are the changes you want to make, and then select all the files. Next, enter a commit message that should describe that changes that have been made. 
+### Pull
 
-![Enter commit message](images/hcc/commitmessage.png)
-
-You can enter more details below, and then press the commit button underneath. This will commit the changes you have made to your feature branch. Once all of your changes have been committed, you should be ready to merge into the development branch.
-
-In the Git UI, first checkout the development branch, by selecting it from the Local Branches and pressing "Checkout branch". Next, find the feature branch that you have been working on, select it from the local branches, and press "Merge Branch". 
-
-![Merge Branch](images/hcc/mergebranch.png)
-
+In for the changes in development to be reflected in your namespace, you should swicth to the development namespace from the GitUI, and then access the git pull page (from the favorites bar), and pull any changes. You should see the changes you made now reflected in your local namespace again. It is good practice to git pull every once in a while to make sure that your local development branch is up to date with all of the changes made to the remote development.
 
 
 

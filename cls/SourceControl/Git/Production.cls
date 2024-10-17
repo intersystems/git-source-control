@@ -111,6 +111,22 @@ ClassMethod ExportProjectForPTD(productionClass, ptdName, exportPath) As %Status
         set projContentsList(exportNotesPTDName_".PTD") = ""
         set projContentsList(project.Name_".PRJ") = ""
         $$$ThrowOnError($System.OBJ.Export(.projContentsList, exportPath, "/diffexport=1"))
+        // remove the LastModified timestamp from the exported file
+        set fileStream = ##class(%Stream.FileCharacter).%OpenId(exportPath,,.st)
+        $$$ThrowOnError(st)
+        set fileCopy = ##class(%Stream.TmpCharacter).%New()
+        set timestampFound = 0
+        while 'fileStream.AtEnd {
+            set line = fileStream.ReadLine()
+            set regex = ##class(%Regex.Matcher).%New("\<Project name="".*"" LastModified=""(.*)""\>")
+            if 'timestampFound && regex.Match(line) {
+                set timestampFound = 1
+                set timestamp = regex.Group(1)
+                set line = $replace(line, timestamp, "1841-01-01 00:00:00.0000000")
+            }
+            do fileCopy.WriteLine(line)
+        }
+        $$$ThrowOnError(fileStream.CopyFromAndSave(fileCopy))
     } catch err {
         set st = err.AsStatus()
     }

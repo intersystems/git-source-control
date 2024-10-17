@@ -10,11 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added 'git push --force' in expert mode (#527)
 - Add remote repository to settings page (#448)
+- Added change context option to pull page (#468)
+- Added favorite namespaces setting for a user (#468, #510) 
 - Added environment awareness in configuration, and showing of environment name in UI (#124)
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)
 - Fixed slowness loading some CSP pages with multiple instances sharing a webserver (#540)
+- Fixed GetContexts utils function to exclude implied namespaces from the list of namespaces(#468)
 
 ## [2.6.0] - 2024-10-07
 

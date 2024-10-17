@@ -72,6 +72,13 @@ ClassMethod SettingsUIReadOnly() As %Status [ CodeMode = expression ]
 $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 }
 
+ClassMethod FavoriteNamespaces() As %String
+{
+    set favNamespaces = []
+    do ..GetFavoriteNamespaces(.favNamespaces,[])
+    return favNamespaces
+}
+
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {
@@ -2485,28 +2492,32 @@ ClassMethod Localize()
     }
 }
 
-ClassMethod GetContexts() As %DynamicArray
+ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 {
     set contexts = []
     set namespaces = ..GetGitEnabledNamespaces()
     set ptr = 0
     while $listnext(namespaces,ptr,value) {
-        do contexts.%Push(value)
+        if '($FIND(value,"^^")){
+            do contexts.%Push(value)
+        }
     }
 
     set name = ""
 
     // Using embedded for backwards compatability
-    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-    &sql(OPEN C1)
-        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-    &sql(FETCH C1)
-    while(SQLCODE = 0) {
-        set package = name
-        do contexts.%Push(package)
+    if '(onlyNamespaces) {
+        &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+        &sql(OPEN C1)
+            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
         &sql(FETCH C1)
+        while(SQLCODE = 0) {
+            set package = name
+            do contexts.%Push(package)
+            &sql(FETCH C1)
+        }
+        &sql(CLOSE C1)
     }
-    &sql(CLOSE C1)
 
     return contexts
 }
@@ -2830,6 +2841,52 @@ ClassMethod SetConfiguredRemote(url) As %String
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url)
     set output = outStream.ReadLine(outStream.Size)
     quit output
+}
+
+ClassMethod ConfigureFavoriteNamespaces(username As %String, newNamespaces As %String)
+{
+    // Delete all the GIT favorite links for the user
+    set iterator = newNamespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set sql = "delete from %SYS_Portal.Users where Username='"_username_"' and Page like '%Git%'"
+        set statement = ##class(%SQL.Statement).%New()
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql)
+    }
+
+    set iterator = newNamespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set installNamespace = value
+        new $Namespace
+        set $Namespace = "%SYS"
+        set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
+            "select ID,?,? from Security.Users where ID='"_username_"'"
+        set caption = "Git: "_installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
+        set statement = ##class(%SQL.Statement).%New()
+        set statement.%SelectMode = 0
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link)
+        set caption = "Git Pull: "_installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE="_installNamespace
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link)
+        set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
+        do ##class(%SQL.Statement).%ExecDirect(statement,sql)
+    }
+}
+
+ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef nonFavNamespaces As %DynamicArray) {
+    set allNamespaces = ..GetContexts(1)
+    set iterator = allNamespaces.%GetIterator()
+
+    while iterator.%GetNext(.key, .value) {
+        set sql = "select * from %SYS_Portal.Users where username='"_$username_"' and page='Git: "_value_"'"
+        set statement = ##class(%SQL.Statement).%New()
+        set res = ##class(%SQL.Statement).%ExecDirect(statement,sql)
+        if (res.%Next()) {
+            do favNamespaces.%Push(value)
+        } else {
+            do nonFavNamespaces.%Push(value)
+        }
+    }
 }
 
 }

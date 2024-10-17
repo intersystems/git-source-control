@@ -58,6 +58,8 @@ Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(
 
 Property Mappings [ MultiDimensional ];
 
+Property favoriteNamespaces As %DynamicArray;
+
 Method %OnNew() As %Status
 {
     set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
@@ -69,6 +71,7 @@ Method %OnNew() As %Status
     if ('isDefault) {
         set ..gitBinPath = gitBinPath
     }
+    set ..favoriteNamespaces = ##class(SourceControl.Git.Utils).FavoriteNamespaces()
     quit $$$OK
 }
 
@@ -130,9 +133,11 @@ Method %Save() As %Status
     // update value of basicUserMode to reflect the updated setting for basicMode
     set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
     
-
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
+    
+    do ##class(SourceControl.Git.Utils).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
+
     quit $$$OK
 }
 
@@ -163,6 +168,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
         continue:property="userBasicMode"
+        continue:property="favoriteNamespaces"
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")

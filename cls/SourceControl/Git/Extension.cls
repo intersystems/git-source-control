@@ -81,6 +81,15 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         quit $$$OK
     }
 
+    if (menuItemName = "Commit") {
+        set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+        if (defaultBasic) {
+            Set Target = "WARNING: Please create a new branch before committing."
+            set Action = 6
+            quit $$$OK
+        }
+    }
+
     if (menuItemName = "Commit") || (menuItemName = "Sync") {
         if ..CheckCommitterIdentity(settings, .Action, .Target) {
             quit $$$OK

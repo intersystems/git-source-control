@@ -32,6 +32,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = {
                 "environment": (##class(SourceControl.Git.Utils).EnvironmentName()) 
             }
+        } elseif $extract(pagePath, 6, *) = "basic-and-default" {
+            set responseJSON = {
+                "basic-and-default": (##class(SourceControl.Git.Utils).InDefaultBranchBasicMode())
+            }    
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}

@@ -219,6 +219,9 @@ body {
 #sidebar #sidebar-content #sidebar-switch-branches h4:before {
   content: url(../img/branch.svg);
 }
+#sidebar #sidebar-content #space-filler {
+  padding-bottom: 50px;
+}
 #sidebar #sidebar-content #sidebar-tags h4:before {
   content: url(../img/tag.svg);
 }
@@ -227,49 +230,53 @@ body {
 }
 #sidebar #sidebar-content #sidebar-vscode h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-vscode h4:before {
   content: url(../img/file.svg);
 }
 #sidebar #sidebar-content #sidebar-vscode {
   position: absolute;
-  bottom: 70px;
+  bottom: 60px;
   width: 16.7em;
   background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-context h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-context h4:before {
   content: url(../img/context.svg);
 }
 #sidebar #sidebar-content #sidebar-context {
   position: absolute;
-  bottom: 40px;
+  bottom: 30px;
   width: 16.7em;
   background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-settings h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-settings h4:before {
   content: url(../img/gear-fill.svg);
 }
 #sidebar #sidebar-content #sidebar-settings {
   position: absolute;
-  bottom: 10px;
+  bottom: 0;
   width: 16.7em;
   background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-home h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-home h4:before {
   content: url(../img/home.svg);
 }
 #sidebar #sidebar-content #sidebar-home {
   position: absolute;
-  bottom: 100px;
+  bottom: 90px;
   width: 16.7em;
   background-color: #333333;
 }

@@ -1008,6 +1008,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
+                                '<section id="space-filler"></section>'+
                                 '<section id="sidebar-settings">' +
                                     '<h4>Settings</h4>' +
                                 '</section>' +

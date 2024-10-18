@@ -17,7 +17,7 @@ Method OnPull() As %Status
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } elseif (..ModifiedFiles(i).changeType = "D") {
-            set delSC = ..DeleteFile(internalName)
+            set delSC = ..DeleteFile(internalName, ..ModifiedFiles(i).externalName)
             if delSC {
                 write !, ..ModifiedFiles(i).externalName, " was deleted."
             } else {
@@ -43,20 +43,34 @@ Method OnPull() As %Status
     quit sc
 }
 
-Method DeleteFile(item As %String) As %Status
+Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
 {
     set sc = $$$OK
-    set type = ##class(SourceControl.Git.Utils).Type(item)
+    set type = $select(
+        ##class(SourceControl.Git.Util.Production).ItemIsPTD(externalName): "ptd",
+        1: ##class(SourceControl.Git.Utils).Type(item)
+    )
     set name = ##class(SourceControl.Git.Utils).NameWithoutExtension(item)
+    set settings = ##class(SourceControl.Git.Settings).%New()
     set deleted = 1
     if type = "prj" {
         set sc = $system.OBJ.DeleteProject(name)
     }elseif type = "cls" {
-        set sc = $system.OBJ.Delete(item)
+        if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(name) {
+            write !, "Production decomposition enabled, skipping delete of production class"
+        } else {
+            set sc = $system.OBJ.Delete(item)
+        }
     }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
         set sc = ##class(%Routine).Delete(item)
     }elseif type = "csp" {
         set sc = $System.CSP.DeletePage(item)
+    } elseif settings.decomposeProductions && (type = "ptd") {
+        set normalizedFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Utils).TempFolder()_externalName)
+        set sc = ##class(%SYSTEM.Status).AppendStatus(
+            ##class(SourceControl.Git.Production).RemoveItemByExternalName(normalizedFilePath,"FullExternalName"),
+            ##class(%Library.RoutineMgr).Delete(item)
+        )
     }elseif ##class(SourceControl.Git.Utils).UserTypeCached(item) {
         set sc = ##class(%Library.RoutineMgr).Delete(item)
     } else {
@@ -64,8 +78,10 @@ Method DeleteFile(item As %String) As %Status
     }
     
     if deleted && $$$ISOK(sc) {
-        do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
-        kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
+        if (item '= "") {
+            do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
+            kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
+        }
     } else {
         if +$system.Status.GetErrorCodes(sc) = $$$ClassDoesNotExist {
             // if something we wanted to delete is already deleted -- good!

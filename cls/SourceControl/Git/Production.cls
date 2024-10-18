@@ -329,7 +329,8 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
 /// Check if current CSP session is EnsPortal page
 ClassMethod IsEnsPortal() As %Boolean
 {
-	Return $Data(%request) && '($IsObject(%request) && (%request.UserAgent [ "Code"))
+	Return $Data(%request) && '($IsObject(%request) && 
+        ((%request.UserAgent [ "Code") || (%request.UserAgent [ "node-fetch")))
 }
 
 /// Perform check if Production Decomposition logic should be used for given item

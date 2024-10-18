@@ -13,6 +13,7 @@ ClassMethod Run()
 {
 	If %request.Get("method") = "preview" {
 		Set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
+		Write !,"Current namespace: ",$NAMESPACE
 		Write !,"Current branch: ",branchName
 		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
 		Kill errStream, outStream

@@ -79,12 +79,14 @@ body {
  set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
  set settings = ##class(SourceControl.Git.Settings).%New()
+ set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
+ /// After Save
  if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
     for param="gitUserName","gitUserEmail" {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
     if ('settings.settingsUIReadOnly) {
-        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch" {
+        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName" {
             set $Property(settings,param) = $Get(%request.Data(param,1))
         }
 
@@ -92,6 +94,12 @@ body {
             set settings.mappedItemsReadOnly = 1
         } else {
             set settings.mappedItemsReadOnly = 0
+        }
+
+        set newRemote = $Get(%request.Data("remoteRepo",1))
+        // If entry was modified, set new remote repo
+        if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
+            do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
         }
 
         set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
@@ -309,6 +317,20 @@ body {
         </div>
 
         <div class="form-group row mb-3">
+            <label for="environmentName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Environment Name">Environment Name</label>
+            <div class="col-sm-7">
+                <select class="form-control" id="environmentName" name="environmentName">
+                    <server>
+                        for envName = "TEST","DEVELOPMENT","LIVE","FAILOVER","" {
+                            // create option with envName, set selected if envName == current environmentName
+                            &html<<option #($CASE(envName, settings.environmentName: "selected", :""))# value=#(envName)#>#(envName)# </option>>
+                        }
+                    </server>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
             <label for="percentClassReplace" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed.">'%' Replacement on Export</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="percentClassReplace" name="percentClassReplace" value='#(..EscapeHTML(settings.percentClassReplace))#' placeholder="_, __, <empty>, etc."/>
@@ -340,6 +362,16 @@ body {
             <label for="defaultMergeBranch" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="In basic mode, the Sync operation will merge changes from this remote branch (leave blank for no branch)">Default merge branch</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="defaultMergeBranch" name="defaultMergeBranch" value='#(..EscapeHTML(settings.defaultMergeBranch))#' placeholder="sample-remote-branch">
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository">Remote Repository</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML(remote))#' placeholder="ex. git@github.com:User/UserRepo.git"/>
+                <div class = "neutral-feedback">
+                    (Username is redacted)
+                </div>
             </div>
         </div>
         

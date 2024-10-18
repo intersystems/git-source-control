@@ -26,6 +26,12 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = {
                 "url": (..GetHomeURL())
             }
+        } elseif $extract(pagePath,6,*) = "remote" {
+            set responseJSON = ..GetRemote()   
+        } elseif $extract(pagePath,6,*) = "environment" {
+            set responseJSON = {
+                "environment": (##class(SourceControl.Git.Utils).EnvironmentName()) 
+            }
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -405,6 +411,12 @@ ClassMethod GetHomeURL() As %String
         set prefix = $Piece(%request.Application,%request.AppMatch)
     }
     quit prefix_"/csp/sys/UtilHome.csp"
+}
+
+ClassMethod GetRemote() As %Library.DynamicObject
+{
+    set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
+    quit {"remote": (remote)}
 }
 
 }

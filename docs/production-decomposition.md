@@ -6,7 +6,12 @@ The feature may be enabled by checking the "Decompose Productions" box in the Gi
 
 If there are existing productions in the namespace, they should be migrated to the new decomposed format by running `do ##class(SourceControl.Git.API).BaselineProductions()`. You may then use the Git Web UI to view, commit, and push the corresponding changes. This method should be run in a single namespace and then deployed to other namespaces through normal git-source-control deployment mechanisms.
 
+## Editing productions in the IDE
+There are a couple of limitations related to editing a production class directly in an integrated development environment (Studio or VS Code).
+- Any elements of the class definition other than the production definition (for example, methods, parameters, or a custom superclass) are not source controlled if production decomposition is enabled. A recommended workaround is to move these items to a separate utility class.
+- The hooks in the IDE are not able to detect which specific production items are being edited. As a result, if any item has an uncommitted change from a different user, you will be blocked from editing the production in the IDE entirely.
+As a result of these limitations, editing decomposed productions in the IDE is prohibited by default. To enable it, enable the "Decomposed Productions Allow IDE" setting on the settings page.
+
 ## Known Limitations
-- The source control hooks for Production Decomposition are currently only supported when editing via the Interoperability Portal. Editing the production class directly in VS Code or Studio may overwrite other users' changes.
 - Any custom methods, parameters, etc. in the production class will not be source controlled if Production Decomposition is enabled. A recommended workaround is to move these items to a separate utility class.
 - Production Decomposition is not supported for deployment of changes to productions using the InterSystems Package Manager.

@@ -26,6 +26,9 @@ Property settingsUIReadOnly As %Boolean [ InitialExpression = {##class(SourceCon
 /// Interoperability productions are source-controlled under separate files for each configuration item
 Property decomposeProductions As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).DecomposeProductions()} ];
 
+/// Allow editing a decomposed production class in an IDE
+Property decomposeProdAllowIDE As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).DecomposeProdAllowIDE()} ];
+
 /// Attribution: Git username for user ${username}
 Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()} ];
 
@@ -156,6 +159,7 @@ Method %Save() As %Status
     if (..decomposeProductions & ($data(..Mappings("PTD"))<10)) {
         set ..Mappings("PTD","*") = "ptd/" // configure a default mapping for PTD items
     }
+    set @storage@("settings","decomposeProdAllowIDE") = ..decomposeProdAllowIDE
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings

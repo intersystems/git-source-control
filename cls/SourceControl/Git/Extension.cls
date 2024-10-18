@@ -408,7 +408,11 @@ ClassMethod FullExternalName(InternalName As %String) As %String
 
 Method IsReadOnly(InternalName As %String) As %Boolean
 {
-    quit ##class(SourceControl.Git.Utils).Locked()
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    quit ##class(SourceControl.Git.Utils).Locked() 
+        || (##class(SourceControl.Git.Utils).ItemIsProductionToDecompose($get(InternalName))
+            && 'settings.decomposeProdAllowIDE
+            && '##class(SourceControl.Git.Production).IsEnsPortal())
 }
 
 /// Called before the item is saved to the database it is passed
@@ -439,7 +443,7 @@ Method OnBeforeSave(InternalName As %String, Location As %String = "", Object As
 Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(.InternalName)
-    set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
+    set Editable='..IsReadOnly($get(InternalName)),IsCheckedOut=1,UserCheckedOut=""
     set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
     set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
     if filename="" quit $$$OK
@@ -505,4 +509,3 @@ Method CheckCommitterIdentity(Settings As SourceControl.Git.Settings, ByRef Acti
 }
 
 }
-

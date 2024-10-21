@@ -192,12 +192,12 @@ body {
 }
 #sidebar #sidebar-content h4 {
   vertical-align: baseline;
-  margin: 0.5em 0 0 0;
+  margin: 0.25em 0 0 0;
 }
 #sidebar #sidebar-content > section h4 {
   font-size: 125%;
   cursor: pointer;
-  padding: 10px 0;
+  padding: 5px 0;
 }
 #sidebar #sidebar-content #sidebar-workspace h4:before {
   content: url(../img/computer.svg);
@@ -208,6 +208,9 @@ body {
 #sidebar #sidebar-content #sidebarDiscarded h4:before {
   content: url(../img/discarded.svg);
 }
+#sidebar #sidebar-content #sidebarDiscarded h4 {
+  border-bottom: 1px solid #5e5e5e;
+}
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
 }
@@ -215,6 +218,9 @@ body {
 #sidebar #sidebar-content #sidebar-remote-branches h4:before,
 #sidebar #sidebar-content #sidebar-switch-branches h4:before {
   content: url(../img/branch.svg);
+}
+#sidebar #sidebar-content #space-filler {
+  padding-bottom: 50px;
 }
 #sidebar #sidebar-content #sidebar-tags h4:before {
   content: url(../img/tag.svg);
@@ -224,49 +230,53 @@ body {
 }
 #sidebar #sidebar-content #sidebar-vscode h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-vscode h4:before {
   content: url(../img/file.svg);
 }
 #sidebar #sidebar-content #sidebar-vscode {
   position: absolute;
-  bottom: 90px;
+  bottom: 60px;
   width: 16.7em;
   background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-context h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-context h4:before {
   content: url(../img/context.svg);
 }
 #sidebar #sidebar-content #sidebar-context {
   position: absolute;
-  bottom: 50px;
+  bottom: 30px;
   width: 16.7em;
   background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-settings h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-settings h4:before {
   content: url(../img/gear-fill.svg);
 }
 #sidebar #sidebar-content #sidebar-settings {
   position: absolute;
-  bottom: 10px;
+  bottom: 0;
   width: 16.7em;
   background-color: #333333;
 }
 #sidebar #sidebar-content #sidebar-home h4 {
   padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-home h4:before {
   content: url(../img/home.svg);
 }
 #sidebar #sidebar-content #sidebar-home {
   position: absolute;
-  bottom: 130px;
+  bottom: 90px;
   width: 16.7em;
   background-color: #333333;
 }

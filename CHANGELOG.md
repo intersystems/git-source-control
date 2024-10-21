@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed git path configuration (#463)
 - Added feedback to settings page (#550)
 - Fix "Home" navigation to point to current namespace (#548)
+- Fixed issues when user checks out nonexistent branch (#549)
 
 ## [2.6.0] - 2024-10-07
 

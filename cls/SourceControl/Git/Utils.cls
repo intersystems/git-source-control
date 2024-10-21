@@ -327,7 +327,10 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
         }
     } elseif (menuItemName = "SwitchBranch") {
         if (Answer = 1) {
-            do ..SwitchBranch(Msg)
+            set status = ..SwitchBranch(Msg)
+            if $$$ISERR(status) {
+                Quit status
+            }
             set Reload = 1
         }
     } elseif (menuItemName = "Sync") {
@@ -400,6 +403,13 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
+    // Make sure that branch exists first
+    do ..RunGitWithArgs(.errStream,.outStream,"local-branches","branch", "--verbose")
+    set branches = outStream.Read()
+    if ('$find(branches,targetBranchName)) {
+        quit $$$ERROR($$$GeneralError, "Branch does not exist")
+    }
+    k outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
     quit $$$OK

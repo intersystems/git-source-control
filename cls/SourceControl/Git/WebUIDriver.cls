@@ -414,7 +414,7 @@ ClassMethod GetHomeURL() As %String
     if $IsObject($Get(%request)) {
         set prefix = $Piece(%request.Application,%request.AppMatch)
     }
-    quit prefix_"/csp/sys/UtilHome.csp"
+    quit prefix_"/csp/sys/UtilHome.csp?$NAMESPACE="_$namespace
 }
 
 ClassMethod GetRemote() As %Library.DynamicObject

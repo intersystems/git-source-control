@@ -68,6 +68,27 @@ body {
     padding-left: 4px;
 }
 
+.alert {
+  padding: 20px;
+  background-color: #04AA6D;;
+  color: white;
+}
+
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
 </style>
 </head>
 <body>
@@ -134,7 +155,13 @@ body {
     do settings.%Save()
 }
 </server>
-<div class = 'container'>    
+<div class = 'container'>
+    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
+        <div class = "alert" style="display: 'none'">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+        <strong>Success!</strong> Your changes have been saved.
+    </div>
+    </csp:if>
     <form id="settingsForm" method='post'>
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
@@ -574,9 +601,6 @@ body {
         </div>
         
     </form>
-    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
-        <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
-    </csp:if>
 </div>
 <script src="js/polyfills.js"></script>
 <script src="js/jquery.min.js"></script>

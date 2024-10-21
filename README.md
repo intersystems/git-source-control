@@ -1,5 +1,5 @@
 # git-source-control
- Server-side source control extension for Git on InterSystems' platforms
+Embedded Git support for InterSystems platforms, supporting unified source control for changes made via IDEs (e.g., VSCode over isfs) and the Management Portal (Interoperability and Business Intelligence).
 
 ## Prerequisites/Dependencies
 
@@ -7,6 +7,10 @@
 * Git 2.31.0+
 * OpenSSH 7.6+
 * InterSystems package manager (https://openexchange.intersystems.com/package/ObjectScript-Package-Manager)
+
+## Support
+
+If you find a bug or would like to request an enhancement, [report an issue](https://github.com/intersystems/git-source-control/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Git" and "Source Control" tags as appropriate.
 
 ## Installation and Setup
 
@@ -115,8 +119,6 @@ Assuming you have the local and remote repositories created,
 7. Change the default `ssh` command in the git config for **your repository** as:
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
-
-
 
 ## During Development
 

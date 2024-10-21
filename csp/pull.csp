@@ -9,7 +9,7 @@
 <link rel="stylesheet" type="text/css" href="css/git-webui.css" />
 </head>
 <body>
-<pre for="contextSelect" style="padding-top: 2em;white-space: pre-wrap;">Change Context:  <select id="newContext" onchange="updateContext()">
+<pre for="contextSelect" style="padding-top: 2em;white-space: pre-wrap;height: 60px;">Change Context:  <select id="newContext" onchange="updateContext()">
 	<server>
 		set $NAMESPACE = %request.Data("$NAMESPACE",1)
 		set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)

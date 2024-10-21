@@ -354,7 +354,8 @@ Method ConfigureBinPath(ByRef path As %String) As %Boolean
     // Sometimes path is quoted 
     set path = $replace(path,"""","")
     if (##class(%File).DirectoryExists(path)) {
-        set path = ##class(%File).Construct(path, "git.exe")
+        set gitFile = $case($zversion(1),2:"git.exe",3:"git",0:"git")
+        set path = ##class(%File).Construct(path, gitFile)
     } 
     
     if (##class(%File).Exists(path)) {

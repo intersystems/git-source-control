@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix left-sidebar spacing (#525)
 - Fixed slowness loading some CSP pages with multiple instances sharing a webserver (#540)
 - Prevent direct commits to default merge branch in basic mode (#484)
+- Fix "Home" navigation to point to current namespace (#548)
 
 ## [2.6.0] - 2024-10-07
 

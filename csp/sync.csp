@@ -110,11 +110,14 @@
             <div class="row">
                 <div class="offset-sm-2 col-sm-8">
                     <server>
-                        if ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode() {
+                        if ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode() || ##class(SourceControl.Git.Change).GetOtherDeveloperChanges().%Size() > 0 {
+                            set message = $case(##class(SourceControl.Git.Utils).InDefaultBranchBasicMode(),
+                                1:"Please change branches to make sure your changes are committed.",
+                                :"Other users have unstaged changes in this namespace, so merging to remote will fail")
                             &html<
                                 <div class = "alert">
                                     <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
-                                    <strong>Warning!</strong> Please change branches to make sure your changes are committed.
+                                    <strong>Warning!</strong> #(message)#
                                 </div>
                             >
                         }

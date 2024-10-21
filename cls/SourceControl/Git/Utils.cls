@@ -2862,9 +2862,6 @@ ClassMethod ConfigureFavoriteNamespaces(username As %String, newNamespaces As %S
         set link = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" _ installNamespace
         &sql(INSERT OR UPDATE INTO %SYS_Portal.Users (Username, Page, Data) VALUES (:username, :caption, :link))
     }
-
-    // Update Security.Applications
-    &sql(UPDATE Security.Applications SET GroupById = '%ISCMgtPortal' WHERE ID = '/isc/studio/usertemplates')
 }
 
 ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef nonFavNamespaces As %DynamicArray)

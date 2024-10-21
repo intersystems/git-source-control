@@ -11,12 +11,14 @@
 <body>
 <pre for="contextSelect" style="padding-top: 2em;white-space: pre-wrap;height: 60px;">Change Context:  <select id="newContext" onchange="updateContext()">
 	<server>
-		set $NAMESPACE = %request.Data("$NAMESPACE",1)
-		set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)
-        set iterator = contextList.%GetIterator()
-		&html<<option>Select</option>>
-        while iterator.%GetNext(.key, .value) {
-				&html<<option value=#(value)#>#(value)#</option>>
+		if (%request.Data("$NAMESPACE")) {
+			set $NAMESPACE = %request.Data("$NAMESPACE",1)
+			set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)
+			set iterator = contextList.%GetIterator()
+			&html<<option>Select</option>>
+			while iterator.%GetNext(.key, .value) {
+					&html<<option value=#(value)#>#(value)#</option>>
+			}
 		}
 	</server>
 </select>

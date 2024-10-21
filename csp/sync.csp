@@ -57,6 +57,32 @@
                 border-radius: 4px;
             }
 
+            /* The alert message box */
+            .alert {
+            padding: 20px;
+            background-color: #f44336; /* Red */
+            color: white;
+            margin-bottom: 15px;
+            }
+
+            /* The close button */
+            .closebtn {
+            margin-left: 15px;
+            color: white;
+            font-weight: bold;
+            float: right;
+            font-size: 22px;
+            line-height: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            }
+
+            /* When moving the mouse over the close button */
+            .closebtn:hover {
+            color: black;
+            }
+
+
         </style>
     </head>
     <body>
@@ -83,6 +109,16 @@
             <h1 class="text-center">Sync Repository</h1>
             <div class="row">
                 <div class="offset-sm-2 col-sm-8">
+                    <server>
+                        if ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode() {
+                            &html<
+                                <div class = "alert">
+                                    <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+                                    <strong>Warning!</strong> Please change branches to make sure your changes are committed.
+                                </div>
+                            >
+                        }
+                    </server>
                     <div style="display: #(fileSectionDisplay)#">
                         <h3 class="section-header">Files to be committed with sync:</h3>
                         <ul class="list-group">

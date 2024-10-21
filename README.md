@@ -41,14 +41,17 @@ For those with less experience using source control, we recommend this [page](/d
 ### Health Connect Cloud
 git-source control is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CICD pipelining.
 
-### Studio
+### VSCode
+The same right click menus as in Studio live under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
+
+### Studio 
+
+Note: Studio has been deprecated. VSCode is the IDE recommended by InterSystems.
+
 Add a file for tracking by right-clicking on it in the workspace/project view and choosing Git &gt; Add.
 This same menu also has options to remove (stop tracking the file), discard changes (revert to the index), or commit changes.
 
 You can browse file history and commit changes through a user interface launched from the top level Git > "Launch Git UI" menu item. There is also a page for configuring settings.
-
-### VSCode
-The same right click menus as in Studio live under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
 
 ## Notes
 

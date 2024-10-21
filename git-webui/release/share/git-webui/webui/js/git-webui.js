@@ -761,7 +761,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         if(branchType === "remote"){
                             var remoteName = refName.split("/")[0];
                             var branchName = refName.split("/")[1];
-                            webui.git("fetch "+remoteName+" "+branchName);
+                            webui.git("fetch --prune"+remoteName+" "+branchName);
                             webui.git("branch -l "+branchName, function(existingBranch) {
                                 if (existingBranch.length > 0) {
                                     webui.git("checkout " +branchName, updateSideBar);
@@ -782,7 +782,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
                 else{
                     if(branchType === "remote"){
-                        webui.git("fetch "+remoteName+" "+branchName);
+                        webui.git("fetch --prune"+remoteName+" "+branchName);
                         webui.git("branch -l "+branchName, function(existingBranch) {
                             if (existingBranch.length > 0) {
                                 webui.git("checkout " +branchName, updateSideBar);
@@ -908,7 +908,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var branchName = refName.split('/')[1];
 
         if(branchName){
-            webui.git("fetch "+remoteName+" "+branchName);
+            webui.git("fetch --prune"+remoteName+" "+branchName);
         }
 
         function callTestMergeHandler(message){

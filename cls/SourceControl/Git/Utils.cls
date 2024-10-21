@@ -561,7 +561,7 @@ ClassMethod Push(remote As %String = "origin", force As %Boolean = 0) As %Status
 
 ClassMethod Fetch(ByRef diffFiles) As %Status
 {
-    do ..RunGitCommand("fetch", .errStream, .outStream)
+    do ..RunGitCommand("fetch", .errStream, .outStream, "--prune")
     write !, "Fetch done"
     kill errStream, outStream
     do ..RunGitCommand("diff", .errStream, .outStream, "..origin/"_..GetCurrentBranch(), "--name-only")
@@ -1837,7 +1837,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set diffBase = ..GetCurrentBranch()
         }
 
-        do ..RunGitCommand("fetch", .errorStream, .outputStream)
+        do ..RunGitCommand("fetch", .errorStream, .outputStream,"--prune")
         kill errorStream, outputStream
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
         do ..ParseDiffStream(outputStream,,.files)

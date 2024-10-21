@@ -407,7 +407,7 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
     do ..RunGitWithArgs(.errStream,.outStream,"local-branches","branch", "--verbose")
     set branches = outStream.Read()
     if ('$find(branches,targetBranchName)) {
-        quit $$$ERROR($$$GeneralError, "Branch does not exist")
+        quit $$$ERROR($$$GeneralError, "Selected branch does not exist"_$C(10))
     }
     k outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)

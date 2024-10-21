@@ -328,7 +328,8 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
             } else {
                 set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
                 $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
-                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
+                set forceExport = (InternalName'= "") && ($data(..Modified(InternalName)))
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName,,forceExport))
                 if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                     $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
                 }

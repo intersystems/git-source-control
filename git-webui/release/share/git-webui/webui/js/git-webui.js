@@ -3047,7 +3047,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 '</div>' +
                 '<div class="commit-area col-sm-6">' +
                     '<div class="form-group">' +
-                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required, 72 character limit)">' +
+                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required)">' +
                     '</div>' +
                     '<div class="form-group">' +
                         '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional)"></textarea>' +

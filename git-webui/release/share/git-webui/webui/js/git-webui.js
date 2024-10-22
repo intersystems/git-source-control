@@ -436,7 +436,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
                 if (!matches) {
                     continue;
                 }

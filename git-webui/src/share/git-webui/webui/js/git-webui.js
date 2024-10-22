@@ -596,7 +596,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     self.pruneRemoteBranches = function(e){
         e.preventDefault();
         $(".btn-prune-remote-branches").addClass("refresh-start");
-        webui.git("fetch --prune",updateSideBar);
+        webui.git("fetch --prune ",updateSideBar);
     }
 
     self.getPackageVersion = function() {
@@ -614,8 +614,8 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
     };
 
-    self.changeContextGet = function() {
-        $.get("contexts", function(contextList) {
+    self.changeContextGet = function(onlyNamespaces) {
+        $.get("contexts", { "onlyNamespaces": onlyNamespaces }, function(contextList) {
             var contexts = JSON.parse(contextList);
             self.changeContext(contexts);
         });
@@ -761,7 +761,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         if(branchType === "remote"){
                             var remoteName = refName.split("/")[0];
                             var branchName = refName.split("/")[1];
-                            webui.git("fetch "+remoteName+" "+branchName);
+                            webui.git("fetch --prune "+remoteName+" "+branchName);
                             webui.git("branch -l "+branchName, function(existingBranch) {
                                 if (existingBranch.length > 0) {
                                     webui.git("checkout " +branchName, updateSideBar);
@@ -782,7 +782,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
                 else{
                     if(branchType === "remote"){
-                        webui.git("fetch "+remoteName+" "+branchName);
+                        webui.git("fetch --prune "+remoteName+" "+branchName);
                         webui.git("branch -l "+branchName, function(existingBranch) {
                             if (existingBranch.length > 0) {
                                 webui.git("checkout " +branchName, updateSideBar);
@@ -908,7 +908,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var branchName = refName.split('/')[1];
 
         if(branchName){
-            webui.git("fetch "+remoteName+" "+branchName);
+            webui.git("fetch --prune "+remoteName+" "+branchName);
         }
 
         function callTestMergeHandler(message){
@@ -1051,7 +1051,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
-        $("#sidebar-context", self.element).click(self.changeContextGet);
+        $("#sidebar-context", self.element).click(function() {
+            self.changeContextGet(0);
+        });
         $("#sidebar-home", self.element).click(self.goToHomePage);
     }
 

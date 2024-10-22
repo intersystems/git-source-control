@@ -9,6 +9,22 @@
 <link rel="stylesheet" type="text/css" href="css/git-webui.css" />
 </head>
 <body>
+<pre for="contextSelect" style="padding-top: 2em;white-space: pre-wrap;height: 60px;">Change Context:  <select id="newContext" onchange="updateContext()">
+	<server>
+		if $Data(%request.Data("$NAMESPACE",1),namespace)#2 {
+			set $NAMESPACE = namespace
+			set contextList = ##class(SourceControl.Git.Utils).GetContexts(1)
+			set iterator = contextList.%GetIterator()
+			&html<<option>#(namespace)#</option>>
+			while iterator.%GetNext(.key, .value) {
+				if (namespace '= value) {
+					&html<<option value="#(value)#">#(value)#</option>>
+				}
+			}
+		}
+	</server>
+</select>
+</pre>
 <pre id="preview" style="white-space: pre-wrap;">
 </pre>
 <button id="execute" onclick="execute()" disabled="true">Pull and Load Changes</button>
@@ -43,6 +59,11 @@ function execute() {
     ws.onclose = function(event) {
         // TODO: detect errors
     }
+}
+
+function updateContext() {
+    var contextSelect = document.getElementById('newContext');
+	window.location.href = "#(%request.URLPrefix)#/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" + contextSelect.value;
 }
 
 preview();

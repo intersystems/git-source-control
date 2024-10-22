@@ -29,6 +29,7 @@ XData Menu
 <MenuItem Name="NewBranch" />
 <MenuItem Name="SwitchBranch" />
 <MenuItem Separator="true"/>
+<MenuItem Name="ExportSystemDefaults" />
 <MenuItem Name="Export" />
 <MenuItem Name="ExportForce" />
 <MenuItem Name="Import" />
@@ -125,6 +126,7 @@ Method LocalizeName(name As %String) As %String
         "Settings":$$$Text("@Settings@Settings"),
         "Init":$$$Text("@Init@Initialize"),
         "GitWebUI":$$$Text("@GitWebUI@Launch Git UI"),
+        "ExportSystemDefaults":$$$Text("@ExportSystemDefaults@Export System Default Settings"),
         "Export":$$$Text("@Export@Export All"),
         "ExportForce":$$$Text("@ExportForce@Export All (Force)"),
         "Import":$$$Text("@Import@Import All"),
@@ -160,6 +162,11 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
         }
 
+        if name = "ExportSystemDefaults" {
+            set Enabled = ##class(%Library.EnsembleMgr).IsEnsembleNamespace()
+            quit $$$OK
+        }
+
         if ##class(SourceControl.Git.Utils).BasicMode() {
             set Enabled = $CASE(name,
                 "Status": 1,
@@ -171,7 +178,6 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "Sync": 1,
                 "": 1,
                 :-1
-            
             )
         } else {
             set Enabled = $CASE(name, 
@@ -328,7 +334,8 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
             } else {
                 set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
                 $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
-                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
+                set forceExport = (InternalName'= "") && ($data(..Modified(InternalName)))
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName,,forceExport))
                 if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                     $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
                 }

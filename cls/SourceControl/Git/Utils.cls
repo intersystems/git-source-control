@@ -72,6 +72,13 @@ ClassMethod SettingsUIReadOnly() As %Status [ CodeMode = expression ]
 $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 }
 
+ClassMethod FavoriteNamespaces() As %String
+{
+    set favNamespaces = []
+    do ..GetFavoriteNamespaces(.favNamespaces,[])
+    return favNamespaces
+}
+
 /// Returns the current (or previous) value of the flag.
 ClassMethod Locked(newFlagValue As %Boolean) As %Boolean
 {
@@ -2490,28 +2497,32 @@ ClassMethod Localize()
     }
 }
 
-ClassMethod GetContexts() As %DynamicArray
+ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 {
     set contexts = []
     set namespaces = ..GetGitEnabledNamespaces()
     set ptr = 0
     while $listnext(namespaces,ptr,value) {
-        do contexts.%Push(value)
+        if '($FIND(value,"^^")){
+            do contexts.%Push(value)
+        }
     }
 
     set name = ""
 
     // Using embedded for backwards compatability
-    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-    &sql(OPEN C1)
-        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-    &sql(FETCH C1)
-    while(SQLCODE = 0) {
-        set package = name
-        do contexts.%Push(package)
+    if '(onlyNamespaces) {
+        &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+        &sql(OPEN C1)
+            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
         &sql(FETCH C1)
+        while(SQLCODE = 0) {
+            set package = name
+            do contexts.%Push(package)
+            &sql(FETCH C1)
+        }
+        &sql(CLOSE C1)
     }
-    &sql(CLOSE C1)
 
     return contexts
 }
@@ -2847,6 +2858,57 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
     set current = out.ReadLine()
     if (basicMode && (default = current)) { quit 1 }
     quit 0
+}
+
+ClassMethod ConfigureFavoriteNamespaces(username As %String, newNamespaces As %String)
+{
+    // Delete all the GIT favorite links for the user 
+    &sql(DELETE FROM %SYS_Portal.Users WHERE Username = :username AND Page LIKE '%Git%')
+
+    set iterator = newNamespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set installNamespace = value
+        
+        // Insert Git link
+        set caption = "Git: " _ installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/" _ installNamespace _ "/"
+        &sql(INSERT OR UPDATE INTO %SYS_Portal.Users (Username, Page, Data) VALUES (:username, :caption, :link))
+        
+        // Insert Git Pull link
+        set caption = "Git Pull: " _ installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" _ installNamespace
+        &sql(INSERT OR UPDATE INTO %SYS_Portal.Users (Username, Page, Data) VALUES (:username, :caption, :link))
+    }
+}
+
+ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef nonFavNamespaces As %DynamicArray)
+{
+    set allNamespaces = ..GetContexts(1)
+    set iterator = allNamespaces.%GetIterator()
+
+    set username = $USERNAME
+    set pagePrefix = "Git:"    
+    &sql(DECLARE FavCursor CURSOR FOR SELECT Page into :page from %SYS_Portal.Users where username = :username and page %STARTSWITH :pagePrefix)
+
+    while iterator.%GetNext(.key, .value) {
+        set foundFlag = 0
+        &sql(OPEN FavCursor)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+        &sql(FETCH FavCursor)
+        while (SQLCODE = 0) {
+            set pageValue = "Git: "_value 
+            if (page = pageValue) {
+                do favNamespaces.%Push(value)
+                set foundFlag = 1
+            }
+            &sql(FETCH FavCursor)
+        }
+        &sql(CLOSE FavCursor)
+
+        if ('foundFlag) {
+            do nonFavNamespaces.%Push(value)
+        }
+    }
 }
 
 }

@@ -156,7 +156,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do discardsInBranch.%ToJSON(%data)
                 set handled = 1
             } elseif (pathStart = "contexts") {
-                set contexts = ##class(SourceControl.Git.Utils).GetContexts()
+                set onlyNamespaces = %request.Data("onlyNamespaces", 1)
+                set contexts = ##class(SourceControl.Git.Utils).GetContexts(onlyNamespaces)
                 do contexts.%ToJSON(%data)
                 set handled = 1
             }

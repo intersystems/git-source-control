@@ -414,7 +414,7 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
     do ..PrintStreams(errStream, outStream)
     // Checkout can fail due to unstaged changes
     set errs = errStream.Read()
-    if (errs '= "") {
+    if ($find(errs, "error")) {
         quit $$$ERROR($$$GeneralError, errs)
     }
     quit $$$OK

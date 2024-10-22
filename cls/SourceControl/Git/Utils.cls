@@ -2594,6 +2594,43 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
         1: "")
 }
 
+XData ProductionConfigScript [ MimeType = text/javascript ]
+{
+    var reenableRefresh = false;
+
+    function checkProductionConfigLoad() {
+        if (window.parent && window.parent.opener && window.parent.opener.zenPage && window.parent.opener.zenPage.enableAutoRefresh) {
+            reenableRefresh = window.parent.opener.zenPage.enableAutoRefresh;
+            window.parent.opener.zenPage.enableAutoRefresh = false;
+        }
+    }
+
+    function checkProductionConfigUnload() {
+        if (reenableRefresh) {
+            window.parent.opener.zenPage.enableAutoRefresh = true;
+        }
+    }
+}
+
+ClassMethod ProductionConfigScript() As %String [ CodeMode = objectgenerator ]
+{
+    do %code.WriteLine(" set html = ""<script type='text/javascript'>""_$c(13,10)")
+    set xdata = ##class(%Dictionary.XDataDefinition).IDKEYOpen(%compiledclass.Name,%compiledmethod.Name,,.sc)
+    $$$ThrowOnError(sc)
+    while 'xdata.Data.AtEnd {
+        set line = xdata.Data.ReadLine()
+        do %code.WriteLine(" set html = html_"_$$Quote^%qcr(line)_"_$c(13,10)")
+    }
+    do %code.WriteLine(" set html = html_$c(13,10)_""</script>""")
+    do %code.WriteLine(" quit html")
+    quit $$$OK
+}
+
+ClassMethod ProductionConfigBodyAttributes() As %String [ CodeMode = expression ]
+{
+"onload='checkProductionConfigLoad()' onbeforeunload='checkProductionConfigUnload()'"
+}
+
 ClassMethod UncommittedWithAction() As %Library.DynamicObject
 {
     do ##class(SourceControl.Git.Change).RefreshUncommitted()

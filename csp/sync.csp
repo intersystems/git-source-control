@@ -117,12 +117,18 @@
             <h1 class="text-center">Sync Repository</h1>
             <div class="row">
                 <div class="offset-sm-2 col-sm-8">
-                    <server>
-                        if ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode() {
+                    <server> 
+                    set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+                        if defaultBasic || ##class(SourceControl.Git.Change).GetOtherDeveloperChanges().%Size() > 0 {
+                        if defaultBasic { 
+                            set message = "Please change branches to make sure your changes are committed." 
+                        } else {
+                            set message = "Other users have work in progress in this namespace. They must commit their work before you can sync, or you can commit their work after review in the Git WebUI before trying to sync again."
+                        }
                             &html<
                                 <div class = "alert">
                                     <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
-                                    <strong>Warning!</strong> Please change branches to make sure your changes are committed.
+                                    <strong>Warning!</strong> #(message)#
                                 </div>
                             >
                         }

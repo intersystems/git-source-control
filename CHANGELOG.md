@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added feedback to settings page (#550)
 - Fix "Home" navigation to point to current namespace (#548)
 - Force export of item if it has been modified (#354)
+- Remove leading/trailing spaces from input to Configure() (#356)
 
 ## [2.6.0] - 2024-10-07
 

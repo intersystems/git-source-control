@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed git path configuration (#463)
 - Added feedback to settings page (#550)
 - Fix "Home" navigation to point to current namespace (#548)
+- Make sure more fetch calls prune the remote branches (#471)
 - Force export of item if it has been modified (#354)
 - Production configuration page no longer closes Sync/WebUI when operations there change the production (#542)
 

@@ -251,6 +251,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         if ec {
             write !,"==export done==",!
         }
+    } elseif (menuItemName = "ExportSystemDefaults") {
+        set ec = ..ExportSystemDefaults()
     } elseif (menuItemName = "Import") {
         set ec = ..ImportAll()
         set Reload = 1
@@ -1613,6 +1615,13 @@ ClassMethod ExportProject(project As %String, force As %Boolean = 0, ByRef filen
 ClassMethod ExportAll(force As %Boolean = 0) As %Status
 {
     quit ..ExportRoutines(force)
+}
+
+ClassMethod ExportSystemDefaults() As %Status
+{
+    new %SourceControl
+    do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    quit %SourceControl.OnAfterSave("Ens.Config.DefaultSettings.ESD")
 }
 
 /// if <var>force</var> = 1 then we import item even if timestamp in system is newer

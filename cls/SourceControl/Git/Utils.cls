@@ -2596,18 +2596,22 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
 
 XData ProductionConfigScript [ MimeType = text/javascript ]
 {
-    var reenableRefresh = false;
-
     function checkProductionConfigLoad() {
-        if (window.parent && window.parent.opener && window.parent.opener.zenPage && window.parent.opener.zenPage.enableAutoRefresh) {
-            reenableRefresh = window.parent.opener.zenPage.enableAutoRefresh;
-            window.parent.opener.zenPage.enableAutoRefresh = false;
-        }
+        timerState(false);
     }
 
     function checkProductionConfigUnload() {
-        if (reenableRefresh) {
-            window.parent.opener.zenPage.enableAutoRefresh = true;
+        timerState(true);
+    }
+
+    function timerState(start) {
+        if (window.parent && window.parent.opener && window.parent.opener.zenPage) {
+            if (start && window.parent.opener.zenPage.startTimers) {
+                window.parent.opener.zenPage.startTimers();
+            }
+            if (!start && window.parent.opener.zenPage.stopTimers) {
+                window.parent.opener.zenPage.stopTimers();
+            }
         }
     }
 }

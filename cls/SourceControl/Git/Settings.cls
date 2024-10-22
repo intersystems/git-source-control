@@ -180,6 +180,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set valid = 0")
             do %code.WriteLine(" while ('valid) {")
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
+            do %code.WriteLine(" set value = $zstrip(value,""<>W"")")
             do %code.WriteLine(" set status =  inst.ConfigureBinPath(.value)")
             do %code.WriteLine(" if (status) { set valid = 1 }")
             do %code.WriteLine(" }")
@@ -206,6 +207,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
+        do %code.WriteLine(" set value = $zstrip(value,""<>W"")")
         do %code.WriteLine(" set inst."_property_" = value")
         
     }

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added feedback to settings page (#550)
 - Fix "Home" navigation to point to current namespace (#548)
 - Fixed issues when user checks out nonexistent branch (#549)
+- Fixed checking out branch with uncommitted work (#539)
 
 ## [2.6.0] - 2024-10-07
 

@@ -403,8 +403,8 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
-    // Make sure that branch exists first
-    do ..RunGitWithArgs(.errStream,.outStream,"local-branches","branch", "--verbose")
+    // Make sure that branch exists first (-a lists both local and remote)
+    do ..RunGitWithArgs(.errStream,.outStream,"branch", "-a")
     set branches = outStream.Read()
     if ('$find(branches,targetBranchName)) {
         quit $$$ERROR($$$GeneralError, "Selected branch does not exist"_$C(10))
@@ -412,6 +412,11 @@ ClassMethod SwitchBranch(targetBranchName As %String) As %Status
     k outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
+    // Checkout can fail due to unstaged changes
+    set errs = errStream.Read()
+    if (errs '= "") {
+        quit $$$ERROR($$$GeneralError, errs)
+    }
     quit $$$OK
 }
 

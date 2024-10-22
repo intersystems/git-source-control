@@ -115,7 +115,7 @@
                         if defaultBasic { 
                             set message = "Please change branches to make sure your changes are committed." 
                         } else {
-                            set message = "Other users have unstaged changes in this namespace, so merging to remote will fail"
+                            set message = "Other users have work in progress in this namespace. They must commit their work before you can sync, or you can commit their work after review in the Git WebUI before trying to sync again."
                         }
                             &html<
                                 <div class = "alert">

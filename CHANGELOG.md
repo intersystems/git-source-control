@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added change context option to pull page (#468)
 - Added favorite namespaces setting for a user (#468, #510) 
 - Added environment awareness in configuration, and showing of environment name in UI (#124)
+- Added "Export System Default Settings" menu item (#544)
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)

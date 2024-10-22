@@ -8,10 +8,13 @@ ClassMethod OnPage() As %Status
 {
     if (%stream '= $$$NULLOREF) && $data(%base)#2 {
         set sourceControlInclude = ##class(SourceControl.Git.Utils).GetSourceControlInclude()
+        set bodyAttrs = ##class(SourceControl.Git.Utils).ProductionConfigBodyAttributes()
+        set configScript = ##class(SourceControl.Git.Utils).ProductionConfigScript()
         while '%stream.AtEnd {
-            set text = %stream.Read()
+            set text = %stream.Read(1000000)
             set text = $replace(text,"{{baseHref}}",..EscapeHTML(%base))
-            write $replace(text,"{{sourceControlInclude}}",sourceControlInclude)
+            set text = $replace(text,"{{bodyAttrs}}",bodyAttrs)
+            write $replace(text,"{{sourceControlInclude}}",sourceControlInclude_$$$NL_configScript)
         }
         quit $$$OK
     }

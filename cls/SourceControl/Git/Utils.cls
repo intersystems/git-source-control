@@ -627,7 +627,7 @@ ClassMethod Pull(remote As %String = "origin", terminateOnError As %Boolean=0) A
     write !, "Pull ran with return code: " _ returnCode
     set err = errStream.Read()
     if $find(err,"error") && terminateOnError {
-        quit $$$Error($$$GeneralError, err)
+        quit $$$ERROR($$$GeneralError, err)
     }
     quit $$$OK
 }

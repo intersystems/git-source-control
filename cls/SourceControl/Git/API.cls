@@ -44,6 +44,7 @@ ClassMethod Configure()
 }
 
 /// API for git pull - just wraps Utils
+/// - terminateOnError: if set to 1, this will return an error if there are any errors in the pull, otherwise will return $$$OK
 ClassMethod Pull(terminateOnError As %Boolean = 0)
 {
     quit ##class(SourceControl.Git.Utils).Pull(,terminateOnError)

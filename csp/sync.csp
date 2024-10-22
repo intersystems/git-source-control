@@ -84,8 +84,16 @@
 
 
         </style>
+        <script type="text/javascript">
+        function disableInput() {
+            document.getElementById('syncMsg').disabled = true;
+            document.getElementById('syncBtn').innerHTML = 'Syncing...';
+            document.getElementById('syncBtn').disabled = true;
+        }
+        </script>
+        #(##class(SourceControl.Git.Utils).ProductionConfigScript())#
     </head>
-    <body>
+    <body #(##class(SourceControl.Git.Utils).ProductionConfigBodyAttributes())#>
         <server>
             set settings = ##class(SourceControl.Git.Settings).%New()
 
@@ -158,13 +166,6 @@
             
         </div>
     </body>
-    <script type="text/javascript">
-    function disableInput() {
-        document.getElementById('syncMsg').disabled = true;
-        document.getElementById('syncBtn').innerHTML = 'Syncing...';
-        document.getElementById('syncBtn').disabled = true;
-    }
-    </script>
     <script language="cache" method="PerformSync" arguments="syncMsg:%String">
         &js<document.getElementById('outputContainer').style.display = 'block'>
         &js<document.getElementById('outputHeader').style.display = 'block'>

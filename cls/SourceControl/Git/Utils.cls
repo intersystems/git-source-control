@@ -258,6 +258,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         if ec {
             write !,"==export done==",!
         }
+    } elseif (menuItemName = "ExportSystemDefaults") {
+        set ec = ..ExportSystemDefaults()
     } elseif (menuItemName = "Import") {
         set ec = ..ImportAll()
         set Reload = 1
@@ -1622,6 +1624,13 @@ ClassMethod ExportAll(force As %Boolean = 0) As %Status
     quit ..ExportRoutines(force)
 }
 
+ClassMethod ExportSystemDefaults() As %Status
+{
+    new %SourceControl
+    do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    quit %SourceControl.OnAfterSave("Ens.Config.DefaultSettings.ESD")
+}
+
 /// if <var>force</var> = 1 then we import item even if timestamp in system is newer
 ClassMethod ImportAll(force As %Boolean = 0) As %Status
 {
@@ -2592,6 +2601,47 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src="""_prefix_"/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
+}
+
+XData ProductionConfigScript [ MimeType = text/javascript ]
+{
+    function checkProductionConfigLoad() {
+        timerState(false);
+    }
+
+    function checkProductionConfigUnload() {
+        timerState(true);
+    }
+
+    function timerState(start) {
+        if (window.parent && window.parent.opener && window.parent.opener.zenPage) {
+            if (start && window.parent.opener.zenPage.startTimers) {
+                window.parent.opener.zenPage.startTimers();
+            }
+            if (!start && window.parent.opener.zenPage.stopTimers) {
+                window.parent.opener.zenPage.stopTimers();
+            }
+        }
+    }
+}
+
+ClassMethod ProductionConfigScript() As %String [ CodeMode = objectgenerator ]
+{
+    do %code.WriteLine(" set html = ""<script type='text/javascript'>""_$c(13,10)")
+    set xdata = ##class(%Dictionary.XDataDefinition).IDKEYOpen(%compiledclass.Name,%compiledmethod.Name,,.sc)
+    $$$ThrowOnError(sc)
+    while 'xdata.Data.AtEnd {
+        set line = xdata.Data.ReadLine()
+        do %code.WriteLine(" set html = html_"_$$Quote^%qcr(line)_"_$c(13,10)")
+    }
+    do %code.WriteLine(" set html = html_$c(13,10)_""</script>""")
+    do %code.WriteLine(" quit html")
+    quit $$$OK
+}
+
+ClassMethod ProductionConfigBodyAttributes() As %String [ CodeMode = expression ]
+{
+"onload='checkProductionConfigLoad()' onbeforeunload='checkProductionConfigUnload()'"
 }
 
 ClassMethod UncommittedWithAction() As %Library.DynamicObject

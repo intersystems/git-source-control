@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added change context option to pull page (#468)
 - Added favorite namespaces setting for a user (#468, #510) 
 - Added environment awareness in configuration, and showing of environment name in UI (#124)
+- Added "Export System Default Settings" menu item (#544)
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added feedback to settings page (#550)
 - Fix "Home" navigation to point to current namespace (#548)
 - Force export of item if it has been modified (#354)
+- Production configuration page no longer closes Sync/WebUI when operations there change the production (#542)
 - Remove leading/trailing spaces from input to Configure() (#356)
 
 ## [2.6.0] - 2024-10-07

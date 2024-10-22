@@ -2560,16 +2560,10 @@ webui.NewChangedFilesView = function(workspaceView) {
                     } else {
                         model = line;
                     }
-                    model = model.replace(/^"(.*)"$/g,'$1');
+                    model = model.replace(/^"(.*)"$/g,'$1').trim();
 
                     ++self.filesCount;
-                    var isForCurrentUser;
-                    if(model.indexOf(" ") > -1){
-                        isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
-                    } else {
-                        isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
-                    }
-                    
+                    var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                     if (isForCurrentUser) {
                         addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
                     } else {

@@ -658,7 +658,8 @@ function getSocket(urlPostfix) {
 
 function init() {
     disableActionButtons();
-	var ws = getSocket("method=init");
+    var root = document.getElementById("namespaceTemp").value;
+	var ws = getSocket("method=init&root=" + encodeURIComponent(root));
 	ws.onmessage = showOutput('initOutput');
 }
 

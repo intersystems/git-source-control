@@ -7,7 +7,7 @@ The following is a testing plan that should be followed prior to release of a ne
 - Use VS Code to create a new class. Use the Source Control menu to Import All from the repository. Check the output to confirm that the contents of the repository were imported and compiled.
 - Test changing Git project settings in a web browser and in Studio. Input labels and tooltips should describe each setting.
 - In Expert Mode, test:
-  - Add a new item through Studio / VS Code. Use the Add option in the Source Control Menu. The item should show up in the Workspace view of the WebUI.
+  - Add a new item through Studio / VS Code. View the Source Control Menu - there should be an option to remove it from source control. The item should show up in the Workspace view of the WebUI.
   - Stash the item in the WebUI. It should be deleted from IRIS. Pop it from the stash. It should be imported and compiled. Discard the item in the WebUI. It should be deleted from IRIS.
   - Add, delete, and modify some items in Studio / VS Code. Commit through the WebUI with a commit message and details. The commit should show with the expected commit message and differences in the branch view.
   - Select the branch in the branch view and click "Push Branch". It should successfully push changes to the remote repository.

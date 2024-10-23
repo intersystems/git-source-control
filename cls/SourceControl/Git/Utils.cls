@@ -2830,6 +2830,7 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("CLS","UnitTest")="test/"
     set @mappingsNode@("INC","*")="inc/"
     set @mappingsNode@("MAC","*")="rtn/"
+    set @mappingsNode@("DFI","*")="dfi/"
 }
 
 ClassMethod PrintStreams(streams... As %Stream.FileCharacter)

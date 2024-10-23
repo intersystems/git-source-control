@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Production configuration page no longer closes Sync/WebUI when operations there change the production (#542)
 - Remove leading/trailing spaces from input to Configure() (#356)
 - Fix branches with special characters not showing in GitUI (#523)
+- Fix filenames with spaces not showing correctly in workspace view (#551)
 - Removed inaccurate placeholder text for commit message in UI (#406)
 
 ## [2.6.0] - 2024-10-07

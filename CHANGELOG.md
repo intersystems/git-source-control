@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix branches with special characters not showing in GitUI (#523)
 - Fix filenames with spaces not showing correctly in workspace view (#551)
 - Removed inaccurate placeholder text for commit message in UI (#406)
+- Report error more clearly if you try to create a branch with an invalid name (#534)
 
 ## [2.6.0] - 2024-10-07
 

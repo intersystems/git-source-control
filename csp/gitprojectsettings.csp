@@ -250,9 +250,11 @@ body {
                 } else {
                     set class = "form-control"
                 }
+                set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\someproj\)",
+                        1:"(e.g., /someproj/)")
             </server>
             <div class="col-sm-7">
-                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
+                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder=#(placeholder)#/>
             </div>
         </div>
         <server>
@@ -290,8 +292,10 @@ body {
                             "File not found - generate a new key pair?"_
                             "</button>"
                     }
+                    set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\Users\ExampleUser\.ssh\id_rsa)",
+                        1:"(e.g., /home/user/.ssh/id_rsa)")
                 </server>
-                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
+                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder=#(placeholder)#/>
                 <div class = "#(divClass)#">
                     #(feedbackText)#
                     <pre id="sshOutput"></pre>
@@ -658,8 +662,9 @@ function getSocket(urlPostfix) {
 
 function init() {
     disableActionButtons();
-	var ws = getSocket("method=init");
-	ws.onmessage = showOutput('initOutput');
+    var root = document.getElementById("namespaceTemp").value;
+    var ws = getSocket("method=init&root=" + encodeURIComponent(root));
+    ws.onmessage = showOutput('initOutput');
 }
 
 function clone() {

@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix filenames with spaces not showing correctly in workspace view (#551)
 - Removed inaccurate placeholder text for commit message in UI (#406)
 - Fixed regression that broke production conflict auto-resolve (#526)
+- Report error more clearly if you try to create a branch with an invalid name (#534)
 
 ## [2.6.0] - 2024-10-07
 

@@ -24,7 +24,7 @@ $Replace(..#Storage,"^SYS","^%SYS")
 /// Returns root temp folder
 ClassMethod DefaultTemp() As %String
 {
-    set defaultTemp = "c:\temp\"
+    set defaultTemp = ##class(%File).Construct($System.Util.ManagerDirectory(),"repo/"_$Namespace)
     try {
         set defaultTemp = $Get(@..%SYSNamespaceStorage()@("%defaultTemp"), defaultTemp)
     } catch e {

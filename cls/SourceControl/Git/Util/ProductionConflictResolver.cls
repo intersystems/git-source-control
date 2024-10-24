@@ -50,16 +50,22 @@ ClassMethod FromLog(pOutStream As %Stream.Object) As SourceControl.Git.Util.Prod
 
 Method ConsumeStream() [ Private ]
 {
+    Set conflicts = 0
     Do ..logStream.Rewind()
     Do ..logStream.ReadLine()
-    Set productionLine = ..logStream.ReadLine()
-    Set ..productionFile = $Piece(productionLine,"Merge conflict in ",2)
-    If ..productionFile = "" {
+    while '..logStream.AtEnd {
+        Set conflictLine = ..logStream.ReadLine()
+        If $Extract(conflictLine,1,8) = "CONFLICT" {
+            Set conflicts($i(conflicts)) = $Piece(conflictLine,"Merge conflict in ",2)
+        }
+    }
+    If (conflicts = 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"Message did not reflect merge conflict on a single file."))
     }
-    If '..logStream.AtEnd {
+    If conflicts '= 1 {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"Multiple files had merge conflicts; cannot resolve intelligently."))
     }
+    Set ..productionFile = conflicts(1)
     Set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..productionFile)
     If ($Piece(internalName,".",*) '= "CLS") {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"File with conflict is not a class."))

@@ -29,7 +29,7 @@ Method DoResolveTest(index As %Integer)
     }
     $$$ThrowOnError(resolved.%Save())
 
-    Do ##class(SourceControl.Git.Util.ProductionConflictResolver).ResolveStream(file)
+    Do ##class(SourceControl.Git.Util.ProductionConflictResolver).%New().ResolveStream(file)
 
     Do $$$AssertFilesSame(file.Filename,resolved.Filename)
 }

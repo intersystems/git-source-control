@@ -507,7 +507,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         } catch e {
             // "rebase" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the rebase.
             write !,"Attempting to resolve differences in production definition..."
-            set resolver = ##class(SourceControl.Git.Util.ProductionConflictResolver).FromLog(outStream)
+            set resolver = ##class(SourceControl.Git.Util.ResolutionManager).FromLog(outStream)
             if resolver.resolved {
                 set rebased = 1
                 TCOMMIT
@@ -2980,3 +2980,4 @@ ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef no
 }
 
 }
+

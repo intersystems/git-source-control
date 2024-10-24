@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initialize repo in settings page now uses entered repo (#486)
 - Report error more clearly if you try to create a branch with an invalid name (#534)
 - Don't default to WINDOWS style paths (#357)
+- Fix errors when deleting non-existent files on import (#524)
 
 ## [2.6.0] - 2024-10-07
 

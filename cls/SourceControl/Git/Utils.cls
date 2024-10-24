@@ -24,7 +24,7 @@ $Replace(..#Storage,"^SYS","^%SYS")
 /// Returns root temp folder
 ClassMethod DefaultTemp() As %String
 {
-    set defaultTemp = "c:\temp\"
+    set defaultTemp = $case($$$isWINDOWS, 1:"c:\temp\",:"/tmp/")
     try {
         set defaultTemp = $Get(@..%SYSNamespaceStorage()@("%defaultTemp"), defaultTemp)
     } catch e {

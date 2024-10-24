@@ -735,7 +735,10 @@ $(function()
 
         newEntry.appendTo(controlForm);
         $(("#"+newID)).click(toggleNoFolders);
-        
+
+        // Click twice to toggle and get side effects
+        $(("#"+newID)).click();
+        $(("#"+newID)).click();
     }).on('click', '.btn-remove', function(e)
     {
         $(this).parent().parent().parent().prev('#indent-div').remove();

@@ -28,7 +28,7 @@ ClassMethod Run()
 		set root = %request.Get("root")
 
 		// Use user input if provided
-		if (root '= "") && ($extract(root,1,3) '= "e.g") {
+		if (root '= "") {
 			set settings = ##class(SourceControl.Git.Settings).%New()
 			set settings.namespaceTemp = root
 			$$$ThrowOnError(settings.%Save())

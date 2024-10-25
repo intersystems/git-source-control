@@ -182,6 +182,7 @@
 
         set out = ##class(%Stream.GlobalCharacter).%New()
         do buffer.EndCaptureOutput(.out)
+        do ##class(SourceControl.Git.Log).Create(out,,,,"Sync")
         while 'out.AtEnd {
             set line = out.ReadLine()
             set escapedLine = ..EscapeHTML(line)

@@ -32,6 +32,14 @@ Embedded Git support for InterSystems platforms, supporting unified source contr
     }
     ```
 
+### Making available instance-wide via %ALL namespace
+
+To make git-source-control available to all namespaces on an instance without manually installing it in each, you can run:
+
+`do ##class(SourceControl.Git.API).MapEverywhere()`
+
+This will create the appropriate mappings to have all namespaces on the system use the version in the current namespace. Note, namespaces still must be configured independently. To undo this, you can delete the mappings from the %ALL namespace.
+
 ## Basic Use
 
 ### Source Control

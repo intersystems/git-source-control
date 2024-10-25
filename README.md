@@ -70,9 +70,21 @@ This might look like:
 
 ### Pull Event Handlers
 
-The ##class(SourceControl.Git.PullEventHandler) is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
+The class `SourceControl.Git.PullEventHandler` is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
 
 A recommended way to implement CI/CD would be to use one of the pre-defined subclasses of PullEventHandler that are placed inside the PullEventHandler package. Additionally, custom load logic can be placed in that package following the model of the existing subclasses.
+
+### Use in Deployment
+
+To manually pull the latest code from the current configured branch into an IRIS instance, use the "Git Pull" favorite link that is added to the management portal automatically on installation or via the Settings page "Favorite Namespaces" option.
+
+To use git-source-control as part of automated deployment to a test/production environment with a running IRIS instance, the best approach is to call into the appropriate IRIS namespace to run:
+
+`do ##class(SourceControl.Git.API).Pull(1)`
+
+This is convenient for scripting because it will terminate with an OS-level error if anything goes wrong. Further automation and customization can live in your pull event handler, described above.
+
+[This Developer Community answer](https://community.intersystems.com/post/cache-unit-test-jenkins#comment-115146) has some helpful guidance on how to call in to IRIS from the OS level for CI/CD; there are other helpful resources on the Developer Community as well.
 
 ### Security
 

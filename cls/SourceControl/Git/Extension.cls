@@ -67,6 +67,13 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
                     set Action = 6
                 }
             }
+
+            do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+            if 'isEditable || ##class(SourceControl.Git.Utils).Locked() || ($username '= userCheckedOut) {
+                set Target = "Warning: Attempting to edit read-only file"
+                write !, Target
+                set Action = 6
+            }
         }
     }
 

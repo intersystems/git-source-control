@@ -1956,6 +1956,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             }
         }
     }
+    do ##class(SourceControl.Git.Log).Create(outStream,errStream,.newArgs,returnCode)
     quit returnCode
 }
 

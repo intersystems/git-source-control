@@ -70,7 +70,7 @@ This might look like:
 
 ### Pull Event Handlers
 
-The clas `SourceControl.Git.PullEventHandler` is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
+The class `SourceControl.Git.PullEventHandler` is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
 
 A recommended way to implement CI/CD would be to use one of the pre-defined subclasses of PullEventHandler that are placed inside the PullEventHandler package. Additionally, custom load logic can be placed in that package following the model of the existing subclasses.
 

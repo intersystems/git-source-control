@@ -76,4 +76,9 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote)
 }
 
+ClassMethod MapEverywhere()
+{
+    Quit ##class(SourceControl.Git.Installer).MapEverywhere()
+}
+
 }

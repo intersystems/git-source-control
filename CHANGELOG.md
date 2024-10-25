@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - IRIS Business Intelligence items are mapped to the /dfi subdirectory by default (#428)
 - Intelligent merge conflict auto-resolution works for the common Business Rule case as well (#391)
 - All git commands run on the server, their output, and any associated sync output, are logged to a table for diagnostic purposes (#454)
+- Added API method to automatically add proper %ALL mappings for git-source-control (#214)
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)

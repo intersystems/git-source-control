@@ -42,24 +42,33 @@ This will create the appropriate mappings to have all namespaces on the system u
 
 ## Basic Use
 
+The point of Embedded Git is to intercept events made through all editors - both IDEs and the management portal - so that changes are reflected in the filesystem, in a git repo, and able to be shared with others. There are also source-control specific menus to help you do key tasks.
+
 ### Source Control
 
 For those with less experience using source control, we recommend this [page](/docs/scintro.md) for a quick introduction to source control / change control basics.
 
 ### Health Connect Cloud
-git-source control is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CICD pipelining.
+
+git-source control is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CI/CD pipelining.
 
 ### VSCode
-The same right click menus as in Studio live under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
 
-### Studio 
+Source control menus will appear under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
+
+For full details on all of the menu items, see [this reference page](/docs/menu-items.md).
+
+### Management Portal Editors
+
+In relevant editors in the management portal, there are two icons that allow access to the same source control functionality as in IDEs. Click the source control icon to see the menu, and the clipboard to see output from previously run commands in your browser session.
+
+*Important*: if using source control for interoperability, check the "Permit Enabling Automatic Refresh of Management Portal Pages" box in the management portal, at the page: Interoperability > Manage > Configuration > Interoperability Settings. This mitigates a potential for lost work.
+
+### Studio
 
 Note: Studio has been deprecated. VSCode is the IDE recommended by InterSystems.
 
-Add an existing file for tracking by right-clicking on it in the workspace/project view and choosing Git &gt; Add.
-This same menu also has options to remove (stop tracking the file), discard changes (revert to the index), or commit changes.
-
-You can browse file history and commit changes through a user interface launched from the top level Git > "Launch Git UI" menu item. There is also a page for configuring settings.
+That said, the same menu items and editor behavior will also work in Studio. There is a top-level "Git" menu with access to various operations and pages dependent on the current editor context.
 
 ## Notes
 

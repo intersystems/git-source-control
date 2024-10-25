@@ -612,7 +612,7 @@ ClassMethod GetCurrentRevision() As %String
     quit revision
 }
 
-ClassMethod Pull(remote As %String = "origin") As %Status
+ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean=0) As %Status
 {
     New %gitSCOutputFlag
     Set %gitSCOutputFlag = 1
@@ -627,6 +627,10 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !
     do errStream.OutputToDevice()
     write !, "Pull ran with return code: " _ returnCode
+    set err = errStream.Read()
+    if ($find(err,"error") || $find(err, "fatal") || $find(err, "ERROR")) && pTerminateOnError {
+        quit $$$ERROR($$$GeneralError, err)
+    }
     quit $$$OK
 }
 

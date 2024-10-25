@@ -44,9 +44,14 @@ ClassMethod Configure()
 }
 
 /// API for git pull - just wraps Utils
-ClassMethod Pull()
+/// - pTerminateOnError: if set to 1, this will terminate on error if there are any errors in the pull, otherwise will return status
+ClassMethod Pull(pTerminateOnError As %Boolean = 0)
 {
-    quit ##class(SourceControl.Git.Utils).Pull()
+    set st = ##class(SourceControl.Git.Utils).Pull(,pTerminateOnError)
+    if pTerminateOnError && $$$ISERR(st) {
+        Do $System.Process.Terminate($Job,1)
+    }
+    quit st
 }
 
 /// Locks the environment to prevent changes to code other than through git pull.

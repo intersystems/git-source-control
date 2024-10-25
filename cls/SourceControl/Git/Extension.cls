@@ -59,13 +59,18 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
             // if item is being edited in a different namespace, opening it will display an alert. Editing in this namespace will remove the alert.
             set filename = ##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
             do ##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction)
+            do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
             if '$data(tAction) {
                 set user = "", inNamespace = ""
-                if ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
+                if 'isEditable || ##class(SourceControl.Git.Utils).Locked() {
+                    set Target = "Warning: Attempting to edit read-only file"
+                    write !, Target
+                    set Action = 6
+                } elseif ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
                     set Target = "Warning: Item " _ InternalName _ " is currently being modified by " _ user _ " in namespace " _ inNamespace _ "."
                     write !, Target
                     set Action = 6
-                }
+                } 
             }
         }
     }

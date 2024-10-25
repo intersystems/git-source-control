@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix errors on commit when a file was added, never committed, then deleted from the repository (#481)
 - Fixed issue with saving multiple new no-folder mapping settings at the same time (#533)
 - Fixed sending OS error when git pull encounters error (#545)
+- Fixed suppressing editing of locked classes (#301)
 
 ## [2.6.0] - 2024-10-07
 

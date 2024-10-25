@@ -16,7 +16,7 @@ You will be prompted to enter a name for your new branch (no spaces or special c
 
 ### Making Changes
 
-Now that you are in your new branch (you can see your current branch in the first item in the source control menu), you can start making changes. As you make changes to different business processes, rules, and productions, make sure that all of these changes are saved properly and any new items are added to source control (via the "Add" menu item) before you continue to sync and merge.
+Now that you are in your new branch (you can see your current branch in the first item in the source control menu), you can start making changes. As you make changes to different business processes, rules, and productions, make sure that all of these changes are saved properly before you continue to sync and merge.
 
 ### Syncing and Merge Requests
 

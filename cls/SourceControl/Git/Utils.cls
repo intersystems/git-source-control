@@ -24,7 +24,7 @@ $Replace(..#Storage,"^SYS","^%SYS")
 /// Returns root temp folder
 ClassMethod DefaultTemp() As %String
 {
-    set defaultTemp = "c:\temp\"
+    set defaultTemp = ##class(%File).Construct($System.Util.ManagerDirectory(),"repo/"_$Namespace)
     try {
         set defaultTemp = $Get(@..%SYSNamespaceStorage()@("%defaultTemp"), defaultTemp)
     } catch e {
@@ -319,6 +319,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
+    set status = $$$OK
     #dim menuName as %String = $piece(Name,",")
     #dim menuItemName as %String = $piece(Name,",",2)
     if (menuItemName = "Revert") || (menuItemName [ "Import") {
@@ -331,15 +332,12 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
         }
     } elseif (menuItemName = "NewBranch") {
         if (Answer = 1) {
-            do ..NewBranch(Msg)
+            set status = ..NewBranch(Msg)
             set Reload = 1
         }
     } elseif (menuItemName = "SwitchBranch") {
         if (Answer = 1) {
             set status = ..SwitchBranch(Msg)
-            if $$$ISERR(status) {
-                Quit status
-            }
             set Reload = 1
         }
     } elseif (menuItemName = "Sync") {
@@ -356,7 +354,7 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
         // Always force reload as many things could have possibly changed.
         set Reload = 1
     }
-    quit $$$OK
+    quit status
 }
 
 ClassMethod Init() As %Status
@@ -405,8 +403,12 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
         kill errStream, outStream
     }
     
-    do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
+    set err = ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
     do ..PrintStreams(errStream, outStream)
+    if err {
+	    do errStream.Rewind()
+	    quit $$$ERROR($$$GeneralError,errStream.Read()_$c(10)_"Current branch is: "_..GetCurrentBranch())
+    }
     quit $$$OK
 }
 
@@ -505,7 +507,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         } catch e {
             // "rebase" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the rebase.
             write !,"Attempting to resolve differences in production definition..."
-            set resolver = ##class(SourceControl.Git.Util.ProductionConflictResolver).FromLog(outStream)
+            set resolver = ##class(SourceControl.Git.Util.ResolutionManager).FromLog(outStream)
             if resolver.resolved {
                 set rebased = 1
                 TCOMMIT
@@ -2834,6 +2836,7 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("CLS","UnitTest")="test/"
     set @mappingsNode@("INC","*")="inc/"
     set @mappingsNode@("MAC","*")="rtn/"
+    set @mappingsNode@("DFI","*")="dfi/"
 }
 
 ClassMethod PrintStreams(streams... As %Stream.FileCharacter)
@@ -2981,3 +2984,4 @@ ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef no
 }
 
 }
+

@@ -48,7 +48,7 @@ The same right click menus as in Studio live under "Server Source Control..." wh
 
 Note: Studio has been deprecated. VSCode is the IDE recommended by InterSystems.
 
-Add a file for tracking by right-clicking on it in the workspace/project view and choosing Git &gt; Add.
+Add an existing file for tracking by right-clicking on it in the workspace/project view and choosing Git &gt; Add.
 This same menu also has options to remove (stop tracking the file), discard changes (revert to the index), or commit changes.
 
 You can browse file history and commit changes through a user interface launched from the top level Git > "Launch Git UI" menu item. There is also a page for configuring settings.

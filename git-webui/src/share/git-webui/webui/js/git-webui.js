@@ -436,7 +436,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
                 if (!matches) {
                     continue;
                 }
@@ -2560,16 +2560,10 @@ webui.NewChangedFilesView = function(workspaceView) {
                     } else {
                         model = line;
                     }
-                    model = model.replace(/^"(.*)"$/g,'$1');
+                    model = model.replace(/^"(.*)"$/g,'$1').trim();
 
                     ++self.filesCount;
-                    var isForCurrentUser;
-                    if(model.indexOf(" ") > -1){
-                        isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
-                    } else {
-                        isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
-                    }
-                    
+                    var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                     if (isForCurrentUser) {
                         addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
                     } else {
@@ -3047,7 +3041,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 '</div>' +
                 '<div class="commit-area col-sm-6">' +
                     '<div class="form-group">' +
-                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required, 72 character limit)">' +
+                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required)">' +
                     '</div>' +
                     '<div class="form-group">' +
                         '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional)"></textarea>' +

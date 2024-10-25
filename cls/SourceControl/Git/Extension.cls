@@ -62,15 +62,15 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
             do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
             if '$data(tAction) {
                 set user = "", inNamespace = ""
-                if ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
-                    set Target = "Warning: Item " _ InternalName _ " is currently being modified by " _ user _ " in namespace " _ inNamespace _ "."
-                    write !, Target
-                    set Action = 6
-                } elseif 'isEditable || ##class(SourceControl.Git.Utils).Locked() {
+                if 'isEditable || ##class(SourceControl.Git.Utils).Locked() {
                     set Target = "Warning: Attempting to edit read-only file"
                     write !, Target
                     set Action = 6
-                }
+                } elseif ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
+                    set Target = "Warning: Item " _ InternalName _ " is currently being modified by " _ user _ " in namespace " _ inNamespace _ "."
+                    write !, Target
+                    set Action = 6
+                } 
             }
         }
     }

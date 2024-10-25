@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Report error more clearly if you try to create a branch with an invalid name (#534)
 - Don't default to WINDOWS style paths (#357)
 - Fix errors when deleting non-existent files on import (#524)
+- Fix errors on commit when a file was added, never committed, then deleted from the repository (#481)
 - Fixed issue with saving multiple new no-folder mapping settings at the same time (#533)
 
 ## [2.6.0] - 2024-10-07

@@ -177,6 +177,20 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
             if $$$ISERR(sc) continue
         }
     }
+
+    // If a file was added to the index and then deleted, git status will show it as a delete but committing will fail.
+    // The solution is to git add each deleted file that has never been committed so it will be removed from the index.
+    set key = $order(gitFiles(""))
+    while (key '= "") {
+        if $listget(gitFiles(key),1) = "D" {
+            set filename = $listget(gitFiles(key),2)
+            do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("log",,.errStream,.outStream,"--first-parent", "--", filename)
+            if (outStream.Size = 0) {
+                do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("add",,errStream,outStream,filename)
+            }
+        }
+        set key = $order(gitFiles(key))
+    }
     set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
     merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles
     quit sc

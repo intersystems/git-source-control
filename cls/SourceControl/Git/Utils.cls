@@ -1412,8 +1412,8 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
     if (cspFile=srcFile)||($$$isWINDOWS&&($ZCVT(cspFile,"l")=$ZCVT(srcFile,"l"))) {
         Quit $$$OK
     }
-
-    if '(##class(%File).Delete(cspFile) && ##class(%File).CopyFile(srcFile, cspFile)) {
+    // Delete original if exists, otherwise create new file
+    if '(##class(%File).CopyFile(srcFile, cspFile, 1)) {
         set sc = $$$ERROR($$$GeneralError, "Unable to import '"_srcFile_"'")
     }
 

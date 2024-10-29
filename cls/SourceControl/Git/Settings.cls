@@ -136,7 +136,7 @@ Method %Save() As %Status
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
     
-    do ##class(SourceControl.Git.Utils).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
+    do ##class(%zpkg.isc.sc.git.Favorites).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
 
     quit $$$OK
 }

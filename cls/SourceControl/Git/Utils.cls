@@ -75,7 +75,7 @@ $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 ClassMethod FavoriteNamespaces() As %String
 {
     set favNamespaces = []
-    do ..GetFavoriteNamespaces(.favNamespaces,[])
+    do ##class(%zpkg.isc.sc.git.Favorites).GetFavoriteNamespaces(.favNamespaces,[])
     return favNamespaces
 }
 
@@ -612,7 +612,7 @@ ClassMethod GetCurrentRevision() As %String
     quit revision
 }
 
-ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean=0) As %Status
+ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean = 0) As %Status
 {
     New %gitSCOutputFlag
     Set %gitSCOutputFlag = 1
@@ -2985,4 +2985,3 @@ ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef no
 }
 
 }
-

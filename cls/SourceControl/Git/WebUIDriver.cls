@@ -223,18 +223,19 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set %data = ##class(%Stream.TmpCharacter).%New()
                 set changeTerminators = (%data.LineTerminator '= $char(13,10))
                 set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+                do outStream.Rewind()
                 while 'outStream.AtEnd {
                     do %data.WriteLine(outStream.ReadLine())
                 }
 
                 set nLines = 0
+                do errStream.Rewind()
                 while 'errStream.AtEnd {
                     do %data.WriteLine(errStream.ReadLine())
                     set:changeTerminators nLines = nLines + 1
                 }
                 
-                // Need to write out two lines or we get an infinite loop in JavaScript...
-                do %data.WriteLine()
+                // Need to write out an extra newline
                 do %data.WriteLine()
                 do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
@@ -425,3 +426,4 @@ ClassMethod GetRemote() As %Library.DynamicObject
 }
 
 }
+

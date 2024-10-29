@@ -612,7 +612,7 @@ ClassMethod GetCurrentRevision() As %String
     quit revision
 }
 
-ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean=0) As %Status
+ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean = 0) As %Status
 {
     New %gitSCOutputFlag
     Set %gitSCOutputFlag = 1
@@ -1924,7 +1924,9 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
 
     if syncIrisWithDiff {
-        do ..PrintStreams(errStream, outStream)
+        if '$data(%gitSCOutputFlag)#2 {
+            do ..PrintStreams(errStream, outStream)
+        }
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughDiff(.files, .filterToFiles, invert)
@@ -2066,6 +2068,8 @@ ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, O
     kill files
     while (stream.AtEnd = 0) {
         set file = stream.ReadLine()
+        continue:file=""
+
         set modification = ##class(SourceControl.Git.Modification).%New()
         set modification.changeType = $piece(file, $c(9), 1)
         

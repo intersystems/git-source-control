@@ -614,7 +614,7 @@ body {
                 <server>
                     set nonFavNamespaces = []
                     set selectedNamespaces = []
-                    do ##class(SourceControl.Git.Utils).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
+                    do ##class(%zpkg.isc.sc.git.Favorites).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
                     set iterator = selectedNamespaces.%GetIterator()
                     while iterator.%GetNext(.key, .value) {
                         &html<<option selected value=#(value)#>#(value)#</option>>

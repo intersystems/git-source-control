@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed sending OS error when git pull encounters error (#545)
 - Fixed suppressing editing of locked classes (#301)
 - Fixed importing CSP files (#251)
+- Fixed changing favorites for users without permissions (#587)
 
 ## [2.6.0] - 2024-10-07
 

@@ -57,9 +57,43 @@
                 border-radius: 4px;
             }
 
+            /* The alert message box */
+            .alert {
+            padding: 20px;
+            background-color: #f44336; /* Red */
+            color: white;
+            margin-bottom: 15px;
+            }
+
+            /* The close button */
+            .closebtn {
+            margin-left: 15px;
+            color: white;
+            font-weight: bold;
+            float: right;
+            font-size: 22px;
+            line-height: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            }
+
+            /* When moving the mouse over the close button */
+            .closebtn:hover {
+            color: black;
+            }
+
+
         </style>
+        <script type="text/javascript">
+        function disableInput() {
+            document.getElementById('syncMsg').disabled = true;
+            document.getElementById('syncBtn').innerHTML = 'Syncing...';
+            document.getElementById('syncBtn').disabled = true;
+        }
+        </script>
+        #(##class(SourceControl.Git.Utils).ProductionConfigScript())#
     </head>
-    <body>
+    <body #(##class(SourceControl.Git.Utils).ProductionConfigBodyAttributes())#>
         <server>
             set settings = ##class(SourceControl.Git.Settings).%New()
 
@@ -83,6 +117,22 @@
             <h1 class="text-center">Sync Repository</h1>
             <div class="row">
                 <div class="offset-sm-2 col-sm-8">
+                    <server> 
+                    set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+                        if defaultBasic || ##class(SourceControl.Git.Change).GetOtherDeveloperChanges().%Size() > 0 {
+                        if defaultBasic { 
+                            set message = "Please change branches to make sure your changes are committed." 
+                        } else {
+                            set message = "Other users have work in progress in this namespace. They must commit their work before you can sync, or you can commit their work after review in the Git WebUI before trying to sync again."
+                        }
+                            &html<
+                                <div class = "alert">
+                                    <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+                                    <strong>Warning!</strong> #(message)#
+                                </div>
+                            >
+                        }
+                    </server>
                     <div style="display: #(fileSectionDisplay)#">
                         <h3 class="section-header">Files to be committed with sync:</h3>
                         <ul class="list-group">
@@ -122,13 +172,6 @@
             
         </div>
     </body>
-    <script type="text/javascript">
-    function disableInput() {
-        document.getElementById('syncMsg').disabled = true;
-        document.getElementById('syncBtn').innerHTML = 'Syncing...';
-        document.getElementById('syncBtn').disabled = true;
-    }
-    </script>
     <script language="cache" method="PerformSync" arguments="syncMsg:%String">
         &js<document.getElementById('outputContainer').style.display = 'block'>
         &js<document.getElementById('outputHeader').style.display = 'block'>
@@ -139,6 +182,7 @@
 
         set out = ##class(%Stream.GlobalCharacter).%New()
         do buffer.EndCaptureOutput(.out)
+        do ##class(SourceControl.Git.Log).Create(out,,,,"Sync")
         while 'out.AtEnd {
             set line = out.ReadLine()
             set escapedLine = ..EscapeHTML(line)

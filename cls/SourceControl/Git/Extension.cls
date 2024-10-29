@@ -29,6 +29,7 @@ XData Menu
 <MenuItem Name="NewBranch" />
 <MenuItem Name="SwitchBranch" />
 <MenuItem Separator="true"/>
+<MenuItem Name="ExportSystemDefaults" />
 <MenuItem Name="Export" />
 <MenuItem Name="ExportForce" />
 <MenuItem Name="Import" />
@@ -58,13 +59,18 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
             // if item is being edited in a different namespace, opening it will display an alert. Editing in this namespace will remove the alert.
             set filename = ##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
             do ##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction)
+            do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
             if '$data(tAction) {
                 set user = "", inNamespace = ""
-                if ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
+                if 'isEditable || ##class(SourceControl.Git.Utils).Locked() {
+                    set Target = "Warning: Attempting to edit read-only file"
+                    write !, Target
+                    set Action = 6
+                } elseif ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
                     set Target = "Warning: Item " _ InternalName _ " is currently being modified by " _ user _ " in namespace " _ inNamespace _ "."
                     write !, Target
                     set Action = 6
-                }
+                } 
             }
         }
     }
@@ -79,6 +85,15 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
     #dim menuItemName as %String = $piece(Name,",",2)
     if menu '= "%SourceMenu", menu'="%SourceContext" {
         quit $$$OK
+    }
+
+    if (menuItemName = "Commit") {
+        set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+        if (defaultBasic) {
+            Set Target = "WARNING: Please create a new branch before committing."
+            set Action = 6
+            quit $$$OK
+        }
     }
 
     if (menuItemName = "Commit") || (menuItemName = "Sync") {
@@ -116,6 +131,7 @@ Method LocalizeName(name As %String) As %String
         "Settings":$$$Text("@Settings@Settings"),
         "Init":$$$Text("@Init@Initialize"),
         "GitWebUI":$$$Text("@GitWebUI@Launch Git UI"),
+        "ExportSystemDefaults":$$$Text("@ExportSystemDefaults@Export System Default Settings"),
         "Export":$$$Text("@Export@Export All"),
         "ExportForce":$$$Text("@ExportForce@Export All (Force)"),
         "Import":$$$Text("@Import@Import All"),
@@ -151,6 +167,11 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
         }
 
+        if name = "ExportSystemDefaults" {
+            set Enabled = ##class(%Library.EnsembleMgr).IsEnsembleNamespace()
+            quit $$$OK
+        }
+
         if ##class(SourceControl.Git.Utils).BasicMode() {
             set Enabled = $CASE(name,
                 "Status": 1,
@@ -162,7 +183,6 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "Sync": 1,
                 "": 1,
                 :-1
-            
             )
         } else {
             set Enabled = $CASE(name, 
@@ -340,7 +360,8 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                 } else {
                     set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
                     $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
-                    $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName))
+                    set forceExport = (InternalName'= "") && ($data(..Modified(InternalName)))
+                    $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName,,forceExport))
                     if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                         $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
                     }

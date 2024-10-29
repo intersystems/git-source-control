@@ -1,5 +1,5 @@
 # git-source-control
- Server-side source control extension for Git on InterSystems' platforms
+Embedded Git support for InterSystems platforms, supporting unified source control for changes made via IDEs (e.g., VSCode over isfs) and the Management Portal (Interoperability and Business Intelligence).
 
 ## Prerequisites/Dependencies
 
@@ -32,23 +32,43 @@
     }
     ```
 
+### Making available instance-wide via %ALL namespace
+
+To make git-source-control available to all namespaces on an instance without manually installing it in each, you can run:
+
+`do ##class(SourceControl.Git.API).MapEverywhere()`
+
+This will create the appropriate mappings to have all namespaces on the system use the version in the current namespace. Note, namespaces still must be configured independently. To undo this, you can delete the mappings from the %ALL namespace.
+
 ## Basic Use
+
+The point of Embedded Git is to intercept events made through all editors - both IDEs and the management portal - so that changes are reflected in the filesystem, in a git repo, and able to be shared with others. There are also source-control specific menus to help you do key tasks.
 
 ### Source Control
 
 For those with less experience using source control, we recommend this [page](/docs/scintro.md) for a quick introduction to source control / change control basics.
 
 ### Health Connect Cloud
-git-source control is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CICD pipelining.
 
-### Studio
-Add a file for tracking by right-clicking on it in the workspace/project view and choosing Git &gt; Add.
-This same menu also has options to remove (stop tracking the file), discard changes (revert to the index), or commit changes.
-
-You can browse file history and commit changes through a user interface launched from the top level Git > "Launch Git UI" menu item. There is also a page for configuring settings.
+git-source control is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CI/CD pipelining.
 
 ### VSCode
-The same right click menus as in Studio live under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
+
+Source control menus will appear under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
+
+For full details on all of the menu items, see [this reference page](/docs/menu-items.md).
+
+### Management Portal Editors
+
+In relevant editors in the management portal, there are two icons that allow access to the same source control functionality as in IDEs. Click the source control icon to see the menu, and the clipboard to see output from previously run commands in your browser session.
+
+*Important*: if using source control for interoperability, check the "Permit Enabling Automatic Refresh of Management Portal Pages" box in the management portal, at the page: Interoperability > Manage > Configuration > Interoperability Settings. This mitigates a potential for lost work.
+
+### Studio
+
+Note: Studio has been deprecated. VSCode is the IDE recommended by InterSystems.
+
+That said, the same menu items and editor behavior will also work in Studio. There is a top-level "Git" menu with access to various operations and pages dependent on the current editor context.
 
 ## Notes
 
@@ -67,9 +87,21 @@ This might look like:
 
 ### Pull Event Handlers
 
-The ##class(SourceControl.Git.PullEventHandler) is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
+The class `SourceControl.Git.PullEventHandler` is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.
 
 A recommended way to implement CI/CD would be to use one of the pre-defined subclasses of PullEventHandler that are placed inside the PullEventHandler package. Additionally, custom load logic can be placed in that package following the model of the existing subclasses.
+
+### Use in Deployment
+
+To manually pull the latest code from the current configured branch into an IRIS instance, use the "Git Pull" favorite link that is added to the management portal automatically on installation or via the Settings page "Favorite Namespaces" option.
+
+To use git-source-control as part of automated deployment to a test/production environment with a running IRIS instance, the best approach is to call into the appropriate IRIS namespace to run:
+
+`do ##class(SourceControl.Git.API).Pull(1)`
+
+This is convenient for scripting because it will terminate with an OS-level error if anything goes wrong. Further automation and customization can live in your pull event handler, described above.
+
+[This Developer Community answer](https://community.intersystems.com/post/cache-unit-test-jenkins#comment-115146) has some helpful guidance on how to call in to IRIS from the OS level for CI/CD; there are other helpful resources on the Developer Community as well.
 
 ### Security
 
@@ -113,8 +145,14 @@ Assuming you have the local and remote repositories created,
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
 
+## Support
 
+If you find a bug or would like to request an enhancement, [report an issue](https://github.com/intersystems/git-source-control/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Git" and "Source Control" tags as appropriate.
 
-## During Development
+## Contributing
+
+Please read [contributing](CONTRIBUTING.md) for details on the process for submitting pull requests to us.
+
+### During Development
 
 :warning: Whenever any code in this project is updated outside the server (e.g. after every `git pull`), you _have_ to run `zpm "load <absolute path to git-source-control>"`. Otherwise, the changes won't be reflected on the server. However, if you load git-source-control via the InterSystems package manager and run `git pull` via the extension itself with the default pull event handler configured, it'll just work.

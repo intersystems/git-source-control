@@ -64,6 +64,8 @@ Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(
 
 Property Mappings [ MultiDimensional ];
 
+Property favoriteNamespaces As %DynamicArray;
+
 Method %OnNew() As %Status
 {
     set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
@@ -75,6 +77,7 @@ Method %OnNew() As %Status
     if ('isDefault) {
         set ..gitBinPath = gitBinPath
     }
+    set ..favoriteNamespaces = ##class(SourceControl.Git.Utils).FavoriteNamespaces()
     quit $$$OK
 }
 
@@ -174,6 +177,9 @@ Method %Save() As %Status
 
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
+    
+    do ##class(SourceControl.Git.Utils).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
+
     quit $$$OK
 }
 
@@ -249,6 +255,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         set sequence = $order(orderedProperties(sequence),1,property)
         quit:sequence=""
         continue:property="userBasicMode"
+        continue:property="favoriteNamespaces"
         do %code.WriteLine(" set value = inst."_property)
         set prompt = $$$comMemberKeyGet(%class.Name,$$$cCLASSproperty,property,$$$cPROPdescription)
         set promptQuoted = $$$QUOTE(prompt_":")
@@ -256,6 +263,14 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         set propertyDef = ##class(%Dictionary.PropertyDefinition).%OpenId("SourceControl.Git.Settings||"_property_"")
         if ((propertyDef) && (propertyDef.Type = "%Boolean")) {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetYesNo("_promptQuoted_",.value,,"_defaultPromptFlag_")")
+        } elseif ((propertyDef) && (propertyDef.Name = "gitBinPath")) {
+            do %code.WriteLine(" set valid = 0")
+            do %code.WriteLine(" while ('valid) {")
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
+            do %code.WriteLine(" set value = $zstrip(value,""<>W"")")
+            do %code.WriteLine(" set status =  inst.ConfigureBinPath(.value)")
+            do %code.WriteLine(" if (status) { set valid = 1 }")
+            do %code.WriteLine(" }")
         } elseif ((propertyDef) && (propertyDef.Name = "basicMode")) {
             set basicModePromptFlag = defaultPromptFlag + $$$MatchExactArrayMask + $$$InitialDisplayMask
             do %code.WriteLine(" set list(1) = ""Yes""")
@@ -279,6 +294,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
+        do %code.WriteLine(" set value = $zstrip(value,""<>W"")")
         do %code.WriteLine(" set inst."_property_" = value")
         
     }
@@ -425,6 +441,38 @@ Method OnAfterConfigure() As %Boolean
             $$$ThrowOnError(..SaveWithSourceControl())
         }
     }
+}
+
+Method ConfigureBinPath(ByRef path As %String) As %Boolean
+{
+    if (path = "") { return 1 }
+    // Sometimes path is quoted 
+    set path = $replace(path,"""","")
+    if (##class(%File).DirectoryExists(path)) {
+        set gitFile = $case($$$isWINDOWS,1:"git.exe",:"git")
+        set path = ##class(%File).Construct(path, gitFile)
+    } 
+    
+    if (##class(%File).Exists(path)) {
+        // no-op
+    } else {
+        write !, "The entered path is not a valid path, please try again"
+        return 0
+    }
+    try {
+        set sysStorage = ##class(SourceControl.Git.Utils).%SYSNamespaceStorage()
+        kill @sysStorage@("%gitBinPath")
+        if (..gitBinPath '= "") {
+            set @sysStorage@("%gitBinPath") = path
+        }
+        kill ^||GitVersion
+        // Get and write the version
+        set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
+        write !, "You are now using "_version
+    } catch e {
+        // no-op, user may not have privileges
+    }
+    return 1
 }
 
 }

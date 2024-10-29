@@ -13,6 +13,7 @@ ClassMethod Run()
 {
 	If %request.Get("method") = "preview" {
 		Set branchName = ##class(SourceControl.Git.Utils).GetCurrentBranch()
+		Write !,"Current namespace: ",$NAMESPACE
 		Write !,"Current branch: ",branchName
 		Do ##class(SourceControl.Git.Utils).RunGitWithArgs(.errStream, .outStream, "fetch")
 		Kill errStream, outStream
@@ -24,6 +25,20 @@ ClassMethod Run()
 	} ElseIf %request.Get("method") = "pull" {
 		Do ##class(SourceControl.Git.API).Pull()
 	} ElseIf %request.Get("method") = "init" {
+		set root = %request.Get("root")
+
+		// Use user input if provided
+		if (root '= "") {
+			set settings = ##class(SourceControl.Git.Settings).%New()
+			set settings.namespaceTemp = root
+			$$$ThrowOnError(settings.%Save())
+			if ($extract(root, $length(root)) = "\") || ($extract(root, $length(root)) = "/") {
+				set root = $extract(root, 1, $length(root) - 1)
+			}
+			set root = $translate(root, "\", "/")
+			do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("config",,,,"--global", "--add", "safe.directory", root)
+		}
+
 		Do ##class(SourceControl.Git.Utils).Init()
 		Write !,"Done."
 	} ElseIf %request.Get("method") = "clone" {

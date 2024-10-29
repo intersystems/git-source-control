@@ -436,7 +436,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
                 if (!matches) {
                     continue;
                 }
@@ -596,7 +596,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     self.pruneRemoteBranches = function(e){
         e.preventDefault();
         $(".btn-prune-remote-branches").addClass("refresh-start");
-        webui.git("fetch --prune",updateSideBar);
+        webui.git("fetch --prune ",updateSideBar);
     }
 
     self.getPackageVersion = function() {
@@ -614,8 +614,8 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
     };
 
-    self.changeContextGet = function() {
-        $.get("contexts", function(contextList) {
+    self.changeContextGet = function(onlyNamespaces) {
+        $.get("contexts", { "onlyNamespaces": onlyNamespaces }, function(contextList) {
             var contexts = JSON.parse(contextList);
             self.changeContext(contexts);
         });
@@ -761,7 +761,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         if(branchType === "remote"){
                             var remoteName = refName.split("/")[0];
                             var branchName = refName.split("/")[1];
-                            webui.git("fetch "+remoteName+" "+branchName);
+                            webui.git("fetch --prune "+remoteName+" "+branchName);
                             webui.git("branch -l "+branchName, function(existingBranch) {
                                 if (existingBranch.length > 0) {
                                     webui.git("checkout " +branchName, updateSideBar);
@@ -782,7 +782,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
                 else{
                     if(branchType === "remote"){
-                        webui.git("fetch "+remoteName+" "+branchName);
+                        webui.git("fetch --prune "+remoteName+" "+branchName);
                         webui.git("branch -l "+branchName, function(existingBranch) {
                             if (existingBranch.length > 0) {
                                 webui.git("checkout " +branchName, updateSideBar);
@@ -908,7 +908,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var branchName = refName.split('/')[1];
 
         if(branchName){
-            webui.git("fetch "+remoteName+" "+branchName);
+            webui.git("fetch --prune "+remoteName+" "+branchName);
         }
 
         function callTestMergeHandler(message){
@@ -994,13 +994,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                     '<h4>Discarded Files</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-local-branches">' +
-                                    '<h4 class="mt-3">Local Branches' +
+                                    '<h4 class="mt-1">Local Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
                                         webui.circlePlusIcon+
                                     '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
-                                    '<h4 class="mt-3">Remote Branches' +
+                                    '<h4 class="mt-1">Remote Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" >'+
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +
@@ -1008,6 +1008,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
+                                '<section id="space-filler"></section>'+
                                 '<section id="sidebar-settings">' +
                                     '<h4>Settings</h4>' +
                                 '</section>' +
@@ -1050,7 +1051,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
-        $("#sidebar-context", self.element).click(self.changeContextGet);
+        $("#sidebar-context", self.element).click(function() {
+            self.changeContextGet(0);
+        });
         $("#sidebar-home", self.element).click(self.goToHomePage);
     }
 
@@ -2557,16 +2560,10 @@ webui.NewChangedFilesView = function(workspaceView) {
                     } else {
                         model = line;
                     }
-                    model = model.replace(/^"(.*)"$/g,'$1');
+                    model = model.replace(/^"(.*)"$/g,'$1').trim();
 
                     ++self.filesCount;
-                    var isForCurrentUser;
-                    if(model.indexOf(" ") > -1){
-                        isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
-                    } else {
-                        isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
-                    }
-                    
+                    var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
                     if (isForCurrentUser) {
                         addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
                     } else {
@@ -2598,13 +2595,20 @@ webui.NewChangedFilesView = function(workspaceView) {
                 });
                 $("#commitBtn").off("click");
                 $("#commitBtn").on("click", function() {
-                    if (selectedItemsFromOtherUser.length > 0) {
-                        self.confirmActionOnOtherUsersChanges("commit");
-                    } else {
-                        var commitMessage = $('#commitMsg').val();
-                        self.commit(commitMessage, $("#commitMsgDetail").val());
-                    }
-                    
+                    // Make sure we are not commiting to default merge branch in basic mode
+                    $.get("api/basic-and-default", function (data) {
+                        var basicAndDefault = JSON.parse(data)["basic-and-default"]
+                        if (basicAndDefault == "1") {
+                            self.noCommitsOnDefault();
+                        } else {
+                            if (selectedItemsFromOtherUser.length > 0) {
+                                self.confirmActionOnOtherUsersChanges("commit");
+                            } else {
+                                var commitMessage = $('#commitMsg').val();
+                                self.commit(commitMessage, $("#commitMsgDetail").val());
+                            }
+                        }
+                    })                    
                 });
 
                 $("#amendBtn").off("click");
@@ -2748,6 +2752,55 @@ webui.NewChangedFilesView = function(workspaceView) {
             removePopup(popup);
         });
     }
+
+    // Popup for when trying to commit to default merge branch in basic mode
+    self.noCommitsOnDefault = function () {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#noCommitsDefault").remove();
+        }
+
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="noCommitsDefault" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Cannot commit to Default Branch</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body">' + 
+                            '<div class="row">' +
+                                '<div class="col-sm-1">' +
+                                    webui.warningIcon +
+                                '</div>' +
+                                '<div class="col-sm-11">' +
+                                    '<p>You cannot commit directly to the default merge branch while using basic mode. Please switch to another branch.</p>' + 
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+
+        $("body").append(popup);
+
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+
+        $(
+            '<button class="btn btn-sm btn-secondary action-btn" id="noCommitDefaultButton">Ok</button>'
+        ).appendTo(popupFooter);
+
+        $(popup).modal('show');
+
+        $("#noCommitsDefault").find(".close, #noCommitDefaultButton").click(function() {
+            removePopup(popup);
+        })
+
+    };
 
     self.confirmActionOnOtherUsersChanges = function(action) {
             function removeWarningModal(popup) {
@@ -2988,7 +3041,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 '</div>' +
                 '<div class="commit-area col-sm-6">' +
                     '<div class="form-group">' +
-                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required, 72 character limit)">' +
+                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required)">' +
                     '</div>' +
                     '<div class="form-group">' +
                         '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional)"></textarea>' +

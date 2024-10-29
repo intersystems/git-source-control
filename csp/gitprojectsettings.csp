@@ -68,6 +68,27 @@ body {
     padding-left: 4px;
 }
 
+.alert {
+  padding: 20px;
+  background-color: #04AA6D;;
+  color: white;
+}
+
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
 </style>
 </head>
 <body>
@@ -132,6 +153,18 @@ body {
         }
             set i = i+1
         }
+
+        set i = 1
+        set contexts = []
+
+        while ( $Data(%request.Data("favNamespace",i)) ){
+        if ($Get(%request.Data("favNamespace",i)) '= "") {
+            do contexts.%Push($Get(%request.Data("favNamespace",i)))
+        }
+        set i = i+1
+        }
+
+        set settings.favoriteNamespaces = contexts
     }
     set err = ""
     try {
@@ -150,7 +183,13 @@ body {
     }
 }
 </server>
-<div class = 'container'>    
+<div class = 'container'>
+    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
+        <div class = "alert">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+        <strong>Success!</strong> Your changes have been saved.
+    </div>
+    </csp:if>
     <form id="settingsForm" method='post'>
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
@@ -227,9 +266,11 @@ body {
                 } else {
                     set class = "form-control"
                 }
+                set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\someproj\)",
+                        1:"(e.g., /someproj/)")
             </server>
             <div class="col-sm-7">
-                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
+                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder=#(placeholder)#/>
             </div>
         </div>
         <server>
@@ -267,8 +308,10 @@ body {
                             "File not found - generate a new key pair?"_
                             "</button>"
                     }
+                    set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\Users\ExampleUser\.ssh\id_rsa)",
+                        1:"(e.g., /home/user/.ssh/id_rsa)")
                 </server>
-                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
+                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder=#(placeholder)#/>
                 <div class = "#(divClass)#">
                     #(feedbackText)#
                     <pre id="sshOutput"></pre>
@@ -604,6 +647,27 @@ body {
             </div> -->
         </div>
 
+        <div class="form-group row mb-3">
+            <label for="addToFav" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Favorite namespaces for user to add link on Home page.">Favorite Namespaces</label>
+            <div class="col-sm-7">
+                <select multiple class="form-control" id="addToFav" name="favNamespace">
+                <server>
+                    set nonFavNamespaces = []
+                    set selectedNamespaces = []
+                    do ##class(SourceControl.Git.Utils).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
+                    set iterator = selectedNamespaces.%GetIterator()
+                    while iterator.%GetNext(.key, .value) {
+                        &html<<option selected value=#(value)#>#(value)#</option>>
+                    }
+                    set iterator = nonFavNamespaces.%GetIterator()
+                    while iterator.%GetNext(.key, .value) {   
+                        &html<<option value=#(value)#>#(value)#</option>>
+                    }
+                </server>
+                </select>
+                <small> Hold the [Ctrl] or [Cmd] key while clicking to select multiple namespaces.</small>
+            </div>
+        </div>
         <br/>
         </fieldset>
 
@@ -638,8 +702,9 @@ function getSocket(urlPostfix) {
 
 function init() {
     disableActionButtons();
-	var ws = getSocket("method=init");
-	ws.onmessage = showOutput('initOutput');
+    var root = document.getElementById("namespaceTemp").value;
+    var ws = getSocket("method=init&root=" + encodeURIComponent(root));
+    ws.onmessage = showOutput('initOutput');
 }
 
 function clone() {
@@ -710,7 +775,10 @@ $(function()
 
         newEntry.appendTo(controlForm);
         $(("#"+newID)).click(toggleNoFolders);
-        
+
+        // Click twice to toggle and get side effects
+        $(("#"+newID)).click();
+        $(("#"+newID)).click();
     }).on('click', '.btn-remove', function(e)
     {
         $(this).parent().parent().parent().prev('#indent-div').remove();

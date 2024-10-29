@@ -32,6 +32,10 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = {
                 "environment": (##class(SourceControl.Git.Utils).EnvironmentName()) 
             }
+        } elseif $extract(pagePath, 6, *) = "basic-and-default" {
+            set responseJSON = {
+                "basic-and-default": (##class(SourceControl.Git.Utils).InDefaultBranchBasicMode())
+            }    
         } else {
             set %response.Status = ##class(%CSP.REST).#HTTP404NOTFOUND
             set responseJSON = {"error":("invalid URI: " _ pagePath)}
@@ -152,7 +156,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do discardsInBranch.%ToJSON(%data)
                 set handled = 1
             } elseif (pathStart = "contexts") {
-                set contexts = ##class(SourceControl.Git.Utils).GetContexts()
+                set onlyNamespaces = %request.Data("onlyNamespaces", 1)
+                set contexts = ##class(SourceControl.Git.Utils).GetContexts(onlyNamespaces)
                 do contexts.%ToJSON(%data)
                 set handled = 1
             }
@@ -218,18 +223,19 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 set %data = ##class(%Stream.TmpCharacter).%New()
                 set changeTerminators = (%data.LineTerminator '= $char(13,10))
                 set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+                do outStream.Rewind()
                 while 'outStream.AtEnd {
                     do %data.WriteLine(outStream.ReadLine())
                 }
 
                 set nLines = 0
+                do errStream.Rewind()
                 while 'errStream.AtEnd {
                     do %data.WriteLine(errStream.ReadLine())
                     set:changeTerminators nLines = nLines + 1
                 }
                 
-                // Need to write out two lines or we get an infinite loop in JavaScript...
-                do %data.WriteLine()
+                // Need to write out an extra newline
                 do %data.WriteLine()
                 do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
                 do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
@@ -410,7 +416,7 @@ ClassMethod GetHomeURL() As %String
     if $IsObject($Get(%request)) {
         set prefix = $Piece(%request.Application,%request.AppMatch)
     }
-    quit prefix_"/csp/sys/UtilHome.csp"
+    quit prefix_"/csp/sys/UtilHome.csp?$NAMESPACE="_$namespace
 }
 
 ClassMethod GetRemote() As %Library.DynamicObject
@@ -420,3 +426,4 @@ ClassMethod GetRemote() As %Library.DynamicObject
 }
 
 }
+

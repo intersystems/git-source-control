@@ -24,7 +24,7 @@ $Replace(..#Storage,"^SYS","^%SYS")
 /// Returns root temp folder
 ClassMethod DefaultTemp() As %String
 {
-    set defaultTemp = "c:\temp\"
+    set defaultTemp = ##class(%File).Construct($System.Util.ManagerDirectory(),"repo/"_$Namespace)
     try {
         set defaultTemp = $Get(@..%SYSNamespaceStorage()@("%defaultTemp"), defaultTemp)
     } catch e {
@@ -80,6 +80,13 @@ $Get(@..#Storage@("settings","decomposeProductions"), 0)
 ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 {
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
+}
+
+ClassMethod FavoriteNamespaces() As %String
+{
+    set favNamespaces = []
+    do ..GetFavoriteNamespaces(.favNamespaces,[])
+    return favNamespaces
 }
 
 /// Returns the current (or previous) value of the flag.
@@ -261,6 +268,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         if ec {
             write !,"==export done==",!
         }
+    } elseif (menuItemName = "ExportSystemDefaults") {
+        set ec = ..ExportSystemDefaults()
     } elseif (menuItemName = "Import") {
         set ec = ..ImportAll()
         set Reload = 1
@@ -320,6 +329,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
 
 ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %String, Answer As %Integer, Msg As %String = "", ByRef Reload As %Boolean) As %Status
 {
+    set status = $$$OK
     #dim menuName as %String = $piece(Name,",")
     #dim menuItemName as %String = $piece(Name,",",2)
     if (menuItemName = "Revert") || (menuItemName [ "Import") {
@@ -332,12 +342,12 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
         }
     } elseif (menuItemName = "NewBranch") {
         if (Answer = 1) {
-            do ..NewBranch(Msg)
+            set status = ..NewBranch(Msg)
             set Reload = 1
         }
     } elseif (menuItemName = "SwitchBranch") {
         if (Answer = 1) {
-            do ..SwitchBranch(Msg)
+            set status = ..SwitchBranch(Msg)
             set Reload = 1
         }
     } elseif (menuItemName = "Sync") {
@@ -354,7 +364,7 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
         // Always force reload as many things could have possibly changed.
         set Reload = 1
     }
-    quit $$$OK
+    quit status
 }
 
 ClassMethod Init() As %Status
@@ -404,15 +414,31 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
         kill errStream, outStream
     }
     
-    do ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
+    set err = ..RunGitWithArgs(.errStream, .outStream, "checkout", "-b", newBranchName)
     do ..PrintStreams(errStream, outStream)
+    if err {
+	    do errStream.Rewind()
+	    quit $$$ERROR($$$GeneralError,errStream.Read()_$c(10)_"Current branch is: "_..GetCurrentBranch())
+    }
     quit $$$OK
 }
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
+    // Make sure that branch exists first (-a lists both local and remote)
+    do ..RunGitWithArgs(.errStream,.outStream,"branch", "-a")
+    set branches = outStream.Read()
+    if ('$find(branches,targetBranchName)) {
+        quit $$$ERROR($$$GeneralError, "Selected branch does not exist"_$C(10))
+    }
+    k outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
+    // Checkout can fail due to unstaged changes
+    set errs = errStream.Read()
+    if ($find(errs, "error")) {
+        quit $$$ERROR($$$GeneralError, errs)
+    }
     quit $$$OK
 }
 
@@ -492,7 +518,7 @@ ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
         } catch e {
             // "rebase" may throw an exception due to errors syncing to IRIS. In that case, roll back and keep going to abort the rebase.
             write !,"Attempting to resolve differences in production definition..."
-            set resolver = ##class(SourceControl.Git.Util.ProductionConflictResolver).FromLog(outStream)
+            set resolver = ##class(SourceControl.Git.Util.ResolutionManager).FromLog(outStream)
             if resolver.resolved {
                 set rebased = 1
                 TCOMMIT
@@ -539,6 +565,11 @@ ClassMethod Sync(Msg As %String, Output alert As %String) As %Status
     if '..HasRemoteRepo() {
         write "No remote repository configured: skipping fetch, pull and push"
         do ..SyncCommit(Msg)
+    } elseif ..InDefaultBranchBasicMode() {
+        // Do not commit to default merge branch in basic mode
+        write "In Basic mode on default merge branch: skipping commit and push"
+        do ..Fetch()
+        do ..Pull()
     } else {
         do ..Fetch()
         do ..Pull()
@@ -567,7 +598,7 @@ ClassMethod Push(remote As %String = "origin", force As %Boolean = 0) As %Status
 
 ClassMethod Fetch(ByRef diffFiles) As %Status
 {
-    do ..RunGitCommand("fetch", .errStream, .outStream)
+    do ..RunGitCommand("fetch", .errStream, .outStream, "--prune")
     write !, "Fetch done"
     kill errStream, outStream
     do ..RunGitCommand("diff", .errStream, .outStream, "..origin/"_..GetCurrentBranch(), "--name-only")
@@ -592,7 +623,7 @@ ClassMethod GetCurrentRevision() As %String
     quit revision
 }
 
-ClassMethod Pull(remote As %String = "origin") As %Status
+ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean = 0) As %Status
 {
     New %gitSCOutputFlag
     Set %gitSCOutputFlag = 1
@@ -607,6 +638,10 @@ ClassMethod Pull(remote As %String = "origin") As %Status
     write !
     do errStream.OutputToDevice()
     write !, "Pull ran with return code: " _ returnCode
+    set err = errStream.Read()
+    if ($find(err,"error") || $find(err, "fatal") || $find(err, "ERROR")) && pTerminateOnError {
+        quit $$$ERROR($$$GeneralError, err)
+    }
     quit $$$OK
 }
 
@@ -1415,8 +1450,8 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
     if (cspFile=srcFile)||($$$isWINDOWS&&($ZCVT(cspFile,"l")=$ZCVT(srcFile,"l"))) {
         Quit $$$OK
     }
-
-    if '(##class(%File).Delete(cspFile) && ##class(%File).CopyFile(srcFile, cspFile)) {
+    // Delete original if exists, otherwise create new file
+    if '(##class(%File).CopyFile(srcFile, cspFile, 1)) {
         set sc = $$$ERROR($$$GeneralError, "Unable to import '"_srcFile_"'")
     }
 
@@ -1685,6 +1720,13 @@ ClassMethod ExportAll(force As %Boolean = 0) As %Status
     quit ..ExportRoutines(force)
 }
 
+ClassMethod ExportSystemDefaults() As %Status
+{
+    new %SourceControl
+    do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    quit %SourceControl.OnAfterSave("Ens.Config.DefaultSettings.ESD")
+}
+
 /// if <var>force</var> = 1 then we import item even if timestamp in system is newer
 ClassMethod ImportAll(force As %Boolean = 0) As %Status
 {
@@ -1907,7 +1949,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set diffBase = ..GetCurrentBranch()
         }
 
-        do ..RunGitCommand("fetch", .errorStream, .outputStream)
+        do ..RunGitCommand("fetch", .errorStream, .outputStream,"--prune")
         kill errorStream, outputStream
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
         do ..ParseDiffStream(outputStream,,.files)
@@ -1957,7 +1999,9 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
 
     if syncIrisWithDiff {
-        do ..PrintStreams(errStream, outStream)
+        if '$data(%gitSCOutputFlag)#2 {
+            do ..PrintStreams(errStream, outStream)
+        }
         set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
         do buffer.BeginCaptureOutput()
         set st = ..SyncIrisWithRepoThroughDiff(.files, .filterToFiles, invert)
@@ -1993,6 +2037,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             }
         }
     }
+    do ##class(SourceControl.Git.Log).Create(outStream,errStream,.newArgs,returnCode)
     quit returnCode
 }
 
@@ -2098,6 +2143,8 @@ ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, O
     kill files
     while (stream.AtEnd = 0) {
         set file = stream.ReadLine()
+        continue:file=""
+
         set modification = ##class(SourceControl.Git.Modification).%New()
         set modification.changeType = $piece(file, $c(9), 1)
         
@@ -2563,28 +2610,32 @@ ClassMethod Localize()
     }
 }
 
-ClassMethod GetContexts() As %DynamicArray
+ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 {
     set contexts = []
     set namespaces = ..GetGitEnabledNamespaces()
     set ptr = 0
     while $listnext(namespaces,ptr,value) {
-        do contexts.%Push(value)
+        if '($FIND(value,"^^")){
+            do contexts.%Push(value)
+        }
     }
 
     set name = ""
 
     // Using embedded for backwards compatability
-    &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-    &sql(OPEN C1)
-        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-    &sql(FETCH C1)
-    while(SQLCODE = 0) {
-        set package = name
-        do contexts.%Push(package)
+    if '(onlyNamespaces) {
+        &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
+        &sql(OPEN C1)
+            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
         &sql(FETCH C1)
+        while(SQLCODE = 0) {
+            set package = name
+            do contexts.%Push(package)
+            &sql(FETCH C1)
+        }
+        &sql(CLOSE C1)
     }
-    &sql(CLOSE C1)
 
     return contexts
 }
@@ -2654,6 +2705,47 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
     quit $select(##class(%Library.EnsembleMgr).IsEnsembleInstalled():
         "<script type=""text/javascript"" src="""_prefix_"/isc/studio/templates/ensemble/Ens_SourceControl.js""></script>",
         1: "")
+}
+
+XData ProductionConfigScript [ MimeType = text/javascript ]
+{
+    function checkProductionConfigLoad() {
+        timerState(false);
+    }
+
+    function checkProductionConfigUnload() {
+        timerState(true);
+    }
+
+    function timerState(start) {
+        if (window.parent && window.parent.opener && window.parent.opener.zenPage) {
+            if (start && window.parent.opener.zenPage.startTimers) {
+                window.parent.opener.zenPage.startTimers();
+            }
+            if (!start && window.parent.opener.zenPage.stopTimers) {
+                window.parent.opener.zenPage.stopTimers();
+            }
+        }
+    }
+}
+
+ClassMethod ProductionConfigScript() As %String [ CodeMode = objectgenerator ]
+{
+    do %code.WriteLine(" set html = ""<script type='text/javascript'>""_$c(13,10)")
+    set xdata = ##class(%Dictionary.XDataDefinition).IDKEYOpen(%compiledclass.Name,%compiledmethod.Name,,.sc)
+    $$$ThrowOnError(sc)
+    while 'xdata.Data.AtEnd {
+        set line = xdata.Data.ReadLine()
+        do %code.WriteLine(" set html = html_"_$$Quote^%qcr(line)_"_$c(13,10)")
+    }
+    do %code.WriteLine(" set html = html_$c(13,10)_""</script>""")
+    do %code.WriteLine(" quit html")
+    quit $$$OK
+}
+
+ClassMethod ProductionConfigBodyAttributes() As %String [ CodeMode = expression ]
+{
+"onload='checkProductionConfigLoad()' onbeforeunload='checkProductionConfigUnload()'"
 }
 
 ClassMethod UncommittedWithAction() As %Library.DynamicObject
@@ -2827,6 +2919,7 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("CLS","UnitTest")="test/"
     set @mappingsNode@("INC","*")="inc/"
     set @mappingsNode@("MAC","*")="rtn/"
+    set @mappingsNode@("DFI","*")="dfi/"
     set @mappingsNode@("PTD","*")="ptd/"
 }
 
@@ -2911,4 +3004,68 @@ ClassMethod SetConfiguredRemote(url) As %String
     quit output
 }
 
+// Returns true if the current branch is the default merge branch and we are in basic mode
+
+ClassMethod InDefaultBranchBasicMode() As %Boolean
+{
+    set basicMode = ..BasicMode()
+    set default = ..DefaultMergeBranch()
+    do ##class(SourceControl.Git.Utils).RunGitCommand("branch",.err,.out,"--show-current")
+    set current = out.ReadLine()
+    if (basicMode && (default = current)) { quit 1 }
+    quit 0
 }
+
+ClassMethod ConfigureFavoriteNamespaces(username As %String, newNamespaces As %String)
+{
+    // Delete all the GIT favorite links for the user 
+    &sql(DELETE FROM %SYS_Portal.Users WHERE Username = :username AND Page LIKE '%Git%')
+
+    set iterator = newNamespaces.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set installNamespace = value
+        
+        // Insert Git link
+        set caption = "Git: " _ installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/" _ installNamespace _ "/"
+        &sql(INSERT OR UPDATE INTO %SYS_Portal.Users (Username, Page, Data) VALUES (:username, :caption, :link))
+        
+        // Insert Git Pull link
+        set caption = "Git Pull: " _ installNamespace
+        set link = "/isc/studio/usertemplates/gitsourcecontrol/pull.csp?$NAMESPACE=" _ installNamespace
+        &sql(INSERT OR UPDATE INTO %SYS_Portal.Users (Username, Page, Data) VALUES (:username, :caption, :link))
+    }
+}
+
+ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef nonFavNamespaces As %DynamicArray)
+{
+    set allNamespaces = ..GetContexts(1)
+    set iterator = allNamespaces.%GetIterator()
+
+    set username = $USERNAME
+    set pagePrefix = "Git:"    
+    &sql(DECLARE FavCursor CURSOR FOR SELECT Page into :page from %SYS_Portal.Users where username = :username and page %STARTSWITH :pagePrefix)
+
+    while iterator.%GetNext(.key, .value) {
+        set foundFlag = 0
+        &sql(OPEN FavCursor)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+        &sql(FETCH FavCursor)
+        while (SQLCODE = 0) {
+            set pageValue = "Git: "_value 
+            if (page = pageValue) {
+                do favNamespaces.%Push(value)
+                set foundFlag = 1
+            }
+            &sql(FETCH FavCursor)
+        }
+        &sql(CLOSE FavCursor)
+
+        if ('foundFlag) {
+            do nonFavNamespaces.%Push(value)
+        }
+    }
+}
+
+}
+

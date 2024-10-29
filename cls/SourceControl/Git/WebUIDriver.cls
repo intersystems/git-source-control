@@ -102,7 +102,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         do %request.Set("EXPIRES",0)
         do ##class(%CSP.StreamServer).OnPreHTTP() // Need to call this to set headers properly
         set %stream = 1 // Leak this to webuidriver.csp
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts|create-branch") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -218,6 +218,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 } else {
                     set inFile = ""
                 }
+
                 set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
 
                 set %data = ##class(%Stream.TmpCharacter).%New()
@@ -328,6 +329,18 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do %data.Rewind()
                 do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 set handled = 1  
+            } elseif (pathStart = "create-branch") {
+                merge data = %request.Data
+                set branchName = data("branch",1)
+
+                set %data = ##class(%Stream.TmpCharacter).%New()
+
+                set st =  ##class(SourceControl.Git.Utils).NewBranch(branchName)
+                if $$$ISERR(st) {
+                    do %data.Write("Error! "_st)
+                } else {
+                    do %data.Write(branchName_" branch created!")
+                }
             }
         }
     }
@@ -426,4 +439,3 @@ ClassMethod GetRemote() As %Library.DynamicObject
 }
 
 }
-

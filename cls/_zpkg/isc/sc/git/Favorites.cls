@@ -3,10 +3,13 @@ Class %zpkg.isc.sc.git.Favorites
     ClassMethod ConfigureFavoriteNamespaces(username As %String, newNamespaces As %Library.DynamicObject)
 {
     // Convert to $listbuild
-    set namespaces = $lb("")
-    for i=0:1:newNamespaces.%Size() {
-        set namespaces = namespaces_$lb(newNamespaces.%Get(i))
+    set namespaces = $lb()
+    set iterator = newNamespaces.%GetIterator()
+
+    while iterator.%GetNext(.key, .value) {
+        set namespaces = namespaces_$lb(value)
     }
+ 
     // Call the private method
     try {
         do ..SetFavs(username, namespaces)
@@ -28,7 +31,7 @@ ClassMethod GetFavoriteNamespaces(ByRef favNamespaces As %DynamicArray, ByRef no
     return $$$OK
 }
 
-ClassMethod GetFavs() As %Library.DynamicObject [Private] {
+ClassMethod GetFavs() As %Library.DynamicObject [ Private, NotInheritable ] {
     $$$AddAllRoleTemporary
     set allNamespaces = ##class(SourceControl.Git.Utils).GetContexts(1)
 
@@ -62,7 +65,7 @@ ClassMethod GetFavs() As %Library.DynamicObject [Private] {
     return {"Favorites": (favNamespaces), "NonFavorites": (nonFavNamespaces)}
 }
 
-ClassMethod SetFavs(username As %String, namespaces As %List) [Private] {
+ClassMethod SetFavs(username As %String, namespaces As %List) [ Private, NotInheritable ] {
     $$$AddAllRoleTemporary
     &sql(DELETE FROM %SYS_Portal.Users WHERE Username = :username AND Page LIKE '%Git%')
 

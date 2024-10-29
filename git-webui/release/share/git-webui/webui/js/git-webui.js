@@ -578,7 +578,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                             var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
 
                             $.post('create-branch', {branch: refName}, function() {
-                                this.updateSideBar();
+                                updateSideBar();
                                 removeModal("#confirm-branch-checkout");
                             });
                         });
@@ -589,7 +589,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     }
                     else{       
                         $.post('create-branch', {branch: refName}, function() {
-                            this.updateSideBar();
+                            updateSideBar();
                         });
                     }
                 });

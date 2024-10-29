@@ -36,6 +36,22 @@ Use the link in the output of the sync in order to create a merge request in the
 
 Suppose you begin working on a larger project in one branch, and then need to shift to something else. The proper approach to this in git-source-control is to commit your in-progress work on the first interface, and then to switch to a new branch. This branch will be based on the development branch and may be missing components from the first project, but that's OK. You can always switch back to the first interface branch to continue work there.
 
+## Configuring Git on a New Namespace
+
+When creating a new namespace on the Health Connect instance, you will need to ensure that the Git configuration matches that in other namespaces. The steps to do so are:
+
+- Configure the mappings in the settings. From the Settings page in the source control menu, view the Mappings configuration and confirm it matches the other namespaces. Below is a sample of a common mapping configuration.
+
+![Mappings Configuration](images/hcc/configuremappings.png)
+
+- Configure the default merge branch. From the Settings page in the source control menu, the "Default merge branch" input should match that configured for other namespaces.
+
+![Default merge branch](images/hcc/configuremergebranch.png)
+
+- Run "Import All (Force)" from the source control menu. This will initially populate the namespace with items from the Git repository.
+
+![Import All (Force)](images/hcc/importallforce.png)
+
 ## Deploying Changes to the Main Dev Namespace
 
 If you are using a CI/CD pipeline in GitLab, simply merging the feature branch to development is enough; your change will be deployed to the main development namespace automatically.

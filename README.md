@@ -54,7 +54,9 @@ git-source control is the recommended source control for Health Connect Cloud. [
 
 ### VSCode
 
-Source control menus will appear under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon in the top right of the editor.
+Source control menus will appear under "Server Source Control..." when right-clicking in a file (in the editor) or on a file when exploring an isfs folder. The top level "source control" menu is accessible through the command palette or the source control icon near the top right of the editor.
+
+![Source control icon in VSCode](/docs/images/source-control-menu.gif)
 
 For full details on all of the menu items, see [this reference page](/docs/menu-items.md).
 

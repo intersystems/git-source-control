@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed importing CSP files (#251)
 - Fixed changing favorites for users without permissions (#587)
 - Fix creating new branch from Git Web UI (#591)
+- Fix wording for Git Repo Root Directory (#601)
 
 ## [2.6.0] - 2024-10-07
 

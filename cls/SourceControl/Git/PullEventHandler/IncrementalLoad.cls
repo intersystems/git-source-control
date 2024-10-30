@@ -24,7 +24,9 @@ Method OnPull() As %Status
                 write !, "WARNING: Deletion of ", ..ModifiedFiles(i).externalName, " failed."
             }
         } else {
-            set compilelist(internalName) = ""
+            if (##class(SourceControl.Git.Utils).Type(internalName) '= "ptd") {
+                set compilelist(internalName) = ""
+            }
             set nFiles = nFiles + 1
             set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
         }

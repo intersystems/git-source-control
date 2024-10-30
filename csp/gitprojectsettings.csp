@@ -258,7 +258,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="namespaceTemp" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
+            <label for="namespaceTemp" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Git Repo Root Directory<br/></label>
             <server>
                 set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
                 if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
@@ -654,7 +654,7 @@ body {
                 <server>
                     set nonFavNamespaces = []
                     set selectedNamespaces = []
-                    do ##class(SourceControl.Git.Utils).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
+                    do ##class(%zpkg.isc.sc.git.Favorites).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
                     set iterator = selectedNamespaces.%GetIterator()
                     while iterator.%GetNext(.key, .value) {
                         &html<<option selected value=#(value)#>#(value)#</option>>

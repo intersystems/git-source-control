@@ -8,7 +8,7 @@ Class SourceControl.Git.Settings Extends %RegisteredObject
 /// Path to git executable
 Property gitBinPath As %String(MAXLEN = "");
 
-/// Local git repo root folder
+/// Local git repo root directory
 Property namespaceTemp As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).TempFolder()}, Required ];
 
 /// Path to private key file for SSH remotes; if file does not exist, later prompts will help set it up with proper ownership
@@ -178,7 +178,7 @@ Method %Save() As %Status
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
     
-    do ##class(SourceControl.Git.Utils).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
+    do ##class(%zpkg.isc.sc.git.Favorites).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
 
     quit $$$OK
 }

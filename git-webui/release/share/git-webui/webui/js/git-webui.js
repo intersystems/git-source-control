@@ -576,9 +576,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         $("#confirm-branch-checkout").on('click', '#confirm-checkout', function(e){
                             e.preventDefault();
                             var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
-    
-                            webui.git("checkout -b " + refName, updateSideBar);
-                            removeModal("#confirm-branch-checkout");
+
+                            $.post('create-branch', {branch: refName}, function() {
+                                updateSideBar();
+                                removeModal("#confirm-branch-checkout");
+                            });
                         });
                     
                         $("#confirm-branch-checkout").find("#cancel-checkout, .close").click(function() {
@@ -586,7 +588,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         });
                     }
                     else{       
-                        webui.git("checkout -b " + refName, updateSideBar);
+                        $.post('create-branch', {branch: refName}, function() {
+                            updateSideBar();
+                        });
                     }
                 });
             });

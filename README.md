@@ -87,6 +87,9 @@ This might look like:
 
 ![Example of mapping configuration](docs/images/settings.PNG "Example of mapping configuration")
 
+### Baselining Source Code
+If enabling source control on an existing system, you will need to create a baseline by exporting all existing items to the Git repository. See [our documentation on baselining](/docs/baselining.md).
+
 ### Pull Event Handlers
 
 The class `SourceControl.Git.PullEventHandler` is a base class that can be extended in order to develop functionality that should be run when the repository pulls from remote. The code placed inside the subclass' OnPull() method will be executed any time a pull occurs.

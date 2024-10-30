@@ -330,16 +330,19 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 set handled = 1  
             } elseif (pathStart = "create-branch") {
-                merge data = %request.Data
-                set branchName = data("branch",1)
-
-                set %data = ##class(%Stream.TmpCharacter).%New()
-
-                set st =  ##class(SourceControl.Git.Utils).NewBranch(branchName)
-                if $$$ISERR(st) {
-                    do %data.Write("Error! "_st)
+                set branchName = $get(%request.Data("branch",1),"")
+                if (branchName = "") {
+                    do %data.Write("ERROR! Enter a valid branch name")
                 } else {
-                    do %data.Write(branchName_" branch created!")
+                    set %data = ##class(%Stream.TmpCharacter).%New()
+
+                    set st =  ##class(SourceControl.Git.Utils).NewBranch(branchName)
+                    if $$$ISERR(st) {
+                        do %data.Write("Error! "_$System.Status.GetErrorText(st))
+                    } else {
+                        do %data.Write(branchName_" branch created!")
+                    }
+                    set handled = 1
                 }
             }
         }

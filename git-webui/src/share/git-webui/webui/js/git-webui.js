@@ -1524,14 +1524,8 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
 
     var self = this;
 
-    self.update = function(cmd, diffOpts, file, mode, reRun) {
-        if (reRun) {
-            // Rerun with previous inputs
-            cmd = this.cmd
-            diffOpts = this.diffOpts
-            file = this.file
-            mode = this.mode
-        } else if (cmd || diffOpts || file || mode) {
+    self.update = function(cmd, diffOpts, file, mode) {
+        if (cmd || diffOpts || file || mode) {
             // if new input, update all
             this.cmd = cmd
             this.diffOpts = diffOpts
@@ -1588,6 +1582,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             });
         }
     };
+
+    self.reRun = function() {
+        self.update(this.cmd, this.diffOpts, this.file, this.mode)
+    }
 
     self.refresh = function(diff) {
         self.currentDiff = diff;
@@ -1802,24 +1800,24 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
 
     self.addContext = function() {
         self.context += 3;
-        self.update(...[,,,,],1);
+        self.reRun();
     }
 
     self.removeContext = function() {
         if (self.context > 3) {
             self.context -= 3;
-            self.update(...[,,,,],1);
+            self.reRun();
         }
     }
 
     self.allContext = function() {
         self.complete = !self.complete;
-        self.update(...[,,,,],1);
+        self.reRun();
     }
 
     self.toggleIgnoreWhitespace = function() {
         self.ignoreWhitespace = !self.ignoreWhitespace;
-        self.update(...[,,,,],1);
+        self.reRun();
     }
 
     self.handleClick = function(event) {

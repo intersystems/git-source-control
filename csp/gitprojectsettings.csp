@@ -172,10 +172,11 @@ body {
         do buffer.BeginCaptureOutput()
         $$$ThrowOnError(settings.SaveWithSourceControl())
         do buffer.EndCaptureOutput(.out)
-        &html<<div class="alert alert-primary">
-                <div>#(..EscapeHTML(out))#</div>
-                <div>Settings saved.</div>
-            </div>>
+        if (out '= "") {
+            &html<<div class="alert alert-primary">
+                    <div>#(..EscapeHTML(out))#</div>
+                </div>>
+        }
     } catch err {
         kill buffer
         do err.Log()

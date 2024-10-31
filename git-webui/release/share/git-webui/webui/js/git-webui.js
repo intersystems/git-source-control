@@ -125,6 +125,27 @@ webui.gitVersion = function() {
     })
 }
 
+webui.parseGitResponse = function(data) {
+    var matches = data.match(/([\S\s]*)Git-Stderr-Length:\s(\d*)[\r\n]{1,2}Git-Return-Code:\s(\d*)/);
+    if (!matches || (matches.length < 4)) {
+        return {
+            output: '',
+            message: '',
+            rcode: 1
+        }
+    }
+    var messageData = matches[1].replace(/(\r\n)/gm, "\n");
+    var errorLength = parseInt(matches[2],10);
+    var boundary = messageData.length - errorLength;
+    var stdout = messageData.substring(0, boundary)
+    var stderr = messageData.substring(boundary);
+    return {
+        output: stdout,
+        message: stderr,
+        rcode: matches[3]
+    };
+}
+
 webui.git_command = function(command, callback) {
     $.ajax({
         url: "git-command",
@@ -134,32 +155,10 @@ webui.git_command = function(command, callback) {
             command: command
         }),
         success: function(data) {
-             // Convention : last lines are footer meta data like headers. An empty line marks the start if the footers
-            var footers = {};
-            var fIndex = data.length;
-            while (true) {
-                var oldFIndex = fIndex;
-                fIndex = data.lastIndexOf("\r\n", fIndex - 1);
-                var line = data.substring(fIndex + 2, oldFIndex);
-                if (line.length > 0) {
-                    var footer = line.split(": ");
-                    footers[footer[0]] = footer[1];
-                } else {
-                    break;
-                }
-            }
-            // Trims the the data variable to remove the footers extracted in the loop.
-            // Windows adds \r\n for every line break but the Git-Stderr-Length variable,
-            // counts it as only one character, throwing off the message length.
-            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
-            var fIndex = trimmedData.length
-
-            var messageLength = parseInt(footers["Git-Stderr-Length"]);
-            var messageStartIndex = fIndex-messageLength;
-            var message = trimmedData.substring(messageStartIndex, fIndex);
-
-            var output = trimmedData.substring(0, messageStartIndex);
-            var rcode = parseInt(footers["Git-Return-Code"]);
+            var result = webui.parseGitResponse(data);
+            var rcode = result.rcode;
+            var output = result.output;
+            var message = result.message;
 
             if (rcode == 0) {
                 if (callback) {
@@ -197,13 +196,8 @@ webui.git_command = function(command, callback) {
             }
         },
         error: function(data) {
-            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
-            var fIndex = trimmedData.length
-
-            var messageLength = parseInt(footers["Git-Stderr-Length"]);
-            var messageStartIndex = fIndex-messageLength;
-            var message = trimmedData.substring(messageStartIndex, fIndex);
-            webui.showError(message);
+            var trimmedData = data.replace(/(\r\n)/gm, "\n");
+            webui.showError(trimmedData);
         },
     });
 }
@@ -233,32 +227,10 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
 
     $.post("git", {command: cmd}, function(data, status, xhr) {
         if (xhr.status == 200) {
-            // Convention : last lines are footer meta data like headers. An empty line marks the start if the footers
-            var footers = {};
-            var fIndex = data.length;
-            while (true) {
-                var oldFIndex = fIndex;
-                fIndex = data.lastIndexOf("\r\n", fIndex - 1);
-                var line = data.substring(fIndex + 2, oldFIndex);
-                if (line.length > 0) {
-                    var footer = line.split(": ");
-                    footers[footer[0]] = footer[1];
-                } else {
-                    break;
-                }
-            }
-            // Trims the the data variable to remove the footers extracted in the loop.
-            // Windows adds \r\n for every line break but the Git-Stderr-Length variable,
-            // counts it as only one character, throwing off the message length.
-            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
-            var fIndex = trimmedData.length
-
-            var messageLength = parseInt(footers["Git-Stderr-Length"]);
-            var messageStartIndex = fIndex-messageLength;
-            var message = trimmedData.substring(messageStartIndex, fIndex);
-
-            var output = trimmedData.substring(0, messageStartIndex);
-            var rcode = parseInt(footers["Git-Return-Code"]);
+            var result = webui.parseGitResponse(data);
+            var rcode = result.rcode;
+            var output = result.output;
+            var message = result.message;
 
             if (rcode == 0) {
                 if (callback) {
@@ -295,15 +267,15 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
                 }
             }
         } else {
-            if(errorCallback) {
-                errorCallback(message);
+            if (errorCallback) {
+                errorCallback(data);
             } else{
-                webui.showError(message);
+                webui.showError(data);
             }
         }
     }, "text")
     .fail(function(xhr, status, error) {
-        webui.showError("Git webui server not running");
+        webui.showError("An internal error occurred and has been logged.");
     });
 };
 
@@ -1401,21 +1373,17 @@ webui.StashListView = function(stashView) {
         webui.git("stash list --format='%gd::%ch::%cL::%cN::%gs'", function(data) {
             var start = 0;
             var count = 0;
-            while (true) {
-                var end = data.indexOf("\n", start);
-                if (end != -1) {
-                    var len = end - start;
-                } else {
-                    break;
+            var lines = data.split("\n");
+            for (var i = 0; i < lines.length; i++) {
+                if (lines[i].length == 0) {
+                    continue;
                 }
-                var entry = new Entry(self, data.substring(start, start+len));
+                var entry = new Entry(self, lines[i]);
                 if(start == 0){
                     entry.select();
                 }
                 content.appendChild(entry.element);
-
-                start = end + 1;
-                ++count;
+                count++;
             }
             if(count == 0){
                 var emptyStash = $('<h4 class="empty-stash">You have no stashed changes.</h4>');
@@ -1476,6 +1444,9 @@ webui.StashListView = function(stashView) {
         self.message = ""
 
         var pieces = data.split(/::|:\s/gm);
+        if (pieces.length < 5) {
+            return;
+        }
         self.stashIndex = pieces[0].substring(pieces[0].indexOf('{')+1, pieces[0].indexOf('}'));
         self.date = pieces[1];
         self.authorEmail = pieces[2];
@@ -1582,6 +1553,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             });
         }
     };
+
+    self.clear = function() {
+        self.refresh("");
+    }
 
     self.reRun = function() {
         self.update(this.cmd, this.diffOpts, this.file, this.mode)
@@ -1911,6 +1886,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         webui.git("stash pop stash@{"+stashIndex+"}", function(output){
             webui.showSuccess(output);
             parent.stashView.update(0);
+            self.clear();
         });
     }
 
@@ -1922,6 +1898,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         webui.git("stash drop stash@{"+stashIndex+"}", function(output){
             webui.showSuccess(output.substring(output.indexOf("Dropped")));
             parent.stashView.update(0);
+            self.clear();
         });
     }
 
@@ -2484,7 +2461,7 @@ webui.WorkspaceView = function(mainView) {
     self.update = function(mode) {
         self.newChangedFilesView.update();
         if (self.newChangedFilesView.getSelectedItemsCount() == 0) {
-            self.diffView.update(undefined, undefined, undefined, mode);
+            self.diffView.clear();
         }
     };
 

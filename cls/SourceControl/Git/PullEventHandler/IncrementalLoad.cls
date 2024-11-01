@@ -73,6 +73,8 @@ Method DeleteFile(item As %String) As %Status
                 set sc = $$$OK
             }
         }
+        // Force the catch if failing
+        $$$ThrowOnError(sc)
     } catch e {
         set filename = ##class(SourceControl.Git.Utils).FullExternalName(item)
         if '##class(%File).Exists(filename) {

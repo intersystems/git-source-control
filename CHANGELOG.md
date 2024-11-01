@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix Diff View options not applying immediately (#590)
 - Cleaned up parsing of command output in Git Web UI (#609)
 - Fix TempFolder misspecification (#611)
+- Fix deleting files on import all (#618)
 
 ## [2.6.0] - 2024-10-07
 

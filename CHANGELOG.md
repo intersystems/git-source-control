@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2024-11-04
+
+### Added
+- Production Decomposition mode allows controlling interoperability productions as individual files for each host (#469)
+
 ## [2.7.0] - 2024-11-04
 
 ### Added
@@ -19,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Intelligent merge conflict auto-resolution works for the common Business Rule case as well (#391)
 - All git commands run on the server, their output, and any associated sync output, are logged to a table for diagnostic purposes (#454)
 - Added API method to automatically add proper %ALL mappings for git-source-control (#214)
-- Production Decomposition mode allows controlling interoperability productions as individual files for each host (#469)
 
 ### Fixed
 - Fixed display of other users' username in workspace view on Unix (#530)

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.7.0] - Unreleased
+## [2.7.0] - 2024-11-04
 
 ### Added
 - Added 'git push --force' in expert mode (#527)
@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed changing favorites for users without permissions (#587)
 - Fix creating new branch from Git Web UI (#591)
 - Fix wording for Git Repo Root Directory (#601)
+- Fix Diff View options not applying immediately (#590)
+- Cleaned up parsing of command output in Git Web UI (#609)
+- Fix TempFolder misspecification (#611)
+- Fix deleting files on import all (#618)
 
 ## [2.6.0] - 2024-10-07
 

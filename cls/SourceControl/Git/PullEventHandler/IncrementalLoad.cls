@@ -24,11 +24,13 @@ Method OnPull() As %Status
                 write !, "WARNING: Deletion of ", ..ModifiedFiles(i).externalName, " failed."
             }
         } else {
-            if (##class(SourceControl.Git.Utils).Type(internalName) '= "ptd") {
-                set compilelist(internalName) = ""
-            }
             set nFiles = nFiles + 1
-            set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+            if (##class(SourceControl.Git.Utils).Type(internalName) = "ptd") {
+                set ptdList(internalName) = ""
+            } else {
+                set compilelist(internalName) = ""
+                set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+            }
         }
     }
 
@@ -37,6 +39,12 @@ Method OnPull() As %Status
         quit $$$OK
     }
     set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ck"))
+    // after compilation, deploy any PTD items
+    set key = $order(ptdList(""))
+    while (key '= "") {
+        set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
+        set key = $order(ptdList(key))
+    }
     if $$$comClassDefined("Ens.Director") && ##class(Ens.Director).IsProductionRunning() {
         write !,"Updating production... "
         set sc = $$$ADDSC(sc,##class(Ens.Director).UpdateProduction())

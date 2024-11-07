@@ -1,3 +1,5 @@
+# NOTE: this document is a work in progress and should not be considered authoritative.
+
 # Change Control with Embedded Git for Health Connect Cloud
 
 ## Glossary
@@ -32,20 +34,27 @@ A Health Connect Cloud Dev deployment will have at least one Protected Namespace
 
 # Customer Responsibilities
 
-# Example Use Case 1: Inbound HL7 Service
+## Example Use Case 1: Inbound HL7 Service
 > As a Health Connect Cloud user, I want to add a new inbound HL7 service to receive HL7 messages from a lab.
 
 - Log in
 - Go to production configuration page for your User Namespace
 - Create an interface branch
-- Add the service
-- Test the service
+- Add and test the service
 - Sync: After this operation, the User Namespace has everything from the Protected Namespace in addition to changes made in the interface branch, and all of the modified files have been pushed to GitLab.
   - Technical level for the git-savvy: this commits to the interface branch locally, rebases the interface branch on the latest state of the development branch, updates the User Namespace with any changes made as a result, and force pushes the interface branch out to GitLab.
-- Click the link to create a merge request
-- Have the merge request approved and merged to the development branch
-- CI/CD deploys to the Protected Namespace on the Dev deployment OR use Git Pull page
+- Click the link to create a merge request targeting the `development` branch
+- Have the merge request approved and merged to the `development` branch
+- CI/CD deploys to the Protected Namespace on the Dev deployment
 - Test in the Protected Namespace on the Dev Deployment
+- Create a merge request from your interface branch to the `test` branch
+- Have the merge request approved and merged to the `test` branch
+- CI/CD deploys to the Protected Namespace on the Test deployment
+- Test in the Protected Namespace on the Test deployment
+- Create a merge request from your interface branch to the `live` branch
+- Have the merge request approved and merged to the `live` branch
+- CI/CD deploys to the Protected Namespace on the Prod deployment
+- Done!
 
 ### Interface Branches
 
@@ -55,11 +64,11 @@ The first step in making changes in Health Connect Cloud using Embedded Git is m
 
 You will be prompted to enter a name for your new branch (no spaces or special characters), after which your environment will switch to that new branch. All new branches are fresh copies of the development branch. We recommend that you name branches descriptively based on a reference to the issue/bug that you are trying to fix - a GitLab issue number, Jira, ServiceNow ticket reference, etc.
 
-### Making Changes
+### Add and Test the Business Service
 
 Now that you are in your new branch (you can see your current branch in the first item in the source control menu), you can start making changes. As you make changes to different business processes, rules, and productions, make sure that all of these changes are saved properly before you continue to sync and merge.
 
-### Syncing and Merge Requests
+### Syncing
 
 Once you have made all the changes for the specific feature you are working on, and have tested in your namespace, it will be time to merge all of these changes into the development branch.
 
@@ -73,9 +82,23 @@ This will bring up the sync interface, where you are able to see all the of the 
 
 Use the link in the output of the sync in order to create a merge request in the git remote (don't worry if you close out of the sync tab, you can also navigate to GitLab manually). Here, you should make sure that you are merging your interface branch into the development environment, and notify / add the relevant reviewers. Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development.
 
+### Merge Request Creation
+
+### Merge Request Approval
+
+### CI/CD Deployment
+
+### Validate in Protected Namespace
+
+### Repeat in Test and Prod
+
+## Example Use Case 2: You Get Interrupted
+
 ### Switching Branches
 
 Suppose you begin working on a larger project in one branch, and then need to shift to something else. The proper approach to this in Embedded Git is to commit your in-progress work on the first interface, and then to switch to a new branch. This branch will be based on the development branch and may be missing components from the first project, but that's OK. You can always switch back to the first interface branch to continue work there.
+
+## Example Use Case 3: Onboarding a New User
 
 ### Configuring Git on a New Namespace
 
@@ -110,10 +133,11 @@ With CI/CD pipelines in place, the most important thing is that there is a branc
 
 This guide provides step-by-step instructions for developers on how to perform code changes and move code from a local repository to a target environment using a Change Control tool based on VSCode and GitLab.
 
-## Persona: Developer
+## Fallback Approach: VSCode and a Local Git Repository
 
-> Example Use Case: As a Interface Engineer, I want to create a new Adapter to a Production and configure it with a new DTL class created via VSCode.
+> As a Health Connect Cloud user, I want to add a new inbound HL7 service to receive HL7 messages from a lab.
 
+TODO: note about not mixing this approach with Embedded Git
 
 ### **(*Optional*) Create an Issue**
    - If necessary, create an issue in GitLab to describe the work to be done and document any requirements. This can help track progress and serve as a reference for the changes made.

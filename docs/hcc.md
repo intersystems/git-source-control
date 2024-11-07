@@ -24,7 +24,7 @@ The recommended workflow for Health Connect Cloud is to: create an interface bra
 A Health Connect Cloud Dev deployment will have at least one Protected Namespace and should also have a dedicated User Namespace for each user. These namespaces can be configured via the Cloud Portal for the selected Health Connect Cloud deployment. It is important for changes to originate in User Namespaces. Protected Namespaces in the Dev deployment must always be kept up to date with the development branch of the associated GitLab repo, either through a CI/CD pipeline or by use of the Git Pull page from Embedded Git.
 # TODO: picture of GitLab/deployment/branch relationship
 
-# InterSystems Responsibilities
+# Prerequisites: InterSystems Responsibilities
  - Create GitLab Repository for the Organization
  - Grant appropriate access and privileges to the GitLab Repository
  - Onboard Customers on Source Control Tools for Health Connect Cloud
@@ -32,7 +32,10 @@ A Health Connect Cloud Dev deployment will have at least one Protected Namespace
    - [Official Change Control Documentation](https://docs.intersystems.com)
    - [Learning Videos](https://learning.intersystems.com/course/view.php?name=HCCSourceControlUI)
 
-# Customer Responsibilities
+# InterSystems-Recommended Workflow - Embedded Git and GitLab
+
+## Notes on Customer Responsibilities
+TODO: flesh this out: configuration, communication, policy/process constraints around approvals, onboarding of users/namespaces
 
 ## Example Use Case 1: Inbound HL7 Service
 > As a Health Connect Cloud user, I want to add a new inbound HL7 service to receive HL7 messages from a lab.
@@ -98,7 +101,7 @@ Use the link in the output of the sync in order to create a merge request in the
 
 Suppose you begin working on a larger project in one branch, and then need to shift to something else. The proper approach to this in Embedded Git is to commit your in-progress work on the first interface, and then to switch to a new branch. This branch will be based on the development branch and may be missing components from the first project, but that's OK. You can always switch back to the first interface branch to continue work there.
 
-## Example Use Case 3: Onboarding a New User
+## Example Use Case 3: Onboarding a New User Namespace
 
 ### Configuring Git on a New Namespace
 

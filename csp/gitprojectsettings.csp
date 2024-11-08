@@ -163,6 +163,10 @@ body {
         }
 
         set settings.favoriteNamespaces = contexts
+
+        if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
+            do settings.SaveDefaults()
+        }
     }
     do settings.%Save()
 }
@@ -273,7 +277,7 @@ body {
             }
         </server>
         <div class="form-group row mb-3">
-            <label for="privateKeyFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
+            <label for="privateKeyFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">*SSH Private Key File</label>
             <div class="col-sm-7">
                 <server>
                     Set fileExists = ##class(%File).Exists(settings.privateKeyFile)
@@ -393,7 +397,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository">Remote Repository</label>
+            <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository">*Remote Repository</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML(remote))#' placeholder="ex. git@github.com:User/UserRepo.git"/>
                 <div class = "neutral-feedback">
@@ -435,7 +439,7 @@ body {
         
         <div class="form-group row mb-3 mapping-input-group">
             <div class="offset-sm-1 col-sm-3">
-                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">Mappings</label>
+                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">*Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
                         <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"></path>
@@ -538,21 +542,21 @@ body {
 
         <fieldset id="userSettings">
         <div class="form-group row mb-3">
-            <label for="gitUserName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
+            <label for="gitUserName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">*Git Committer Name </label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
+            <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">*Git Committer Email </label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>
         </div>
 
         <div class="form-group mb-3">
-            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label form-rad-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">Basic Mode</label>
+            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label form-rad-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">*Basic Mode</label>
 
             <div class="form-check offset-sm-4 form-rad">
                 <server>
@@ -608,7 +612,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="addToFav" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Favorite namespaces for user to add link on Home page.">Favorite Namespaces</label>
+            <label for="addToFav" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Favorite namespaces for user to add link on Home page.">*Favorite Namespaces</label>
             <div class="col-sm-7">
                 <select multiple class="form-control" id="addToFav" name="favNamespace">
                 <server>
@@ -633,7 +637,12 @@ body {
 
         <div class="form-group row mb-3">
             <div class="col-sm-12 text-center">
-                <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
+                <input type="hidden" id="proxySubmitButton" name="proxySubmitButton" value="Save">
+                <input type='submit' class="btn-lg btn-primary" value = 'Save' name="Save"/>
+                <input type="submit" class="btn-lg btn-primary" id="saveDefaults" value = 'Save as Instance Defaults' title="Save these settings as default for new instances" name="saveDefaults"/>
+                <div>
+                    <small> Settings not saved as default marked with '*'</small>
+                </div>
             </div>
         </div>
         
@@ -659,6 +668,17 @@ function getSocket(urlPostfix) {
     var socketURL = window.location.href.replace('http','ws').replace('gitprojectsettings.csp','_zpkg.isc.sc.git.Socket.cls') + "&" + urlPostfix;
 	return new WebSocket(socketURL);
 }
+
+var submitForm = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var proxySubmitButton = document.getElementById('proxySubmitButton');
+    proxySubmitButton.value = "saveDefaults";
+    var form = document.getElementById('settingsForm');
+    form.submit();
+}
+
+document.getElementById('saveDefaults').addEventListener('click',submitForm,false);
 
 function init() {
     disableActionButtons();

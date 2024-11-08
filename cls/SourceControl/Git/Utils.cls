@@ -49,7 +49,7 @@ ClassMethod TempFolder() As %String
 
 ClassMethod DefaultTempFolder() As %String
 {
-    quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$translate($znspace,"%")_..#Slash)
+    quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_..#Slash_$translate($znspace,"%")_..#Slash)
 }
 
 ClassMethod MappingsNode() As %String [ CodeMode = expression ]
@@ -2944,4 +2944,3 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
 }
 
 }
-

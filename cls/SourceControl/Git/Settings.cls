@@ -184,6 +184,12 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set status =  inst.ConfigureBinPath(.value)")
             do %code.WriteLine(" if (status) { set valid = 1 }")
             do %code.WriteLine(" }")
+            do %code.WriteLine(" set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)")
+            do %code.WriteLine(" if (+$PIECE(version,""version "",2))<2.31 && gitExists{")
+            do %code.WriteLine(" write !!, ""WARNING: You are using an older version of git which is not compatible with git-source-control. Please upgrade to git version 2.31.0 or greater to continue""")
+            do %code.WriteLine(" write !!, ""Cancelling git-source-control configuration...""")
+            do %code.WriteLine(" quit")
+            do %code.WriteLine(" }")
         } elseif ((propertyDef) && (propertyDef.Name = "basicMode")) {
             set basicModePromptFlag = defaultPromptFlag + $$$MatchExactArrayMask + $$$InitialDisplayMask
             do %code.WriteLine(" set list(1) = ""Yes""")

@@ -244,7 +244,12 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 }
                 set handled = 1
             } elseif (pathStart = "git-command") {
-                set requestBody = ##class(%Library.DynamicObject).%FromJSON(%request.Content)
+                set stringBody = ""
+                while '%request.Content.AtEnd {
+                    set stringBody = stringBody _ %request.Content.Read()
+                }
+                set stringBody = $zconvert(stringBody,"I","UTF8")
+                set requestBody = ##class(%Library.DynamicObject).%FromJSON(stringBody)
                 set command = requestBody.command
 
                 set gitCmd = command.%Get(0)

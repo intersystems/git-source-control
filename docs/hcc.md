@@ -19,29 +19,39 @@
 
 The recommended workflow for Health Connect Cloud is to: create an interface branch, make changes, sync them to GitLab, create a merge request, review and approve the merge request, and then pull the changes into a protected namespace.
 
-# TODO: attach git strategy powerpoint images
+Step 1: Create a feature branch based on main
+![Step 1: Create a feature branch based on main](images/hcc/hcc-step-1.png)
+Step 2: Make changes in the user's namespace
+![Step 2: Make changes in the user's namespace](images/hcc/hcc-step-2.png)
+Step 3: Sync to get latest from main and push to GitLab
+![Step 3: Sync to get latest from main and push to GitLab](images/hcc/hcc-step-3.png)
+Step 4: Merge request and repeat 2-3
+![Step 4: Merge request and repeat 2-3](images/hcc/hcc-step-4.png)
+Step 5: Deploy to the protected namespace
+![Step 5: Deploy to the protected namespace](images/hcc/hcc-step-5.png)
 
 A Health Connect Cloud Dev deployment will have at least one Protected Namespace and should also have a dedicated User Namespace for each user. These namespaces can be configured via the Cloud Portal for the selected Health Connect Cloud deployment. It is important for changes to originate in User Namespaces. Protected Namespaces in the Dev deployment must always be kept up to date with the development branch of the associated GitLab repo, either through a CI/CD pipeline or by use of the Git Pull page from Embedded Git.
-# TODO: picture of GitLab/deployment/branch relationship
 
 # Prerequisites: InterSystems Responsibilities
- - Create GitLab Repository for the Organization
- - Grant appropriate access and privileges to the GitLab Repository
- - Onboard Customers on Source Control Tools for Health Connect Cloud
- - Update Change Control Documentation and Videos
+ - Create the GitLab repository for the organization
+ - Grant appropriate access and privileges to the GitLab repository
+ - Onboard customers on source control tools for Health Connect Cloud
+ - Maintain change control documentation and videos
    - [Official Change Control Documentation](https://docs.intersystems.com)
    - [Learning Videos](https://learning.intersystems.com/course/view.php?name=HCCSourceControlUI)
 
 # InterSystems-Recommended Workflow - Embedded Git and GitLab
 
 ## Notes on Customer Responsibilities
-TODO: flesh this out: configuration, communication, policy/process constraints around approvals, onboarding of users/namespaces
+- Define policies for approving merge requests in GitLab.
+- Decide on a mapping configuration that will define the locations of different item types in the Git repository.
+- Onboard new developers to the Dev Deployment. This will involve creating new users, creating new User Namespaces, and configuring Git for those new namespaces.
 
 ## Example Use Case 1: Inbound HL7 Service
 > As a Health Connect Cloud user, I want to add a new inbound HL7 service to receive HL7 messages from a lab.
 
 - Log in
-- Go to production configuration page for your User Namespace
+- Go to the production configuration page for your User Namespace
 - Create an interface branch
 - Add and test the service
 - Sync: After this operation, the User Namespace has everything from the Protected Namespace in addition to changes made in the interface branch, and all of the modified files have been pushed to GitLab.
@@ -83,11 +93,13 @@ This will bring up the sync interface, where you are able to see all the of the 
 
 ![Sync Interface](images/hcc/syncinterface.png)
 
-Use the link in the output of the sync in order to create a merge request in the git remote (don't worry if you close out of the sync tab, you can also navigate to GitLab manually). Here, you should make sure that you are merging your interface branch into the development environment, and notify / add the relevant reviewers. Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development.
-
 ### Merge Request Creation
+Use the link in the output of the sync in order to create a merge request in the git remote (don't worry if you close out of the sync tab, you can also navigate to GitLab manually). Here, you should make sure that you are merging your interface branch into the development environment, and notify / add the relevant reviewers.
+TODO: add image of link in sync output
 
+TODO: add image of GitLab merge request fields
 ### Merge Request Approval
+Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development.
 
 ### CI/CD Deployment
 
@@ -110,6 +122,7 @@ When creating a new namespace on the Health Connect instance, you will need to e
 - Configure the mappings in the settings. From the Settings page in the source control menu, view the Mappings configuration and confirm it matches the other namespaces. Below is a sample of a common mapping configuration.
 
 ![Mappings Configuration](images/hcc/configuremappings.png)
+TODO: fix this, show NoFolders for HL7 and LUT. remove the LastPass icon as well
 
 - Configure the default merge branch. From the Settings page in the source control menu, the "Default merge branch" input should match that configured for other namespaces.
 

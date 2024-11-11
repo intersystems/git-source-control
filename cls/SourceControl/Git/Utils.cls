@@ -2504,7 +2504,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
             set nam=$piece(nam,".",1,*-1)
-            set fileExt = $ZCONVERT(fileExt, "l")
+            set fileExt = $ZCONVERT($piece(Name, ".",*-0), "l")
             if (fileExt = "cls" || fileExt = "rtn" || fileExt = "inc") {
                 set nam=$replace(nam, ..PercentClassReplace(), "%")
             }

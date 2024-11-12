@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.8.0] - Unreleased
 
+### Added
+- Added saving settings as system default for new namespaces (#535)
+
 ### Fixed
 - Fixed improper encoding of unicode characters in commit messages (#627)
 - Creating a new branch now reports the error if uncommitted changes conflict (#624)
 - Fix Configure erroring out if git isn't found (#632)
-
-### Added
-- Added saving settings as system default for new namespaces (#535)
 
 ## [2.7.0] - 2024-11-04
 

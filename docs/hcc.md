@@ -59,7 +59,7 @@ The first step in making changes in Health Connect Cloud using Embedded Git is m
 
 ![Creating a new branch](images/hcc/newbranchmenu.png)
 
-You will be prompted to enter a name for your new branch (no spaces or special characters), after which your environment will switch to that new branch. All new branches are fresh copies of the development branch. We recommend that you name branches descriptively based on a reference to the issue/bug that you are trying to fix - a GitLab issue number, Jira, ServiceNow ticket reference, etc.
+You will be prompted to enter a name for your new branch (no spaces or special characters), after which your environment will switch to that new branch. All new branches are fresh copies of the live branch. We recommend that you name branches descriptively based on a reference to the issue/bug that you are trying to fix - a GitLab issue number, Jira, ServiceNow ticket reference, etc.
 
 ### Add and Test the Business Service
 
@@ -73,7 +73,7 @@ To start, press the sync button from the source control menu.
 
 ![Sync option in menu](images/hcc/sync.png)
 
-This will bring up the sync interface, where you are able to see all the of the files you have changed, as well as add a descriptive comment for the changes you made. When you sync, these changes will be pushed to the git remote.
+This will bring up the sync interface, where you are able to see a list of the files you have changed, as well as add a descriptive comment for the changes you made. When you sync, these changes will be pushed to GitLab.
 
 ![Sync Interface](images/hcc/syncinterface.png)
 
@@ -86,7 +86,7 @@ Use the link in the output of the sync in order to create a merge request in the
 Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development. After the changes are merged, a CI/CD pipeline will automatically deploy the changes to the protected namespace in the development deployment.
 
 ### Validate in Protected Namespace
-Test your change in the protected namespace of the development environment to ensure that in works in the context of other developer's features that have been merged since you started working.
+Test your change in the protected namespace of the Dev Deployment to ensure that it works in the context of other developer's features that have been merged since you started the feature.
 
 ### Repeat in Test and Prod
 In GitLab, create a new merge request from your interface branch to the test branch. Approve and merge the merge request. A CI/CD pipeline will automatically deploy the changes to the protected namespace in the Test Deployment so you may test them there. When ready to go live with the changes, create another new merge request from your interface branch to the live branch. Approve and merge it, and the changes will be automatically deployed to the Prod Deployment.
@@ -111,7 +111,7 @@ When creating a new namespace on the Health Connect instance, you will need to e
 
 ![Default merge branch](images/hcc/configuremergebranch.png)
 
-- Run "Import All (Force)" from the source control menu. This will initially populate the namespace with items from the Git repository.
+- Run "Import All (Force)" from the source control menu. This will populate the namespace with items from the Git repository.
 
 ![Import All (Force)](images/hcc/importallforce.png)
 

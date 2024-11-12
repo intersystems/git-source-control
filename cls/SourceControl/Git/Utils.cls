@@ -1400,9 +1400,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                     set sc = ##class(SourceControl.Git.Production).CreateProduction(targetProduction)
                 }
                 if $$$ISOK(sc) {
-                    set rollbackFile = ##class(%File).TempFilename()
-                    set sc = ##class(Ens.Deployment.Deploy).DeployCode(filename,targetProduction,0,rollbackFile)
-                    do ##class(%File).Delete(rollbackFile)
+                    set sc = ##class(SourceControl.Git.Production).ImportPTD(filename, targetProduction)
                 }
             }
         } elseif ..ItemIsProductionToDecompose(InternalName) {

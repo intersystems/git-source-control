@@ -430,7 +430,8 @@ ClassMethod FullExternalName(InternalName As %String) As %String
 Method IsReadOnly(InternalName As %String) As %Boolean
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
-    quit ##class(SourceControl.Git.Utils).Locked() 
+    quit (##class(SourceControl.Git.Utils).Locked() 
+            && '$get(^IRIS.Temp("sscProd",$job,"bypassLock")))
         || (##class(SourceControl.Git.Utils).ItemIsProductionToDecompose($get(InternalName))
             && 'settings.decomposeProdAllowIDE
             && '##class(SourceControl.Git.Production).IsEnsPortal())

@@ -1,36 +1,20 @@
-# NOTE: this document is a work in progress and should not be considered authoritative.
-
 # Change Control with Embedded Git for Health Connect Cloud
 
-## Glossary
-# TODO: move to end and move definitions inline
-* User Namespace: a namespace dedicated for in-progress work by a particular Health Connect Cloud user.
-* Protected Namespace: a namespace that exists with the same name in all deployments (Dev, Test, and Prod) in which the main interoperability production runs. Changes to protected namespaces are applied through CI/CD only.
-* Deployment: a Health Connect Cloud instance accessible through the Cloud Portal. There is typically a Dev, Test, and Prod deployment for each organization.
-* Dev Deployment: the Health Connect Cloud instance with a User Namespace for each user and one or more Protected Namespaces in which all development work originates
-* Test Deployment: the Health Connect Cloud instance in which interoperability components are tested prior to deployment to Prod.
-* Prod Deployment: the Health Connect Cloud instance serving actual production systems with interoperability.
-* protected branch: a branch in Git to which all commits must originate from a merge request
-* development branch: the protected branch associated with a Protected Namespace in the Dev Deployment. This branch is automatically present in the GitLab repository.
-* test branch: the protected branch associated with a Protected Namespace in the Test Deployment. This branch is automatically present in the GitLab repository.
-* live branch: the protected branch associated with a Protected Namespace in the Prod Deployment. This branch is automatically present in the GitLab repository.
-
 ## General 
-
 The recommended workflow for Health Connect Cloud is to: create an interface branch, make changes, sync them to GitLab, create a merge request, review and approve the merge request, and then pull the changes into a protected namespace.
 
-Step 1: Create a feature branch based on main
-![Step 1: Create a feature branch based on main](images/hcc/hcc-step-1.png)
-Step 2: Make changes in the user's namespace
-![Step 2: Make changes in the user's namespace](images/hcc/hcc-step-2.png)
-Step 3: Sync to get latest from main and push to GitLab
-![Step 3: Sync to get latest from main and push to GitLab](images/hcc/hcc-step-3.png)
+Step 1: Create an interface branch based on live
+![Step 1: Create a feature branch based on live](images/hcc/hcc-step-1.png)
+
+Step 2: Make changes in the User Namespace
+
+Step 3: Sync to get latest from live and push to GitLab
+![Step 3: Sync to get latest from live and push to GitLab](images/hcc/hcc-step-3.png)
+
 Step 4: Merge request and repeat 2-3
 ![Step 4: Merge request and repeat 2-3](images/hcc/hcc-step-4.png)
-Step 5: Deploy to the protected namespace
-![Step 5: Deploy to the protected namespace](images/hcc/hcc-step-5.png)
 
-A Health Connect Cloud Dev deployment will have at least one Protected Namespace and should also have a dedicated User Namespace for each user. These namespaces can be configured via the Cloud Portal for the selected Health Connect Cloud deployment. It is important for changes to originate in User Namespaces. Protected Namespaces in the Dev deployment must always be kept up to date with the development branch of the associated GitLab repo, either through a CI/CD pipeline or by use of the Git Pull page from Embedded Git.
+A Health Connect Cloud Dev deployment will have at least one Protected Namespace and should also have a dedicated User Namespace for each user. These namespaces can be configured via the Cloud Portal for the selected Health Connect Cloud deployment. It is important for changes to originate in User Namespaces. Protected Namespaces in the Dev deployment are automatically kept up to date with the development branch of the associated GitLab repo through a CI/CD pipeline.
 
 # Prerequisites: InterSystems Responsibilities
  - Create the GitLab repository for the organization
@@ -54,8 +38,8 @@ A Health Connect Cloud Dev deployment will have at least one Protected Namespace
 - Go to the production configuration page for your User Namespace
 - Create an interface branch
 - Add and test the service
-- Sync: After this operation, the User Namespace has everything from the Protected Namespace in addition to changes made in the interface branch, and all of the modified files have been pushed to GitLab.
-  - Technical level for the git-savvy: this commits to the interface branch locally, rebases the interface branch on the latest state of the development branch, updates the User Namespace with any changes made as a result, and force pushes the interface branch out to GitLab.
+- Sync: After this operation, the User Namespace has everything from the Prod Deployment in addition to changes made in the interface branch, and all of the modified files have been pushed to GitLab.
+  - Technical level for the git-savvy: this commits to the interface branch locally, rebases the interface branch on the latest state of the live branch, updates the User Namespace with any changes made as a result, and force pushes the interface branch out to GitLab.
 - Click the link to create a merge request targeting the `development` branch
 - Have the merge request approved and merged to the `development` branch
 - CI/CD deploys to the Protected Namespace on the Dev deployment
@@ -94,18 +78,18 @@ This will bring up the sync interface, where you are able to see all the of the 
 ![Sync Interface](images/hcc/syncinterface.png)
 
 ### Merge Request Creation
-Use the link in the output of the sync in order to create a merge request in the git remote (don't worry if you close out of the sync tab, you can also navigate to GitLab manually). Here, you should make sure that you are merging your interface branch into the development environment, and notify / add the relevant reviewers.
-TODO: add image of link in sync output
+Use the link in the output of the sync in order to create a merge request in the git remote (don't worry if you close out of the sync tab, you can also navigate to GitLab manually). Here, you should make sure that you are merging your interface branch into the development branch, and notify / add the relevant reviewers.
+![Output of Sync includes a merge request link](images/hcc/sync_output_merge_request_link.png)
 
-TODO: add image of GitLab merge request fields
-### Merge Request Approval
-Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development.
-
-### CI/CD Deployment
+![Create Merge Request page in GitLab](images/hcc/gitlab_merge_request.png)
+### Merge Request Approval and CI/CD deployment
+Once this merge request is approved, it will be merged into the development branch, so that all of your changes will now be a part of development. After the changes are merged, a CI/CD pipeline will automatically deploy the changes to the protected namespace in the development deployment.
 
 ### Validate in Protected Namespace
+Test your change in the protected namespace of the development environment to ensure that in works in the context of other developer's features that have been merged since you started working.
 
 ### Repeat in Test and Prod
+In GitLab, create a new merge request from your interface branch to the test branch. Approve and merge the merge request. A CI/CD pipeline will automatically deploy the changes to the protected namespace in the Test Deployment so you may test them there. When ready to go live with the changes, create another new merge request from your interface branch to the live branch. Approve and merge it, and the changes will be automatically deployed to the Prod Deployment.
 
 ## Example Use Case 2: You Get Interrupted
 
@@ -122,7 +106,6 @@ When creating a new namespace on the Health Connect instance, you will need to e
 - Configure the mappings in the settings. From the Settings page in the source control menu, view the Mappings configuration and confirm it matches the other namespaces. Below is a sample of a common mapping configuration.
 
 ![Mappings Configuration](images/hcc/configuremappings.png)
-TODO: fix this, show NoFolders for HL7 and LUT. remove the LastPass icon as well
 
 - Configure the default merge branch. From the Settings page in the source control menu, the "Default merge branch" input should match that configured for other namespaces.
 
@@ -132,65 +115,66 @@ TODO: fix this, show NoFolders for HL7 and LUT. remove the LastPass icon as well
 
 ![Import All (Force)](images/hcc/importallforce.png)
 
-### Deploying Changes to the Main Dev Namespace
+## Deploying using CI/CD Pipelines
 
-If you are using a CI/CD pipeline in GitLab, simply merging the feature branch to development is enough; your change will be deployed to the main development namespace automatically.
-
-If you are not using a CI/CD pipeline, you can get merged changes into the main development namespace using the "Git Pull" link from the Favorites section in the Health Connect Cloud home page. This will load and compile the incremental set of changes from new commits to the development branch.
-
-### Deploying Changes to Test and Prod
-
-#### Deploying using CI/CD Pipelines
-
-With CI/CD pipelines in place, the most important thing is that there is a branch in GitLab that corresponds to the main namespace in Test and another that corresponds to the main namespace on Prod, so that you can see exactly when changes made it to each branch/environment. With CI/CD pipelines, there's no action needed to move the change forward - merging the merge request is sufficient. The recommended workflow for this is to create additional merge requests from the interface branch to each of Test and Prod. Other Git branching and change flows may be appropriate if you have a strong opinion about them.
+With CI/CD pipelines in place, the most important thing is that there is a branch in GitLab that corresponds to the protected namespace in Test and another that corresponds to the protected namespace on Prod, so that you can see exactly when changes made it to each branch/environment. With CI/CD pipelines, there's no action needed to move the change forward - merging the merge request is sufficient. The recommended workflow for this is to create additional merge requests from the interface branch to each of Test and Prod.
 
 
-### Change Control Workflow for Code Deployment to Target Environment
+# Fallback Approach: VS Code and a Local Git Repository
+Some users may prefer a client-side source control approach instead of Embedded Git. This requires an additional step of exporting items from the Health Connect Cloud deployment to a local Git repository using Visual Studio Code. It's important not to mix this approach with the Embedded Git approach. Mixing server-side and client-side source control in the same namespace can lead to major confusion.
 
-This guide provides step-by-step instructions for developers on how to perform code changes and move code from a local repository to a target environment using a Change Control tool based on VSCode and GitLab.
-
-## Fallback Approach: VSCode and a Local Git Repository
-
+# Example Use Case: Inbound HL7 Service (Local Git)
 > As a Health Connect Cloud user, I want to add a new inbound HL7 service to receive HL7 messages from a lab.
 
-TODO: note about not mixing this approach with Embedded Git
 
-### **(*Optional*) Create an Issue**
+### (*Optional*) Create an Issue
    - If necessary, create an issue in GitLab to describe the work to be done and document any requirements. This can help track progress and serve as a reference for the changes made.
 
-### **Create New Branch via GitLab**
+### Create New Branch via GitLab
    - Navigate to the GitLab repository and create a new branch. This branch will serve as the workspace for your changes.
    - Branch naming should follow your team's conventions (e.g., `feature/issue-1234`).
 
-### **Perform Change in Health Connect Cloud**
+### Perform Change in Health Connect Cloud
    - Make the necessary modifications in Health Connect Cloud according to your issue's requirements or planned changes.
-   - Ensure that changes are tested and validated locally to avoid issues downstream.
+   - Ensure that changes are tested and validated to avoid issues downstream.
 
-### **Export Change from Health Connect Cloud to VSCode**
-   - Export the updated components or files from Health Connect Cloud and open them in VSCode.
+### Export Change from Health Connect Cloud to VS Code
+   - Export the updated components or files from Health Connect Cloud and open them in VS Code.
    - This ensures your local repository reflects the changes you made in the cloud environment.
 
-#### **Review Changes in VSCode**
-   - Review the changes within VSCode to confirm they are accurate and meet the requirements outlined in the issue (if applicable).
+### Review Changes in VS Code
+   - Review the changes within VS Code to confirm they are accurate and meet the requirements outlined in the issue (if applicable).
    - Ensure the code adheres to coding standards and best practices.
 
-#### **Add Commit Remarks**
+### Add Commit Remarks
    - Add detailed commit remarks in VSCode to describe the changes. This helps other team members understand the purpose and details of the update.
 
-#### **Commit Change in VSCode**
+### Commit Change in VSCode
    - Commit the reviewed and validated changes in VSCode. Use the commit message format that aligns with your team's guidelines.
 
-#### **Sync Reviewed Changes in VSCode**
+### Sync Reviewed Changes in VSCode
    - Push the committed changes from VSCode to the corresponding branch in GitLab. This step synchronizes your local updates with the remote repository.
 
-### **Merge Changes in GitLab from Local Repository to Target Environment**
+### Merge Changes in GitLab from Local Repository to Target Environment
    - After confirming that all necessary changes are pushed, prepare to merge from your feature branch to the target environment (e.g., development, test or production).
 
-#### **Create New Merge Request from Local to Target Environment**
+#### Create New Merge Request from Local to Target Environment
    - In GitLab, create a new Merge Request (MR) from your feature branch to the target environment.
    - Include relevant details in the MR description, such as the issue number, summary of changes, and any additional notes.
    - Assign reviewers or approvers as required.
 
-#### **Review and Approval**
+#### Review and Approval
    - Wait for the required reviews and approvals before merging.
    - After the MR is approved, complete the merge to move the code to the target environment.
+
+# Glossary
+* User Namespace: a namespace dedicated for in-progress work by a particular Health Connect Cloud user.
+* Protected Namespace: a namespace that exists with the same name in all deployments (Dev, Test, and Prod) in which the main interoperability production runs. Changes to protected namespaces are applied through CI/CD only.
+* Deployment: a Health Connect Cloud instance accessible through the Cloud Portal. There is typically a Dev, Test, and Prod deployment for each organization.
+* Dev Deployment: the Health Connect Cloud instance with a User Namespace for each user and one or more Protected Namespaces in which all development work originates
+* Test Deployment: the Health Connect Cloud instance in which interoperability components are tested prior to deployment to Prod.
+* Prod Deployment: the Health Connect Cloud instance serving actual production systems with interoperability.
+* protected branch: a branch in Git to which all commits must originate from a merge request
+* development branch: the protected branch associated with a Protected Namespace in the Dev Deployment. This branch is automatically present in the GitLab repository.
+* test branch: the protected branch associated with a Protected Namespace in the Test Deployment. This branch is automatically present in the GitLab repository.
+* live branch: the protected branch associated with a Protected Namespace in the Prod Deployment. This branch is automatically present in the GitLab repository.

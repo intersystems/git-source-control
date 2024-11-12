@@ -213,7 +213,7 @@ body {
 
         <fieldset id="namespaceSettings">
         <div class="form-group row mb-3">
-            <label for="gitBinPath" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
+            <label for="gitBinPath" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable"><b>Path to git.exe</b></label>
             <div class="col-sm-7">
                 <server>
                     set exists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
@@ -277,7 +277,7 @@ body {
             }
         </server>
         <div class="form-group row mb-3">
-            <label for="privateKeyFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">*SSH Private Key File</label>
+            <label for="privateKeyFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <server>
                     Set fileExists = ##class(%File).Exists(settings.privateKeyFile)
@@ -332,7 +332,7 @@ body {
         </server>
 
         <div class="form-group row mb-3">
-            <label for="pullEventClass" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
+            <label for="pullEventClass" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull"><b>Pull Event Class</b></label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
                     <server>
@@ -348,7 +348,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="environmentName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Environment Name">Environment Name</label>
+            <label for="environmentName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Environment Name"><b>Environment Name</b></label>
             <div class="col-sm-7">
                 <select class="form-control" id="environmentName" name="environmentName">
                     <server>
@@ -362,14 +362,14 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="percentClassReplace" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed.">'%' Replacement on Export</label>
+            <label for="percentClassReplace" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed."><b>'%' Replacement on Export</b></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="percentClassReplace" name="percentClassReplace" value='#(..EscapeHTML(settings.percentClassReplace))#' placeholder="_, __, <empty>, etc."/>
             </div>
         </div>
         
         <div class="form-group row mb-3">
-            <label for="systemBasicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode for all users, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace."> Basic Mode as System Default</label>
+            <label for="systemBasicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode for all users, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace."><b> Basic Mode as System Default</b></label>
             <div class="col-sm-7">
             
                 <div class="custom-control custom-switch custom-switch-no-border">
@@ -390,14 +390,14 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <label for="defaultMergeBranch" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="In basic mode, the Sync operation will merge changes from this remote branch (leave blank for no branch)">Default merge branch</label>
+            <label for="defaultMergeBranch" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="In basic mode, the Sync operation will merge changes from this remote branch (leave blank for no branch)"><b>Default merge branch</b></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="defaultMergeBranch" name="defaultMergeBranch" value='#(..EscapeHTML(settings.defaultMergeBranch))#' placeholder="sample-remote-branch">
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository">*Remote Repository</label>
+            <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository"><b>Remote Repository</b></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML(remote))#' placeholder="ex. git@github.com:User/UserRepo.git"/>
                 <div class = "neutral-feedback">
@@ -407,7 +407,7 @@ body {
         </div>
         
         <div class="form-group row mb-3">
-            <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"> Treat Mapped Items as Read-only</label>
+            <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"><b> Treat Mapped Items as Read-only</b></label>
             <div class="col-sm-7">
             
                 <div class="custom-control custom-switch custom-switch-no-border">
@@ -427,7 +427,7 @@ body {
 
         </div>
         <div class="form-group row mb-3">
-            <label for="compileOnImport" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="If true, the Import All options will compile imported options using the configured pull event handler">Compile Items on Import</label>
+            <label for="compileOnImport" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="If true, the Import All options will compile imported options using the configured pull event handler"><b>Compile Items on Import</b></label>
             <div class="col-sm-7">
                 <div class="custom-control custom-switch custom-switch-no-border">
                     <input class="custom-control-input" name="compileOnImport" type="checkbox" 
@@ -439,7 +439,7 @@ body {
         
         <div class="form-group row mb-3 mapping-input-group">
             <div class="offset-sm-1 col-sm-3">
-                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">*Mappings</label>
+                <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
                         <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"></path>
@@ -542,21 +542,21 @@ body {
 
         <fieldset id="userSettings">
         <div class="form-group row mb-3">
-            <label for="gitUserName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">*Git Committer Name </label>
+            <label for="gitUserName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">*Git Committer Email </label>
+            <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email</label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>
         </div>
 
         <div class="form-group mb-3">
-            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label form-rad-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">*Basic Mode</label>
+            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label form-rad-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">Basic Mode</label>
 
             <div class="form-check offset-sm-4 form-rad">
                 <server>
@@ -641,7 +641,7 @@ body {
                 <input type='submit' class="btn-lg btn-primary" value = 'Save' name="Save"/>
                 <input type="submit" class="btn-lg btn-primary" id="saveDefaults" value = 'Save as Instance Defaults' title="Save these settings as default for new instances" name="saveDefaults"/>
                 <div>
-                    <small> Settings not saved as default marked with '*'</small>
+                    <small> Settings saved as default are <b>bolded </b> </small>
                 </div>
             </div>
         </div>

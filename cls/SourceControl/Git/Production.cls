@@ -1,8 +1,14 @@
-/// This class serves as an intermediary for managing Source Control for Productions. 
-/// Included is handling for exporting Productions as individual pieces of settings
-/// and importing individual item settings.
+/// This is a replica of %Studio.SourceControl.Production for backwards compatibility with older IRIS versions.
 Class SourceControl.Git.Production Extends %RegisteredObject
 {
+
+/// This Parameter should be updated when synced from Perforce
+Parameter SrcVer = "$Id: //custom_ccrs/_common/config/cls/Studio/SourceControl/Production.xml#3 $";
+
+/// Revision number of this class when compiled as part of the //custom_ccrs/_common/config/... branch.  
+/// This version will not be updated (by design) when the class is integrated to other branches.
+/// This allows the user to tell what version of the Studio client tools are in use.
+Parameter Version = 4;
 
 /// Exports settings for a given Production and each Config Item from
 /// the ProductionDefinition as separate XMLs. These are exported to 
@@ -159,9 +165,16 @@ ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
 /// Imports a PTD into a produciton given an external name and produciton name
 ClassMethod ImportPTD(externalName As %String, productionName As %String) As %Status
 {
-	set rollbackFile = ##class(%File).TempFilename()
-	set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
-	do ##class(%File).Delete(rollbackFile)
+	try {
+		set ^IRIS.Temp("sscProd",$job,"bypassLock") = 1
+		set rollbackFile = ##class(%File).TempFilename()
+		set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
+		do ##class(%File).Delete(rollbackFile)
+		kill ^IRIS.Temp("sscProd",$job,"bypassLock")
+	} catch err {
+		kill ^IRIS.Temp("sscProd",$job,"bypassLock")
+		set sc = err.AsStatus()
+	}
 	return sc
 }
 
@@ -171,7 +184,7 @@ ClassMethod ImportPTDsDir(directory As %String, isDecompMethod As %String = "") 
 	set sc = $$$OK
 	set rs = ##class(%ResultSet).%New("%File:FileSet")
 	$$$ThrowOnError(rs.Execute(directory, "*.xml", "", 1))
-	$$$ThrowSQLIfError(rs.%SQLCODE, rs.%Message)
+	throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE, rs.%Message)
 	while rs.Next() {
 		set path = rs.Data("Name")
 		set type = rs.Data("Type")
@@ -347,13 +360,16 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		}
 		// check if there is a class export for this Production, load it for class definition
 		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
-		if ##class(%File).Exists(filename) {
+		if ##class(%File).Exists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
 			$$$ThrowOnError($System.OBJ.Load(filename))
 		}
 		// if Production exists as a class definition on the server, check if extending Ens.Production
 		set classDef = ##class(%Dictionary.ClassDefinition).%OpenId(className)
-		if $isobject(classDef) && ##class(%Dictionary.ClassDefinition).%ExistsId(classDef.Super) {
-			return $classmethod(classDef.Super, "%Extends", "Ens.Production")
+		if $isobject(classDef) {
+			for i=1:1:classDef.XDatas.Count() {
+				set xdata = classDef.XDatas.GetAt(i)
+				if xdata.Name = "ProductionDefinition" return 1
+			}
 		}
 	}
 	return 0
@@ -505,12 +521,33 @@ ClassMethod GetUserProductionChanges(productionName As %String, ByRef items)
 /// Executes a SQL query without privilege checking if possible on this IRIS version
 ClassMethod ExecDirectNoPriv(sql, args...) As %SQL.StatementResult
 {
+	// once minimum version is IRIS 2021.1.3, remove and just use %ExecDirectNoPriv
     try {
         set rs = ##class(%SQL.Statement).%ExecDirectNoPriv(,sql,args...)
     } catch err {
         set rs = ##class(%SQL.Statement).%ExecDirect(,sql,args...)
     }
     return rs
+}
+
+/// Handles all compile-time logic for this class
+ClassMethod OnToolsCompile() [ CodeMode = objectgenerator, Internal ]
+{
+ 	For i = 1:1:%class.Parameters.Count() {
+        If %class.Parameters.GetAt(i).Name = "SrcVer" Set valSrcVer = %class.Parameters.GetAt(i).Default
+        If %class.Parameters.GetAt(i).Name = "Version" Set indexVersion=i
+    }
+    If $D(indexVersion)&&($G(valSrcVer)["//custom_ccrs/_common/config/") {
+	    Set %class.Parameters.GetAt(indexVersion).Default = $P($G(valSrcVer),"#",2)+1
+	    Do %class.Parameters.GetAt(indexVersion).%Save()
+    }
+    Quit $$$OK
+}
+
+/// Returns value the Major.Minor version for this instance, so it can be used in comparison code which makes sure certain features are used in appropriate versions
+ClassMethod InstanceVersion() As %Numeric [ CodeMode = expression ]
+{
+$P($SYSTEM.Version.GetNumber(),".",1,2)
 }
 
 }

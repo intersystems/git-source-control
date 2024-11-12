@@ -18,12 +18,6 @@ ClassMethod Configure()
         set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
         set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
 
-        // Make sure they are using an appropriate git version
-        if (+$PIECE(version,"version ",2))<2.31 {
-            write !!, "WARNING: You are using an older version of git which is not compatible with git-source-control. Please upgrade to git version 2.31.0 or greater to continue"
-            write !!, "Cancelling git-source-control configuration..."
-            quit
-        }
         if gitExists && isDefault {
             // Note: version starts with "git version"
             write !,version," is available via PATH. You may enter a path to a different version if needed."

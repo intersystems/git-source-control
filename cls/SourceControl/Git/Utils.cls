@@ -49,7 +49,7 @@ ClassMethod TempFolder() As %String
 
 ClassMethod DefaultTempFolder() As %String
 {
-    quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_$translate($znspace,"%")_..#Slash)
+    quit $get(@..#Storage@("settings","namespaceTemp"),..DefaultTemp()_..#Slash_$translate($znspace,"%")_..#Slash)
 }
 
 ClassMethod MappingsNode() As %String [ CodeMode = expression ]
@@ -406,11 +406,17 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
     if (settings.basicMode) && (settings.defaultMergeBranch '= ""){
-        do ..RunGitWithArgs(.errStream, .outStream, "checkout", settings.defaultMergeBranch)
+        set err = ..RunGitWithArgs(.errStream, .outStream, "checkout", settings.defaultMergeBranch)
         do ..PrintStreams(errStream, outStream)
+        if (err) {
+            quit $$$ERROR($$$GeneralError,errStream.Read()_$c(10)_"Current branch is: "_..GetCurrentBranch())
+        }
         kill errStream, outStream
-        do ..RunGitWithArgs(.errStream, .outStream, "pull")
+        set err = ..RunGitWithArgs(.errStream, .outStream, "pull")
         do ..PrintStreams(errStream, outStream)
+        if (err) {
+            quit $$$ERROR($$$GeneralError,errStream.Read()_$c(10)_"Current branch is: "_..GetCurrentBranch())
+        }
         kill errStream, outStream
     }
     
@@ -2574,7 +2580,9 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         if (InternalName="") {
             //take our best guess based on the document extension mapped to that subdirectory
             set nam=$piece(nam,".",1,*-1)
-            set nam=$replace(nam, ..PercentClassReplace(), "%")
+            if ((fileExt = "cls") || (fileExt = "rtn") || (fileExt = "inc")) {
+                set nam=$replace(nam, ..PercentClassReplace(), "%")
+            }
             set nam=$translate(nam,"/",".")
             set InternalName=nam_"."_fileExt
             if (fileExt="cls") {

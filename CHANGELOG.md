@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed improper encoding of unicode characters in commit messages (#627)
 - Creating a new branch now reports the error if uncommitted changes conflict (#624)
 - Fix Configure erroring out if git isn't found (#632)
+- Fix "%" replacing characters in lookup table names (#588)
 
 ## [2.7.0] - 2024-11-04
 

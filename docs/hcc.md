@@ -1,7 +1,7 @@
 # Change Control with Embedded Git for Health Connect Cloud
 
 ## General 
-The recommended workflow for Health Connect Cloud is to: create an interface branch, make changes, sync them to GitLab, create a merge request, review and approve the merge request, and then pull the changes into a protected namespace.
+The recommended workflow for Health Connect Cloud is to: create an interface branch, make changes, sync them to GitLab, create a merge request, review and approve the merge request, and then test the changes after they are automatically deployed into a protected namespace.
 
 Step 1: Create an interface branch based on live
 ![Step 1: Create a feature branch based on live](images/hcc/hcc-step-1.png)
@@ -21,7 +21,7 @@ A Health Connect Cloud Dev deployment will have at least one Protected Namespace
  - Grant appropriate access and privileges to the GitLab repository
  - Onboard customers on source control tools for Health Connect Cloud
  - Maintain change control documentation and videos
-   - [Official Change Control Documentation](https://docs.intersystems.com)
+   <!-- - [Official Change Control Documentation](https://docs.intersystems.com) -->
    - [Learning Videos](https://learning.intersystems.com/course/view.php?name=HCCSourceControlUI)
 
 # InterSystems-Recommended Workflow - Embedded Git and GitLab

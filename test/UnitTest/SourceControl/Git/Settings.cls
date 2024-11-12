@@ -67,12 +67,12 @@ Method TestSaveAndImportSettings()
     set settings.percentClassReplace = "_"
     set settings.decomposeProductions = 1
     $$$ThrowOnError(settings.SaveWithSourceControl())
-    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).AddToSourceControl("git-source-control.GSC"))
+    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).AddToSourceControl("embedded-git-config.GSC"))
     // settings file should be in source control
-    do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("git-source-control.GSC"))
-    do $$$AssertEquals($replace(##class(SourceControl.Git.Utils).ExternalName("git-source-control.GSC"),"\","/"),"git-source-control.json")
+    do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("embedded-git-config.GSC"))
+    do $$$AssertEquals($replace(##class(SourceControl.Git.Utils).ExternalName("embedded-git-config.GSC"),"\","/"),"embedded-git-config.json")
     // commit settings
-    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).Commit("git-source-control.GSC"))
+    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).Commit("embedded-git-config.GSC"))
     // settings should be in the global
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","mappings","CLS","Foo"),"foo/")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","pullEventClass"),"SourceControl.Git.PullEventHandler.Default")
@@ -90,7 +90,7 @@ Method TestSaveAndImportSettings()
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","percentClassReplace"),"x")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","decomposeProductions"),"0")
     // revert change to settings 
-    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).Revert("git-source-control.GSC"))
+    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).Revert("embedded-git-config.GSC"))
     // old setting should be in the global
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","mappings","CLS","Foo"),"foo/")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","pullEventClass"),"SourceControl.Git.PullEventHandler.Default")

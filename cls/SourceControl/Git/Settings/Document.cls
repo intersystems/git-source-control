@@ -1,12 +1,12 @@
-/// Custom studio document type for git-source-control settings that are controlled by a file
+/// Custom studio document type for Embedded Git settings that are controlled by a file
 Class SourceControl.Git.Settings.Document Extends %Studio.AbstractDocument
 {
 
 Projection RegisterExtension As %Projection.StudioDocument(DocumentExtension = "GSC", DocumentNew = 0, DocumentType = "json");
 
-Parameter INTERNALNAME = "git-source-control.GSC";
+Parameter INTERNALNAME = "embedded-git-config.GSC";
 
-Parameter EXTERNALNAME = "git-source-control.json";
+Parameter EXTERNALNAME = "embedded-git-config.json";
 
 /// Return 1 if the routine 'name' exists and 0 if it does not.
 ClassMethod Exists(name As %String) As %Boolean

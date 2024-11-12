@@ -86,11 +86,11 @@ Method SaveWithSourceControl() As %Status
     set sc = $$$OK
     #dim %SourceControl As %Studio.SourceControl.Interface
     if '$isobject($get(%SourceControl)) {
+        new %SourceControl
         do ##class(%Studio.SourceControl.Interface).SourceControlCreate($username)
     }
     set gitDir = ##class(%File).NormalizeDirectory(..namespaceTemp)_".git"
-    set skipSourceControl = ('##class(%File).DirectoryExists(gitDir) && 
-        (##class(%Studio.SourceControl.Interface).SourceControlClassGet() = ##class(SourceControl.Git.Extension).%ClassName(1)))
+    set skipSourceControl = '##class(%File).DirectoryExists(gitDir)
     $$$QuitOnError(..%Save())
     set internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME
     set settingsDoc = ##class(SourceControl.Git.Settings.Document).%New(internalName)
@@ -104,7 +104,7 @@ Method SaveWithSourceControl() As %Status
                 $$$QuitOnError(sc)
             }
         }
-        if ($IsObject(%SourceControl)) {
+        if ($IsObject($get(%SourceControl))) {
             $$$QuitOnError(%SourceControl.OnAfterSave(internalName))
         }
     }
@@ -223,6 +223,8 @@ Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
             set ..Mappings(k1, k2) = v2.%Get("directory")
             if v2.%Get("noFolders") {
                 set ..Mappings(k1, k2, "NoFolders") = 1
+            } else {
+                kill ..Mappings(k1, k2, "NoFolders")
             }
         }
     }

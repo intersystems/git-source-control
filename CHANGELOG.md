@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added saving settings as system default for new namespaces (#535)
 
+
+## [2.7.1] - 2024-11-13
+
 ### Fixed
 - Fixed improper encoding of unicode characters in commit messages (#627)
 - Creating a new branch now reports the error if uncommitted changes conflict (#624)

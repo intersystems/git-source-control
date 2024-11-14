@@ -1536,7 +1536,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     quit $$$OK
 }
 
-ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
+ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As %Status
 {
     set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
     set refPackage = refContext.Package
@@ -1600,7 +1600,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         }
     }
     
-    set sc = ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
+    set sc = ##class(SourceControl.Git.PullEventHandler).ForModifications(.files, .pullEventClass)
     if $$$ISERR(sc) {
         set ec = $$$ADDSC(ec,sc)
     }
@@ -1733,9 +1733,10 @@ ClassMethod ExportSystemDefaults() As %Status
 }
 
 /// if <var>force</var> = 1 then we import item even if timestamp in system is newer
-ClassMethod ImportAll(force As %Boolean = 0) As %Status
+/// if <var>pullEventClass</var> is defined, then override the configured pull event handler class.
+ClassMethod ImportAll(force As %Boolean = 0, pullEventClass As %String) As %Status
 {
-    quit ..ImportRoutines(force)
+    quit ..ImportRoutines(force, .pullEventClass)
 }
 
 ClassMethod ExportRoutines(force As %Boolean = 0) As %Status

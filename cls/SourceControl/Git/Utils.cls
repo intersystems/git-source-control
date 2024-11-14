@@ -1573,7 +1573,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "M"
             set modification.internalName = internalName
-            set modification.externalName = ..FullExternalName(internalName)
+            set modification.externalName = ..ExternalName(internalName)
             set files($increment(files)) = modification
         }
     }
@@ -1588,13 +1588,14 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
         continue:context.Package'=refPackage
             
+        set externalName = ..ExternalName(item)
         set fullExternalName = ..FullExternalName(item)
         if '##class(%File).Exists(fullExternalName) {
             write !,fullExternalName," does not exist - deleting ",item
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "D"
             set modification.internalName = item
-            set modification.externalName = fullExternalName
+            set modification.externalName = externalName
             set files($increment(files)) = modification
         }
     }

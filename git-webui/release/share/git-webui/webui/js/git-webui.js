@@ -394,6 +394,28 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             }
         });
 
+        // Search bar to filter the results
+        if (idPostfix =='popup') {
+            var searchBar = $('<input type="text" id="search-input" placeholder="Filter...">').appendTo(accordionDiv)[0];
+            searchBar.onkeyup = function(){ 
+                let branchCards = accordionDiv.getElementsByClassName("branch-card");
+
+                var filter = searchBar.value.toUpperCase().replaceAll('/', '-');
+
+                for (let i = 0; i < branchCards.length; i++) {
+                    let card = branchCards[i]
+                    let cardHeader = card.querySelector('.card-header');
+                    if (cardHeader) {
+                        if (cardHeader.id.toUpperCase().indexOf(filter) > -1) {
+                          card.style.display = '';
+                        } else {
+                          card.style.display = 'none';
+                        }
+                      }
+                }
+            };
+        }
+
         for (var i = 0; i < refs.length && i < maxRefsCount; ++i) {
             var ref = refs[i] + ""; // Get a copy of it
             if (ref[2] == '(' && ref[ref.length - 1] == ')') {
@@ -405,7 +427,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     ref = '  ' + newref;
                 }
             }
-            var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
+            var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
                 var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);

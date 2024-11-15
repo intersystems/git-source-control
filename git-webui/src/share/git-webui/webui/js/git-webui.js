@@ -396,7 +396,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
         // Search bar to filter the results
         if (idPostfix =='popup') {
-            var searchBar = $('<input type="text" id="search-input" placeholder="Filter...">').appendTo(accordionDiv)[0];
+            var searchBar = $('<input type="text" id="search-input" placeholder="Filter..." style="width:100%">').appendTo(accordionDiv)[0];
             searchBar.onkeyup = function(){ 
                 let branchCards = accordionDiv.getElementsByClassName("branch-card");
 

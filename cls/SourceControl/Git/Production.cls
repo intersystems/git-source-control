@@ -2,14 +2,6 @@
 Class SourceControl.Git.Production Extends %RegisteredObject
 {
 
-/// This Parameter should be updated when synced from Perforce
-Parameter SrcVer = "$Id: //custom_ccrs/_common/config/cls/Studio/SourceControl/Production.xml#3 $";
-
-/// Revision number of this class when compiled as part of the //custom_ccrs/_common/config/... branch.  
-/// This version will not be updated (by design) when the class is integrated to other branches.
-/// This allows the user to tell what version of the Studio client tools are in use.
-Parameter Version = 4;
-
 /// Exports settings for a given Production and each Config Item from
 /// the ProductionDefinition as separate XMLs. These are exported to 
 /// the appropriate file based on nameMethod of the source control class
@@ -528,20 +520,6 @@ ClassMethod ExecDirectNoPriv(sql, args...) As %SQL.StatementResult
         set rs = ##class(%SQL.Statement).%ExecDirect(,sql,args...)
     }
     return rs
-}
-
-/// Handles all compile-time logic for this class
-ClassMethod OnToolsCompile() [ CodeMode = objectgenerator, Internal ]
-{
- 	For i = 1:1:%class.Parameters.Count() {
-        If %class.Parameters.GetAt(i).Name = "SrcVer" Set valSrcVer = %class.Parameters.GetAt(i).Default
-        If %class.Parameters.GetAt(i).Name = "Version" Set indexVersion=i
-    }
-    If $D(indexVersion)&&($G(valSrcVer)["//custom_ccrs/_common/config/") {
-	    Set %class.Parameters.GetAt(indexVersion).Default = $P($G(valSrcVer),"#",2)+1
-	    Do %class.Parameters.GetAt(indexVersion).%Save()
-    }
-    Quit $$$OK
 }
 
 /// Returns value the Major.Minor version for this instance, so it can be used in comparison code which makes sure certain features are used in appropriate versions

@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Production Decomposition mode allows controlling interoperability productions as individual files for each host (#469)
 
-## [2.7.1] - Unreleased
+## [2.7.1] - 2024-11-13
 
 ### Fixed
 - Fixed improper encoding of unicode characters in commit messages (#627)

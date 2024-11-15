@@ -81,7 +81,7 @@ Documentation for the various git-source-control menu options can be found [here
 To specify where files should go relative to your repository root, add mappings via the "Settings" menu item. A mapping has three parts:
 * The file extension to use: e.g., CLS, MAC. As a special case for web application files, use "/CSP/" as the mapping.
 * A filter on the files of that type (e.g., a package name or web application folder)
-* The folder relative to the repo root that contains the item. This controls behavior for import and export.
+* The folder relative to the repo root that contains the item. This controls behavior for import and export. The keyword `<env>` will be expanded into the environment name to support different mapping configurations, for example for system default settings.
 
 This might look like:
 

@@ -1728,6 +1728,7 @@ ClassMethod ExportSystemDefaults() As %Status
 {
     new %SourceControl
     do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    $$$QuitOnError(%SourceControl.AddToSourceControl("Ens.Config.DefaultSettings.ESD"))
     quit %SourceControl.OnAfterSave("Ens.Config.DefaultSettings.ESD")
 }
 

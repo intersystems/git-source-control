@@ -75,4 +75,11 @@ ClassMethod MapEverywhere()
     Quit ##class(SourceControl.Git.Installer).MapEverywhere()
 }
 
+/// Run to baseline all interoperability productions in the namespace to source control.
+/// This should be done after changing the value of the "decompose productions" setting.
+ClassMethod BaselineProductions()
+{
+    do ##class(SourceControl.Git.Util.Production).BaselineProductions()
+}
+
 }

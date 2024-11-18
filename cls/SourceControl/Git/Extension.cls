@@ -327,22 +327,44 @@ Method OnBeforeTimestamp(InternalName As %String)
 Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NULLOREF}) As %Status
 {
     set sc = $$$OK
+    quit:$get(%gscSkipSaveHooks) sc
     try {
         set InternalName = ##class(SourceControl.Git.Utils).NormalizeInternalName(.InternalName,.fromWebApp,.fullExternalName)
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
-        if ##class(SourceControl.Git.Utils).IsNamespaceInGit() && ..IsInSourceControl(InternalName) {
-            if fromWebApp {
-                if fullExternalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName) {
-                    // Reimport item into database
-                    $$$ThrowOnError(##class(SourceControl.Git.Utils).ImportItem(InternalName,,1,1))
+        if ##class(SourceControl.Git.Utils).IsNamespaceInGit() {
+            // If this is a production class and production decomposition is enabled, call recursively on all modified production items.
+            if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
+                do ##class(SourceControl.Git.Production).GetModifiedItemsAfterSave(InternalName, .productionItems)
+                set key = $order(productionItems(""))
+                while (key '= "") {
+                    if productionItems(key) = "D" {
+                        set itemFilename = ..FullExternalName(key)
+                        if ##class(SourceControl.Git.Utils).IsInSourceControl(key) && ##class(%File).Exists(itemFilename) {
+                            $$$ThrowOnError(##class(SourceControl.Git.Change).AddDeletedToUncommitted(itemFilename, key))
+                            $$$ThrowOnError(##class(SourceControl.Git.Utils).DeleteExternalFile(key))
+                        }
+                    } elseif '..IsInSourceControl(key) {
+                        $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(key))
+                    } else {
+                        $$$ThrowOnError(..OnAfterSave(key))
+                    }
+                    set key = $order(productionItems(key))
                 }
-            } else {
-                set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
-                $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
-                set forceExport = (InternalName'= "") && ($data(..Modified(InternalName)))
-                $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName,,forceExport))
-                if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+            }
+            if ..IsInSourceControl(InternalName) {
+                if fromWebApp {
+                    if fullExternalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName) {
+                        // Reimport item into database
+                        $$$ThrowOnError(##class(SourceControl.Git.Utils).ImportItem(InternalName,,1,1))
+                    }
+                } else {
+                    set filename = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+                    $$$ThrowOnError(##class(SourceControl.Git.Utils).RemoveRoutineTSH(InternalName))
+                    set forceExport = (InternalName'= "") && ($data(..Modified(InternalName)))
+                    $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName,,forceExport))
+                    if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+                        $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+                    }
                 }
             }
         }
@@ -400,9 +422,41 @@ Method ExternalName(InternalName As %String) As %String
     quit ##class(SourceControl.Git.Utils).ExternalName(InternalName)
 }
 
+ClassMethod FullExternalName(InternalName As %String) As %String
+{
+    quit ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+}
+
 Method IsReadOnly(InternalName As %String) As %Boolean
 {
-    quit ##class(SourceControl.Git.Utils).Locked()
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    quit (##class(SourceControl.Git.Utils).Locked() 
+            && '$get(^IRIS.Temp("sscProd",$job,"bypassLock")))
+        || (##class(SourceControl.Git.Utils).ItemIsProductionToDecompose($get(InternalName))
+            && 'settings.decomposeProdAllowIDE
+            && '##class(SourceControl.Git.Production).IsEnsPortal())
+}
+
+/// Called before the item is saved to the database it is passed
+/// a reference to the current temporary storage of this item so that it
+/// can be modified before the save completes. If you quit with an error
+/// value then it will abort the save.
+Method OnBeforeSave(InternalName As %String, Location As %String = "", Object As %RegisteredObject = {$$$NULLOREF}) As %Status
+{
+    set st = $$$OK
+    if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName) {
+        do ##class(SourceControl.Git.Production).GetModifiedItemsBeforeSave(InternalName,,.productionItems)
+		set key = $order(productionItems(""))
+		while (key '= "") {
+			// if any modified items in this production class are checked out by a different user, fail the check.
+			set st = ..GetStatus(key, .IsInSourceControl, .Editable, .IsCheckedOut, .UserCheckedOut)
+            quit:$$$ISERR(st)
+			if 'Editable set st = $$$ERROR($$$GeneralError,"Item is checked out by another user: "_UserCheckedOut)
+            quit:$$$ISERR(st)
+			set key = $order(productionItems(key))
+		}
+    }
+    return st
 }
 
 /// Check the status of the given item
@@ -411,7 +465,7 @@ Method IsReadOnly(InternalName As %String) As %Boolean
 Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Boolean, ByRef Editable As %Boolean, ByRef IsCheckedOut As %Boolean, ByRef UserCheckedOut As %String) As %Status
 {
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(.InternalName)
-    set Editable='..IsReadOnly(),IsCheckedOut=1,UserCheckedOut=""
+    set Editable='..IsReadOnly($get(InternalName)),IsCheckedOut=1,UserCheckedOut=""
     set filename=##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
     set IsInSourceControl=(filename'=""&&($$$FileExists(filename)))
     if filename="" quit $$$OK

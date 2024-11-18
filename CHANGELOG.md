@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Production Decomposition mode allows controlling interoperability productions as individual files for each host (#469)
 - Added saving settings as system default for new namespaces (#535)
+- Added filtering through branch names in UI (#615)
 
 ## [2.7.1] - 2024-11-13
 

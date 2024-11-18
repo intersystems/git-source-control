@@ -72,6 +72,16 @@ ClassMethod SettingsUIReadOnly() As %Status [ CodeMode = expression ]
 $Get(@..#Storage@("settings","settingsUIReadOnly"), 0)
 }
 
+ClassMethod DecomposeProductions() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","decomposeProductions"), 0)
+}
+
+ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
+}
+
 ClassMethod FavoriteNamespaces() As %String
 {
     set favNamespaces = []
@@ -361,8 +371,9 @@ ClassMethod Init() As %Status
 {
     do ..RunGitCommand("init",.errStream,.outStream)
     do ..PrintStreams(outStream, errStream)
-    
-    quit $$$OK
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    $$$QuitOnError(settings.SaveWithSourceControl())
+    quit ..Commit(##class(SourceControl.Git.Settings.Document).#INTERNALNAME,"initial commit")
 }
 
 ClassMethod Revert(InternalName As %String) As %Status
@@ -770,7 +781,9 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
         }
 
         for i=1:1:$Get(filenames) {
-            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,,1))
+            set ignoreNonexistent = (type '= "ptd")
+            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(
+                ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,ignoreNonexistent,1))
             if (FileInternalName = "") {
                 continue
             }
@@ -1017,7 +1030,8 @@ ClassMethod IsCspFolder(InternalName As %String) As %Boolean
 /// pkg -- package<br/>
 /// prj -- project<br/>
 /// csp -- csp-page or csp-folder. See <Method>IsCspFolder</Method><br/>
-/// csp -- any static file from csp-folder 
+/// csp -- any static file from csp-folder <br/>
+/// ptd -- interoperability production configuration item
 ClassMethod Type(InternalName As %String) As %String
 {
     #dim extension as %String = $zconvert($piece(InternalName,".",$length(InternalName,".")),"L")
@@ -1377,8 +1391,28 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     #dim fileTSH = ##class(%File).GetFileDateModified(filename)
     #dim sc as %Status = $$$OK
     
-    if ..IsRoutineOutdated(InternalName) || force {
-        if ..UserTypeCached(InternalName,.docclass,.doctype) {
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    set type = ..Type(InternalName)
+    set imported = 1
+    if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
+        if (type = "ptd") && settings.decomposeProductions && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+            if ##class(%File).Exists(filename) {
+                // Deployment manager should not reexport because studio project file includes timestamp
+                // ideally we could just new %SourceControl, but Ens portal config pages do not use %SourceControl
+                new %gscSkipSaveHooks
+                set %gscSkipSaveHooks = 1
+                do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,,,,,.targetProduction)
+                if (targetProduction '= "") && '$$$comClassDefined(targetProduction) {
+                    set sc = ##class(SourceControl.Git.Production).CreateProduction(targetProduction)
+                }
+                if $$$ISOK(sc) {
+                    set sc = ##class(SourceControl.Git.Production).ImportPTD(filename, targetProduction)
+                }
+            }
+        } elseif ..ItemIsProductionToDecompose(InternalName) {
+            write !, "Production decomposition enabled, skipping import of production class"
+            set imported = 0
+        } elseif ..UserTypeCached(InternalName,.docclass,.doctype) {
             set routineMgr = ##class(%RoutineMgr).%OpenId(InternalName)
             do routineMgr.Code.Rewind()
             set source = ##class(%Stream.FileCharacter).%OpenId(filename,,.sc)
@@ -1393,12 +1427,14 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 set sc = $system.OBJ.Load(filename,$Select(compile:"ck-l",1:"-l-d"))
             }
         }
-        if sc {
-            set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
-            if ..Type(InternalName) = "prj" {
-                set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
+        if $$$ISOK(sc) {
+            if imported {
+                set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
+                if type = "prj" {
+                    set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
+                }
+                write !, InternalName," has been imported from ", filename
             }
-            write !, InternalName," has been imported from ", filename
         } else {
             write !, "ERROR importing" ,InternalName, !
             do $system.Status.DisplayError(sc)
@@ -1426,6 +1462,24 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
     Quit sc
 }
 
+ClassMethod ListItemsRecursively(type, fileSpec, directory, ByRef itemList) [ Private ]
+{
+    set files = ##class(%Library.File).FileSetFunc(directory,fileSpec,,1)
+    throw:files.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(files.%SQLCODE,files.%Message)
+    while files.%Next() {
+        if (files.Type="D") {
+            do ..ListItemsRecursively(type, fileSpec, files.Name, .itemList)
+        } else {
+            set internalName = files.ItemName
+            if ($zconvert(type,"l") = "ptd") {
+                do ##class(SourceControl.Git.Production).ParseExternalName($translate(files.Name,"\","/"), .internalName)
+            }
+            set itemList(internalName) = ""
+        }
+    }
+}
+
+/// Returns an array of internal names of all items in the local source control repository.
 ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 {
     #define DoNotLoad 1
@@ -1442,13 +1496,11 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
             
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                if ..UserTypeCached("foo."_mappingFileType) {
-                    set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
-                    set files = ##class(%Library.File).FileSetFunc(mappedFilePath,fileSpec)
-                    while files.%Next() {
-                        // Assumes flat file structure
-                        set itemList(files.ItemName) = ""
-                    }
+                if ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
+                    set fileSpec = $select(
+                        userTypeClass="Ens.Util.ProjectTextDocument": "*.xml;*.XML",
+                        1: "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U"))
+                    do ..ListItemsRecursively(mappingFileType, fileSpec, mappedFilePath, .itemList)
                 } else {
                     set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
                     merge itemList = tempItemList
@@ -1604,7 +1656,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
     }elseif (type = "csp") && ..IsCspFolder(InternalName) {
         $$$QuitOnError(..ExportRoutinesAux(InternalName , "/", 0, force, .filenames))
     }else {
-        if ..IsTempFileOutdated(InternalName) || force {
+        if (type = "ptd") || ..IsTempFileOutdated(InternalName) || force {
             #dim filename as %String = ..FullExternalName(InternalName, .MappingExists)
             if (MappingExists = 0){
                 write "Did not find a matching mapping for """_InternalName_""". Skipping export."
@@ -1616,16 +1668,37 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 write "Mapping to another database found. Skipping export"
                 quit $$$OK
             }
-            set filenames($I(filenames)) = filename
             write !, "exporting new version of ", InternalName, " to ", filename
-            $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
-            $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
-            if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
+            if (type = "ptd") {
+                $$$QuitOnError(##class(SourceControl.Git.Production).ExportPTD(InternalName,"FullExternalName"))
+            } elseif (..ItemIsProductionToDecompose(InternalName, .productionName)) {
+                write !, "Production decomposition enabled, skipping export of production class"
+                set filename = ""
+            } else {
+                $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+            }
+            if (filename '= "") && ##class(%File).Exists(filename) {
+                set filenames($I(filenames)) = filename
+                $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
+                if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
+                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
+                }
             }
         }
     }
     quit $$$OK
+}
+
+ClassMethod ItemIsProductionToDecompose(InternalName, Output productionName)
+{
+    set settings = ##class(SourceControl.Git.Settings).%New()
+	set name = $piece(InternalName,".",1,*-1)
+    set decomposeProduction = settings.decomposeProductions && (..Type(InternalName) = "cls") 
+        && ##class(SourceControl.Git.Production).IsProductionClass(name, "FullExternalName")
+    if decomposeProduction {
+        set productionName = name
+    }
+    return decomposeProduction
 }
 
 ClassMethod ExportProject(project As %String, force As %Boolean = 0, ByRef filenames) As %Status
@@ -2181,7 +2254,7 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
     while $listnext(list, pointer, item) {
         set operation = $zstrip($extract(item, 1, 2), "<W")
         set externalName = $extract(item, 4, *)
-        set internalName = ..NameToInternalName(externalName)
+        set internalName = ..NameToInternalName(externalName,,0)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
             set @..#Storage@("items",..NormalizeInternalName(internalName)) = ""
@@ -2190,12 +2263,6 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
             set files($I(files)) = $listbuild(operation, externalName)
         } 
     }
-}
-
-ClassMethod EmptyInitialCommit()
-{
-    set ret = ..RunGitCommandWithInput("commit",, .errStream, .outStream, "--allow-empty", "-m", "empty initial commit")
-    do ..PrintStreams(errStream, outStream)
 }
 
 /*
@@ -2212,6 +2279,10 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
     if (context.IsInGitEnabledPackage) && (InternalName = context.InternalName) && $isobject(context.ResourceReference) {
         set relativePath = context.ResourceReference.Processor.OnItemRelativePath(InternalName)
         quit relativePath
+    }
+    if ($zconvert(InternalName,"l") = $zconvert(##class(SourceControl.Git.Settings.Document).#INTERNALNAME,"l")) {
+        // git-source-control settings file will always live at repository root
+        quit ##class(SourceControl.Git.Settings.Document).#EXTERNALNAME
     }
     
     // For an abstract document, use the GetOther() method to try to determine its "real" class
@@ -2307,7 +2378,9 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set InternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(InternalName,"%","_"),"\","/")
-    
+    } elseif (..Type(InternalName) = "ptd") {
+        do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,'default,.filename)
+        return $translate(found_filename, "\","/")
     } elseif ext="CLS"||(ext="PRJ")||usertype {
         set nam=$replace(nam,"%", ..PercentClassReplace())
         if default{
@@ -2370,6 +2443,9 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         }
     } elseif ($zconvert(Name,"U")'[$zconvert($$$SourceRoot,"U")) {
         set Name = ..TempFolder()_Name
+    }
+    if ($zconvert(Name,"l") = $zconvert(..TempFolder()_##class(SourceControl.Git.Settings.Document).#EXTERNALNAME,"l")) {
+        quit ##class(SourceControl.Git.Settings.Document).#INTERNALNAME
     }
     if (##class(%File).Exists(Name)) {
         set InternalName = ##class(SourceControl.Git.File).ExternalNameToInternalName(Name)
@@ -2850,6 +2926,7 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("INC","*")="inc/"
     set @mappingsNode@("MAC","*")="rtn/"
     set @mappingsNode@("DFI","*")="dfi/"
+    set @mappingsNode@("PTD","*")="ptd/"
 }
 
 ClassMethod PrintStreams(streams... As %Stream.FileCharacter)

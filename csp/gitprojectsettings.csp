@@ -102,7 +102,7 @@ body {
  set settings = ##class(SourceControl.Git.Settings).%New()
  set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
  /// After Save
- if $Data(%request.Data("gitsettings",1)) {
+ if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
     for param="gitUserName","gitUserEmail" {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
@@ -124,6 +124,8 @@ body {
         }
 
         set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
+        set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
+        set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
 
         if ($Get(%request.Data("basicMode", 1)) = 1) {
             set settings.basicMode = 1
@@ -168,7 +170,22 @@ body {
             do settings.SaveDefaults()
         }
     }
-    do settings.%Save()
+    set err = ""
+    try {
+        set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+        do buffer.BeginCaptureOutput()
+        $$$ThrowOnError(settings.SaveWithSourceControl())
+        do buffer.EndCaptureOutput(.out)
+        if (out '= "") {
+            &html<<div class="alert alert-primary">
+                    <div>#(..EscapeHTML(out))#</div>
+                </div>>
+        }
+    } catch err {
+        kill buffer
+        do err.Log()
+        &html<<div class="alert alert-danger">An error occurred and has been logged to the application error log.</div>>
+    }
 }
 </server>
 <div class = 'container'>
@@ -433,6 +450,30 @@ body {
                     <input class="custom-control-input" name="compileOnImport" type="checkbox" 
                         id="compileOnImport" #($select(settings.compileOnImport:"checked",1:""))# value="1">
                     <label class="custom-control-label" for="compileOnImport"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="decomposeProductions" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, interoperability productions are source-controlled under separate files for each configuration item">
+                Decompose Productions</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="decomposeProductions" type="checkbox" 
+                        id="decomposeProductions" #($select(settings.decomposeProductions:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="decomposeProductions"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="decomposeProdAllowIDE" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, a decomposed production class may be edited through VS Code or Studio">
+                Decomposed Productions Allow IDE</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="decomposeProdAllowIDE" type="checkbox" 
+                        id="decomposeProdAllowIDE" #($select(settings.decomposeProdAllowIDE:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="decomposeProdAllowIDE"></label>
                 </div>
             </div>
         </div>

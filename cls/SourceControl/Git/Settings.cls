@@ -243,6 +243,7 @@ ClassMethod CreateNamespaceTempFolder() As %Status
 ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 {
     do %code.WriteLine(" set inst = ..%New()")
+    do %code.WriteLine(" do inst.RetrieveDefaults()")
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
     set property = ""
     for {
@@ -481,6 +482,27 @@ Method ConfigureBinPath(ByRef path As %String) As %Boolean
         // no-op, user may not have privileges
     }
     return 1
+}
+
+Method RetrieveDefaults() As %Boolean
+{
+    do ##class(%zpkg.isc.sc.git.Defaults).GetDefaultSettings(.settings)
+    set iterator = settings.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set $property($this,key) = value
+    }
+    return $$$OK
+}
+
+Method SaveDefaults() As %Boolean
+{
+    set defaults = {}
+    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport")
+    for i=1:1:$LISTLENGTH(items) {
+        set property = $listget(items,i)
+        do defaults.%Set(property, $property($this, property))
+    }
+    return ##class(%zpkg.isc.sc.git.Defaults).SetDefaultSettings(defaults)
 }
 
 }

@@ -23,6 +23,12 @@ Property percentClassReplace As %String [ InitialExpression = {##class(SourceCon
 /// Git project settings are read-only in the web user interface
 Property settingsUIReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).SettingsUIReadOnly()} ];
 
+/// Interoperability productions are source-controlled under separate files for each configuration item
+Property decomposeProductions As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).DecomposeProductions()} ];
+
+/// Allow editing a decomposed production class in an IDE
+Property decomposeProdAllowIDE As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).DecomposeProdAllowIDE()} ];
+
 /// Attribution: Git username for user ${username}
 Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserName()} ];
 
@@ -73,6 +79,36 @@ Method %OnNew() As %Status
     }
     set ..favoriteNamespaces = ##class(SourceControl.Git.Utils).FavoriteNamespaces()
     quit $$$OK
+}
+
+Method SaveWithSourceControl() As %Status
+{
+    set sc = $$$OK
+    #dim %SourceControl As %Studio.SourceControl.Interface
+    if '$isobject($get(%SourceControl)) {
+        new %SourceControl
+        do ##class(%Studio.SourceControl.Interface).SourceControlCreate($username)
+    }
+    set gitDir = ##class(%File).NormalizeDirectory(..namespaceTemp)_".git"
+    set skipSourceControl = '##class(%File).DirectoryExists(gitDir)
+    $$$QuitOnError(..%Save())
+    set internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME
+    set settingsDoc = ##class(SourceControl.Git.Settings.Document).%New(internalName)
+    $$$QuitOnError(settingsDoc.Load()) // reload doc to update timestamps
+    if 'skipSourceControl {
+        // Source control settings naively by only calling OnAfterSave hooks
+        // Future enhancement: add full source control support with settings UI
+        if (##class(%Studio.SourceControl.Interface).SourceControlClassGet() = ##class(SourceControl.Git.Extension).%ClassName(1)) {
+            if '##class(SourceControl.Git.Utils).IsInSourceControl(internalName) {
+                set sc = ##class(SourceControl.Git.Utils).AddToSourceControl(internalName)
+                $$$QuitOnError(sc)
+            }
+        }
+        if ($IsObject($get(%SourceControl))) {
+            $$$QuitOnError(%SourceControl.OnAfterSave(internalName))
+        }
+    }
+    quit sc
 }
 
 Method %Save() As %Status
@@ -133,12 +169,65 @@ Method %Save() As %Status
     // update value of basicUserMode to reflect the updated setting for basicMode
     set ..userBasicMode = ##class(SourceControl.Git.Utils).UserBasicMode()
     
+    set @storage@("settings","decomposeProductions") = ..decomposeProductions
+    if (..decomposeProductions & ($data(..Mappings("PTD"))<10)) {
+        set ..Mappings("PTD","*") = "ptd/" // configure a default mapping for PTD items
+    }
+    set @storage@("settings","decomposeProdAllowIDE") = ..decomposeProdAllowIDE
+
     kill @##class(SourceControl.Git.Utils).MappingsNode()
     merge @##class(SourceControl.Git.Utils).MappingsNode() = ..Mappings
     
     do ##class(%zpkg.isc.sc.git.Favorites).ConfigureFavoriteNamespaces($username, ..favoriteNamespaces)
 
     quit $$$OK
+}
+
+Method ToDynamicObject() As %DynamicObject
+{
+    // uses custom methods rather than %JSON.Adaptor because Mappings multidimensional
+    // array is not supported
+    set settingsJSON = {
+        "pullEventClass": (..pullEventClass),
+        "percentClassReplace": (..percentClassReplace),
+        "Mappings": {}
+    }
+    do settingsJSON.%Set("decomposeProductions",..decomposeProductions,"boolean")
+    set k1 = $order(..Mappings(""))
+    while (k1 '= "") {
+        do settingsJSON.Mappings.%Set(k1, {})
+        set k2 = $order(..Mappings(k1,""))
+        while (k2 '= "") {
+            do settingsJSON.Mappings.%Get(k1).%Set(k2,{"directory": (..Mappings(k1,k2))})
+            if $get(..Mappings(k1,k2,"NoFolders")) {
+                do settingsJSON.Mappings.%Get(k1).%Get(k2).%Set("noFolders", 1, "boolean")
+            }
+            set k2 = $order(..Mappings(k1, k2))
+        }
+        set k1 = $order(..Mappings(k1))
+    }
+    return settingsJSON
+}
+
+Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
+{
+    set ..pullEventClass = pSettingsDyn.%Get("pullEventClass")
+    set ..percentClassReplace = pSettingsDyn.%Get("percentClassReplace")
+    set ..decomposeProductions = pSettingsDyn.%Get("decomposeProductions")
+    kill ..Mappings
+    set mappingsDyn = pSettingsDyn.%Get("Mappings", {})
+    set i1 = mappingsDyn.%GetIterator()
+    while i1.%GetNext(.k1, .v1) {
+        set i2 = v1.%GetIterator()
+        while i2.%GetNext(.k2, .v2) {
+            set ..Mappings(k1, k2) = v2.%Get("directory")
+            if v2.%Get("noFolders") {
+                set ..Mappings(k1, k2, "NoFolders") = 1
+            } else {
+                kill ..Mappings(k1, k2, "NoFolders")
+            }
+        }
+    }
 }
 
 ClassMethod CreateNamespaceTempFolder() As %Status
@@ -154,6 +243,7 @@ ClassMethod CreateNamespaceTempFolder() As %Status
 ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
 {
     do %code.WriteLine(" set inst = ..%New()")
+    do %code.WriteLine(" do inst.RetrieveDefaults()")
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
     set property = ""
     for {
@@ -217,7 +307,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
         do %code.WriteLine(" set inst."_property_" = value")
         
     }
-    do %code.WriteLine(" $$$ThrowOnError(inst.%Save())")
+    do %code.WriteLine(" $$$ThrowOnError(inst.SaveWithSourceControl())")
     do %code.WriteLine(" write !,""Settings saved.""")
     do %code.WriteLine(" do inst.OnAfterConfigure()")
     do %code.WriteLine(" quit 1")
@@ -344,8 +434,6 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.WaitForComplete())
-            
-            do ##class(SourceControl.Git.Utils).EmptyInitialCommit()
         } elseif (value = 2) {
             set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
             if (response '= $$$SuccessResponse) {
@@ -358,6 +446,8 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.WaitForComplete())
+            // export settings file without committing
+            $$$ThrowOnError(..SaveWithSourceControl())
         }
     }
 }
@@ -392,6 +482,27 @@ Method ConfigureBinPath(ByRef path As %String) As %Boolean
         // no-op, user may not have privileges
     }
     return 1
+}
+
+Method RetrieveDefaults() As %Boolean
+{
+    do ##class(%zpkg.isc.sc.git.Defaults).GetDefaultSettings(.settings)
+    set iterator = settings.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        set $property($this,key) = value
+    }
+    return $$$OK
+}
+
+Method SaveDefaults() As %Boolean
+{
+    set defaults = {}
+    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport")
+    for i=1:1:$LISTLENGTH(items) {
+        set property = $listget(items,i)
+        do defaults.%Set(property, $property($this, property))
+    }
+    return ##class(%zpkg.isc.sc.git.Defaults).SetDefaultSettings(defaults)
 }
 
 }

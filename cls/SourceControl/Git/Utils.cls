@@ -1536,7 +1536,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     quit $$$OK
 }
 
-ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
+ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As %Status
 {
     set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
     set refPackage = refContext.Package
@@ -1573,7 +1573,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "M"
             set modification.internalName = internalName
-            set modification.externalName = ..FullExternalName(internalName)
+            set modification.externalName = ..ExternalName(internalName)
             set files($increment(files)) = modification
         }
     }
@@ -1588,18 +1588,19 @@ ClassMethod ImportRoutines(force As %Boolean = 0) As %Status
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
         continue:context.Package'=refPackage
             
+        set externalName = ..ExternalName(item)
         set fullExternalName = ..FullExternalName(item)
         if '##class(%File).Exists(fullExternalName) {
             write !,fullExternalName," does not exist - deleting ",item
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "D"
             set modification.internalName = item
-            set modification.externalName = fullExternalName
+            set modification.externalName = externalName
             set files($increment(files)) = modification
         }
     }
     
-    set sc = ##class(SourceControl.Git.PullEventHandler).ForModifications(.files)
+    set sc = ##class(SourceControl.Git.PullEventHandler).ForModifications(.files, .pullEventClass)
     if $$$ISERR(sc) {
         set ec = $$$ADDSC(ec,sc)
     }
@@ -1732,9 +1733,10 @@ ClassMethod ExportSystemDefaults() As %Status
 }
 
 /// if <var>force</var> = 1 then we import item even if timestamp in system is newer
-ClassMethod ImportAll(force As %Boolean = 0) As %Status
+/// if <var>pullEventClass</var> is defined, then override the configured pull event handler class.
+ClassMethod ImportAll(force As %Boolean = 0, pullEventClass As %String) As %Status
 {
-    quit ..ImportRoutines(force)
+    quit ..ImportRoutines(force, .pullEventClass)
 }
 
 ClassMethod ExportRoutines(force As %Boolean = 0) As %Status

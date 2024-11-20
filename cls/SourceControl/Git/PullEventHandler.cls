@@ -21,9 +21,14 @@ Method OnPull() As %Status [ Abstract ]
 }
 
 /// <var>files</var> is an integer-subscripted array of <class>SourceControl.Git.Modification</class> objects.
-ClassMethod ForModifications(ByRef files) As %Status
+/// <var>pullEventClass</var>: if defined, override the configured pull event class
+ClassMethod ForModifications(ByRef files, pullEventClass As %String) As %Status
 {
-    set event = $classmethod(##class(SourceControl.Git.Utils).PullEventClass(),"%New")
+    set event = $classmethod(
+        $select(
+            $data(pullEventClass)#2: pullEventClass, 
+            1: ##class(SourceControl.Git.Utils).PullEventClass())
+        ,"%New")
     set event.LocalRoot = ##class(SourceControl.Git.Utils).TempFolder()
     merge event.ModifiedFiles = files
     quit event.OnPull()

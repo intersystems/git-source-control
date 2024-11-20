@@ -2945,4 +2945,82 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
     quit 0
 }
 
+// Runs the commit on the specified files (unstaging and restaging currently staged files)
+
+ClassMethod RunGitCommandReStage(command As %String, ByRef fileList As %Library.DynamicArray, args...) As %Status
+{
+    set sc = $$$OK
+    LOCK +^gitCommit
+    // Unstage and save all currently staged files
+    set sc = ..GitUnstage(.unstaged)
+
+    // Stage all files
+    set iterator = fileList.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        do ..RunGitCommand("add",.errStream, .outStream, value)
+    }
+
+    // Run the git command
+    try {
+        do ..RunGitWithArgs(.errStream, .outStream, command, args...)
+    } catch e {
+        set sc = e.AsStatus()
+    }
+
+    // Restage files
+    do ..GitStage(.unstaged)
+    LOCK -^gitCommit
+    return sc
+}
+
+ClassMethod GitStage(ByRef files As %Library.DynamicObject) As %Status
+{
+    set staged = files.%Get("staged")
+    set tracked = files.%Get("tracked")
+
+    set iterator = staged.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        do ..RunGitCommand("add",.errStream,.outStream, value)  
+    }
+
+    set iterator = tracked.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        do ..RunGitCommand("add",.errStream, .outStream, value, "--intent-to-add")
+    }
+    return $$$OK
+}
+
+/// Unstages all currently staged files and returns them in the array
+ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
+{
+    set stagedList = []
+    set trackedList = []
+
+    do ..RunGitCommandWithInput("status",, .errStream, .outStream, "--porcelain")
+    set line = outStream.ReadLine()
+    // Read through output
+    while (line'="") {
+        set staged = 0
+        set tracked = 0
+        set filename = $piece(line, " ", *-0)
+        if ($extract(line,1,1) '= " ") && ($extract(line,1,1) '= "?") {
+            set staged = 1
+        }
+        elseif ($extract(line,2,2) = "A") {
+            set tracked = 1
+        }
+        if staged {
+            do stagedList.%Push(filename)
+            do ..RunGitCommand("reset", .errStream, .out, filename)
+        } elseif tracked {
+            do trackedList.%Push(filename)
+            do ..RunGitCommand("reset",.errStream,.out, filename)
+        } 
+        set line = outStream.ReadLine()
+    }
+
+    set output = {"staged": (stagedList), "tracked": (trackedList)} 
+    return $$$OK
+}
+
 }

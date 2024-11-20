@@ -2990,35 +2990,43 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.amend = function(message, details) {
-
         if (self.commitMsgEmpty()) {
-            webui.git_command(["add"].concat(selectedItems));
-            webui.git_command(['commit', '--amend', '--no-edit', '--'].concat(selectedItems), function(output) {
-                webui.showSuccess(output);
+            $.post("git-command-unstage",{command: "commit", flags: "--amend,--no-edit", files:JSON.stringify({files:selectedItems})}, function(output) {
+                if (output.includes("Error")) {
+                    webui.showError(output)
+                } else {
+                    webui.showSuccess(output);
+                }
                 workspaceView.update();
-            });
+            })
         } else if (selectedItems.length != 0) {
-            webui.git_command(["add"].concat(selectedItems));
-            webui.git_command(['commit', '--amend', '-m', message, '-m', details, '--'].concat(selectedItems), function(output) {
-                webui.showSuccess(output);
+            $.post("git-command-unstage",{command: "commit", message: message, details: details, flags: "--amend", files:JSON.stringify({files:selectedItems})}, function(output) {
+                if (output.includes("Error")) {
+                    webui.showError(output)
+                } else {
+                    webui.showSuccess(output);
+                }
                 workspaceView.update();
-            });
+            })
         } else {
             webui.git_command(['commit', '--amend', '--allow-empty', '-m', message, '-m', details], function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
             });
         }
-            
-        
     }
 
     self.commit = function(message, details) {
-        webui.git_command(["add"].concat(selectedItems));
-        webui.git_command(['commit', '-m', message, '-m', details, '--'].concat(selectedItems), function(output) {
-            webui.showSuccess(output);
+        $.post("git-command-unstage",{command: "commit", message: message, details: details, files:JSON.stringify({
+            files: selectedItems
+        })}, function(output) {
+            if (output.includes("Error")) {
+                webui.showError(output)
+            } else {
+                webui.showSuccess(output);
+            }
             workspaceView.update();
-        });
+        })
     }
 
     self.element = $(

@@ -102,7 +102,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         do %request.Set("EXPIRES",0)
         do ##class(%CSP.StreamServer).OnPreHTTP() // Need to call this to set headers properly
         set %stream = 1 // Leak this to webuidriver.csp
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts|create-branch") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts|create-branch|git-command-unstage") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -344,6 +344,41 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     }
                     set handled = 1
                 }
+            } elseif (pathStart = "git-command-unstage") {
+                set flags = $get(%request.Data("flags",1),"")
+                if (flags '= "") {
+                    set flaglist = $listfromstring(flags,",")
+                    for i=1:1:$listlength(flaglist) {
+                        set flag = $listget(flaglist,i)
+                        set args($increment(args)) = flag
+                    }
+                }
+                set message = $get(%request.Data("message",1),"")
+                if (message '= "") {
+                    set args($increment(args)) = "-m"
+                    set args($increment(args)) = message
+                }
+                set details = $get(%request.Data("details", 1),"")
+                if (details '= "") {
+                    set args($increment(args)) = "-m"
+                    set args($increment(args)) = details
+                }
+                set command = $get(%request.Data("command",1),"")
+
+                set files = ##class(%Library.DynamicObject).%FromJSON($get(%request.Data("files",1),""))
+                set files = files.files
+
+                set sc = ##class(SourceControl.Git.Utils).RunGitCommandReStage(command,.files,args...)
+
+                set %data = ##class(%Stream.TmpCharacter).%New()
+
+                if $$$ISERR(sc) {
+                    do %data.WriteLine("Error!"_$System.Status.GetErrorText(sc))
+                } else {
+                    do %data.WriteLine("Committed files "_files.%ToJSON()_"!")
+                }
+                do %data.Rewind()
+                set handled = 1
             }
         }
     }

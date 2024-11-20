@@ -1729,6 +1729,7 @@ ClassMethod ExportSystemDefaults() As %Status
 {
     new %SourceControl
     do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    $$$QuitOnError(%SourceControl.AddToSourceControl("Ens.Config.DefaultSettings.ESD"))
     quit %SourceControl.OnAfterSave("Ens.Config.DefaultSettings.ESD")
 }
 
@@ -2376,6 +2377,9 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set MappingExists = 1
     }
 
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    set found = ..ExpandMappingParameters(found)
+
     if InternalName["/" {
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set InternalName=$extract(InternalName,$length(p)+2,*)
@@ -2397,6 +2401,14 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
     } else {
         quit $translate($get(found)_nam_"."_$zconvert(ext,"l"),"\","/")
     }
+}
+
+ClassMethod ExpandMappingParameters(MapDirectory, Settings As SourceControl.Git.Settings = {##class(SourceControl.Git.Settings).%New()})
+{
+    return $replace(MapDirectory,"<env>", $zconvert($select(
+            Settings.environmentName = "": "DEVELOPMENT", 
+            1: Settings.environmentName)
+        ,"l"))
 }
 
 /// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.
@@ -2464,6 +2476,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
             set Deleted = 1
         }
     }
+    set settings = ##class(SourceControl.Git.Settings).%New()
     if (InternalName="") {
         set name=$extract(Name,$length($$$SourceRoot)+1,*)
         set name=$replace(name,"\","/")	// standardize slash direction
@@ -2476,6 +2489,7 @@ ClassMethod NameToInternalName(Name, IgnorePercent = 1, IgnoreNonexistent = 1, V
         set bestScore = 0
         set currScore = 0
         while (queryary'="")&&(mappingsSubscript="mappings") {
+            set dir = ..ExpandMappingParameters(dir, settings)
             set nam = $extract(name, $length(dir)+1, *)
             if ($zconvert(subscript, "U") = $zconvert($piece(name, ".", *), "U")) {
                 set extScore = 1

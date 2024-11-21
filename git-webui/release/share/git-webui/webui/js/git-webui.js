@@ -146,6 +146,45 @@ webui.parseGitResponse = function(data) {
     };
 }
 
+webui.processGitResponse = function(data, command, callback) {
+    var result = webui.parseGitResponse(data);
+    var rcode = result.rcode;
+    var output = result.output;
+    var message = result.message;
+
+    if (rcode == 0) {
+        if (callback) {
+            callback(output);
+        }
+        // Return code is 0 but there is stderr output: this is a warning message
+        if (message.length > 0) {
+            if(warningCallback) {
+                warningCallback(message);
+            } else {
+                webui.showWarning(message);
+            }
+        }
+    } else {
+        var displayMessage = ""
+        if(output.length > 0){
+            displayMessage += (output+"\n");
+        }
+        if(message.length > 0){
+            displayMessage += message;
+        }
+        if(displayMessage.length > 0){
+                if(displayMessage.indexOf("self.document.Login") != -1){
+                    location.reload();
+                    return false;
+                }
+                webui.showError(displayMessage);
+            //}
+        } else {
+            webui.showError("The command <pre>"+command.join(" ")+"</pre> failed because of an unknown reason. Returned response: \n\n"+data)
+        }
+    }
+}
+
 webui.git_command = function(command, callback) {
     $.ajax({
         url: "git-command",
@@ -155,45 +194,7 @@ webui.git_command = function(command, callback) {
             command: command
         }),
         success: function(data) {
-            var result = webui.parseGitResponse(data);
-            var rcode = result.rcode;
-            var output = result.output;
-            var message = result.message;
-
-            if (rcode == 0) {
-                if (callback) {
-                    callback(output);
-                }
-                // Return code is 0 but there is stderr output: this is a warning message
-                if (message.length > 0) {
-                    if(warningCallback) {
-                        warningCallback(message);
-                    } else {
-                        webui.showWarning(message);
-                    }
-                }
-            } else {
-                var displayMessage = ""
-                if(output.length > 0){
-                    displayMessage += (output+"\n");
-                }
-                if(message.length > 0){
-                    displayMessage += message;
-                }
-                if(displayMessage.length > 0){
-                    // if(errorCallback) {
-                    //     errorCallback(displayMessage);
-                    // } else{
-                        if(displayMessage.indexOf("self.document.Login") != -1){
-                            location.reload();
-                            return false;
-                        }
-                        webui.showError(displayMessage);
-                    //}
-                } else {
-                    webui.showError("The command <pre>"+command.join(" ")+"</pre> failed because of an unknown reason. Returned response: \n\n"+data)
-                }
-            }
+            webui.processGitResponse(data, command, callback);
         },
         error: function(data) {
             var trimmedData = data.replace(/(\r\n)/gm, "\n");
@@ -3013,23 +3014,55 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.amend = function(message, details) {
         if (self.commitMsgEmpty()) {
-            $.post("git-command-unstage",{command: "commit", flags: "--amend,--no-edit", files:JSON.stringify({files:selectedItems})}, function(output) {
-                if (output.includes("Error")) {
-                    webui.showError(output)
-                } else {
-                    webui.showSuccess(output);
-                }
-                workspaceView.update();
-            })
+            $.ajax({
+                url: "git-command-unstage",
+                type: "POST",
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    command: "commit", 
+                    message: message, 
+                    details: details, 
+                    flags: "--amend,--no-edit",
+                    files: JSON.stringify({
+                        files: selectedItems
+                    })
+                }),
+                success: function(data) {
+                    webui.processGitResponse(data, ["commit", "--amend","--no-edit","-m",message,"-m",details], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                },
+                error: function(data) {
+                    var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                    webui.showError(trimmedData);
+                },
+            });
         } else if (selectedItems.length != 0) {
-            $.post("git-command-unstage",{command: "commit", message: message, details: details, flags: "--amend", files:JSON.stringify({files:selectedItems})}, function(output) {
-                if (output.includes("Error")) {
-                    webui.showError(output)
-                } else {
-                    webui.showSuccess(output);
-                }
-                workspaceView.update();
-            })
+            $.ajax({
+                url: "git-command-unstage",
+                type: "POST",
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    command: "commit", 
+                    message: message, 
+                    details: details, 
+                    flags: "--amend",
+                    files:JSON.stringify({
+                        files: selectedItems
+                    })
+                }),
+                success: function(data) {
+                    webui.processGitResponse(data, ["commit","--amend","-m",message,"-m",details], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                },
+                error: function(data) {
+                    var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                    webui.showError(trimmedData);
+                },
+            });
         } else {
             webui.git_command(['commit', '--amend', '--allow-empty', '-m', message, '-m', details], function(output) {
                 webui.showSuccess(output);
@@ -3039,16 +3072,30 @@ webui.NewChangedFilesView = function(workspaceView) {
     }
 
     self.commit = function(message, details) {
-        $.post("git-command-unstage",{command: "commit", message: message, details: details, files:JSON.stringify({
-            files: selectedItems
-        })}, function(output) {
-            if (output.includes("Error")) {
-                webui.showError(output)
-            } else {
-                webui.showSuccess(output);
-            }
-            workspaceView.update();
-        })
+        $.ajax({
+            url: "git-command-unstage",
+            type: "POST",
+            contentType: 'application/json',
+            data: JSON.stringify({
+                command: "commit", 
+                message: message, 
+                details: details, 
+                files:JSON.stringify({
+                    files: selectedItems
+                })
+            }),
+            success: function(data) {
+                webui.processGitResponse(data, ["commit","-m",message,"-m",details], function(output) {
+                    webui.showSuccess(output);
+                    workspaceView.update();
+                });
+
+            },
+            error: function(data) {
+                var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                webui.showError(trimmedData);
+            },
+        });
     }
 
     self.element = $(

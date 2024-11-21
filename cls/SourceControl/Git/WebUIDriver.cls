@@ -345,7 +345,14 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     set handled = 1
                 }
             } elseif (pathStart = "git-command-unstage") {
-                set flags = $get(%request.Data("flags",1),"")
+                set stringBody = ""
+                while '%request.Content.AtEnd {
+                    set stringBody = stringBody _ %request.Content.Read()
+                }
+                set stringBody = $zconvert(stringBody,"I","UTF8")
+                set requestBody = ##class(%Library.DynamicObject).%FromJSON(stringBody)
+
+                set flags = requestBody.flags
                 if (flags '= "") {
                     set flaglist = $listfromstring(flags,",")
                     for i=1:1:$listlength(flaglist) {
@@ -353,30 +360,37 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                         set args($increment(args)) = flag
                     }
                 }
-                set message = $get(%request.Data("message",1),"")
+                set message = requestBody.message
                 if (message '= "") {
                     set args($increment(args)) = "-m"
                     set args($increment(args)) = message
                 }
-                set details = $get(%request.Data("details", 1),"")
+                set details = requestBody.details
                 if (details '= "") {
                     set args($increment(args)) = "-m"
                     set args($increment(args)) = details
                 }
-                set command = $get(%request.Data("command",1),"")
-
-                set files = ##class(%Library.DynamicObject).%FromJSON($get(%request.Data("files",1),""))
+                set command = requestBody.command
+                set files = ##class(%Library.DynamicObject).%FromJSON(requestBody.files)
                 set files = files.files
 
-                set sc = ##class(SourceControl.Git.Utils).RunGitCommandReStage(command,.files,args...)
+                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandReStage(.outStream,.errStream,command,.files,args...)
 
                 set %data = ##class(%Stream.TmpCharacter).%New()
-
-                if $$$ISERR(sc) {
-                    do %data.WriteLine("Error!"_$System.Status.GetErrorText(sc))
-                } else {
-                    do %data.WriteLine("Committed files "_files.%ToJSON()_"!")
+                set changeTerminators = (%data.LineTerminator '= $char(13,10))
+                set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+                while 'outStream.AtEnd {
+                    do %data.WriteLine(outStream.ReadLine())
                 }
+
+                set nLines = 0
+                while 'errStream.AtEnd {
+                    do %data.WriteLine(errStream.ReadLine())
+                    set:changeTerminators nLines = nLines + 1
+                }
+
+                do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
+                do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                 do %data.Rewind()
                 set handled = 1
             }

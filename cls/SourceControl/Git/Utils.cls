@@ -3038,7 +3038,7 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
 }
 
 /// Runs the commit on the specified files (unstaging and restaging currently staged files)
-ClassMethod RunGitCommandReStage(command As %String, ByRef fileList As %Library.DynamicArray, args...) As %Status
+ClassMethod RunGitCommandReStage(Output outStream, Output errStream, command As %String, ByRef fileList As %Library.DynamicArray, args...) As %Integer
 {
     set sc = $$$OK
     LOCK +^gitCommit
@@ -3048,20 +3048,16 @@ ClassMethod RunGitCommandReStage(command As %String, ByRef fileList As %Library.
     // Stage all files
     set iterator = fileList.%GetIterator()
     while iterator.%GetNext(.key, .value) {
-        do ..RunGitCommand("add",.errStream, .outStream, value)
+        do ..RunGitCommand("add",.err, .out, value)
     }
 
     // Run the git command
-    try {
-        do ..RunGitWithArgs(.errStream, .outStream, command, args...)
-    } catch e {
-        set sc = e.AsStatus()
-    }
+    set returnCode = ..RunGitWithArgs(.errStream, .outStream, command, args...)
 
     // Restage files
     do ..GitStage(.unstaged)
     LOCK -^gitCommit
-    return sc
+    return returnCode
 }
 
 ClassMethod GitStage(ByRef files As %Library.DynamicObject) As %Status

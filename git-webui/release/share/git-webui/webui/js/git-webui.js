@@ -1906,9 +1906,13 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
         webui.git("stash pop stash@{"+stashIndex+"}", function(output){
-            webui.showSuccess(output);
-            parent.stashView.update(0);
-            self.clear();
+            if (output.substring(0,5) == "ERROR") {
+                webui.showError(output)
+            } else {
+                webui.showSuccess(output);
+                parent.stashView.update(0);
+                self.clear();
+            }
         });
     }
 

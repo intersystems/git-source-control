@@ -218,27 +218,61 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 } else {
                     set inFile = ""
                 }
+                // Want to invoke merge conflict autoresolver in case of issues
+                if (($piece(args, " ", 1, 2)  = "stash pop") || ($piece(args, " ", 1, 2)  = "stash apply")) {
+                    set succeeded = 0
+                    set initTLevel = $TLEVEL
+                    try {
+                        TSTART
+                        set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
+                        if (returnCode '= 0) {
+                            $$$ThrowStatus($$$ERROR($$$GeneralError,"git stash pop reported failure"))
+                        }
+                        set succeeded = 1
+                        TCOMMIT
+                    } catch e {
+                        write !,"Attempting to resolve differences in production definition..."
+                        set resolver = ##class(SourceControl.Git.Util.ResolutionManager).FromLog(outStream)
+                        if resolver.resolved {
+                            set succeeded = 1
+                            TCOMMIT
+                            write " success!"
+                        } else {
+                            write " unable to resolve - "_resolver.errorMessage
+                        }
+                    }
+                    while $TLevel > initTLevel {
+                        TROLLBACK 1
+                    }
+                    set %data = ##class(%Stream.TmpCharacter).%New()
+                    if succeeded {
+                        do %data.WriteLine("Stash pop/apply succeeded!")
+                    } else {
+                        do %data.WriteLine("ERROR: Stash pop/apply encountered merge conflict, aborted. Please apply stashed changes manually.")
+                    }
+                    do %data.Rewind()
+                } else {
+                    set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
+                
+                    set %data = ##class(%Stream.TmpCharacter).%New()
+                    set changeTerminators = (%data.LineTerminator '= $char(13,10))
+                    set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+                    do outStream.Rewind()
+                    while 'outStream.AtEnd {
+                        do %data.WriteLine(outStream.ReadLine())
+                    }
 
-                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
+                    set nLines = 0
+                    do errStream.Rewind()
+                    while 'errStream.AtEnd {
+                        do %data.WriteLine(errStream.ReadLine())
+                        set:changeTerminators nLines = nLines + 1
+                    }
 
-                set %data = ##class(%Stream.TmpCharacter).%New()
-                set changeTerminators = (%data.LineTerminator '= $char(13,10))
-                set %data.LineTerminator = $char(13,10) // For the CSPGateway.
-                do outStream.Rewind()
-                while 'outStream.AtEnd {
-                    do %data.WriteLine(outStream.ReadLine())
+                    do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
+                    do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
+                    do %data.Rewind()
                 }
-
-                set nLines = 0
-                do errStream.Rewind()
-                while 'errStream.AtEnd {
-                    do %data.WriteLine(errStream.ReadLine())
-                    set:changeTerminators nLines = nLines + 1
-                }
-
-                do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
-                do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
-                do %data.Rewind()
                 if '$listfind(readOnlyCommands,baseCommand) {
                     do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }

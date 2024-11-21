@@ -3026,8 +3026,7 @@ ClassMethod SetConfiguredRemote(url) As %String
     quit output
 }
 
-// Returns true if the current branch is the default merge branch and we are in basic mode
-
+/// Returns true if the current branch is the default merge branch and we are in basic mode
 ClassMethod InDefaultBranchBasicMode() As %Boolean
 {
     set basicMode = ..BasicMode()
@@ -3038,8 +3037,7 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
     quit 0
 }
 
-// Runs the commit on the specified files (unstaging and restaging currently staged files)
-
+/// Runs the commit on the specified files (unstaging and restaging currently staged files)
 ClassMethod RunGitCommandReStage(command As %String, ByRef fileList As %Library.DynamicArray, args...) As %Status
 {
     set sc = $$$OK

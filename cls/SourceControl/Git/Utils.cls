@@ -634,9 +634,14 @@ ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean = 0
     New %gitSCOutputFlag
     Set %gitSCOutputFlag = 1
     #define Force 1
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("branch",,.errStream,.outStream,"--show-current")
-    set branchName = outStream.ReadLine(outStream.Size)
+    set branchName = ..GetCurrentBranch()
     write !, "Pulling from branch: ", branchName
+    kill errStream, outStream
+    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote",,.errStream, .outStream, remote, branchName)
+    if (outStream.Read() = "") {
+        write !, "Skipping pull because remote branch does not exist."
+        quit $$$OK
+    } 
     kill errStream, outStream
     set returnCode = ..RunGitWithArgs(.errStream, .outStream, "pull", remote, branchName)
     write !

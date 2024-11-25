@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixed
 - Fixed minor issues in Studio UI (#641)
+- Fixed push button not appearing after commit (#654)
 
 ## [2.7.1] - 2024-11-13
 

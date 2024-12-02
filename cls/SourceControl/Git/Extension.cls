@@ -13,25 +13,25 @@ XData Menu
 <MenuItem Name="Status" />
 <MenuItem Name="Settings" />
 <MenuItem Name="Init" />
-<MenuItem Name="GitWebUI" Save="100" />
+<MenuItem Name="GitWebUI" Save="101" />
 <MenuItem Separator="true"/>
 <MenuItem Name="AddToSC" Save="100" />
 <MenuItem Name="RemoveFromSC"/>
 <MenuItem Name="Revert" Save="100" />
 <MenuItem Name="Commit" Save="100" />
 <MenuItem Separator="true"/>
-<MenuItem Name="Sync" Save="100" />
+<MenuItem Name="Sync" Save="101" />
 <MenuItem Name="Push" />
 <MenuItem Name="PushForce" />
-<MenuItem Name="Fetch" Save="100" />
-<MenuItem Name="Pull" Save="100" />
+<MenuItem Name="Fetch" Save="101" />
+<MenuItem Name="Pull" Save="101" />
 <MenuItem Separator="true"/>
-<MenuItem Name="NewBranch" Save="100" />
-<MenuItem Name="SwitchBranch" Save="100" />
+<MenuItem Name="NewBranch" Save="101" />
+<MenuItem Name="SwitchBranch" Save="101" />
 <MenuItem Separator="true"/>
 <MenuItem Name="ExportSystemDefaults" />
-<MenuItem Name="Export" Save="100" />
-<MenuItem Name="ExportForce" Save="100" />
+<MenuItem Name="Export" Save="101" />
+<MenuItem Name="ExportForce" Save="101" />
 <MenuItem Name="Import" />
 <MenuItem Name="ImportForce" />
 </Menu>

@@ -3023,9 +3023,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     message: message, 
                     details: details, 
                     flags: "--amend,--no-edit",
-                    files: JSON.stringify({
-                        files: selectedItems
-                    })
+                    files: selectedItems
                 }),
                 success: function(data) {
                     webui.processGitResponse(data, ["commit", "--amend","--no-edit","-m",message,"-m",details], function(output) {
@@ -3048,9 +3046,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                     message: message, 
                     details: details, 
                     flags: "--amend",
-                    files:JSON.stringify({
-                        files: selectedItems
-                    })
+                    files:selectedItems
                 }),
                 success: function(data) {
                     webui.processGitResponse(data, ["commit","--amend","-m",message,"-m",details], function(output) {
@@ -3080,9 +3076,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                 command: "commit", 
                 message: message, 
                 details: details, 
-                files:JSON.stringify({
-                    files: selectedItems
-                })
+                files: selectedItems
             }),
             success: function(data) {
                 webui.processGitResponse(data, ["commit","-m",message,"-m",details], function(output) {

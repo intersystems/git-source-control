@@ -15,10 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FullLoad pull event handler allows deploying changes with a full import of the repository (#619)
 - Pull and Sync options no longer log a fatal error if remote branch does not exist (#562)
 
-## Fixed
-- Fixed minor issues in Studio UI (#641)
-
 ### Fixed
+- Fixed minor issues in Studio UI (#641)
 - Fix "Max $ZF String" error when committing lots of files (#617)
 
 ## [2.7.1] - 2024-11-13

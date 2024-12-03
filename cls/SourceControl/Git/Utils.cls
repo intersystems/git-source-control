@@ -3046,22 +3046,45 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
 ClassMethod RunGitCommandReStage(Output outStream, Output errStream, command As %String, ByRef fileList As %Library.DynamicArray, args...) As %Integer
 {
     set sc = $$$OK
-    LOCK +^gitCommit
-    // Unstage and save all currently staged files
-    set sc = ..GitUnstage(.unstaged)
+    set tInitialTLevel = $TLevel
+    try {
+        LOCK +^GitCommit(42):5
+        if '$Test {
+            $$$ThrowStatus($$$ERROR($$$GeneralError, "Couldn't grab a lock. Try again later"))
+        }
+        set tGitCommitLocked = 1
 
-    // Stage all files
-    set iterator = fileList.%GetIterator()
-    while iterator.%GetNext(.key, .value) {
-        do ..RunGitCommand("add",.err, .out, value)
+
+        TSTART
+        
+        // Unstage and save all currently staged files
+        set sc = ..GitUnstage(.unstaged)
+
+        // Stage all files
+        set iterator = fileList.%GetIterator()
+        while iterator.%GetNext(.key, .value) {
+            do ..RunGitCommand("add",.err, .out, value)
+        }
+
+        // Run the git command
+        set returnCode = ..RunGitWithArgs(.errStream, .outStream, command, args...)
+
+        // Restage files
+        do ..GitStage(.unstaged)
+
+        TCOMMIT
+    } catch e {
+        set sc = e.AsStatus()
     }
 
-    // Run the git command
-    set returnCode = ..RunGitWithArgs(.errStream, .outStream, command, args...)
+    If tGitCommitLocked {
+        Lock -^GitCommit(42)
+    }
 
-    // Restage files
-    do ..GitStage(.unstaged)
-    LOCK -^gitCommit
+    While $TLevel > tInitialTLevel {
+        TROLLBACK 1
+    }
+
     return returnCode
 }
 

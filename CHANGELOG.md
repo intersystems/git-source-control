@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed minor issues in Studio UI (#641)
+- Document save is forced before menu operations that can modify repository state
 - Fix "Max $ZF String" error when committing lots of files (#617)
 
 ## [2.7.1] - 2024-11-13

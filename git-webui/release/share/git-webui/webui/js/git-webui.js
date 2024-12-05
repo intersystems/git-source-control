@@ -975,6 +975,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
     };
 
+    self.refreshSideBar = function() {
+        self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
+        self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
+        self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
+    }
+
     self.mainView = mainView;
     self.currentContext = self.getCurrentContext();
     self.element = $(   '<div id="sidebar">' +
@@ -1059,12 +1065,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
         $("#sidebar-home", self.element).remove();
     }
+
     
     self.getPackageVersion();
     self.getEnvironment()
-    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
-    self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
-    self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
+    self.refreshSideBar();
 
     if(!noEventHandlers){
         $(document).on('click', '.btn-checkout-local-branch', self.checkoutLocalBranch);
@@ -2620,6 +2625,8 @@ webui.NewChangedFilesView = function(workspaceView) {
                             } else {
                                 var commitMessage = $('#commitMsg').val();
                                 self.commit(commitMessage, $("#commitMsgDetail").val());
+                                setTimeout(updateSideBar, 2000);
+                                ;
                             }
                         }
                     })                    

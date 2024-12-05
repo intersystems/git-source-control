@@ -13,33 +13,33 @@ XData Menu
 <MenuItem Name="Status" />
 <MenuItem Name="Settings" />
 <MenuItem Name="Init" />
-<MenuItem Name="GitWebUI" />
+<MenuItem Name="GitWebUI" Save="101" />
 <MenuItem Separator="true"/>
-<MenuItem Name="AddToSC" />
+<MenuItem Name="AddToSC" Save="100" />
 <MenuItem Name="RemoveFromSC"/>
-<MenuItem Name="Revert" />
-<MenuItem Name="Commit" />
+<MenuItem Name="Revert" Save="100" />
+<MenuItem Name="Commit" Save="100" />
 <MenuItem Separator="true"/>
-<MenuItem Name="Sync" />
+<MenuItem Name="Sync" Save="101" />
 <MenuItem Name="Push" />
 <MenuItem Name="PushForce" />
-<MenuItem Name="Fetch" />
-<MenuItem Name="Pull" />
+<MenuItem Name="Fetch" Save="101" />
+<MenuItem Name="Pull" Save="101" />
 <MenuItem Separator="true"/>
-<MenuItem Name="NewBranch" />
-<MenuItem Name="SwitchBranch" />
+<MenuItem Name="NewBranch" Save="101" />
+<MenuItem Name="SwitchBranch" Save="101" />
 <MenuItem Separator="true"/>
 <MenuItem Name="ExportSystemDefaults" />
-<MenuItem Name="Export" />
-<MenuItem Name="ExportForce" />
+<MenuItem Name="Export" Save="101" />
+<MenuItem Name="ExportForce" Save="101" />
 <MenuItem Name="Import" />
 <MenuItem Name="ImportForce" />
 </Menu>
 <Menu Name="%SourceContext" Type="1">
-<MenuItem Name="AddToSC" />
+<MenuItem Name="AddToSC" Save="100" />
 <MenuItem Name="RemoveFromSC"/>
-<MenuItem Name="Revert" />
-<MenuItem Name="Commit" />
+<MenuItem Name="Revert" Save="100" />
+<MenuItem Name="Commit" Save="100" />
 </Menu>
 </MenuBase>
 }

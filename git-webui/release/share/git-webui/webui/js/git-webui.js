@@ -1895,7 +1895,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git_command(["stash", "apply", "stash@{"+stashIndex+"}"], function() {
+        webui.git_command(["stash", "apply", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
             parent.stashView.update(0);
             self.clear()
@@ -1907,7 +1907,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git_command(["stash", "pop", "stash@{"+stashIndex+"}"], function() {
+        webui.git_command(["stash", "pop", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
             parent.stashView.update(0);
             self.clear()

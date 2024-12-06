@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed minor issues in Studio UI (#641)
 - Document save is forced before menu operations that can modify repository state
 
+### Fixed
+- Fixed merge conflict resolution on stash popping (#531)
+
 ## [2.7.1] - 2024-11-13
 
 ### Fixed

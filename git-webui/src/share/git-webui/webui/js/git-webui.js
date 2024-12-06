@@ -1895,8 +1895,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash apply stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "apply", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
+            parent.stashView.update(0);
+            self.clear()
         });
     }
 
@@ -1905,10 +1907,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash pop stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "pop", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
             parent.stashView.update(0);
-            self.clear();
+            self.clear()
         });
     }
 
@@ -1917,7 +1919,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash drop stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "drop", "stash@{"+stashIndex+"}"], function() {
             webui.showSuccess(output.substring(output.indexOf("Dropped")));
             parent.stashView.update(0);
             self.clear();

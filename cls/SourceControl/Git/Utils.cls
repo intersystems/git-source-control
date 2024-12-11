@@ -323,6 +323,8 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         do ..RunGitCommand("status", .errStream, .outStream)
         write !, !, "Git Status: "
         do ..PrintStreams(outStream, errStream)
+    } elseif (menuItemName = "ExportProduction") {
+        do ##class(SourceControl.Git.Util.Production).BaselineProduction($piece(InternalName,".",1,*-1))
     }
     quit ec
 }

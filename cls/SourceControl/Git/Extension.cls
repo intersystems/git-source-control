@@ -30,6 +30,7 @@ XData Menu
 <MenuItem Name="SwitchBranch" Save="101" />
 <MenuItem Separator="true"/>
 <MenuItem Name="ExportSystemDefaults" />
+<MenuItem Name="ExportProduction" />
 <MenuItem Name="Export" Save="101" />
 <MenuItem Name="ExportForce" Save="101" />
 <MenuItem Name="Import" />
@@ -148,6 +149,7 @@ Method LocalizeName(name As %String) As %String
         "Fetch":$$$Text("@Fetch@Fetch from remote"),
         "Pull":$$$Text("@Pull@Pull changes from remote branch"),
         "Status": $$$Text("@Status@Status"),
+        "ExportProduction": $$$Text("@ExportProduction@Export Production"),
         :name)
 }
 
@@ -163,7 +165,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
     }
     if ##class(SourceControl.Git.Utils).IsNamespaceInGit() {
 
-        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit"), name) {
+        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit", "ExportProduction"), name) {
             quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
         }
 
@@ -243,6 +245,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
         if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
         }
+    } elseif menuItemName = "ExportProduction" {
+        set itemNameNoExt = $piece(itemName,".",1,*-1)
+        set Enabled = (##class(SourceControl.Git.Production).IsProductionClass(itemNameNoExt,"FullExternalName"))
     } elseif ##class(SourceControl.Git.Utils).IsInSourceControl(itemName) {
         set Enabled = $case(menuItemName, "AddToSC":-1,:1)
     } else {

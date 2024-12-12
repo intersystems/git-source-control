@@ -4,6 +4,40 @@ Include SourceControl.Git
 Class SourceControl.Git.Util.Production
 {
 
+ClassMethod BaselineProduction(productionName, settings As SourceControl.Git.Settings = {##class(SourceControl.Git.Settings).%New()})
+{
+    set productionInternalName = productionName _ ".cls"
+    if '##class(SourceControl.Git.Utils).FileIsMapped(productionInternalName) {
+        if settings.decomposeProductions {
+            write !, "Exporting production in decomposed format: " _ productionInternalName
+            if ##class(SourceControl.Git.Utils).IsInSourceControl(productionInternalName) {
+                set st = ##class(SourceControl.Git.Utils).RemoveFromSourceControl(productionInternalName)
+                $$$ThrowOnError(st)
+            }
+            set st = ##class(SourceControl.Git.Production).ExportProductionDefinitionShards(productionName,"FullExternalName",.itemInternalNames)
+            $$$ThrowOnError(st)
+            set key = $order(itemInternalNames(""))
+            while (key '= "") {
+                set st = ##class(SourceControl.Git.Utils).AddToSourceControl(key)
+                $$$ThrowOnError(st)
+                set key = $order(itemInternalNames(key))
+            }
+        } else {
+            write !, "Exporting production in class format: " _ productionInternalName
+            set st = ##class(SourceControl.Git.Utils).AddToSourceControl(productionInternalName)
+            $$$ThrowOnError(st)
+            set key = $order(@##class(SourceControl.Git.Utils).#Storage@("items", ""))
+            while (key '= "") {
+                if $match(key,"^"_productionName_"\|\|.*\.(?i)ptd$") {
+                    set st = ##class(SourceControl.Git.Utils).RemoveFromSourceControl(key)
+                    $$$ThrowOnError(st)
+                }
+                set key = $order(@##class(SourceControl.Git.Utils).#Storage@("items", key))
+            }
+        }
+    }
+}
+
 /// Baselines all productions in this namespace from single-file to decomposed or vice versa.
 ClassMethod BaselineProductions()
 {
@@ -13,37 +47,7 @@ ClassMethod BaselineProductions()
     throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
     while rs.%Next(.sc) {
         $$$ThrowOnError(sc)
-        set productionName = rs.Name
-        set productionInternalName = productionName _ ".cls"
-        if '##class(SourceControl.Git.Utils).FileIsMapped(productionInternalName) {
-            if settings.decomposeProductions {
-                write !, "Decomposing production: " _ productionInternalName
-                if ##class(SourceControl.Git.Utils).IsInSourceControl(productionInternalName) {
-                    set st = ##class(SourceControl.Git.Utils).RemoveFromSourceControl(productionInternalName)
-                    $$$ThrowOnError(st)
-                }
-                set st = ##class(SourceControl.Git.Production).ExportProductionDefinitionShards(productionName,"FullExternalName",.itemInternalNames)
-                $$$ThrowOnError(st)
-                set key = $order(itemInternalNames(""))
-                while (key '= "") {
-                    set st = ##class(SourceControl.Git.Utils).AddToSourceControl(key)
-                    $$$ThrowOnError(st)
-                    set key = $order(itemInternalNames(key))
-                }
-            } else {
-                write !, "Recomposing production: " _ productionInternalName
-                set st = ##class(SourceControl.Git.Utils).AddToSourceControl(productionInternalName)
-                $$$ThrowOnError(st)
-                set key = $order(@##class(SourceControl.Git.Utils).#Storage@("items", ""))
-                while (key '= "") {
-                    if $match(key,"^"_productionName_"\|\|.*\.(?i)ptd$") {
-                        set st = ##class(SourceControl.Git.Utils).RemoveFromSourceControl(key)
-                        $$$ThrowOnError(st)
-                    }
-                    set key = $order(@##class(SourceControl.Git.Utils).#Storage@("items", key))
-                }
-            }
-        }
+        do ..BaselineProduction(rs.Name, settings)
     }
 }
 

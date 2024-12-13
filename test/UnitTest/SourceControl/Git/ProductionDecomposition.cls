@@ -82,10 +82,10 @@ Method TestEditProduction()
     $$$ThrowOnError(%SourceControl.OnBeforeSave(..#ProductionName_".cls"))
     do ..ReplaceProductionDefinition("ProductionDefinition3")
     $$$ThrowOnError(%SourceControl.OnAfterSave(..#ProductionName_".cls"))
-    do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("UnitTest.SampleProduction||Settings-b|Ens.Activity.Operation.Local.PTD"))
+    do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("UnitTest.SampleProduction||Settings-b|EnsLib.SOAP.GenericOperation.PTD"))
     do ##class(SourceControl.Git.Utils).RunGitCommand("add",,,".")
     do ##class(SourceControl.Git.Utils).Commit("UnitTest.SampleProduction||Settings-a|Ens.Activity.Operation.Local.PTD")
-    do ##class(SourceControl.Git.Utils).Commit("UnitTest.SampleProduction||Settings-b|Ens.Activity.Operation.Local.PTD")
+    do ##class(SourceControl.Git.Utils).Commit("UnitTest.SampleProduction||Settings-b|EnsLib.SOAP.GenericOperation.PTD")
     $$$ThrowOnError(production.%Reload())
     do $$$AssertEquals(production.Items.Count(), 2)
     do $$$AssertEquals(production.Items.GetAt(1).Settings.GetAt(1).Name, "RecordStatsInterval")
@@ -135,7 +135,8 @@ XData ProductionDefinition2
   <Item Name="a" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Host" Name="RecordStatsInterval">61</Setting>
   </Item>
-  <Item Name="b" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  <Item Name="b" Category="" ClassName="EnsLib.SOAP.GenericOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="HTTPServer"><![CDATA[<something that must be escaped>]]></Setting>
   </Item>
 </Production>
 }
@@ -147,7 +148,8 @@ XData ProductionDefinition3
   <Item Name="a" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Host" Name="RecordStatsInterval">71</Setting>
   </Item>
-  <Item Name="b" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  <Item Name="b" Category="" ClassName="EnsLib.SOAP.GenericOperation" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Adapter" Name="HTTPServer"><![CDATA[<something that must be escaped>]]></Setting>
   </Item>
 </Production>
 }

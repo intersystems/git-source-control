@@ -62,7 +62,7 @@ ClassMethod DeleteProductionDefinitionShards(productionClass As %String, deleteM
 		while rs.%Next(.sc) {
 			quit:$$$ISERR(sc)
 			set ptdFilename = rs.Data("Name")
-			set sc = ##class(SourceControl.Git.Production).ParseExternalName(ptdFilename, .ptdInternalName)
+			set sc = ..ParseExternalName(ptdFilename, .ptdInternalName)
 			quit:$$$ISERR(sc)
 			// TODO: Consider reverting delete if any ptd is not editable by current user
 			set sc = $method(%SourceControl, deleteMethod, ptdInternalName)

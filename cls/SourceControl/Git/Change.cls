@@ -202,7 +202,7 @@ Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%Stri
 
 ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
 {
-    set qHandle("q") = "SELECT InternalName, ChangedBy FROM SourceControl_Git.Change"
+    set initNS = $namespace
     &sql(DECLARE InstanceCursor CURSOR FOR SELECT InternalName, ChangedBy into :internalName, :changedBy from SourceControl_Git.Change)
     set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
     set tPtr = 0
@@ -210,7 +210,7 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
     new $namespace
     while $LISTNEXT(namespaces, tPtr, tValue) {
         set namespace = $ZCONVERT(tValue, "U")
-        if '(namespace [ "^") {
+        if '(namespace [ "^") && (namespace '= initNS) {
             set $NAMESPACE = namespace
                 
                 &sql(OPEN InstanceCursor)

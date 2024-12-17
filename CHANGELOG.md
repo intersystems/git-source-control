@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed errors on production page when item settings need to be XML escaped (#667)
+- No longer display instance-wide uncommitted warning with decomposed production (#547)
 
 ## [2.8.0] - 2024-12-06
 

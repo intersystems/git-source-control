@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Menu option to export production to support migrating to production decomposition (#665)
 
+### Fixed
+- Fixed errors on production page when item settings need to be XML escaped (#667)
+
 ## [2.8.0] - 2024-12-06
 
 ### Added

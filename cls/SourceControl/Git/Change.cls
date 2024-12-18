@@ -202,24 +202,25 @@ Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%Stri
 
 ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
 {
-    set qHandle("q") = "SELECT InternalName, ChangedBy FROM SourceControl_Git.Change"
+    set initNS = $namespace
     &sql(DECLARE InstanceCursor CURSOR FOR SELECT InternalName, ChangedBy into :internalName, :changedBy from SourceControl_Git.Change)
     set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
     set tPtr = 0
     set qHandle("i") = 1
     new $namespace
+    kill ^||InstanceUncommitted
     while $LISTNEXT(namespaces, tPtr, tValue) {
         set namespace = $ZCONVERT(tValue, "U")
-        if '(namespace [ "^") {
+        if '(namespace [ "^") && (namespace '= initNS) {
             set $NAMESPACE = namespace
                 
                 &sql(OPEN InstanceCursor)
                     throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
                 &sql(FETCH InstanceCursor)
                 while(SQLCODE = 0) {
-                    set qHandle("changes", $increment(qHandle("changes")), "InternalName") = internalName
-                    set qHandle("changes", qHandle("changes"), "User") = changedBy
-                    set qHandle("changes", qHandle("changes"), "Namespace") = namespace
+                    set ^||InstanceUncommitted("changes", $increment(^||InstanceUncommitted("changes")), "InternalName") = internalName
+                    set ^||InstanceUncommitted("changes", ^||InstanceUncommitted("changes"), "User") = changedBy
+                    set ^||InstanceUncommitted("changes", ^||InstanceUncommitted("changes"), "Namespace") = namespace
                     &sql(FETCH InstanceCursor)
                 }
                 &sql(CLOSE InstanceCursor)
@@ -232,10 +233,10 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
 ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = InstanceUncommittedExecute ]
 {
     set i = qHandle("i")
-    if $data(qHandle("changes",i))=10 {
-        set Row = $listbuild(qHandle("changes", i, "InternalName"), qHandle("changes", i, "User"), qHandle("changes", i, "Namespace"))
+    if $data(^||InstanceUncommitted("changes",i))=10 {
+        set Row = $listbuild(^||InstanceUncommitted("changes", i, "InternalName"), ^||InstanceUncommitted("changes", i, "User"), ^||InstanceUncommitted("changes", i, "Namespace"))
     }
-    if i >= $get(qHandle("changes"),0) {
+    if i >= $get(^||InstanceUncommitted("changes"),0) {
         set AtEnd = 1
     } else {
         set qHandle("i") = $increment(qHandle("i"))

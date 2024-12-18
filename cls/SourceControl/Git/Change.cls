@@ -208,6 +208,7 @@ ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
     set tPtr = 0
     set qHandle("i") = 1
     new $namespace
+    kill ^||InstanceUncommitted
     while $LISTNEXT(namespaces, tPtr, tValue) {
         set namespace = $ZCONVERT(tValue, "U")
         if '(namespace [ "^") && (namespace '= initNS) {

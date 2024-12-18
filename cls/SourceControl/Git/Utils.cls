@@ -3045,4 +3045,36 @@ ClassMethod InDefaultBranchBasicMode() As %Boolean
     quit 0
 }
 
+ClassMethod RunGitAndHandleMerge(command As %String, inFile As %String, Output resolver As SourceControl.Git.Util.ProductionConflictResolver, Output succeeded As %Boolean, Output returnCode As %String, Output errStream, Output outStream, args...) As %Status
+{
+    set succeeded = 0
+    set initTLevel = $TLEVEL
+    try {
+        TSTART
+        set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput(command,inFile,.errStream,.outStream, args...)
+        if (returnCode '= 0) {
+            $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
+        }
+        set succeeded = 1
+        TCOMMIT
+    } catch e {
+        write !,"Attempting to resolve differences in production definition..."
+        set resolver = ##class(SourceControl.Git.Util.ResolutionManager).FromLog(outStream)
+        if resolver.resolved {
+            set succeeded = 1
+            TCOMMIT
+            write " success!"
+        } else {
+            write " unable to resolve - "_resolver.errorMessage
+        }
+    }
+    while $TLevel > initTLevel {
+        TROLLBACK 1
+    }
+    if succeeded {
+        return $$$OK
+    }
+    return $$$ERROR($$$GeneralError,"git reported failure")
+}
+
 }

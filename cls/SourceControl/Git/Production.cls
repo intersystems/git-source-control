@@ -62,7 +62,7 @@ ClassMethod DeleteProductionDefinitionShards(productionClass As %String, deleteM
 		while rs.%Next(.sc) {
 			quit:$$$ISERR(sc)
 			set ptdFilename = rs.Data("Name")
-			set sc = ##class(%Studio.SourceControl.Production).ParseExternalName(ptdFilename, .ptdInternalName)
+			set sc = ..ParseExternalName(ptdFilename, .ptdInternalName)
 			quit:$$$ISERR(sc)
 			// TODO: Consider reverting delete if any ptd is not editable by current user
 			set sc = $method(%SourceControl, deleteMethod, ptdInternalName)
@@ -371,26 +371,32 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 ClassMethod ParseExternalName(externalName, Output internalName = "", Output productionName = "") As %Status
 {
 	set sc = $$$OK
-	set extNameNormalized = $replace(externalName, "\", "/")
-    set file = $piece(extNameNormalized, "/", *)
-    if $extract(file,1,9) = "ProdStgs-" {
-	    set productionName = $replace($extract(file,10,*-4), "_", ".")
-		set internalName = ..CreateInternalName(productionName,,,1)
-    } else {
-	    if ##class(%File).Exists(externalName) {
-		    // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
-	        set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
-	        set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
-	        set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
-	        set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")
-            set settingsPTDText = $zconvert(deployDoc.GetValueAt("/Export/Document[2]/1"),"I","XML")
-            set settingsPTD = ##class(EnsLib.EDI.XML.Document).%New(settingsPTDText)
-            set itemClass = settingsPTD.GetValueAt("/Item/@ClassName")
-            set itemName = settingsPTD.GetValueAt("/Item/@Name")
-            set internalName = ..CreateInternalName(productionName, itemName, itemClass, 0)
-	    } else {
-		   set sc = $$$ERROR($$$GeneralError, "Item settings PTD file " _ externalName _ " does not exist. Cannot parse external name.")
-	    }
+    try {
+        set extNameNormalized = $replace(externalName, "\", "/")
+        set file = $piece(extNameNormalized, "/", *)
+        if $extract(file,1,9) = "ProdStgs-" {
+            set productionName = $replace($extract(file,10,*-4), "_", ".")
+            set internalName = ..CreateInternalName(productionName,,,1)
+        } else {
+            if ##class(%File).Exists(externalName) {
+                // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
+                set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
+                set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
+                set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
+                set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")
+                set settingsPTDText = $zconvert(deployDoc.GetValueAt("/Export/Document[2]/1"),"I","XML")
+                // unquote embedded CDATA close markers - see Ens.Util.ProjectTextDocument StreamToGbl method
+                set settingsPTDText = $replace(settingsPTDText,"]*]>", "]]>")
+                set settingsPTD = ##class(EnsLib.EDI.XML.Document).%New(settingsPTDText)
+                set itemClass = settingsPTD.GetValueAt("/Item/@ClassName")
+                set itemName = settingsPTD.GetValueAt("/Item/@Name")
+                set internalName = ..CreateInternalName(productionName, itemName, itemClass, 0)
+            } else {
+            set sc = $$$ERROR($$$GeneralError, "Item settings PTD file " _ externalName _ " does not exist. Cannot parse external name.")
+            }
+        }
+    } catch err {
+        set sc = err.AsStatus()
     }
     return sc
 }

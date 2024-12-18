@@ -66,8 +66,8 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
                 write !, Target
                 set Action = 6
             } elseif settings.warnInstanceWideUncommitted 
-                    && ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) 
-                    && '(##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName)) {
+                    && '(##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(InternalName))
+                    && ##class(SourceControl.Git.Utils).InstanceWideUncommittedCheck(InternalName, .user, .inNamespace) {
                 // if item is being edited in a different namespace, opening it will display an alert. Editing in this namespace will remove the alert.
                 set Target = "Warning: Item " _ InternalName _ " is currently being modified by " _ user _ " in namespace " _ inNamespace _ "."
                 write !, Target

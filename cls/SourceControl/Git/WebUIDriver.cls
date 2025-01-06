@@ -218,10 +218,11 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 } else {
                     set inFile = ""
                 }
-
+                // Want to invoke merge conflict autoresolver in case of issues
                 set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
 
                 do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
+
                 if '$listfind(readOnlyCommands,baseCommand) {
                     do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
@@ -262,10 +263,33 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 }
 
                 set inFile = ""
+                if (gitCmd = "stash") {
+                    set st = ##class(SourceControl.Git.Utils).RunGitAndHandleMerge("-c",inFile, .resolver, .succeeded, .returnCode, .errStream, .outStream, argsArr...)
+                    
+                    set %data = ##class(%Stream.TmpCharacter).%New()
+                    set changeTerminators = (%data.LineTerminator '= $char(13,10))
+                    set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+                    do outStream.Rewind()
 
-                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c", inFile, .errStream, .outStream, argsArr...)
-                
-                do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
+                    // Don't show merge error if merge succeeded
+                    if succeeded {
+                        do %data.WriteLine(outStream.ReadLine())
+                        do %data.WriteLine("Git-Stderr-Length: " _ 0)
+                    } else {
+                        set nLines = 0
+                        do errStream.Rewind()
+                        while 'errStream.AtEnd {
+                            do %data.WriteLine(errStream.ReadLine())
+                            set:changeTerminators nLines = nLines + 1
+                        }
+                        do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
+                    }
+                    do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
+                    do %data.Rewind()
+                } else {
+                    set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c", inFile, .errStream, .outStream, argsArr...)
+                    do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
+                }
                 set handled = 1
 
                 // Make sure discarded items are not in the uncommitted queue
@@ -456,11 +480,13 @@ ClassMethod ConvertGitOutput(ByRef outStream, ByRef errStream, returnCode As %St
     set %data = ##class(%Stream.TmpCharacter).%New()
     set changeTerminators = (%data.LineTerminator '= $char(13,10))
     set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+    do outStream.Rewind()
     while 'outStream.AtEnd {
         do %data.WriteLine(outStream.ReadLine())
     }
 
     set nLines = 0
+    do errStream.Rewind()
     while 'errStream.AtEnd {
         do %data.WriteLine(errStream.ReadLine())
         set:changeTerminators nLines = nLines + 1

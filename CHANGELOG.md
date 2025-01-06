@@ -5,9 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.8.1] - Unreleased
+## [2.9.0] - Unreleased
+
+### Added
+- Menu option to export production to support migrating to production decomposition (#665)
 
 ### Fixed
+- Fixed errors on production page when item settings need to be XML escaped (#667)
+- Fixed push button not appearing after commit (#654)
+- Fixed merge conflict resolution on stash popping (#531)
+
+## [2.9.0] - Unreleased
+
+### Added
+- Menu option to export production to support migrating to production decomposition (#665)
+
+### Fixed
+- Fixed errors on production page when item settings need to be XML escaped (#667)
+- Fixed push button not appearing after commit (#654)
+- Fixed merge conflict resolution on stash popping (#531)
 - Fix "Max $ZF String" error when committing lots of files (#617)
   
 ## [2.8.0] - 2024-12-06

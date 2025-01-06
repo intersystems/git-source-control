@@ -976,6 +976,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
     };
 
+    self.refreshSideBar = function() {
+        self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
+        self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
+        self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
+    }
+
     self.mainView = mainView;
     self.currentContext = self.getCurrentContext();
     self.element = $(   '<div id="sidebar">' +
@@ -1060,12 +1066,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
         $("#sidebar-home", self.element).remove();
     }
+
     
     self.getPackageVersion();
     self.getEnvironment()
-    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
-    self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
-    self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
+    self.refreshSideBar();
 
     if(!noEventHandlers){
         $(document).on('click', '.btn-checkout-local-branch', self.checkoutLocalBranch);
@@ -1896,8 +1901,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash apply stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "apply", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
+            parent.stashView.update(0);
+            self.clear()
         });
     }
 
@@ -1906,10 +1913,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash pop stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "pop", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
             parent.stashView.update(0);
-            self.clear();
+            self.clear()
         });
     }
 
@@ -1918,7 +1925,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash drop stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "drop", "stash@{"+stashIndex+"}"], function() {
             webui.showSuccess(output.substring(output.indexOf("Dropped")));
             parent.stashView.update(0);
             self.clear();
@@ -2621,6 +2628,8 @@ webui.NewChangedFilesView = function(workspaceView) {
                             } else {
                                 var commitMessage = $('#commitMsg').val();
                                 self.commit(commitMessage, $("#commitMsgDetail").val());
+                                setTimeout(updateSideBar, 2000);
+                                ;
                             }
                         }
                     })                    

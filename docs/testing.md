@@ -31,5 +31,5 @@ The following is a testing plan that should be followed prior to release of a ne
   - Test migration of a production to decomposed format:
     - On the initial namespace, disable production decomposition. Create a new production and add a number of items. Sync and confirm it has been pushed to the remote repository.
     - On the second namespace, sync and confirm the new production has been created.
-    - On the initial namespace, turn on production decomposition. From terminal, run `do ##class(SourceControl.Git.API).BaselineProductions()`. Confirm the Web UI includes changes for delete of the old production class and adds for all production items. Commit all items and push the branch.
+    - On the initial namespace, turn on production decomposition. Open the production page and use the "Export Production" option in the source control menu. Confirm the Web UI includes changes for delete of the old production class and adds for all production items. Commit all items and push the branch.
     - On the second namespace, turn on production decomposition. Sync. The production should be reloaded with no changes.

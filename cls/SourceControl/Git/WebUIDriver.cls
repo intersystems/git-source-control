@@ -102,7 +102,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
         do %request.Set("EXPIRES",0)
         do ##class(%CSP.StreamServer).OnPreHTTP() // Need to call this to set headers properly
         set %stream = 1 // Leak this to webuidriver.csp
-    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts|create-branch") {
+    } elseif $match(pathStart,"git-command|git|dirname|hostname|viewonly|discarded-states|restore-discarded|contexts|create-branch|git-command-unstage") {
         if (%request.Method = "GET") {
             set %data = ##class(%Stream.TmpCharacter).%New()
             // Things not handled from Python backend:
@@ -220,36 +220,15 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                 }
                 // Want to invoke merge conflict autoresolver in case of issues
                 set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c",inFile,.errStream,.outStream,gitArgs...)
-            
-                set %data = ##class(%Stream.TmpCharacter).%New()
-                set changeTerminators = (%data.LineTerminator '= $char(13,10))
-                set %data.LineTerminator = $char(13,10) // For the CSPGateway.
-                do outStream.Rewind()
-                while 'outStream.AtEnd {
-                    do %data.WriteLine(outStream.ReadLine())
-                }
 
-                set nLines = 0
-                do errStream.Rewind()
-                while 'errStream.AtEnd {
-                    do %data.WriteLine(errStream.ReadLine())
-                    set:changeTerminators nLines = nLines + 1
-                }
+                do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
 
-                do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
-                do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
-                do %data.Rewind()
                 if '$listfind(readOnlyCommands,baseCommand) {
                     do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
                 set handled = 1
             } elseif (pathStart = "git-command") {
-                set stringBody = ""
-                while '%request.Content.AtEnd {
-                    set stringBody = stringBody _ %request.Content.Read()
-                }
-                set stringBody = $zconvert(stringBody,"I","UTF8")
-                set requestBody = ##class(%Library.DynamicObject).%FromJSON(stringBody)
+                do ..UnpackRequest(.%request, .requestBody)
                 set command = requestBody.command
 
                 set gitCmd = command.%Get(0)
@@ -309,22 +288,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     do %data.Rewind()
                 } else {
                     set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c", inFile, .errStream, .outStream, argsArr...)
-                    set %data = ##class(%Stream.TmpCharacter).%New()
-                    set changeTerminators = (%data.LineTerminator '= $char(13,10))
-                    set %data.LineTerminator = $char(13,10) // For the CSPGateway.
-                    while 'outStream.AtEnd {
-                        do %data.WriteLine(outStream.ReadLine())
-                    }
-
-                    set nLines = 0
-                    while 'errStream.AtEnd {
-                        do %data.WriteLine(errStream.ReadLine())
-                        set:changeTerminators nLines = nLines + 1
-                    }
-
-                    do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
-                    do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
-                    do %data.Rewind()
+                    do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
                 }
                 set handled = 1
 
@@ -368,6 +332,41 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     }
                     set handled = 1
                 }
+            } elseif (pathStart = "git-command-unstage") {
+                do ..UnpackRequest(.%request, .requestBody)
+
+                set flags = requestBody.flags
+                if (flags '= "") {
+                    set flaglist = $listfromstring(flags,",")
+                    for i=1:1:$listlength(flaglist) {
+                        set flag = $listget(flaglist,i)
+                        set args($increment(args)) = flag
+                    }
+                }
+                set message = requestBody.message
+                if (message '= "") {
+                    set args($increment(args)) = "-m"
+                    set args($increment(args)) = message
+                }
+                set details = requestBody.details
+                if (details '= "") {
+                    set args($increment(args)) = "-m"
+                    set args($increment(args)) = details
+                }
+                set command = requestBody.command
+                
+                // Extract Files
+                set fileList = []
+                set files = requestBody.files
+                set iter = files.%GetIterator()
+                    while iter.%GetNext(,.value) {
+                        do fileList.%Push(value)
+                    }
+
+                set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandReStage(.outStream,.errStream,command,.fileList,args...)
+
+                do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
+                set handled = 1
             }
         }
     }
@@ -463,6 +462,40 @@ ClassMethod GetRemote() As %Library.DynamicObject
 {
     set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
     quit {"remote": (remote)}
+}
+
+ClassMethod UnpackRequest(ByRef %request As %CSP.Request, Output obj As %Library.DynamicObject) As %Status
+{
+    set stringBody = ""
+    while '%request.Content.AtEnd {
+        set stringBody = stringBody _ %request.Content.Read()
+    }
+    set stringBody = $zconvert(stringBody,"I","UTF8")
+    set obj = ##class(%Library.DynamicObject).%FromJSON(stringBody)
+    return $$$OK
+}
+
+ClassMethod ConvertGitOutput(ByRef outStream, ByRef errStream, returnCode As %String, Output %data) As %Status
+{
+    set %data = ##class(%Stream.TmpCharacter).%New()
+    set changeTerminators = (%data.LineTerminator '= $char(13,10))
+    set %data.LineTerminator = $char(13,10) // For the CSPGateway.
+    do outStream.Rewind()
+    while 'outStream.AtEnd {
+        do %data.WriteLine(outStream.ReadLine())
+    }
+
+    set nLines = 0
+    do errStream.Rewind()
+    while 'errStream.AtEnd {
+        do %data.WriteLine(errStream.ReadLine())
+        set:changeTerminators nLines = nLines + 1
+    }
+
+    do %data.WriteLine("Git-Stderr-Length: " _ (errStream.Size + nLines))
+    do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
+    do %data.Rewind()
+    return $$$OK
 }
 
 }

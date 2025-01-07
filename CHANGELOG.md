@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed errors on production page when item settings need to be XML escaped (#667)
 - Fixed push button not appearing after commit (#654)
 - Fixed merge conflict resolution on stash popping (#531)
-
+- Fix "Max $ZF String" error when committing lots of files (#617)
+  
 ## [2.8.0] - 2024-12-06
 
 ### Added

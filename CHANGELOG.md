@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed push button not appearing after commit (#654)
 - Fixed merge conflict resolution on stash popping (#531)
 - Improvements to the performance of the instance-wide uncommitted check (#674)
+- Fix "Max $ZF String" error when committing lots of files (#617)
 
 ## [2.8.0] - 2024-12-06
 

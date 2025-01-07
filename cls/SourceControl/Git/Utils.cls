@@ -3033,8 +3033,7 @@ ClassMethod SetConfiguredRemote(url) As %String
     quit output
 }
 
-// Returns true if the current branch is the default merge branch and we are in basic mode
-
+/// Returns true if the current branch is the default merge branch and we are in basic mode
 ClassMethod InDefaultBranchBasicMode() As %Boolean
 {
     set basicMode = ..BasicMode()
@@ -3075,6 +3074,102 @@ ClassMethod RunGitAndHandleMerge(command As %String, inFile As %String, Output r
         return $$$OK
     }
     return $$$ERROR($$$GeneralError,"git reported failure")
+}
+
+/// Runs the commit on the specified files (unstaging and restaging currently staged files)
+ClassMethod RunGitCommandReStage(Output outStream, Output errStream, command As %String, ByRef fileList As %Library.DynamicArray, args...) As %Integer
+{
+    set sc = $$$OK
+    set tInitialTLevel = $TLevel
+    try {
+        LOCK +^GitCommit(42):5
+        if '$Test {
+            $$$ThrowStatus($$$ERROR($$$GeneralError, "Couldn't grab a lock. Try again later"))
+        }
+        set tGitCommitLocked = 1
+
+
+        TSTART
+        
+        // Unstage and save all currently staged files
+        set sc = ..GitUnstage(.unstaged)
+
+        // Stage all files
+        set iterator = fileList.%GetIterator()
+        while iterator.%GetNext(.key, .value) {
+            do ..RunGitCommand("add",.err, .out, value)
+        }
+
+        // Run the git command
+        set returnCode = ..RunGitWithArgs(.errStream, .outStream, command, args...)
+
+        // Restage files
+        do ..GitStage(.unstaged)
+
+        TCOMMIT
+    } catch e {
+        set sc = e.AsStatus()
+    }
+
+    If tGitCommitLocked {
+        Lock -^GitCommit(42)
+    }
+
+    While $TLevel > tInitialTLevel {
+        TROLLBACK 1
+    }
+
+    return returnCode
+}
+
+ClassMethod GitStage(ByRef files As %Library.DynamicObject) As %Status
+{
+    set staged = files.%Get("staged")
+    set tracked = files.%Get("tracked")
+
+    set iterator = staged.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        do ..RunGitCommand("add",.errStream,.outStream, value)  
+    }
+
+    set iterator = tracked.%GetIterator()
+    while iterator.%GetNext(.key, .value) {
+        do ..RunGitCommand("add",.errStream, .outStream, value, "--intent-to-add")
+    }
+    return $$$OK
+}
+
+/// Unstages all currently staged files and returns them in the array
+ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
+{
+    set stagedList = []
+    set trackedList = []
+
+    do ..RunGitCommandWithInput("status",, .errStream, .outStream, "--porcelain")
+    set line = outStream.ReadLine()
+    // Read through output
+    while (line'="") {
+        set staged = 0
+        set tracked = 0
+        set filename = $piece(line, " ", *-0)
+        if ($extract(line,1,1) '= " ") && ($extract(line,1,1) '= "?") {
+            set staged = 1
+        }
+        elseif ($extract(line,2,2) = "A") {
+            set tracked = 1
+        }
+        if staged {
+            do stagedList.%Push(filename)
+            do ..RunGitCommand("reset", .errStream, .out, filename)
+        } elseif tracked {
+            do trackedList.%Push(filename)
+            do ..RunGitCommand("reset",.errStream,.out, filename)
+        } 
+        set line = outStream.ReadLine()
+    }
+
+    set output = {"staged": (stagedList), "tracked": (trackedList)} 
+    return $$$OK
 }
 
 }

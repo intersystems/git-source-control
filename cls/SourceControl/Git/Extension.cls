@@ -61,10 +61,11 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 
         // Deal with Business Processes and Rules
+        // Note: Business Processes and Rules do not have a 'new document' User Action, and thus must be added like this
         if (('isInSourceControl) && (##class(SourceControl.Git.Utils).Type(InternalName) = "cls")) {
             set name = $piece(InternalName,".CLS",1)
             set exists = ##class(%Dictionary.CompiledClass).%ExistsId(name)
-            if (exists && ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.BusinessRule"))) {
+            if (exists && ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition"))) {
                 do ..AddToSourceControl(InternalName)
             }
         }

@@ -60,11 +60,11 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         do ##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction)
         do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 
-        // Deal with Business Processes
+        // Deal with Business Processes and Rules
         if (('isInSourceControl) && (##class(SourceControl.Git.Utils).Type(InternalName) = "cls")) {
             set name = $piece(InternalName,".CLS",1)
             set exists = ##class(%Dictionary.CompiledClass).%ExistsId(name)
-            if (exists && $classmethod(name,"%Extends","Ens.BusinessProcess")) {
+            if (exists && ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.BusinessRule"))) {
                 do ..AddToSourceControl(InternalName)
             }
         }

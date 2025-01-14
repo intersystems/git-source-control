@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.9.1] - Unreleased
 
 ### Fixed
-- Fixed business processes not being added to source control automatically (#676)
+- Fixed business processes and rules not being added to source control automatically (#676)
 
 ## [2.9.0] - 2025-01-09
 

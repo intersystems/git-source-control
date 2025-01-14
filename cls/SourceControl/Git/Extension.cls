@@ -62,12 +62,8 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
 
         // Deal with Business Processes and Rules
         // Note: Business Processes and Rules do not have a 'new document' User Action, and thus must be added like this
-        if (('isInSourceControl) && (##class(SourceControl.Git.Utils).Type(InternalName) = "cls")) {
-            set name = $piece(InternalName,".CLS",1)
-            set exists = ##class(%Dictionary.CompiledClass).%ExistsId(name)
-            if (exists && ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition"))) {
-                do ..AddToSourceControl(InternalName)
-            }
+        if (('isInSourceControl)) {
+            do ..CheckBusinessProcessesAndRules(InternalName)
         }
 
         if '$data(tAction) {
@@ -382,6 +378,8 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                         $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
                     }
                 }
+            } else {
+                do ..CheckBusinessProcessesAndRules(InternalName)
             }
         }
     } catch e {
@@ -544,6 +542,20 @@ Method CheckCommitterIdentity(Settings As SourceControl.Git.Settings, ByRef Acti
         return 1
     }
     return 0
+}
+
+/// Deal with Business Processes and Rules
+Method CheckBusinessProcessesAndRules(InternalName As %String) As %Status
+{
+    // Note: Business Processes and Rules are not added through normal user action processes because of upstream hook issues,
+    //       so we have to add them like this
+    if (##class(SourceControl.Git.Utils).Type(InternalName) = "cls") {
+        set name = $piece(InternalName,".CLS",1)
+        set exists = ##class(%Dictionary.CompiledClass).%ExistsId(name)
+        if (exists && ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition"))) {
+            do ..AddToSourceControl(InternalName)
+        }
+    }
 }
 
 }

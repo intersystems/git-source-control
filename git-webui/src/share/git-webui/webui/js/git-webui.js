@@ -146,7 +146,7 @@ webui.parseGitResponse = function(data) {
     };
 }
 
-webui.processGitResponse = function(data, command, callback) {
+webui.processGitResponse = function(data, command, callback, warningCallback) {
     var result = webui.parseGitResponse(data);
     var rcode = result.rcode;
     var output = result.output;
@@ -158,7 +158,7 @@ webui.processGitResponse = function(data, command, callback) {
         }
         // Return code is 0 but there is stderr output: this is a warning message
         if (message.length > 0) {
-            if(warningCallback) {
+            if (warningCallback) {
                 warningCallback(message);
             } else {
                 webui.showWarning(message);
@@ -185,7 +185,7 @@ webui.processGitResponse = function(data, command, callback) {
     }
 }
 
-webui.git_command = function(command, callback) {
+webui.git_command = function(command, callback, warningCallback) {
     $.ajax({
         url: "git-command",
         type: "POST",
@@ -194,7 +194,7 @@ webui.git_command = function(command, callback) {
             command: command
         }),
         success: function(data) {
-            webui.processGitResponse(data, command, callback);
+            webui.processGitResponse(data, command, callback, warningCallback);
         },
         error: function(data) {
             var trimmedData = data.replace(/(\r\n)/gm, "\n");

@@ -448,6 +448,15 @@ Method OnAfterConfigure() As %Boolean
             $$$ThrowOnError(workMgr.WaitForComplete())
             // export settings file without committing
             $$$ThrowOnError(..SaveWithSourceControl())
+
+            // Empty repo breaks Embedded Git, commit the settings file
+            do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("log",,.errStream,.outStream)
+            do errStream.Rewind()
+            if (errStream.Read() [ "does not have any commits yet") {
+                w !,"Cloned Empty Repository, committing initial source control settings",!
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(##class(SourceControl.Git.Settings.Document).#INTERNALNAME))
+                $$$ThrowOnError(##class(SourceControl.Git.Utils).Commit(##class(SourceControl.Git.Settings.Document).#INTERNALNAME,"initial commit"))
+            }
         }
     }
 }

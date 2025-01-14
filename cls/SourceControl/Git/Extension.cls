@@ -59,6 +59,16 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         set filename = ##class(SourceControl.Git.Utils).FullExternalName(.InternalName)
         do ##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction)
         do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+
+        // Deal with Business Processes
+        if (('isInSourceControl) && (##class(SourceControl.Git.Utils).Type(InternalName) = "cls")) {
+            set name = $piece(InternalName,".CLS",1)
+            set exists = ##class(%Dictionary.CompiledClass).%ExistsId(name)
+            if (exists && $classmethod(name,"%Extends","Ens.BusinessProcess")) {
+                do ..AddToSourceControl(InternalName)
+            }
+        }
+
         if '$data(tAction) {
             set user = "", inNamespace = ""
             if 'isEditable || ##class(SourceControl.Git.Utils).Locked() {

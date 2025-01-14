@@ -1,6 +1,9 @@
 # Production Decomposition
 Production Decomposition is a feature of Embedded Git that allows multiple developers to edit the same IRIS Interoperability production in the same namespace. In the past, the production class has been an obstacle preventing organizations using multi-user development namespaces from adopting source control. Production Decomposition resolves this by representing the production as a directory of files for each production item that may be edited independently. An uncommitted change to the settings for a single item through the Interoperability Portal will block other users from editing that item while allowing changes to other items in the production.
 
+
+![Productions in Git](images/production-decomposition.png)
+
 ## Enabling production decomposition
 The feature may be enabled by checking the "Decompose Productions" box in the Git Settings page. For deployment of changes to other environments through git to work properly, the value of this setting must match on all namespaces connected to this repository. To assist, settings are automatically exported into a `embedded-git-config.json` file at the root of the repository that may be committed and imported into other environments.
 

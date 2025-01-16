@@ -15,6 +15,9 @@ Property Timestamp As %TimeStamp [ Required ];
 
 Property ExternalFile As %Boolean [ Required ];
 
+// Boolean tracking whether or not file was deleted as part of change
+Property Delete As %Boolean;
+
 Index BranchMap On Branch [ Type = bitmap ];
 
 Method RestoreToFileTree()
@@ -24,17 +27,23 @@ Method RestoreToFileTree()
     if ('##class(%File).DirectoryExists(dir)) {
         do ##class(%File).CreateDirectoryChain(dir)
     }
-    
-    // Recreate File
-    set fileStream = ##class(%Stream.FileCharacter).%New()
-    set fileStream.Filename = ..FullExternalName
-    $$$ThrowOnError(fileStream.CopyFrom(..Contents))
-    $$$ThrowOnError(fileStream.%Save())
 
-    // Add file to source-control / IRIS
-    if '..ExternalFile {
-        do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1, 1)
+    if (..Delete) {
+        do ##class(%File).Delete(..FullExternalName)
         do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
+    } else {
+    
+        // Recreate File
+        set fileStream = ##class(%Stream.FileCharacter).%New()
+        set fileStream.Filename = ..FullExternalName
+        $$$ThrowOnError(fileStream.CopyFrom(..Contents))
+        $$$ThrowOnError(fileStream.%Save())
+
+        // Add file to source-control / IRIS
+        if '..ExternalFile {
+            do ##class(SourceControl.Git.Utils).ImportItem(..Name, 1, 1, 1)
+            do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
+        }
     }
 
     // Delete discard record
@@ -57,11 +66,15 @@ ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Statu
             set discardState.ExternalFile = 0
         }
         // Copy over file contents
-        set fileStream = ##class(%Stream.FileCharacter).%New()
-        set fileStream.Filename = discardState.FullExternalName
-        do fileStream.%Open()
-        do discardState.Contents.CopyFrom(fileStream)
-        do fileStream.%Close()
+        if (##class(%File).Exists(discardState.FullExternalName)) {
+            set fileStream = ##class(%Stream.FileCharacter).%New()
+            set fileStream.Filename = discardState.FullExternalName
+            do fileStream.%Open()
+            do discardState.Contents.CopyFrom(fileStream)
+            do fileStream.%Close()
+        } else {
+            set discardState.Delete = 1
+        }
 
         // Save extra information
         set discardState.Username = $USERNAME

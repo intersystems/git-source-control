@@ -16,7 +16,7 @@ Property Timestamp As %TimeStamp [ Required ];
 Property ExternalFile As %Boolean [ Required ];
 
 // Boolean tracking whether or not file was deleted as part of change
-Property Delete As %Boolean;
+Property Deleted As %Boolean;
 
 Index BranchMap On Branch [ Type = bitmap ];
 
@@ -28,9 +28,8 @@ Method RestoreToFileTree()
         do ##class(%File).CreateDirectoryChain(dir)
     }
 
-    if (..Delete) {
+    if (..Deleted) {
         do ##class(%File).Delete(..FullExternalName)
-        do ##class(SourceControl.Git.Utils).AddToServerSideSourceControl(..Name)
     } else {
     
         // Recreate File
@@ -73,7 +72,8 @@ ClassMethod SaveDiscardState(InternalName As %String, name As %String) As %Statu
             do discardState.Contents.CopyFrom(fileStream)
             do fileStream.%Close()
         } else {
-            set discardState.Delete = 1
+            set discardState.Deleted = 1
+            do discardState.Contents.Write("Deleted File")
         }
 
         // Save extra information

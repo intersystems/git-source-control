@@ -3005,11 +3005,17 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.stash = function() {
         var selectedFilesAsString = selectedItems.join(" ");
-        webui.git("add -- " + selectedFilesAsString, function(output) {
+        webui.git("add -- " + selectedFilesAsString, undefined, function(output) {
             webui.git("stash push --include-untracked -- " + selectedFilesAsString, function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
             });
+        },function(output) {
+            if (output.includes("did not match any files")) {
+                webui.showError("Stashing deleted items does not work. Please discard the operation instead.")
+            } else {
+                webui.showError(output);
+            }
         });
     }
 

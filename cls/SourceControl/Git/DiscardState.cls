@@ -16,6 +16,7 @@ Property Timestamp As %TimeStamp [ Required ];
 Property ExternalFile As %Boolean [ Required ];
 
 // Boolean tracking whether or not file was deleted as part of change
+
 Property Deleted As %Boolean;
 
 Index BranchMap On Branch [ Type = bitmap ];
@@ -138,6 +139,9 @@ Storage Default
 </Value>
 <Value name="9">
 <Value>ExternalFile</Value>
+</Value>
+<Value name="10">
+<Value>Deleted</Value>
 </Value>
 </Data>
 <DataLocation>^SourceControl22B9.DiscardStateD</DataLocation>

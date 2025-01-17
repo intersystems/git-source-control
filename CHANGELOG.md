@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.10.0] - Unreleased
 
 ### Added
+- LoadProductionsFromDirectory method to help custom deployment scripts load decomposed productions from the repository (#670)
 - Added ability to reset head / revert most recent commit (#586)
 
 ### Fixed

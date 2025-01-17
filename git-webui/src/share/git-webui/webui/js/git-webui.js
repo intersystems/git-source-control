@@ -1369,7 +1369,7 @@ webui.LogView = function(historyView) {
                                         '<p>There are a few options available to revert the previous commit. Please read the description carefully to make sure you choose'+
                                         ' the correct option.</p>' +
                                         '<h4>Revert</h2><p><i>git revert --no-commit</i> - This will create a new change, which will be the reversal of the previous commit.'+
-                                        'It will not be autometically committed, so you can inspect/modify/combine the changes with others before you commit.</p>' + 
+                                        'It will not be automatically committed, so you can inspect/modify/combine the changes with others before you commit.</p>' + 
                                         '<h4>Hard Reset</h2><p><i>git reset --hard HEAD~1</i> - This will delete the previous commit entirely, and reset you to a state' +
                                         ' before the commit. <b>WARNING:</b> This will also delete <b>all uncommitted changes</b>, so make sure you have no changes left before' +
                                         ' attempting this operation.</p>' + 

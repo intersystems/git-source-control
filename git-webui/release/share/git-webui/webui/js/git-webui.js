@@ -1096,10 +1096,10 @@ webui.LogView = function(historyView) {
         streams = []
         $(content).empty();
         self.nextRef = ref;
-        self.populate();
+        self.populate(ref);
     };
 
-    self.populate = function() {
+    self.populate = function(ref) {
         var maxCount = 1000;
         if (content.childElementCount > 0) {
             // The last node is the 'Show more commits placeholder'. Remove it.
@@ -1118,8 +1118,7 @@ webui.LogView = function(historyView) {
                     }
                     var end = data.length;
                 }
-                
-                var entry = new Entry(self, data.substring(start, end));
+                var entry = new Entry(self, data.substring(start, end), count == 0 ? true : false, ref);
                 content.appendChild(entry.element);
                 if (!self.lineHeight) {
                     self.lineHeight = Math.ceil($(entry.element).outerHeight() / 2) * 2;
@@ -1260,7 +1259,7 @@ webui.LogView = function(historyView) {
         this.date.setUTCSeconds(parseInt(secs));
     };
 
-    function Entry(logView, data) {
+    function Entry(logView, data, revert, ref) {
         var self = this;
 
         self.abbrevCommitHash = function() {
@@ -1277,13 +1276,20 @@ webui.LogView = function(historyView) {
         };
 
         self.createElement = function() {
+            var contents = "";
+            if (revert && (ref == 'HEAD' || ref == $('.branch-current').text())) {
+                contents = '<div style="overflow:hidden; display: flex"><p class="list-group-item-text"></p>' + 
+                            '<button type="button" class="btn btn-danger file-action-button" id="revertBtn" style="margin-left: 20px;">Revert</button></div>'
+            } else {
+                contents = '<p class="list-group-item-text"></p>'
+            }
             self.element = $('<a class="log-entry list-group-item">' +
                                 '<header>' +
                                     '<h6></h6>' +
                                     '<span class="log-entry-date">' + self.author.date.toLocaleString() + '&nbsp;</span> ' +
                                     '<span class="badge">' + self.abbrevCommitHash() + '</span>' +
                                 '</header>' +
-                                '<p class="list-group-item-text"></p>' +
+                                contents +
                              '</a>')[0];
             $('<a target="_blank" href="mailto:' + self.author.email + '">' + self.author.name + '</a>').appendTo($("h6", self.element));
             $(".list-group-item-text", self.element)[0].appendChild(document.createTextNode(self.abbrevMessage()));
@@ -1324,6 +1330,89 @@ webui.LogView = function(historyView) {
             }
         };
 
+        self.chooseRevert = function() {
+            function removePopup(popup) {
+                $(popup).children(".modal-fade").modal("hide");
+                $(".modal-backdrop").remove();
+                $("#chooseRevert").remove();
+            }
+    
+            function confirmRevert(type) {
+                if (type == 'revert') {
+                    webui.git_command(["revert", "--no-commit","HEAD"], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                } else if (type == 'hardReset') {
+                    webui.git_command(["reset", "--hard", "HEAD~1"], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                }
+    
+            }
+    
+            var popup = $(
+                '<div class="modal fade" tabindex="-1" id="chooseRevert" role="dialog" data-backdrop="static">' +
+                    '<div class="modal-dialog modal-md" role="document">' +
+                        '<div class="modal-content">' + 
+                            '<div class="modal-header">' +
+                                '<h5 class="modal-title">Choose Revert Type</h5>' +
+                                '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                            '</div>' +
+                            '<div class="modal-body">' + 
+                                '<div class="row">' +
+                                    '<div class="col-sm-1">' +
+                                        webui.warningIcon +
+                                    '</div>' +
+                                    '<div class="col-sm-11">' +
+                                        '<p>There are a few options available to revert the previous commit. Please read the description carefully to make sure you choose'+
+                                        ' the correct option.</p>' +
+                                        '<h4>Revert</h2><p><i>git revert --no-commit</i> - This will create a new change, which will be the reversal of the previous commit.'+
+                                        'It will not be autometically committed, so you can inspect/modify/combine the changes with others before you commit.</p>' + 
+                                        '<h4>Hard Reset</h2><p><i>git reset --hard HEAD~1</i> - This will delete the previous commit entirely, and reset you to a state' +
+                                        ' before the commit. <b>WARNING:</b> This will also delete <b>all uncommitted changes</b>, so make sure you have no changes left before' +
+                                        ' attempting this operation.</p>' + 
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="modal-footer"></div>' +
+                        '</div>' + 
+                    '</div>' +
+                '</div>'
+            )[0];
+    
+            $("body").append(popup);
+    
+            var popupFooter = $(".modal-footer", popup)[0];
+            webui.detachChildren(popupFooter);
+    
+            $(
+                '<button class="btn btn-sm btn-warning action-btn" id="revertNoCommitBtn">Revert</button>' +
+                '<button class="btn btn-sm btn-warning action-btn" id="hardResetBtn">Hard Reset</button>' +
+                '<button class="btn btn-sm btn-secondary action-btn" id="cancelRevertBtn">Cancel</button>'
+            ).appendTo(popupFooter);
+    
+            $(popup).modal('show');
+    
+            $("#revertNoCommitBtn").on('click', function() {
+                removePopup(popup);
+                confirmRevert("revert");
+            });
+    
+            $("#hardResetBtn").on('click', function() {
+                removePopup(popup);
+                confirmRevert("hardReset");
+            });
+
+
+    
+            $("#chooseRevert").find(".close, #cancelRevertBtn").click(function() {
+                removePopup(popup);
+            })
+        };
+    
+
         self.parents = [];
         self.message = ""
 
@@ -1354,6 +1443,11 @@ webui.LogView = function(historyView) {
         self.message = self.message.trim();
 
         self.createElement();
+
+        $("#revertBtn").off("click");
+        $("#revertBtn").on("click", function() {
+            self.chooseRevert();
+        });
     };
 
     self.historyView = historyView;

@@ -772,7 +772,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
     quit ec
 }
 
-ClassMethod AddToSourceControl(InternalName As %String) As %Status
+ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %Boolean = 1) As %Status
 {
     do ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -809,7 +809,9 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             
         }
     }
-    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+    if refreshUncommitted {
+        do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+    }
     quit ec
 }
 

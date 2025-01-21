@@ -1491,6 +1491,12 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 {
     #define DoNotLoad 1
     set res = $$$OK
+
+    // Config file may exist at the root of the Git repo.
+    set configFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Settings.Document).#EXTERNALNAME, ..TempFolder())
+    if ##class(%File).Exists(##class(%File).NormalizeFilename(configFilePath)) {
+        set itemList(..NameToInternalName(configFilePath)) = ""
+    }
     
     set mappingFileType = $order($$$SourceMapping(""))
     while (mappingFileType '= "") {

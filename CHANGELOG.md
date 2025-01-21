@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed not showing warnings on Studio (#660)
 - Fixed business processes and rules not being added to source control automatically (#676)
 - Embedded Git commits settings when cloning empty repo to avert any issues
+- Fixed Import All options not importing the Embedded Git configuration file
 
 ## [2.9.0] - 2025-01-09
 

@@ -772,7 +772,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
     quit ec
 }
 
-ClassMethod AddToSourceControl(InternalName As %String) As %Status
+ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %Boolean = 1) As %Status
 {
     do ##class(SourceControl.Git.PackageManagerContext).ForInternalName(InternalName)
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -809,7 +809,9 @@ ClassMethod AddToSourceControl(InternalName As %String) As %Status
             
         }
     }
-    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+    if refreshUncommitted {
+        do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
+    }
     quit ec
 }
 
@@ -1491,6 +1493,12 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 {
     #define DoNotLoad 1
     set res = $$$OK
+
+    // Config file may exist at the root of the Git repo.
+    set configFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Settings.Document).#EXTERNALNAME, ..TempFolder())
+    if ##class(%File).Exists(##class(%File).NormalizeFilename(configFilePath)) {
+        set itemList(..NameToInternalName(configFilePath)) = ""
+    }
     
     set mappingFileType = $order($$$SourceMapping(""))
     while (mappingFileType '= "") {

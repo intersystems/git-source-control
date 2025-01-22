@@ -15,8 +15,7 @@ Property Timestamp As %TimeStamp [ Required ];
 
 Property ExternalFile As %Boolean [ Required ];
 
-// Boolean tracking whether or not file was deleted as part of change
-
+/// Boolean tracking whether or not file was deleted as part of change
 Property Deleted As %Boolean;
 
 Index BranchMap On Branch [ Type = bitmap ];

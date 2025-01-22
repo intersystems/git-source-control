@@ -146,7 +146,7 @@ webui.parseGitResponse = function(data) {
     };
 }
 
-webui.processGitResponse = function(data, command, callback, warningCallback) {
+webui.processGitResponse = function(data, command, callback, warningCallback,errorCallback) {
     var result = webui.parseGitResponse(data);
     var rcode = result.rcode;
     var output = result.output;
@@ -177,7 +177,12 @@ webui.processGitResponse = function(data, command, callback, warningCallback) {
                     location.reload();
                     return false;
                 }
-                webui.showError(displayMessage);
+                if (errorCallback) {
+                    errorCallback(displayMessage);
+                } else {
+                    webui.showError(displayMessage);
+                }
+
             //}
         } else {
             webui.showError("The command <pre>"+command.join(" ")+"</pre> failed because of an unknown reason. Returned response: \n\n"+data)
@@ -185,7 +190,7 @@ webui.processGitResponse = function(data, command, callback, warningCallback) {
     }
 }
 
-webui.git_command = function(command, callback, warningCallback) {
+webui.git_command = function(command, callback, warningCallback, errorCallback) {
     $.ajax({
         url: "git-command",
         type: "POST",
@@ -194,11 +199,15 @@ webui.git_command = function(command, callback, warningCallback) {
             command: command
         }),
         success: function(data) {
-            webui.processGitResponse(data, command, callback, warningCallback);
+            webui.processGitResponse(data, command, callback, warningCallback, errorCallback);
         },
         error: function(data) {
-            var trimmedData = data.replace(/(\r\n)/gm, "\n");
-            webui.showError(trimmedData);
+            if (errorCallback) {
+                errorCallback(data.replace(/(\r\n)/gm, "\n"));
+            } else {
+                var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                webui.showError(trimmedData);
+            }
         },
     });
 }
@@ -3005,20 +3014,28 @@ webui.NewChangedFilesView = function(workspaceView) {
 
     self.stash = function() {
         var selectedFilesAsString = selectedItems.join(" ");
-        webui.git("add -- " + selectedFilesAsString, function(output) {
+        webui.git("add -- " + selectedFilesAsString, undefined, function(output) {
             webui.git("stash push --include-untracked -- " + selectedFilesAsString, function(output) {
                 webui.showSuccess(output);
                 workspaceView.update();
             });
+        },function(output) {
+            if (output.includes("did not match any files")) {
+                webui.showError("Stashing deleted items does not work. Please discard the operation instead.")
+            } else {
+                webui.showError(output);
+            }
         });
     }
 
     self.discard = function() {
-        webui.git_command(["add", "--"].concat(selectedItems), function() {
+        function restoreCommand(data) {
             webui.git_command(["restore", "--staged", "--worktree", "--"].concat(selectedItems), function() {
                 workspaceView.update();
             });
-        });
+        }
+        // We want to try to run restore even if add fails (since the file might have already been added)
+        webui.git_command(["add", "--"].concat(selectedItems), restoreCommand,undefined,restoreCommand);
     }
 
     self.amend = function(message, details) {

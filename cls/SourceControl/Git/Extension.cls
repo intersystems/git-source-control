@@ -356,11 +356,14 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                             $$$ThrowOnError(##class(SourceControl.Git.Utils).DeleteExternalFile(key))
                         }
                     } elseif '..IsInSourceControl(key) {
-                        $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(key))
+                        $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(key,0))
                     } else {
                         $$$ThrowOnError(..OnAfterSave(key))
                     }
                     set key = $order(productionItems(key))
+                }
+                if $data(productionItems) {
+                    do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
             }
             if ..IsInSourceControl(InternalName) {

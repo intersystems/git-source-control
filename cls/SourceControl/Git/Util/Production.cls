@@ -18,9 +18,12 @@ ClassMethod BaselineProduction(productionName, settings As SourceControl.Git.Set
             $$$ThrowOnError(st)
             set key = $order(itemInternalNames(""))
             while (key '= "") {
-                set st = ##class(SourceControl.Git.Utils).AddToSourceControl(key)
+                set st = ##class(SourceControl.Git.Utils).AddToSourceControl(key,0)
                 $$$ThrowOnError(st)
                 set key = $order(itemInternalNames(key))
+            }
+            if $data(itemInternalNames) {
+                do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
             }
         } else {
             write !, "Exporting production in class format: " _ productionInternalName

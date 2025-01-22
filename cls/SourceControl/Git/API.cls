@@ -82,4 +82,12 @@ ClassMethod BaselineProductions()
     do ##class(SourceControl.Git.Util.Production).BaselineProductions()
 }
 
+/// Given the path to a directory that contains production items, this method will import them all
+/// and delete any custom items from the production configuration that do not exist in the directory.
+/// This method may be called on a namespace that is not configured with Embedded Git for source control.
+ClassMethod LoadProductionsFromDirectory(pDirectoryName, Output pFailedItems) As %Status
+{
+    return ##class(SourceControl.Git.Util.Production).LoadProductionsFromDirectory(pDirectoryName, .pFailedItems)
+}
+
 }

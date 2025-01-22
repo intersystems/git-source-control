@@ -5,12 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.9.1] - Unreleased
+## [2.10.0] - Unreleased
+
+### Added
+- LoadProductionsFromDirectory method to help custom deployment scripts load decomposed productions from the repository (#670)
 
 ### Fixed
 - Fixed not showing warnings on Studio (#660)
 - Fixed business processes and rules not being added to source control automatically (#676)
 - Embedded Git commits settings when cloning empty repo to avert any issues
+- Fixed Import All options not importing the Embedded Git configuration file
+- Improved performance of IDE editing and baselining of decomposed productions
 - Fixed Discard / Stash not working on deletes (#688)
 
 ## [2.9.0] - 2025-01-09

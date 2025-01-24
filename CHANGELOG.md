@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - LoadProductionsFromDirectory method to help custom deployment scripts load decomposed productions from the repository (#670)
 - Added ability to reset head / revert most recent commit (#586)
+- Changes deployed through Git are now logged in a new table SourceControl_Git.DeploymentLog
 
 ### Fixed
 - Fixed not showing warnings on Studio (#660)

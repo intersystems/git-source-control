@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Import All options not importing the Embedded Git configuration file
 - Improved performance of IDE editing and baselining of decomposed productions
 - Fixed Discard / Stash not working on deletes (#688)
+- Fixed errors deploying decomposed production changes on Windows network drives (#696)
 
 ## [2.9.0] - 2025-01-09
 

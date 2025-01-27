@@ -91,6 +91,25 @@ Method TestNegative()
 	do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("bar\NotMyBarFile1.bar", 1, 0, 1),"")
 }
 
+Method TestEnvExpansion()
+{
+    try {
+        set $$$SourceMapping("ESD","*") = "config/<env>/"
+        set $$$SourceMapping("ESD","*","NoFolders") = 1
+        set settings = ##class(SourceControl.Git.Settings).%New()
+        set oldEnvName = settings.environmentName
+        set settings.environmentName = "TEST"
+        $$$ThrowOnError(settings.%Save())
+        do $$$AssertEquals(##class(SourceControl.Git.Utils).NameToInternalName("config/test/Ens.Config.DefaultSettings.ESD",1,0,1),"Ens.Config.DefaultSettings.ESD")
+    } catch err {
+        do $$$AssertStatusOK(err.AsStatus())
+    }
+    if $data(settings)#2 && $data(oldEnvName)#2 {
+        set settings.environmentName = oldEnvName
+        $$$ThrowOnError(settings.%Save())
+    }
+}
+
 Method OnBeforeAllTests() As %Status
 {
 	set settings = ##class(SourceControl.Git.Settings).%New()

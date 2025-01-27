@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+        <link rel="stylesheet" type="text/css" href="css/git-webui.css" /> 
+        #(##class(SourceControl.Git.Utils).GetSourceControlInclude())#
+        <style type="text/css">
+            h1, h2 {
+                margin-top: 10px
+            }
+
+            .A::after {
+                content: "Added";
+                position: absolute;
+                right: 10px;
+            }
+
+            .D::after {
+                content: "Deleted";
+                position: absolute;
+                right: 10px;
+            }
+
+            .M::after {
+                content: "Modified";
+                position: absolute;
+                right: 10px;
+            }
+
+            .R::after {
+                content: "Renamed";
+                position: absolute;
+                right: 10px;
+            }
+
+            .section-header {
+                margin: 20px 0 15px 0
+            }
+
+            #syncBtn {
+                position: absolute;
+                right: 15px;
+                margin-top: 10px;
+            }
+
+            .output-header {
+                margin-top: 120px;
+            }
+            .output {
+
+                margin-bottom: 20px;
+                border: 1.5px solid darkgray;
+                padding: 10px;
+                border-radius: 4px;
+            }
+
+            /* The alert message box */
+            .alert {
+            padding: 20px;
+            background-color: #f44336; /* Red */
+            color: white;
+            margin-bottom: 15px;
+            }
+
+            /* The close button */
+            .closebtn {
+            margin-left: 15px;
+            color: white;
+            font-weight: bold;
+            float: right;
+            font-size: 22px;
+            line-height: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+            }
+
+            /* When moving the mouse over the close button */
+            .closebtn:hover {
+            color: black;
+            }
+
+
+        </style>
+        <script type="text/javascript">
+        function disableInput() {
+            document.getElementById('syncMsg').disabled = true;
+            document.getElementById('syncBtn').innerHTML = 'Syncing...';
+            document.getElementById('syncBtn').disabled = true;
+        }
+        </script>
+        #(##class(SourceControl.Git.Utils).ProductionConfigScript())#
+    </head>
+    <body #(##class(SourceControl.Git.Utils).ProductionConfigBodyAttributes())#>
+        <server>
+            set settings = ##class(SourceControl.Git.Settings).%New()
+
+            set uncommittedWithAction = ##class(SourceControl.Git.Utils).UncommittedWithAction().%Get("user")
+            set commitMsg = ##class(SourceControl.Git.Utils).GenerateCommitMessageFromFiles(uncommittedWithAction)
+            set filesToSync = ($length(commitMsg) > 0)
+            set fileSectionDisplay = $select(
+                filesToSync = 1: "block",
+                1: "none"
+            )
+            set noFileDisplay = $select(
+                filesToSync = 0: "block",
+                1: "none"
+            )
+
+            set outputDisplay = "none"
+
+        </server>
+        
+        <div class="container">
+            <h1 class="text-center">Sync Repository</h1>
+            <div class="row">
+                <div class="offset-sm-2 col-sm-8">
+                    <server> 
+                    set defaultBasic = ##class(SourceControl.Git.Utils).InDefaultBranchBasicMode()
+                        if defaultBasic || ##class(SourceControl.Git.Change).GetOtherDeveloperChanges().%Size() > 0 {
+                        if defaultBasic { 
+                            set message = "Please change branches to make sure your changes are committed." 
+                        } else {
+                            set message = "Other users have work in progress in this namespace. They must commit their work before you can sync, or you can commit their work after review in the Git WebUI before trying to sync again."
+                        }
+                            &html<
+                                <div class = "alert">
+                                    <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+                                    <strong>Warning!</strong> #(message)#
+                                </div>
+                            >
+                        }
+                    </server>
+                    <div style="display: #(fileSectionDisplay)#">
+                        <h3 class="section-header">Files to be committed with sync:</h3>
+                        <ul class="list-group">
+                            <server>
+                                set iterator = uncommittedWithAction.%GetIterator()
+                                while iterator.%GetNext(,.uncommitted) {
+                                    set action = uncommitted.%Get("action")
+                                    set file = uncommitted.%Get("file")
+                                    &html<<li class="list-group-item #(..EscapeHTML(action))#">#(..EscapeHTML(file))#</li>>
+                                }
+                            </server>
+                        </ul>
+                        <h3 class="section-header">Sync commit message:</h3>
+                        <input class="form-control" type="text" name="syncMsg" id="syncMsg" value="#(..EscapeHTML(commitMsg))#">
+                    </div>
+                    <div style="display: #(noFileDisplay)#">
+                        <h2 class="text-center">No files to commit with sync</h2>
+                    </div>
+                    <h3 class="section-header">Sync details:</h3>
+                    <p>Upon syncing, the local repository will pull the changes from remote and commit the newest changes before committing and pushing</p>
+                    <server>
+                        
+                        if settings.defaultMergeBranch '= "" {
+                            &html<<p>Local changes will be merged with #(..EscapeHTML(settings.defaultMergeBranch))# after receiving the latest changes</p>>
+                        }
+                    </server>
+
+                    <button class="btn btn-lg btn-primary" id="syncBtn" onClick="disableInput(); #server(..PerformSync(self.document.getElementById('syncMsg').value))#">Sync</button>
+                    <div>
+                        <h3 class="output-header" id="outputHeader" style="display: #(outputDisplay)#">Sync output: </h3>
+                        <div class="container output" id="outputContainer" style="display: #(outputDisplay)#">
+                            <pre id="outputBox"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </body>
+    <script language="cache" method="PerformSync" arguments="syncMsg:%String">
+        &js<document.getElementById('outputContainer').style.display = 'block'>
+        &js<document.getElementById('outputHeader').style.display = 'block'>
+        set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+        do buffer.BeginCaptureOutput()
+
+        set st = ##class(SourceControl.Git.Utils).Sync(syncMsg)
+
+        set out = ##class(%Stream.GlobalCharacter).%New()
+        do buffer.EndCaptureOutput(.out)
+        do ##class(SourceControl.Git.Log).Create(out,,,,"Sync")
+        while 'out.AtEnd {
+            set line = out.ReadLine()
+            set escapedLine = ..EscapeHTML(line)
+            set escapedLine = $replace(escapedLine, $char(10), "<br>")
+
+            &js<
+                var outputContainer = document.getElementById('outputBox');
+                var lineText = #(..QuoteJS(escapedLine))#;
+                var urlRegex = /(https?:\/\/[^ ]*)/gi;
+                lineText = lineText.replace(urlRegex, "<a href='$1' target=_blank>$1</a>");
+                outputContainer.innerHTML += lineText + "<br>";
+            >
+        }
+        &js<document.getElementById('syncBtn').innerHTML = 'Synced'>
+    </script>
+</html>
+<script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
+	try {
+		set %session.UseSessionCookie = 1 // Always set back to autodetect
+		set %session.CookiePath = "" // Always clear
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
+	quit 1
+</script>
+<script method='OnPreHyperEvent' arguments="class:%String,method:%String" language='cache' runat='server' returntype='%Status'>	
+	try {
+		set %session.UseSessionCookie = 1 // Always set back to autodetect
+		set %session.CookiePath = "" // Always clear
+		if (%request.UserAgent [ " Code/") {
+			// Workaround for VSCode webview
+			set %session.SessionScope = 0 // none; allowed because...
+			set %session.SecureSessionCookie = 1 // secure flag on session cookie - will be ignored over http, but that's OK because we already have it
+		}
+	} catch e {
+		// ignore; may occur on platform versions without the above properties
+	}
+	quit 1
+</script>

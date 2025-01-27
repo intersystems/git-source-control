@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26">
+<Project name="ProductionSettings-UnitTest_SampleProduction" LastModified="1841-01-01 00:00:00.0000000">
+  <Items>
+    <ProjectItem name="EnsExportNotes.ProductionSettings-UnitTest_SampleProduction.PTD" type="PTD"></ProjectItem>
+    <ProjectItem name="ProductionSettings:UnitTest.SampleProduction.PTD" type="PTD"></ProjectItem>
+  </Items>
+</Project>
+
+
+<Document name="EnsExportNotes.ProductionSettings-UnitTest_SampleProduction.PTD"><ProjectTextDocument name="EnsExportNotes.ProductionSettings-UnitTest_SampleProduction" description="Export Notes for export ProductionSettings-UnitTest_SampleProduction">
+<![CDATA[<Deployment>
+<Creation>
+<SourceProduction>UnitTest.SampleProduction</SourceProduction>
+<UTC>1841-01-01 00:00:00.000</UTC>
+</Creation>
+<Notes>
+</Notes>
+<Contents>
+<ExportProject>ProductionSettings-UnitTest_SampleProduction</ExportProject>
+<Item num="1">ProductionSettings:UnitTest.SampleProduction.PTD</Item>
+</Contents>
+<ProductionClassInExport></ProductionClassInExport>
+</Deployment>
+
+]]></ProjectTextDocument>
+</Document>
+
+<Document name="ProductionSettings:UnitTest.SampleProduction.PTD"><ProjectTextDocument name="ProductionSettings:UnitTest.SampleProduction" description="Settings for production UnitTest.SampleProduction">
+<![CDATA[<Production Name='UnitTest.SampleProduction' LogGeneralTraceEvents='false'/>
+]]></ProjectTextDocument>
+</Document></Export>

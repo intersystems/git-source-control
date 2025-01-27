@@ -66,6 +66,7 @@ ClassMethod AddDeletedToUncommitted(Filename, InternalName) As %Status
     Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "", 0)
 }
 
+/// The Filename here is an ExternalName formatted name with the full file path
 ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 {
     &SQL(SELECT ID INTO :ID FROM SourceControl_Git.Change WHERE ItemFile = :Filename AND Committed = '0')
@@ -77,9 +78,47 @@ ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
     }
 }
 
-/// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
-ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) As %Status
+ClassMethod GetOtherDeveloperChanges() As %Boolean
 {
+    set numEntries = 0
+    set fileToOtherDevelopers = {}
+
+    set username = $username
+    &sql(DECLARE DeveloperCursor CURSOR FOR SELECT ItemFile, ChangedBy into :itemFile, :changedBy from SourceControl_Git.Change WHERE Committed = 0 and ChangedBy <> :username)
+    &sql(OPEN DeveloperCursor)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+    &sql(FETCH DeveloperCursor)
+    set tempFolder = ##class(SourceControl.Git.Utils).TempFolder()
+    while(SQLCODE = 0) {
+        if $FIND(itemFile, tempFolder) {
+            set filePath = $PIECE(itemFile, tempFolder, 2)
+            set otherDevelopers = fileToOtherDevelopers.%Get(filePath, [])
+            do otherDevelopers.%Push(changedBy)
+            do fileToOtherDevelopers.%Set(filePath, otherDevelopers)
+        }
+        
+        &sql(FETCH DeveloperCursor)
+    }
+    &sql(CLOSE DeveloperCursor)
+
+    return fileToOtherDevelopers
+}
+
+/// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
+ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
+{
+    
+    set lock = $System.AutoLock.Lock("^SourceControl.Git.Refresh",,10)
+    if lock = $$$NULLOREF {
+        quit $$$ERROR($$$GeneralError,"Unable to get exclusive lock for refresh of uncommitted changes.")
+    }
+    if 'Force {
+        // 10-second throttle on RefreshUncommitted
+        if $zdatetime($ztimestamp,-2) - $Get(^IRIS.Temp.gitsourcecontrol("Refresh"),0) < 10 {
+            merge gitFiles = ^IRIS.Temp.gitsourcecontrol("LastUncommitted")
+            quit $$$OK
+        }
+    }
     kill gitFiles
     
     // files from the uncommitted queue
@@ -90,24 +129,39 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) 
     do ##class(Utils).GitStatus(.gitFiles)
 
     // Remove entries in the uncommitted queue that don't correspond to changes as tracked by git
-    set filename="", filename=$order(tFileList(filename),1,action)
-    while (filename'="") {       
-        set examine=$select(action="add":1,action="edit":1,action="delete":1, IncludeRevert&&(action="revert"):1,1:0)
-        if 'examine set filename=$order(tFileList(filename),1,action) continue
+    set filename=""
+    for {
+        set filename=$order(tFileList(filename),1,action)
+        quit:filename=""
 
+        set examine=$select(action="add":1,
+            action="edit":1,
+            action="delete":1,
+            IncludeRevert&&(action="revert"):1,
+            1:0)
+        if 'examine {
+            continue
+        }
+
+        set packageRoot = ##class(SourceControl.Git.Utils).TempFolder()
         set InternalName = ##class(SourceControl.Git.Utils).NameToInternalName(filename,0,0)
+
+        // skip files belonging to other git enabled packages
+        if ($EXTRACT(filename, 1, $LENGTH(packageRoot)) '= packageRoot) continue
 
         if (('##class(%File).Exists(filename)) || (InternalName = "") || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && 
             (($data($$$TrackedItems(InternalName))) || ##class(SourceControl.Git.Utils).NormalizeExtension($data($$$TrackedItems(InternalName))))))  {
             set sc=..RemoveUncommitted(filename,Display,0,0)
-            if $$$ISERR(sc) set filename="" continue
+            if $$$ISERR(sc) continue
         }
-        set filename=$order(tFileList(filename),1,action)
     }
 
     // Add missing records to the uncommitted queue that correspond to changes as tracked by git
-    set filename="", filename=$order(gitFiles(filename),1,details)
-    while (filename'="") {  
+    set filename=""
+    for {
+        set filename=$order(gitFiles(filename),1,details)
+        quit:filename=""
+        
         set InternalName = filename
         set ExternalName = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Utils).TempFolder()_$list(details,2))
         set changeType = $list(details,1)
@@ -120,11 +174,74 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles) 
 
         if ((##class(%File).Exists(ExternalName)) && ('$ISVALIDNUM(InternalName)) && ('..IsUncommitted(ExternalName)) && ($data($$$TrackedItems(InternalName))))  {
             set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "", 0)
-            if $$$ISERR(sc) w sc set filename="" continue
+            if $$$ISERR(sc) continue
         }
-        set filename=$order(gitFiles(filename),1,details)
     }
+
+    // If a file was added to the index and then deleted, git status will show it as a delete but committing will fail.
+    // The solution is to git add each deleted file that has never been committed so it will be removed from the index.
+    set key = $order(gitFiles(""))
+    while (key '= "") {
+        if $listget(gitFiles(key),1) = "D" {
+            set filename = $listget(gitFiles(key),2)
+            do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("log",,.errStream,.outStream,"--first-parent", "--", filename)
+            if (outStream.Size = 0) {
+                do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("add",,errStream,outStream,filename)
+            }
+        }
+        set key = $order(gitFiles(key))
+    }
+    set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
+    merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles
     quit sc
+}
+
+Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%String,Namespace:%String")
+{
+}
+
+ClassMethod InstanceUncommittedExecute(ByRef qHandle As %Binary) As %Status
+{
+    set initNS = $namespace
+    &sql(DECLARE InstanceCursor CURSOR FOR SELECT InternalName, ChangedBy into :internalName, :changedBy from SourceControl_Git.Change)
+    set namespaces = ##class(SourceControl.Git.Utils).GetGitEnabledNamespaces()
+    set tPtr = 0
+    set qHandle("i") = 1
+    new $namespace
+    kill ^||InstanceUncommitted
+    while $LISTNEXT(namespaces, tPtr, tValue) {
+        set namespace = $ZCONVERT(tValue, "U")
+        if '(namespace [ "^") && (namespace '= initNS) {
+            set $NAMESPACE = namespace
+                
+                &sql(OPEN InstanceCursor)
+                    throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+                &sql(FETCH InstanceCursor)
+                while(SQLCODE = 0) {
+                    set ^||InstanceUncommitted("changes", $increment(^||InstanceUncommitted("changes")), "InternalName") = internalName
+                    set ^||InstanceUncommitted("changes", ^||InstanceUncommitted("changes"), "User") = changedBy
+                    set ^||InstanceUncommitted("changes", ^||InstanceUncommitted("changes"), "Namespace") = namespace
+                    &sql(FETCH InstanceCursor)
+                }
+                &sql(CLOSE InstanceCursor)
+        }
+    }
+    
+    Quit $$$OK
+}
+
+ClassMethod InstanceUncommittedFetch(ByRef qHandle As %Binary, ByRef Row As %List, ByRef AtEnd As %Integer = 0) As %Status [ PlaceAfter = InstanceUncommittedExecute ]
+{
+    set i = qHandle("i")
+    if $data(^||InstanceUncommitted("changes",i))=10 {
+        set Row = $listbuild(^||InstanceUncommitted("changes", i, "InternalName"), ^||InstanceUncommitted("changes", i, "User"), ^||InstanceUncommitted("changes", i, "Namespace"))
+    }
+    if i >= $get(^||InstanceUncommitted("changes"),0) {
+        set AtEnd = 1
+    } else {
+        set qHandle("i") = $increment(qHandle("i"))
+    }
+    Quit $$$OK
 }
 
 Storage Default
@@ -179,4 +296,3 @@ Storage Default
 }
 
 }
-

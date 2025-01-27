@@ -69,9 +69,16 @@ $.get("api/settings", function(settingsURL){
     webui.settingsURL = url.url;
 });
 
+webui.homeURL = "";
+$.get("api/home", function(homeURL){
+    var url = JSON.parse(homeURL);
+    webui.homeURL = url.url;
+});
+
 webui.showSuccess = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
+    
     $(  '<div class="alert alert-success alert-dismissible" role="alert">' +
             '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
             webui.largeXIcon+
@@ -88,12 +95,121 @@ webui.showError = function(message) {
 webui.showWarning = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
+
+    // convert links in message into actual html links
+    var messageAsArr = message.split(" ");
+    messageAsArr = messageAsArr.map(function(messagePart){
+        if (messagePart.substring(0,8) === "https://") {
+            return '<a href="' + messagePart + '" target="_blank">' + messagePart + '</a>';
+        } else {
+            return messagePart;
+        }
+    });
+    message = messageAsArr.join(" ")
+
+
     $(  '<div class="alert alert-warning alert-dismissible" role="alert">' +
             '<button type="button" class="btn btn-default close" data-dismiss="alert">' +
             webui.largeXIcon+
             '</button>' +
             message +
         '</div>').appendTo(messageBox);
+}
+
+webui.gitVersion = function() {
+    $.get("api/git-version", function(version) {
+        var ver = JSON.parse(version)["version"];
+        if (ver < 2.31) {
+            alert("Your git version is incompatible with git-source-control. Please upgrade to git 2.31.0 or greater.")
+        }
+    })
+}
+
+webui.parseGitResponse = function(data) {
+    var matches = data.match(/([\S\s]*)Git-Stderr-Length:\s(\d*)[\r\n]{1,2}Git-Return-Code:\s(\d*)/);
+    if (!matches || (matches.length < 4)) {
+        return {
+            output: '',
+            message: '',
+            rcode: 1
+        }
+    }
+    var messageData = matches[1].replace(/(\r\n)/gm, "\n");
+    var errorLength = parseInt(matches[2],10);
+    var boundary = messageData.length - errorLength;
+    var stdout = messageData.substring(0, boundary)
+    var stderr = messageData.substring(boundary);
+    return {
+        output: stdout,
+        message: stderr,
+        rcode: matches[3]
+    };
+}
+
+webui.processGitResponse = function(data, command, callback, warningCallback,errorCallback) {
+    var result = webui.parseGitResponse(data);
+    var rcode = result.rcode;
+    var output = result.output;
+    var message = result.message;
+
+    if (rcode == 0) {
+        if (callback) {
+            callback(output);
+        }
+        // Return code is 0 but there is stderr output: this is a warning message
+        if (message.length > 0) {
+            if (warningCallback) {
+                warningCallback(message);
+            } else {
+                webui.showWarning(message);
+            }
+        }
+    } else {
+        var displayMessage = ""
+        if(output.length > 0){
+            displayMessage += (output+"\n");
+        }
+        if(message.length > 0){
+            displayMessage += message;
+        }
+        if(displayMessage.length > 0){
+                if(displayMessage.indexOf("self.document.Login") != -1){
+                    location.reload();
+                    return false;
+                }
+                if (errorCallback) {
+                    errorCallback(displayMessage);
+                } else {
+                    webui.showError(displayMessage);
+                }
+
+            //}
+        } else {
+            webui.showError("The command <pre>"+command.join(" ")+"</pre> failed because of an unknown reason. Returned response: \n\n"+data)
+        }
+    }
+}
+
+webui.git_command = function(command, callback, warningCallback, errorCallback) {
+    $.ajax({
+        url: "git-command",
+        type: "POST",
+        contentType: 'application/json',
+        data: JSON.stringify({
+            command: command
+        }),
+        success: function(data) {
+            webui.processGitResponse(data, command, callback, warningCallback, errorCallback);
+        },
+        error: function(data) {
+            if (errorCallback) {
+                errorCallback(data.replace(/(\r\n)/gm, "\n"));
+            } else {
+                var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                webui.showError(trimmedData);
+            }
+        },
+    });
 }
 
 webui.git = function(cmd, arg1, arg2, arg3, arg4) {
@@ -119,34 +235,12 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
         var warningCallback = arg4;
     } 
 
-    $.post("git", cmd, function(data, status, xhr) {
+    $.post("git", {command: cmd}, function(data, status, xhr) {
         if (xhr.status == 200) {
-            // Convention : last lines are footer meta data like headers. An empty line marks the start if the footers
-            var footers = {};
-            var fIndex = data.length;
-            while (true) {
-                var oldFIndex = fIndex;
-                fIndex = data.lastIndexOf("\r\n", fIndex - 1);
-                var line = data.substring(fIndex + 2, oldFIndex);
-                if (line.length > 0) {
-                    var footer = line.split(": ");
-                    footers[footer[0]] = footer[1];
-                } else {
-                    break;
-                }
-            }
-            // Trims the the data variable to remove the footers extracted in the loop.
-            // Windows adds \r\n for every line break but the Git-Stderr-Length variable,
-            // counts it as only one character, throwing off the message length.
-            var trimmedData = data.substring(0, fIndex).replace(/(\r\n)/gm, "\n");
-            var fIndex = trimmedData.length
-
-            var messageLength = parseInt(footers["Git-Stderr-Length"]);
-            var messageStartIndex = fIndex-messageLength;
-            var message = trimmedData.substring(messageStartIndex, fIndex);
-
-            var output = trimmedData.substring(0, messageStartIndex);
-            var rcode = parseInt(footers["Git-Return-Code"]);
+            var result = webui.parseGitResponse(data);
+            var rcode = result.rcode;
+            var output = result.output;
+            var message = result.message;
 
             if (rcode == 0) {
                 if (callback) {
@@ -183,15 +277,15 @@ webui.git = function(cmd, arg1, arg2, arg3, arg4) {
                 }
             }
         } else {
-            if(errorCallback) {
-                errorCallback(message);
+            if (errorCallback) {
+                errorCallback(data);
             } else{
-                webui.showError(message);
+                webui.showError(data);
             }
         }
     }, "text")
     .fail(function(xhr, status, error) {
-        webui.showError("Git webui server not running");
+        webui.showError("An internal error occurred and has been logged.");
     });
 };
 
@@ -215,6 +309,7 @@ webui.getNodeIndex = function(element) {
 }
 
 webui.TabBox = function(buttons) {
+
 
     var self = this;
 
@@ -309,6 +404,28 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             }
         });
 
+        // Search bar to filter the results
+        if (idPostfix =='popup') {
+            var searchBar = $('<input type="text" id="search-input" placeholder="Filter..." style="width:100%">').appendTo(accordionDiv)[0];
+            searchBar.onkeyup = function(){ 
+                let branchCards = accordionDiv.getElementsByClassName("branch-card");
+
+                var filter = searchBar.value.toUpperCase().replaceAll('/', '-');
+
+                for (let i = 0; i < branchCards.length; i++) {
+                    let card = branchCards[i]
+                    let cardHeader = card.querySelector('.card-header');
+                    if (cardHeader) {
+                        if (cardHeader.id.toUpperCase().indexOf(filter) > -1) {
+                          card.style.display = '';
+                        } else {
+                          card.style.display = 'none';
+                        }
+                      }
+                }
+            };
+        }
+
         for (var i = 0; i < refs.length && i < maxRefsCount; ++i) {
             var ref = refs[i] + ""; // Get a copy of it
             if (ref[2] == '(' && ref[ref.length - 1] == ')') {
@@ -320,13 +437,21 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     ref = '  ' + newref;
                 }
             }
-            var cardDiv = $('<div class="card custom-card">').appendTo(accordionDiv)[0];
+            var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var branchInfo = /^\*?\s*(?<branch_name>[\w-]+)\s+(?<hash>[^\s]+)\s+(?<remote>\[.*\])?.*/.exec(ref).groups;
+                var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                if (!matches) {
+                    continue;
+                }
+                var branchInfo = {
+                    "branch_name": matches[1],
+                    "hash": matches[2],
+                    "remote": matches[3]
+                }
                 var refname = branchInfo.branch_name;
-                var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.includes("ahead")) // either no upstream or ahead of upstream
-                var itemId = refname + idPostfix;
+                var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.indexOf("ahead") > -1) // either no upstream or ahead of upstream
+                var itemId = refname.replaceAll('/', '-') + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + refname
@@ -357,7 +482,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId +'">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
-                                + ref //IMPORTANT: This has to be the original ref for selectRef to work 
+                            + ref //IMPORTANT: This has to be the original ref for selectRef to work 
                             + '</button>').appendTo(cardHeader)
 
                 var collapseDiv = $('<div id="collapse-' + itemId + '" class="collapse" aria-labelledby="heading-' + itemId + '" data-parent="#accordion-'+id+'-'+idPostfix+'">').appendTo(cardDiv);
@@ -372,6 +497,20 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 self.selectRef(event.target.innerHTML);
             });
         }
+
+        if (id === "remote-branches" && idPostfix === "popup") {
+            var remoteBranchBtns = $("#accordion-remote-branches-popup button").filter(function (i, span) {
+                return jQuery.inArray($(span).text(), refs) != -1;
+            });
+            var widest = Math.max.apply(Math, remoteBranchBtns.map(function (i, span) {
+                return $(span).width();
+            }));
+            if (remoteBranchBtns.length > 0) {
+                remoteBranchBtns.css("padding", ".25rem .5rem");
+                remoteBranchBtns.css("border", 0);
+                remoteBranchBtns.width(widest);
+            }
+        } 
         return accordionDiv;
     }
 
@@ -399,10 +538,10 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var flag = 0;
             webui.git("status -u --porcelain", function(data) {
                 $.get("api/uncommitted", function (uncommitted) {
-                    var uncommittedItems = JSON.parse(uncommitted);
+                    var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                     var col = 1
                     webui.splitLines(data).forEach(function(line) {
-                        var status = line[col];
+                        var status = line.trim()[col];
                         if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
                             line = line.substring(3);
                             var splitted = line.split(" -> ");
@@ -441,9 +580,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         $("#confirm-branch-checkout").on('click', '#confirm-checkout', function(e){
                             e.preventDefault();
                             var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
-    
-                            webui.git("checkout -b " + refName, updateSideBar);
-                            removeModal("#confirm-branch-checkout");
+
+                            $.post('create-branch', {branch: refName}, function() {
+                                updateSideBar();
+                                removeModal("#confirm-branch-checkout");
+                            });
                         });
                     
                         $("#confirm-branch-checkout").find("#cancel-checkout, .close").click(function() {
@@ -451,7 +592,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                         });
                     }
                     else{       
-                        webui.git("checkout -b " + refName, updateSideBar);
+                        $.post('create-branch', {branch: refName}, function() {
+                            updateSideBar();
+                        });
                     }
                 });
             });
@@ -461,26 +604,129 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     self.pruneRemoteBranches = function(e){
         e.preventDefault();
         $(".btn-prune-remote-branches").addClass("refresh-start");
-        webui.git("fetch --prune",updateSideBar);
+        webui.git("fetch --prune ",updateSideBar);
     }
 
-    self.checkoutBranch = function(e) {
-        e.preventDefault();
-        $("#confirm-branch-checkout").remove();
+    self.getPackageVersion = function() {
+        $.get("api/get-package-version", function(version) {
+            var ver = JSON.parse(version)["version"];
+            $("#packageVersion").text("package version " + ver)
+        })
+    }
+
+    self.getEnvironment = function() {
+        $.get("api/environment", function(environment) {
+            var env = JSON.parse(environment)["environment"];
+            $("#environment").text(env)
     
-        var refName = $(this).parent().parent().parent().siblings(
-            ".card-header").children("button").html();
+        });
+    };
+
+    self.changeContextGet = function(onlyNamespaces) {
+        $.get("contexts", { "onlyNamespaces": onlyNamespaces }, function(contextList) {
+            var contexts = JSON.parse(contextList);
+            self.changeContext(contexts);
+        });
+    }
+
+    self.changeContext = function(contexts) {
+        
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#changeContextModal").remove();
+        }
+
+        var popup = $(
+            '<div class="modal fade" tab-index="-1" id="changeContextModal" role="dialog">' + 
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Change Context</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body"></div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+
+        $("body").append(popup);
+        var popupBody = $(".modal-body", popup)[0];
+        webui.detachChildren(popupBody);
+
+        $(
+            '<div class="">'+
+                '<h6>Select context for Git Source Control</h6>' +
+                '<select id="chosenContext" class="custom-select">'+ 
+                '</select>' +
+            '</div>'
+        ).appendTo(popupBody);
+
+        var selectDropdown = $(".custom-select", popupBody)[0];
+
+        contexts.forEach(function(context) {
+            $(
+                '<option value="' + context + '" ' + (context == self.currentContext ? "selected" : "") + ' >' + context + '</option>'
+            ).appendTo(selectDropdown);
+        })
+        
+
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+
+        $(
+            '<button class="btn btn-sm btn-primary action-btn" id="chooseContextBtn">Choose Context</button>' + 
+            '<button class="btn btn-sm btn-secondary" id="cancelContextBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+
+        $(popup).modal('show');
+
+        $('#changeContextModal').find('#cancelContextBtn', '.close').click(function() {
+            removePopup(popup);
+        });
+
+        $("#chooseContextBtn").on("click", function() {
+            self.updateContext($("#chosenContext").val());
+            removePopup(popup);
+        });
+    }
+
+    self.getCurrentContext = function() {
+        var args = window.location.href.split("webuidriver.csp/")[1].split("/");
+        var context = args[0];
+        if (args[1] && (args[1].indexOf(".ZPM") != -1)) {
+            context = args[1];
+        }
+        return context;
+    }
+
+    self.updateContext = function(context) {
+        var urlParts = window.location.href.split("webuidriver.csp/");
+        var args = urlParts[1].split("/");
+        if (context.indexOf(".ZPM") != -1) {
+            args[1] = context;
+        } else {
+            args[0] = context;
+            args[1] = "";
+        }
+        window.location = urlParts[0] + "webuidriver.csp/" + args.join("/");
+        self.currentContext = context;
+    }
+
+    self.checkoutBranch = function(branchType, refName) {
+        $("#confirm-branch-checkout").remove();
 
         var remoteName = refName.split("/")[0];
-        var branchName = refName.split("/")[1];
-
+        var branchName = refName.split("/").slice(1).join("/");
         var flag = 0;
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
-                var uncommittedItems = JSON.parse(uncommitted);
+                var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
                 var col = 1
                 webui.splitLines(data).forEach(function(line) {
-                    var status = line[col];
+                    var status = line.trim()[col];
                     if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
                         line = line.substring(3);
                         var splitted = line.split(" -> ");
@@ -519,12 +765,18 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     $("#confirm-branch-checkout").on('click', '#confirm-checkout', function(e){
                         e.preventDefault();
                         var refName = $("#confirm-branch-checkout pre")[0].innerHTML;
-                        var remoteName = refName.split("/")[0];
-                        var branchName = refName.split("/")[1];
 
-                        if(branchName){
-                            webui.git("fetch "+remoteName+" "+branchName);
-                            webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                        if(branchType === "remote"){
+                            var remoteName = refName.split("/")[0];
+                            var branchName = refName.split("/")[1];
+                            webui.git("fetch --prune "+remoteName+" "+branchName);
+                            webui.git("branch -l "+branchName, function(existingBranch) {
+                                if (existingBranch.length > 0) {
+                                    webui.git("checkout " +branchName, updateSideBar);
+                                } else {
+                                    webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                                }
+                            });
                         }
                         else{
                             webui.git("checkout " + refName, updateSideBar, "", "", webui.showSuccess);
@@ -537,17 +789,40 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     });
                 }
                 else{
-                    if(branchName){
-                        webui.git("fetch "+remoteName+" "+branchName);
-                        webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                    if(branchType === "remote"){
+                        webui.git("fetch --prune "+remoteName+" "+branchName);
+                        webui.git("branch -l "+branchName, function(existingBranch) {
+                            if (existingBranch.length > 0) {
+                                webui.git("checkout " +branchName, updateSideBar);
+                            } else {
+                                webui.git("checkout -b " +branchName + " " + refName, updateSideBar);
+                            }
+                        });
                     }
-
                     else{
                         webui.git("checkout " + refName, updateSideBar, "", "", webui.showSuccess);
                     }
                 }
             });
         });
+    }
+
+    self.checkoutLocalBranch = function(e) {
+        e.preventDefault();
+
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+
+        self.checkoutBranch("local", refName);
+    }
+
+    self.checkoutRemoteBranch = function(e) {
+        e.preventDefault();
+    
+        var refName = $(this).parent().parent().parent().siblings(
+            ".card-header").children("button").html();
+
+        self.checkoutBranch("remote", refName);
     }
 
     self.deleteLocalBranch = function(e) {
@@ -641,7 +916,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var branchName = refName.split('/')[1];
 
         if(branchName){
-            webui.git("fetch "+remoteName+" "+branchName);
+            webui.git("fetch --prune "+remoteName+" "+branchName);
         }
 
         function callTestMergeHandler(message){
@@ -656,11 +931,15 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         e.preventDefault();
         var refName = $(this).parent().parent().parent().siblings(
             ".card-header").children("button").html();
-        webui.git(`push -u origin ${refName}`, "", self.upToDateHandler)
+        webui.git('push -u origin '+refName, "", self.upToDateHandler)
     }
 
     self.goToSettingsPage = function() {
-        window.location.replace(webui.settingsURL);
+        window.location.href = webui.settingsURL;
+    }
+
+    self.goToHomePage = function() {
+        window.location.href = webui.homeURL;
     }
 
     self.fetchSection = function(section, title, id, gitCommand) {
@@ -706,9 +985,18 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         });
     };
 
+    self.refreshSideBar = function() {
+        self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
+        self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
+        self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
+    }
+
     self.mainView = mainView;
+    self.currentContext = self.getCurrentContext();
     self.element = $(   '<div id="sidebar">' +
                             '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
+                            '<h5 id="packageVersion"></h5>' +
+                            '<h4 id="environment"></h4>'+ 
                             '<div id="sidebar-content">' +
                                 '<section id="sidebar-workspace">' +
                                     '<h4>Workspace</h4>' +
@@ -716,14 +1004,17 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-stash">' +
                                     '<h4>Stash</h4>' +
                                 '</section>' +
+                                '<section id="sidebarDiscarded">' +
+                                    '<h4>Discarded Files</h4>' +
+                                '</section>' +
                                 '<section id="sidebar-local-branches">' +
-                                    '<h4 class="mt-3">Local Branches' +
+                                    '<h4 class="mt-1">Local Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
                                         webui.circlePlusIcon+
                                     '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
-                                    '<h4 class="mt-3">Remote Branches' +
+                                    '<h4 class="mt-1">Remote Branches' +
                                     '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" >'+
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +
@@ -731,8 +1022,18 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
+                                '<section id="space-filler"></section>'+
                                 '<section id="sidebar-settings">' +
                                     '<h4>Settings</h4>' +
+                                '</section>' +
+                                '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '">' + 
+                                    '<h4>Change Context</h4>' +
+                                '</section>' +
+                                '<section id="sidebar-vscode">' +
+                                    '<h4><a href="vscode-workspace" target="_blank">Code Workspace</a></h4>' +
+                                '</section>' +
+                                '<section id="sidebar-home">' +
+                                    '<h4>Home</h4>' +
                                 '</section>' +
                             '</div>' +
                         '</div>')[0];
@@ -744,7 +1045,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         workspaceElement.click(function (event) {
             $("*", self.element).removeClass("active");
             workspaceElement.addClass("active");
-            self.mainView.workspaceView.update("stage");
+            self.mainView.workspaceView.show();
         });
 
         var stashElement = $("#sidebar-stash h4", self.element);
@@ -754,19 +1055,36 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             self.mainView.stashView.update(0);
         });
 
+        var discardedElement = $("#sidebarDiscarded", self.element);
+        discardedElement.click(function() {
+            $("*", self.element).removeClass("active");
+            discardedElement.addClass("active");
+            self.mainView.discardedView.show();
+        });
+
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
+        $("#sidebar-context", self.element).click(function() {
+            self.changeContextGet(0);
+        });
+        $("#sidebar-home", self.element).click(self.goToHomePage);
     }
 
-    self.fetchSection($("#sidebar-local-branches", self.element)[0], "Local Branches", "local-branches", "branch --verbose --verbose");
-    self.fetchSection($("#sidebar-remote-branches", self.element)[0], "Remote Branches", "remote-branches", "branch --remotes");
-    self.fetchSection($("#sidebar-tags", self.element)[0], "Tags", "tags", "tag");
+    // Removing the link to home if not a top-level page
+    if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
+        $("#sidebar-home", self.element).remove();
+    }
+
+    
+    self.getPackageVersion();
+    self.getEnvironment()
+    self.refreshSideBar();
 
     if(!noEventHandlers){
-        $(document).on('click', '.btn-checkout-local-branch', self.checkoutBranch);
+        $(document).on('click', '.btn-checkout-local-branch', self.checkoutLocalBranch);
         $(document).on('click', '.btn-push-branch', self.pushBranch);
-        $(document).on('click', '.btn-checkout-remote-branch', self.checkoutBranch);
+        $(document).on('click', '.btn-checkout-remote-branch', self.checkoutRemoteBranch);
 
         $(document).on('click', '.btn-delete-branch', self.deleteLocalBranch);
 
@@ -787,10 +1105,10 @@ webui.LogView = function(historyView) {
         streams = []
         $(content).empty();
         self.nextRef = ref;
-        self.populate();
+        self.populate(ref);
     };
 
-    self.populate = function() {
+    self.populate = function(ref) {
         var maxCount = 1000;
         if (content.childElementCount > 0) {
             // The last node is the 'Show more commits placeholder'. Remove it.
@@ -809,8 +1127,7 @@ webui.LogView = function(historyView) {
                     }
                     var end = data.length;
                 }
-                
-                var entry = new Entry(self, data.substring(start, end));
+                var entry = new Entry(self, data.substring(start, end), count == 0 ? true : false, ref);
                 content.appendChild(entry.element);
                 if (!self.lineHeight) {
                     self.lineHeight = Math.ceil($(entry.element).outerHeight() / 2) * 2;
@@ -923,8 +1240,6 @@ webui.LogView = function(historyView) {
 
             entry.element.webuiLeft = Math.max(entry.element.webuiLeft, streams.length);
             maxLeft = Math.max(maxLeft, entry.element.webuiLeft);
-            // Debug log
-            //console.log(entry.commit, entry.parents, $.extend(true, [], streams));
 
             currentY += self.lineHeight;
         }
@@ -953,7 +1268,7 @@ webui.LogView = function(historyView) {
         this.date.setUTCSeconds(parseInt(secs));
     };
 
-    function Entry(logView, data) {
+    function Entry(logView, data, revert, ref) {
         var self = this;
 
         self.abbrevCommitHash = function() {
@@ -970,13 +1285,20 @@ webui.LogView = function(historyView) {
         };
 
         self.createElement = function() {
+            var contents = "";
+            if (revert && (ref == 'HEAD' || ref == $('.branch-current').text())) {
+                contents = '<div style="overflow:hidden; display: flex"><p class="list-group-item-text"></p>' + 
+                            '<button type="button" class="btn btn-danger file-action-button" id="revertBtn" style="margin-left: 20px;">Revert</button></div>'
+            } else {
+                contents = '<p class="list-group-item-text"></p>'
+            }
             self.element = $('<a class="log-entry list-group-item">' +
                                 '<header>' +
                                     '<h6></h6>' +
                                     '<span class="log-entry-date">' + self.author.date.toLocaleString() + '&nbsp;</span> ' +
                                     '<span class="badge">' + self.abbrevCommitHash() + '</span>' +
                                 '</header>' +
-                                '<p class="list-group-item-text"></p>' +
+                                contents +
                              '</a>')[0];
             $('<a target="_blank" href="mailto:' + self.author.email + '">' + self.author.name + '</a>').appendTo($("h6", self.element));
             $(".list-group-item-text", self.element)[0].appendChild(document.createTextNode(self.abbrevMessage()));
@@ -1017,6 +1339,89 @@ webui.LogView = function(historyView) {
             }
         };
 
+        self.chooseRevert = function() {
+            function removePopup(popup) {
+                $(popup).children(".modal-fade").modal("hide");
+                $(".modal-backdrop").remove();
+                $("#chooseRevert").remove();
+            }
+    
+            function confirmRevert(type) {
+                if (type == 'revert') {
+                    webui.git_command(["revert", "--no-commit","HEAD"], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                } else if (type == 'hardReset') {
+                    webui.git_command(["reset", "--hard", "HEAD~1"], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                }
+    
+            }
+    
+            var popup = $(
+                '<div class="modal fade" tabindex="-1" id="chooseRevert" role="dialog" data-backdrop="static">' +
+                    '<div class="modal-dialog modal-md" role="document">' +
+                        '<div class="modal-content">' + 
+                            '<div class="modal-header">' +
+                                '<h5 class="modal-title">Choose Revert Type</h5>' +
+                                '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                            '</div>' +
+                            '<div class="modal-body">' + 
+                                '<div class="row">' +
+                                    '<div class="col-sm-1">' +
+                                        webui.warningIcon +
+                                    '</div>' +
+                                    '<div class="col-sm-11">' +
+                                        '<p>There are a few options available to revert the previous commit. Please read the description carefully to make sure you choose'+
+                                        ' the correct option.</p>' +
+                                        '<h4>Revert</h2><p><i>git revert --no-commit</i> - This will create a new change, which will be the reversal of the previous commit.'+
+                                        'It will not be automatically committed, so you can inspect/modify/combine the changes with others before you commit.</p>' + 
+                                        '<h4>Hard Reset</h2><p><i>git reset --hard HEAD~1</i> - This will delete the previous commit entirely, and reset you to a state' +
+                                        ' before the commit. <b>WARNING:</b> This will also delete <b>all uncommitted changes</b>, so make sure you have no changes left before' +
+                                        ' attempting this operation.</p>' + 
+                                    '</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="modal-footer"></div>' +
+                        '</div>' + 
+                    '</div>' +
+                '</div>'
+            )[0];
+    
+            $("body").append(popup);
+    
+            var popupFooter = $(".modal-footer", popup)[0];
+            webui.detachChildren(popupFooter);
+    
+            $(
+                '<button class="btn btn-sm btn-warning action-btn" id="revertNoCommitBtn">Revert</button>' +
+                '<button class="btn btn-sm btn-warning action-btn" id="hardResetBtn">Hard Reset</button>' +
+                '<button class="btn btn-sm btn-secondary action-btn" id="cancelRevertBtn">Cancel</button>'
+            ).appendTo(popupFooter);
+    
+            $(popup).modal('show');
+    
+            $("#revertNoCommitBtn").on('click', function() {
+                removePopup(popup);
+                confirmRevert("revert");
+            });
+    
+            $("#hardResetBtn").on('click', function() {
+                removePopup(popup);
+                confirmRevert("hardReset");
+            });
+
+
+    
+            $("#chooseRevert").find(".close, #cancelRevertBtn").click(function() {
+                removePopup(popup);
+            })
+        };
+    
+
         self.parents = [];
         self.message = ""
 
@@ -1047,6 +1452,11 @@ webui.LogView = function(historyView) {
         self.message = self.message.trim();
 
         self.createElement();
+
+        $("#revertBtn").off("click");
+        $("#revertBtn").on("click", function() {
+            self.chooseRevert();
+        });
     };
 
     self.historyView = historyView;
@@ -1094,21 +1504,17 @@ webui.StashListView = function(stashView) {
         webui.git("stash list --format='%gd::%ch::%cL::%cN::%gs'", function(data) {
             var start = 0;
             var count = 0;
-            while (true) {
-                var end = data.indexOf("\n", start);
-                if (end != -1) {
-                    var len = end - start;
-                } else {
-                    break;
+            var lines = data.split("\n");
+            for (var i = 0; i < lines.length; i++) {
+                if (lines[i].length == 0) {
+                    continue;
                 }
-                var entry = new Entry(self, data.substring(start, start+len));
+                var entry = new Entry(self, lines[i]);
                 if(start == 0){
                     entry.select();
                 }
                 content.appendChild(entry.element);
-
-                start = end + 1;
-                ++count;
+                count++;
             }
             if(count == 0){
                 var emptyStash = $('<h4 class="empty-stash">You have no stashed changes.</h4>');
@@ -1169,6 +1575,9 @@ webui.StashListView = function(stashView) {
         self.message = ""
 
         var pieces = data.split(/::|:\s/gm);
+        if (pieces.length < 5) {
+            return;
+        }
         self.stashIndex = pieces[0].substring(pieces[0].indexOf('{')+1, pieces[0].indexOf('}'));
         self.date = pieces[1];
         self.authorEmail = pieces[2];
@@ -1191,11 +1600,7 @@ webui.StashCommitView = function(stashView) {
     var self = this;
 
     self.update = function(entry) {
-        if (currentCommit == entry.commit) {
-            // We already display the right data. No need to update.
-            return;
 
-        }
         currentCommit = entry.commit;
         self.showDiff();
         diffView.update("stash show -p stash@{"+entry.stashIndex+"}");
@@ -1222,6 +1627,13 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     var self = this;
 
     self.update = function(cmd, diffOpts, file, mode) {
+        if (cmd || diffOpts || file || mode) {
+            // if new input, update all
+            this.cmd = cmd
+            this.diffOpts = diffOpts
+            this.file = file
+            this.mode = mode
+        }
         gitApplyType = mode;
         $(".diff-stage", self.element).attr("style", "display:none");
         $(".diff-cancel", self.element).attr("style", "display:none");
@@ -1229,7 +1641,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         if (cmd) {
             self.gitCmd = cmd;
             self.gitDiffOpts = diffOpts;
-            if (file != self.gitFile) {
+            if (file != self.gitFile && self.gitFile != '"undefined"') {
                 left.scrollTop = 0;
                 left.scrollLeft = 0;
                 right.scrollTop = 0;
@@ -1239,12 +1651,15 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                 right.webuiPrevScrollTop = 0;
                 right.webuiPrevScrollLeft = 0;
             }
-            webui.git("ls-files "+file, function(path){
-                self.gitFile = file;
+            webui.git("ls-files \""+file+"\"", function(path){
+                self.gitFile = "\"" + file + "\"";
                 self.noIndex = ""
                 if(path.length == 0 && file != undefined){
                     self.gitFile = " /dev/null " + file;
-                    self.noIndex = " --no-index "
+                    self.noIndex = " --no-index ";
+                    if (self.gitDiffOpts == "--cached") {
+                        self.gitDiffOpts = "";
+                    } 
                 }
                 if (self.gitCmd) {
                     var fullCmd = self.gitCmd;
@@ -1259,7 +1674,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                     if (self.gitDiffOpts) {
                         fullCmd += " " + self.gitDiffOpts.join(" ")
                     }
-                    if (self.gitFile) {
+                    if (self.gitFile && self.gitFile != '"undefined"') {
                         fullCmd += self.noIndex + " -- " + self.gitFile;
                     }
                     webui.git(fullCmd, self.refresh, self.refresh, self.refresh);
@@ -1269,6 +1684,14 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             });
         }
     };
+
+    self.clear = function() {
+        self.refresh("");
+    }
+
+    self.reRun = function() {
+        self.update(this.cmd, this.diffOpts, this.file, this.mode)
+    }
 
     self.refresh = function(diff) {
         self.currentDiff = diff;
@@ -1483,24 +1906,24 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
 
     self.addContext = function() {
         self.context += 3;
-        self.update();
+        self.reRun();
     }
 
     self.removeContext = function() {
         if (self.context > 3) {
             self.context -= 3;
-            self.update();
+            self.reRun();
         }
     }
 
     self.allContext = function() {
         self.complete = !self.complete;
-        self.update();
+        self.reRun();
     }
 
     self.toggleIgnoreWhitespace = function() {
         self.ignoreWhitespace = !self.ignoreWhitespace;
-        self.update();
+        self.reRun();
     }
 
     self.handleClick = function(event) {
@@ -1581,8 +2004,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash apply stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "apply", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
+            parent.stashView.update(0);
+            self.clear()
         });
     }
 
@@ -1591,9 +2016,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash pop stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "pop", "stash@{"+stashIndex+"}"], function(output) {
             webui.showSuccess(output);
             parent.stashView.update(0);
+            self.clear()
         });
     }
 
@@ -1602,9 +2028,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             return;
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
-        webui.git("stash drop stash@{"+stashIndex+"}", function(output){
+        webui.git_command(["stash", "drop", "stash@{"+stashIndex+"}"], function() {
             webui.showSuccess(output.substring(output.indexOf("Dropped")));
             parent.stashView.update(0);
+            self.clear();
         });
     }
 
@@ -1675,6 +2102,109 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     self.ignoreWhitespace = false;
     var gitApplyType = "stage";
 };
+
+webui.DiscardedView = function(mainView) {
+    var self = this;
+
+    self.show = function() {
+        self.update();
+        mainView.switchTo(self.element);
+    };
+
+
+    self.update = function() {
+        self.discarded = [];
+        discardedList.innerHTML = '';
+        $('.file-contents').html('');
+        $('.contents-menu').removeClass("has-items");
+        $('.restore-discarded').html('');
+        $('.external-name').text('');
+        
+        $.get("discarded-states", function(discarded) {
+            self.discarded = JSON.parse(discarded);
+            if (self.discarded.length == 0) {
+                discardedList.innerHTML = '<h4>You have no saved discarded states</h4>';
+            }
+            
+            self.populateUiWithDiscardedStates();
+        });
+
+        
+    }
+
+    self.populateUiWithDiscardedStates = function() {
+        self.discarded.forEach(function (discardedState, ind) {
+            var discardedListEntry = $(
+                '<a class="log-entry list-group-item">' + 
+                    '<header>' + 
+                        '<h6 class="file-internalname">' + discardedState.Name + '</h6>' + 
+                        '<span class="discard-date">' + self.formatTimestamp(discardedState.Timestamp) + '</span>' +
+                    '</header>' +
+                    '<span> Branch: ' + discardedState.Branch + ' </span> <br>' +
+                    '<span> User: '+ discardedState.Username + '</span>' +
+
+                '</a>'
+            );
+            
+            discardedListEntry.on("click", function() {
+                $('.log-entry.list-group-item').removeClass('active');
+                $(this).addClass('active');
+
+                $('.contents-menu').addClass("has-items");
+                $('.external-name').text(self.discarded[ind].FullExternalName);
+                
+                var btn = $('<button class="btn btn-sm btn-primary restore-discarded-btn">Restore</button>')[0];
+                var discardElement = $('.restore-discarded')[0];
+                discardElement.innerHTML = '';
+                discardElement.appendChild(btn);
+                var contents = discardedState.Contents.replace(/&/g, "&amp;").replace(/>/g, "&gt;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+
+                $('.restore-discarded-btn').off("click").on("click", function() {
+                    $.post("restore-discarded", {file: discardedState.Id}, function(message) {
+                        if (message.trim() == "Please commit changes to file before restoring discarded state") {
+                            webui.showError(message);
+                        } else {
+                            webui.showSuccess(message);
+                        }
+                        
+                        self.update();
+                    });
+                });
+
+                $('.file-contents').html('<pre>' + contents + '</pre>');
+            });
+
+            
+            discardedListEntry.prependTo(discardedList)[0];
+        });
+    }
+    /// This function takes in an IRIS timestamp format makes it use the "date, time" format
+    self.formatTimestamp = function(timestamp) {
+        var timestampArr = timestamp.split("T");
+        return timestampArr[0] + ', ' + timestampArr[1].slice(0, -1);
+    }
+
+    self.element = $(
+        '<div class="row" id="discardedView">' +
+            '<div class="col-sm-5">' +
+                '<div id="discardedList"></div>' +
+            '</div>' +
+            '<div class="col-sm-5">' +
+                '<div class="contents-menu">' +
+                    '<div class="nav-item restore-discarded"></div>' +
+                    '<div class="nav-item external-name"></div>' +
+                '</div>' +
+                '<div class="container file-contents">' +
+
+                '</div>' +
+            '</div>' +
+        '</div>'
+        
+    )[0];
+    self.discarded = [];
+    var discardedList = $("#discardedList", self.element)[0];
+
+}
 
 /*
  * == TreeView ================================================================
@@ -1995,11 +2525,6 @@ webui.CommitView = function(historyView) {
     var self = this;
 
     self.update = function(entry) {
-        if (currentCommit == entry.commit) {
-            // We already display the right data. No need to update.
-            return;
-
-        }
         currentCommit = entry.commit;
         self.showDiff();
         buttonBox.select(0);
@@ -2053,7 +2578,7 @@ webui.HistoryView = function(mainView) {
     self.element.appendChild(self.commitView.element);
     self.mainView = mainView;
 };
-
+ 
 /*
  * == WorkspaceView ===========================================================
  */
@@ -2063,15 +2588,13 @@ webui.WorkspaceView = function(mainView) {
 
     self.show = function() {
         mainView.switchTo(self.element);
+        self.update("stage");
     };
 
     self.update = function(mode) {
-        self.show();
-        self.workingCopyView.update();
-        self.stagingAreaView.update();
-        self.commitMessageView.update();
-        if (self.workingCopyView.getSelectedItemsCount() + self.stagingAreaView.getSelectedItemsCount() == 0) {
-            self.diffView.update(undefined, undefined, undefined, mode);
+        self.newChangedFilesView.update();
+        if (self.newChangedFilesView.getSelectedItemsCount() == 0) {
+            self.diffView.clear();
         }
     };
 
@@ -2083,392 +2606,645 @@ webui.WorkspaceView = function(mainView) {
     self.diffView = new webui.DiffView(true, true, self);
     workspaceDiffView.appendChild(self.diffView.element);
     var workspaceEditor = $("#workspace-editor", self.element)[0];
-    self.workingCopyView = new webui.ChangedFilesView(self, "working-copy", "Working Copy");
-    workspaceEditor.appendChild(self.workingCopyView.element);
-    self.commitMessageView = new webui.CommitMessageView(self);
-    workspaceEditor.appendChild(self.commitMessageView.element);
-    self.stagingAreaView = new webui.ChangedFilesView(self, "staging-area", "Staging Area");
-    workspaceEditor.appendChild(self.stagingAreaView.element);
+    self.newChangedFilesView = new webui.NewChangedFilesView(self);
+    workspaceEditor.appendChild(self.newChangedFilesView.element);
 };
 
 /*
- * == ChangedFilesView ========================================================
+ * ==new ChangedFilesView ====================================================
  */
-webui.ChangedFilesView = function(workspaceView, type, label) {
+
+webui.NewChangedFilesView = function(workspaceView) {
 
     var self = this;
 
     self.update = function() {
-        $(fileList).empty()
-        var col = type == "working-copy" ? 1 : 0;
+        $(fileList).empty();
+        selectedItems = [];
+        selectedItemsFromOtherUser = [];
+        $('#stashBtn').prop("disabled", true);
+        $('#discardBtn').prop("disabled", true);
+        $('#commitBtn').prop("disabled", true);
+        $("#commitMsg").val("");
+        $("#commitMsgDetail").val("");
+        $('#selectAllFiles').prop('checked', false);
+
         webui.git("status -u --porcelain", function(data) {
             $.get("api/uncommitted", function (uncommitted) {
-                var uncommittedItems = JSON.parse(uncommitted);
+                var uncommittedItems = JSON.parse(uncommitted)["current user's changes"];
+                var otherUserUncommittedItems = JSON.parse(uncommitted)["other users' changes"];
                 self.filesCount = 0;
-                webui.splitLines(data).forEach(function(line) {
-                    var status = line[col];
-                    if (col == 0 && status != " " && status != "?" || col == 1 && status != " ") {
-                        ++self.filesCount;
-                        line = line.substring(3);
-                        var splitted = line.split(" -> ");
-                        var model;
-                        if (splitted.length > 1) {
-                            model = splitted[1];
-                        } else {
-                            model = line;
-                        }
-                        var isForCurrentUser;
-                        if(model.indexOf(" ") > -1){
-                            isForCurrentUser = (uncommittedItems.indexOf(model.substring(1, model.length-1)) > -1);
-                        } else {
-                            isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
-                        }
-                        var cssClass = isForCurrentUser ? 'list-group-item available' : 'list-group-item unavailable';
+                
+                function addItemToFileList(fileList, indexStatus, workingTreeStatus, model, isOtherUserChange, otherUser) {
+                    var formCheck;
+                    if (isOtherUserChange) {
+                        formCheck = $('<div class="form-check changes-check other-user"></div>');
+                    } else {
+                        formCheck = $('<div class="form-check changes-check"></div>');
+                    }
+                    
+                    formCheck.attr("data-filename", model);
+                    formCheck.attr("data-index-status", indexStatus);
+                    formCheck.attr("data-working-tree-status", workingTreeStatus);
 
-                        if(isForCurrentUser){
-                            var item = $('<a class="'+cssClass+'">').prependTo(fileList)[0];
-                        }
-                        else{
-                            var item = $('<a class="'+cssClass+'">'+
-                                        webui.peopleIcon).appendTo(fileList)[0];
-                        }
-                        item.model = model;
-                        item.status = status;
-                        item.appendChild(document.createTextNode(line));
-                        $(item).click(self.select);
-                        if (isForCurrentUser) {
-                            $(item).dblclick(self.process);
-                        }
+                    var displayStatus = (indexStatus == " ") ? workingTreeStatus : indexStatus;
+
+                    var checkboxInput;
+                    
+                    if (isOtherUserChange) {
+                        checkboxInput = $('<input class="form-check-input changes-checkbox other-user" type="checkbox" value="">');
+                    } else {
+                        checkboxInput = $('<input class="form-check-input changes-checkbox" type="checkbox" value="">');
+                    }
+                    
+                    checkboxInput.attr('id', model);
+                    formCheck.append(checkboxInput);
+
+                    var checkboxLabel;
+                    if (isOtherUserChange) {
+                        checkboxLabel = $('<label class="form-check-label file-item-label other-user-label" data-toggle="tooltip" data-placement="top" title="File changed by: ' + otherUser + '">' + webui.peopleIcon +'</label>').append(model);
+                    } else {
+                        checkboxLabel = $('<label class="form-check-label file-item-label"></label>').text(model);
+                    }
+
+                    checkboxLabel.addClass(displayStatus);
+                    checkboxLabel.attr('for', model);
+                    formCheck.append(checkboxLabel);
+
+                    formCheck.prependTo(fileList)[0];
+                }
+
+                webui.splitLines(data).forEach(function(line) {
+                    var indexStatus = line[0];
+                    var workingTreeStatus = line[1];
+                    line = line.substring(3);
+                    var splitted = line.split(" -> ");
+                    var model;
+                    if (splitted.length > 1) {
+                        model = splitted[1];
+                    } else {
+                        model = line;
+                    }
+                    model = model.replace(/^"(.*)"$/g,'$1').trim();
+
+                    ++self.filesCount;
+                    var isForCurrentUser = (uncommittedItems.indexOf(model) > -1);
+                    if (isForCurrentUser) {
+                        addItemToFileList(fileList, indexStatus, workingTreeStatus, model, false);
+                    } else {
+                        var otherUser = otherUserUncommittedItems[model] || otherUserUncommittedItems[model.replace(/\//g, '\\')];
+                        addItemToFileList(fileList, indexStatus, workingTreeStatus, model, true, otherUser);
+                    }
+                    
+                });
+                $(".changes-checkbox").change(function() {
+                    self.afterFileChecked(this);
+                });
+
+                $("#commitMsg").on("input", function() {
+                    self.updateButtons();
+                });
+
+                $('.changes-check').on("click", function() {
+                    self.unhighlightPrevious();
+                    $(this).addClass("diffed-file");
+                    self.refreshDiff(this);
+                });
+
+                $('#selectAllFiles').on("change", function() {
+                    if (this.checked) {
+                        self.selectAll();
+                    } else {
+                        self.deselectAll();
                     }
                 });
-                if (selectedIndex !== null && selectedIndex >= fileList.childElementCount) {
-                    selectedIndex = fileList.childElementCount - 1;
-                    if (selectedIndex == -1) {
-                        selectedIndex = null;
+                $("#commitBtn").off("click");
+                $("#commitBtn").on("click", function() {
+                    // Make sure we are not commiting to default merge branch in basic mode
+                    $.get("api/basic-and-default", function (data) {
+                        var basicAndDefault = JSON.parse(data)["basic-and-default"]
+                        if (basicAndDefault == "1") {
+                            self.noCommitsOnDefault();
+                        } else {
+                            if (selectedItemsFromOtherUser.length > 0) {
+                                self.confirmActionOnOtherUsersChanges("commit");
+                            } else {
+                                var commitMessage = $('#commitMsg').val();
+                                self.commit(commitMessage, $("#commitMsgDetail").val());
+                                setTimeout(updateSideBar, 2000);
+                                ;
+                            }
+                        }
+                    })                    
+                });
+
+                $("#amendBtn").off("click");
+                $("#amendBtn").on("click", function() {
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("amend");
+                    } else {
+                        self.confirmAmend();
                     }
-                }
-                if (selectedIndex !== null) {
-                    var selectedNode = fileList.children[selectedIndex];
-                    $(selectedNode).addClass("active");
-                    self.refreshDiff(selectedNode);
-                }
-                fileListContainer.scrollTop = prevScrollTop;
+                });
+
+                $("#discardBtn").off("click");
+                $("#discardBtn").on("click", function() {
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("discard");
+                    } else {
+                        self.confirmDiscard();
+                    }
+                });
+
+                $("#stashBtn").off("click");
+                $("#stashBtn").on("click", function() {
+                    if (selectedItemsFromOtherUser.length > 0) {
+                        self.confirmActionOnOtherUsersChanges("stash");
+                    } else {
+                        self.stash();
+                    }
+                    
+                });
             });
         });
-    };
+    }
 
-    self.select = function(event) {
-        var clicked = event.target;
-
-        if (event.shiftKey && selectedIndex !== null) {
-            var clickedIndex = webui.getNodeIndex(clicked);
-            if (clickedIndex < selectedIndex) {
-                var from = clickedIndex;
-                var to = selectedIndex;
-            } else {
-                var from = selectedIndex;
-                var to = clickedIndex;
-            }
-            for (var i = from; i <= to; ++i) {
-                $(fileList.children[i]).addClass("active");
-            }
-            selectedIndex = clickedIndex;
-        } else if (event.ctrlKey) {
-            $(clicked).toggleClass("active");
-            selectedIndex = webui.getNodeIndex(clicked);
-        } else {
-            for (var i = 0; i < fileList.childElementCount; ++i) {
-                $(fileList.children[i]).removeClass("active");
-            }
-            $(clicked).addClass("active");
-            selectedIndex = webui.getNodeIndex(clicked);
-        }
-        if (type == "working-copy") {
-            workspaceView.stagingAreaView.unselect();
-        } else {
-            workspaceView.workingCopyView.unselect();
-        }
-        self.refreshDiff(clicked);
-    };
-
-    self.refreshDiff = function(element) {
-        var gitOpts = [];
-        if (type == "staging-area") {
-            gitOpts.push("--cached");
-        }
-        workspaceView.diffView.update("diff", gitOpts, element.model, type == "working-copy" ? "stage" : "unstage");
-    };
-
-    self.unselect = function() {
-        if (selectedIndex !== null) {
-            $(fileList.children[selectedIndex]).removeClass("active");
-            selectedIndex = null;
-        }
-    };
-
-    function confirmActionForUnavailableFile(files, action) {
-        function removeUnavailableModal(popup) {
-            $(popup).children( ".modal-fade").modal('hide');
+    self.confirmDiscard = function() {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
             $(".modal-backdrop").remove();
-            $("#confirm-unavailable-staging").remove();
+            $("#confirmDiscard").remove();
         }
 
-        var popup = $(  '<div class="modal fade" id="confirm-unavailable-staging" role="dialog">' +
-                            '<div class="modal-dialog modal-md">' +
-                                '<div class="modal-content">' +
-                                    '<div class="modal-header">' +
-                                        '<h5 class="modal-title">Confirm Staging</h5>' +
-                                        '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
-                                        webui.largeXIcon+
-                                        '</button>' +
-                                    '</div>' +
-                                    '<div class="modal-body"></div>' +
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="confirmDiscard" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Confirm Discard</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body">' + 
+                            '<div class="row">' +
+                                '<div class="col-sm-1">' +
+                                    webui.warningIcon +
+                                '</div>' +
+                                '<div class="col-sm-11">' +
+                                    '<p>Careful, discarding changes will delete all changes made to your file since the last commit. This will mean deleting a newly created file.</p>' + // Removed extra closing </p> tag
                                 '</div>' +
                             '</div>' +
-                        '</div>')[0];
-        $("body").append(popup); 
-        var popupContent = $(".modal-body", popup)[0];
-        webui.detachChildren(popupContent);
-        $('<div class="row"><div class="col-sm-1">'+
-        webui.warningIcon+
-        '</div>'+
-        '<div class="col-sm-11">The following files were changed by other users. Are you sure you want to ' + action + ' them?</div></div>').appendTo(popupContent);
+                        '</div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
 
-        files.forEach(function(file, index, array){
-            $('<div class="form-check">'+
-            '<input class="form-check-input" type="checkbox" value="'+ file.model+'" id="file'+index+'" checked>'+
-            '<label class="form-check-label" for="file'+index+'">'+file.model+
-            '</label>'+
-          '</div>').appendTo(popupContent);
-        });
+        $("body").append(popup);
 
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
 
-        $('<button class="btn btn-sm btn-danger float-right" id="confirm-staging">' + action.charAt(0).toUpperCase()+action.substring(1)+'</button>'+
-        '<button class="btn btn-sm btn-secondary float-right" id="cancel-staging">Cancel</button>').appendTo(popupContent);
+        $(
+            '<button class="btn btn-sm btn-warning action-btn" id="confirmDiscardBtn">Confirm discard</button>' +
+            '<button class="btn btn-sm btn-secondary action-btn" id="cancelDiscardBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+
         $(popup).modal('show');
 
-        $("#confirm-unavailable-staging").on('click', '#confirm-staging', function(e){
-            var checkedFiles = $("#confirm-unavailable-staging input[type=checkbox]:checked" );
-            for (var i = 0; i < fileList.childElementCount; ++i) {
-                var newChild = fileList.children[i];
-                for (var j = 0 ; j < checkedFiles.length; j++) {
-                    if(newChild.model == $(checkedFiles[j]).val()){
-                        $(newChild).addClass("available");
-                        $(newChild).addClass("active");
-                        $(newChild).removeClass("unavailable");
-                    }
-                }
-            }
-            removeUnavailableModal(popup);
-            if(action == 'discard'){
-                self.cancel();
-            } else if(action == 'stash'){
-                self.stash();
-            }
-            else{
-                self.process();
-            }
+        $("#confirmDiscardBtn").on('click', function() {
+            removePopup(popup);
+            self.discard();
         });
 
-        $("#confirm-unavailable-staging").find("#cancel-staging, .close").click(function() {
-            removeUnavailableModal(popup);
+        $("#confirmDiscard").find(".close, #cancelDiscardBtn").click(function() {
+            removePopup(popup);
+        })
+    }
+
+    self.confirmAmend = function() {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#confirmAmend").remove();
+        }
+    
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="confirmAmend" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Confirm Amend</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body"></div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+    
+        $("body").append(popup);
+        var popupContent = $(".modal-body", popup)[0];
+        webui.detachChildren(popupContent);
+    
+        $(
+            '<div class="row">' +
+                '<div class="col-sm-1">' +
+                    webui.warningIcon +
+                '</div>' +
+                '<div class="col-sm-11">' +
+                    '<p>Careful, amending commits will rewrite the branch history. The amended commit will not be pushed to remote, even if the previous commit was.</p>' + // Removed extra closing </p> tag
+                '</div>' +
+            '</div>'
+        ).appendTo(popupContent);
+    
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+    
+        $(
+            '<button class="btn btn-sm btn-warning action-btn" id="confirmAmendBtn">Confirm amend</button>' +
+            '<button class="btn btn-sm btn-secondary action-btn" id="cancelAmendBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+    
+        $(popup).modal('show');
+    
+        $('#confirmAmendBtn').on('click', function() {
+            removePopup(popup); 
+            var commitMessage = $('#commitMsg').val();
+            self.amend(commitMessage, $("#commitMsgDetail").val());
+        });
+    
+        $('#confirmAmend').find('#cancelAmendBtn, .close').click(function() {
+            removePopup(popup);
         });
     }
 
-    self.getFileList = function(including, excluding, onlyUnavailable, stringifyFilenames) {
-        if(stringifyFilenames || stringifyFilenames == undefined){
-            stringifyFilenames = 1
-            var files = "";
-        }
-        else
-            var files = [];
-
-        if(onlyUnavailable == undefined){
-            onlyUnavailable = 0
+    // Popup for when trying to commit to default merge branch in basic mode
+    self.noCommitsOnDefault = function () {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#noCommitsDefault").remove();
         }
 
-        for (var i = 0; i < fileList.childElementCount; ++i) {
-            var child = fileList.children[i];
-            var included = including == undefined || including.indexOf(child.status) != -1;
-            var excluded = excluding != undefined && excluding.indexOf(child.status) != -1;
-            if ($(child).hasClass("active") && ($(child).hasClass("available")^onlyUnavailable) && included && !excluded) {   
-                if(stringifyFilenames)
-                    files += ((child.model) + ' ');
-                else
-                    files.push(child);
-            }
-        }
-        return files;
-    }
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="noCommitsDefault" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Cannot commit to Default Branch</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body">' + 
+                            '<div class="row">' +
+                                '<div class="col-sm-1">' +
+                                    webui.warningIcon +
+                                '</div>' +
+                                '<div class="col-sm-11">' +
+                                    '<p>You cannot commit directly to the default merge branch while using basic mode. Please switch to another branch.</p>' + 
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
 
-    self.process = function() {
-        var action = type == "working-copy" ? "stage" : "unstage"
-        var files = self.getFileList(undefined, "D", 0);
-        var rmFiles = self.getFileList("D", undefined, 0);
+        $("body").append(popup);
 
-        if (files.length != 0) {
-            var cmd = type == "working-copy" ? "add" : "reset";
-            webui.git(cmd + " -- " + files, function(data) {
-                if (rmFiles.length != 0) {
-                    webui.git("rm -- " + rmFiles, function(data) {
-                        workspaceView.update(action);
-                    });
-                } else {
-                    workspaceView.update(action);
-                }
-            });
-        } else if (rmFiles.length != 0) {
-            var cmd = type == "working-copy" ? "rm" : "reset";
-            webui.git(cmd + " -- " + rmFiles, function(data) {
-                workspaceView.update(action);
-            });
-        }
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+
+        $(
+            '<button class="btn btn-sm btn-secondary action-btn" id="noCommitDefaultButton">Ok</button>'
+        ).appendTo(popupFooter);
+
+        $(popup).modal('show');
+
+        $("#noCommitsDefault").find(".close, #noCommitDefaultButton").click(function() {
+            removePopup(popup);
+        })
+
     };
 
-    self.processByAvailability = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        self.process();
-
-        var action = type == "working-copy" ? "stage" : "unstage"
-        var files = self.getFileList(undefined, "D", 1, 0);
-        var rmFiles = self.getFileList("D", undefined, 1, 0);
-        var combinedFiles = files.concat(rmFiles);
-
-        if(combinedFiles.length>0)
-            confirmActionForUnavailableFile(combinedFiles, action);
-    }
-
-    self.cancelByAvailability = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        self.cancel();
-
-        var action = "discard"
-        var files = self.getFileList(undefined, undefined, 1, 0);
-        if(files.length>0)
-            confirmActionForUnavailableFile(files, action);
-    }
-
-    self.cancel = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        var files = self.getFileList();
-        if (files.length != 0) {
-            webui.git("checkout -- " + files, function(data) {
-                workspaceView.update("stage");
+    self.confirmActionOnOtherUsersChanges = function(action) {
+            function removeWarningModal(popup) {
+                $(popup).children(".modal-fade").modal("hide");
+                $(".modal-backdrop").remove();
+                $("#confirmAction").remove();
+            }
+    
+            var popup = $(  '<div class="modal fade" tab-index="-1" id="confirmAction" role="dialog" data-backdrop="static">' +
+                                '<div class="modal-dialog modal-md" role="document">' +
+                                    '<div class="modal-content">' +
+                                        '<div class="modal-header">' +
+                                            '<h5 class="modal-title">Confirm ' + action + '</h5>' +
+                                            '<button type="button" class="btn btn-default close" data-dismiss="modal">'+
+                                            webui.largeXIcon+
+                                            '</button>' +
+                                        '</div>' +
+                                        '<div class="modal-body"></div>' +
+                                        '<div class="modal-footer"></div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>')[0];
+            $("body").append(popup);
+            var popupContent = $(".modal-body", popup)[0];
+            webui.detachChildren(popupContent);
+    
+    
+            $('<div class="row"><div class="col-sm-1">'+
+            webui.warningIcon+
+            '</div>'+
+            '<div class="col-sm-11">The following files were changed by other users. Are you sure you want to ' + action + ' them?</div></div><ul>').appendTo(popupContent);
+    
+            selectedItemsFromOtherUser.forEach(function(file){
+                $('<li>'+ file +'</li>').appendTo(popupContent);
             });
-        }
-    }
+    
+            $('</ul>').appendTo(popupContent);
 
-    self.stashByAvailability = function() {
-        prevScrollTop = fileListContainer.scrollTop;
-        self.stash();
+            if (action == "amend") {
+                $(  '<div>' +
+                        '<p>Careful, amending commits will rewrite the branch history. The amended commit will not be pushed to remote, even if the previous commit was.</p>' +
+                    '</div>').appendTo(popupContent);
+            } else if (action == "discard") {
+                $(  
+                '<div>' +
+                    '<p>Careful, discarding changes will delete all changes made to your file since the last commit. This will mean deleting a newly created file.</p>' +
+                '</div>').appendTo(popupContent);
+            }
+    
+            var popupFooter = $(".modal-footer", popup)[0];
+            webui.detachChildren(popupFooter);
+    
+            
+    
+            $('<button class="btn btn-sm btn-warning action-btn" id="confirmActionBtn">' + action.charAt(0).toUpperCase()+action.substring(1) + '</button>' +
+              '<button class="btn btn-sm btn-secondary action-btn" id="cancelActionBtn">Cancel</button>').appendTo(popupFooter);
+            
+            $(popup).modal('show');
+    
 
-        var action = "stash";
-
-        var files = self.getFileList(undefined, "D", 1, 0);
-        var rmFiles = self.getFileList("D", undefined, 1, 0);
-        var combinedFiles = files.concat(rmFiles);
-
-        if(combinedFiles.length>0)
-            confirmActionForUnavailableFile(combinedFiles, action);
-    }
-
-    self.stash = function() {
-        var files = self.getFileList(undefined, "D", 0, 1);
-        var rmFiles = self.getFileList("D", undefined, 0, 1);
-        var combinedFiles = files.concat(rmFiles);
-
-        if(combinedFiles.length != 0){
-            webui.git("stash push --include-untracked -- " + combinedFiles, function(output){
-                webui.showSuccess(output);
-                workspaceView.update("stash");
+            $('#confirmActionBtn').on('click', function() {
+                removeWarningModal(popup);
+                if (action == "commit") {
+                    var commitMessage = $('#commitMsg').val();
+                    self.commit(commitMessage, $("#commitMsgDetail").val());
+                } else if (action == "discard") {
+                    self.discard();
+                } else if (action == "stash") {
+                    self.stash();
+                } else if (action == "amend") {
+                    var commitMessage = $('#commitMsg').val();
+                    self.amend(commitMessage, $("#commitMsgDetail").val());
+                }
             });
+    
+            $('#confirmAction').find('#cancelActionBtn, .close').click(function() {
+                removeWarningModal(popup);
+            });
+    }
+
+    self.afterFileChecked = function(element) {
+        var fileName = element.id;
+        var fileIndex = selectedItems.indexOf(fileName);
+        if (element.checked) {
+            if (fileIndex == -1) {
+                selectedItems.push(fileName);
+            }
+
+            if ($(element).hasClass("other-user") && (selectedItemsFromOtherUser.indexOf(fileName) == -1)) {
+                selectedItemsFromOtherUser.push(fileName);
+            }
+
+            if (selectedItems.length == Array.prototype.slice.call(fileList.children).length) {
+                $('#selectAllFiles').prop('checked', true);
+            } 
+        } else {
+            $('#selectAllFiles').prop('checked', false);
+            if (fileIndex > -1) {
+                selectedItems.splice(fileIndex, 1);
+            }
+
+            if ($(element).hasClass("other-user") && (selectedItemsFromOtherUser.indexOf(fileName) > -1)) {
+                selectedItemsFromOtherUser.splice(selectedItemsFromOtherUser.indexOf(fileName), 1);
+            }
         }
+        self.updateButtons();
+    }
+
+    self.handleCheckEvent = function(file) {
+        var fileIndex = selectedItems.indexOf(file);
+        if (fileIndex > -1) {
+            selectedItems.splice(fileIndex, 1);
+        } else {
+            selectedItems.push(file);
+        }
+        self.updateButtons();
+    }
+
+    self.updateButtons = function() {
+        if (self.getSelectedItemsCount() > 0) {
+            $('#stashBtn').prop("disabled", false);
+            $('#discardBtn').prop("disabled", false);
+            $('#amendBtn').prop("disabled", false);
+            if (!self.commitMsgEmpty()) {
+                $('#commitBtn').prop("disabled", false);
+            } else {
+                $('#commitBtn').prop("disabled", true);
+            }
+        } else {
+            $('#stashBtn').prop("disabled", true);
+            $('#discardBtn').prop("disabled", true);
+            $('#commitBtn').prop("disabled", true);
+            if (!self.commitMsgEmpty()) {
+                $('#amendBtn').prop("disabled", false);
+            } else {
+                $('#amendBtn').prop("disabled", true);
+            }
+            
+        }
+
+    }
+
+    self.commitMsgEmpty = function() {
+        return $('#commitMsg').val().length == 0;
     }
 
     self.getSelectedItemsCount = function() {
-        return $(".active", fileList).length;
+        return selectedItems.length;
     }
 
-    self.element = $(   '<div id="' + type + '-view" class="panel panel-default">' +
-                            '<div class="panel-heading">' +
-                                '<h5>'+ label + '</h5>' +
-                                '<div class="btn-group btn-group-sm"></div>' +
-                            '</div>' +
-                            '<div class="file-list-container">' +
-                                '<div class="list-group"></div>' +
-                            '</div>' +
-                        '</div>')[0];
-    if (type == "working-copy") {
-        var buttons = [{ name: "Stage", callback: self.processByAvailability }, { name: "Stash", callback: self.stashByAvailability }, { name: "Cancel", callback: self.cancelByAvailability }];
-    } else {
-        var buttons = [{ name: "Unstage", callback: self.processByAvailability }];
+    self.selectAll = function() {
+        Array.prototype.slice.call(fileList.children).forEach(function(fileDiv, index) {
+            fileDiv.children[0].checked = true;
+            self.afterFileChecked(fileDiv.children[0]);
+        });
     }
-    var btnGroup = $(".btn-group", self.element);
-    buttons.forEach(function (btnData) {
-        var btn = $('<button type="button" class="btn btn-default">' + btnData.name + '</button>')
-        btn.appendTo(btnGroup);
-        btn.click(btnData.callback);
-    });
-    var fileListContainer = $(".file-list-container", self.element)[0];
-    var prevScrollTop = fileListContainer.scrollTop;
-    var fileList = $(".list-group", fileListContainer)[0];
-    var selectedIndex = null;
 
-    self.filesCount = 0;
-};
+    self.deselectAll = function() {
+        Array.prototype.slice.call(fileList.children).forEach(function(fileDiv, index) {
+            fileDiv.children[0].checked = false;
+            self.afterFileChecked(fileDiv.children[0]);
+        });
+    }
 
-/*
- * == CommitMessageView =======================================================
- */
-webui.CommitMessageView = function(workspaceView) {
+    self.unhighlightPrevious = function(){
+        $('[data-filename="' + self.fileToDiff + '"]').removeClass("diffed-file");
+    }
 
-    var self = this;
-
-    self.onAmend = function() {
-        if (!amend.hasClass("active") && textArea.value.length == 0) {
-            webui.git("log --pretty=format:%B -n 1", function(data) {
-                textArea.value = data;
-            });
+    self.refreshDiff = function(element) {
+        self.fileToDiff = $(element).attr("data-filename");
+        var indexStatus = $(element).attr("data-index-status");
+        var gitOpts = [];
+        if (indexStatus != " ") {
+            gitOpts.push("--cached");
         }
+        workspaceView.diffView.update("diff", gitOpts, self.fileToDiff, "stage");
     };
 
-    self.onCommit = function() {
-        if (workspaceView.stagingAreaView.filesCount == 0 && !amend.hasClass("active")) {
-            webui.showError("No files staged for commit");
-        } else if (textArea.value.length == 0) {
-            webui.showError("Enter a commit message first");
-        } else {
-            var cmd = "commit ";
-            if (amend.hasClass("active")) {
-                cmd += "--amend ";
+    self.stash = function() {
+        var selectedFilesAsString = selectedItems.join(" ");
+        webui.git("add -- " + selectedFilesAsString, undefined, function(output) {
+            webui.git("stash push --include-untracked -- " + selectedFilesAsString, function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
+            });
+        },function(output) {
+            if (output.includes("did not match any files")) {
+                webui.showError("Stashing deleted items does not work. Please discard the operation instead.")
+            } else {
+                webui.showError(output);
             }
-            cmd += "--file=-";
-            webui.git(cmd, textArea.value, function(data) {
-                textArea.value = "";
-                workspaceView.update("stage");
-                amend.removeClass("active");
+        });
+    }
+
+    self.discard = function() {
+        function restoreCommand(data) {
+            webui.git_command(["restore", "--staged", "--worktree", "--"].concat(selectedItems), function() {
+                workspaceView.update();
+            });
+        }
+        // We want to try to run restore even if add fails (since the file might have already been added)
+        webui.git_command(["add", "--"].concat(selectedItems), restoreCommand,undefined,restoreCommand);
+    }
+
+    self.amend = function(message, details) {
+        if (self.commitMsgEmpty()) {
+            $.ajax({
+                url: "git-command-unstage",
+                type: "POST",
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    command: "commit", 
+                    message: message, 
+                    details: details, 
+                    flags: "--amend,--no-edit",
+                    files: selectedItems
+                }),
+                success: function(data) {
+                    webui.processGitResponse(data, ["commit", "--amend","--no-edit","-m",message,"-m",details], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                },
+                error: function(data) {
+                    var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                    webui.showError(trimmedData);
+                },
+            });
+        } else if (selectedItems.length != 0) {
+            $.ajax({
+                url: "git-command-unstage",
+                type: "POST",
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    command: "commit", 
+                    message: message, 
+                    details: details, 
+                    flags: "--amend",
+                    files:selectedItems
+                }),
+                success: function(data) {
+                    webui.processGitResponse(data, ["commit","--amend","-m",message,"-m",details], function(output) {
+                        webui.showSuccess(output);
+                        workspaceView.update();
+                    });
+                },
+                error: function(data) {
+                    var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                    webui.showError(trimmedData);
+                },
+            });
+        } else {
+            webui.git_command(['commit', '--amend', '--allow-empty', '-m', message, '-m', details], function(output) {
+                webui.showSuccess(output);
+                workspaceView.update();
             });
         }
     }
 
-    self.update = function() {
+    self.commit = function(message, details) {
+        $.ajax({
+            url: "git-command-unstage",
+            type: "POST",
+            contentType: 'application/json',
+            data: JSON.stringify({
+                command: "commit", 
+                message: message, 
+                details: details, 
+                files: selectedItems
+            }),
+            success: function(data) {
+                webui.processGitResponse(data, ["commit","-m",message,"-m",details], function(output) {
+                    webui.showSuccess(output);
+                    workspaceView.update();
+                });
+
+            },
+            error: function(data) {
+                var trimmedData = data.replace(/(\r\n)/gm, "\n");
+                webui.showError(trimmedData);
+            },
+        });
     }
 
-    self.element = $(   '<div id="commit-message-view" class="panel panel-default">' +
-                            '<div class="panel-heading">' +
-                                '<h5>Message</h5>' +
-                                '<div class="btn-group btn-group-sm">' +
-                                    '<button type="button" class="btn btn-default commit-message-amend" data-toggle="button">Amend</button>' +
-                                    '<button type="button" class="btn btn-default commit-message-commit">Commit</button>' +
-                                '</div>' +
-                            '</div>' +
-                            '<textarea></textarea>' +
-                        '</div>')[0];
-    var textArea = $("textarea", self.element)[0];
-    var amend = $(".commit-message-amend", self.element);
-    amend.click(self.onAmend);
-    $(".commit-message-commit", self.element).click(self.onCommit);
-};
+    self.element = $(
+        '<div id="changedFilesContainer" class="container">' +
+            '<div class="row">' +
+                '<div class="col-sm-6 file-area">' +
+                    '<div class="form-check select-all">' + 
+                        '<input class="form-check-input" id="selectAllFiles" type="checkbox" value="">' +
+                        '<label class="form-check-label" for="selectAllFiles"> Select All Files </label>' +
+                    '</div>' +
+                    '<div class="changed-files-list"></div>' + 
+                '</div>' +
+                '<div class="commit-area col-sm-6">' +
+                    '<div class="form-group">' +
+                        '<input type="area" class="form-control" id="commitMsg" placeholder="Enter commit message (required)">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<textarea class="form-control" id="commitMsgDetail" rows="4" placeholder="Enter commit details (optional)"></textarea>' +
+                    '</div>' +
+                    '<div class="button-group">' +
+                        '<button type="button" class="btn btn-primary file-action-button" id="commitBtn" disabled> Commit </button>' +
+                        '<button type="button" class="btn btn-outline-primary file-action-button" id="amendBtn" disabled> Amend </button>' +
+                        '<button type="button" class="btn btn-secondary file-action-button" id="stashBtn" disabled> Stash </button>' +
+                        '<button type="button" class="btn btn-danger file-action-button" id="discardBtn" disabled> Discard </button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>'
+    )[0];
+    var fileListContainer = $(".file-area", self.element)[0];
+    var fileList = $(".changed-files-list", fileListContainer)[0];
+    var selectedItems = [];
+    var selectedItemsFromOtherUser = [];
+    var fileToDiff;
+}
 
 /*
  *  == Initialization =========================================================
@@ -2476,6 +3252,7 @@ webui.CommitMessageView = function(workspaceView) {
 function MainUi() {
 
     var self = this;
+    webui.gitVersion();
 
     self.switchTo = function(element) {
         webui.detachChildren(self.mainView);
@@ -2505,6 +3282,7 @@ function MainUi() {
                 if (!webui.viewonly) {
                     self.workspaceView = new webui.WorkspaceView(self);
                     self.stashView = new webui.StashView(self);
+                    self.discardedView = new webui.DiscardedView(self);
                 }
                 self.sideBarView.selectRef("HEAD");
             });

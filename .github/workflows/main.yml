@@ -63,6 +63,7 @@ jobs:
         run: |
           echo "zpm \"install testcoverage\":1:1" > install-testcoverage
           docker exec --interactive $instance iris session $instance -B < install-testcoverage
+          chmod 777 $GITHUB_WORKSPACE
           
       - name: Build and Test
         run: |
@@ -72,7 +73,12 @@ jobs:
           echo "do \$System.OBJ.CompilePackage(\"$test_package\",\"ckd\") " > test.script
           # Run tests
           echo "zpm \"$package test -only $test_flags\":1:1" >> test.script
-          docker exec --interactive $instance iris session $instance -B < build.script && docker exec --interactive $instance iris session $instance -B < test.script &&bash <(curl -s https://codecov.io/bash)
+          docker exec --interactive $instance iris session $instance -B < build.script && docker exec --interactive $instance iris session $instance -B < test.script
+          
+      - name: Upload coverage reports to Codecov with GitHub Action
+        uses: codecov/codecov-action@v4.2.0
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           
       - name: Produce CE Artifact
         run: |
@@ -85,7 +91,7 @@ jobs:
           ls $GITHUB_WORKSPACE/$artifact_dir
           
       - name: Attach CE Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: "PreIRISInstallationPackage"
@@ -103,7 +109,7 @@ jobs:
           fail: false
           
       - name: Attach the report
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{ steps.xunit-viewer.outputs.report-name }}

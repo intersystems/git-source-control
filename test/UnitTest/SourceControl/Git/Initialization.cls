@@ -22,6 +22,7 @@ Method TestRunGitInGarbageContext()
     Set settings = ##class(SourceControl.Git.Settings).%New()
     Set oldTemp = settings.namespaceTemp
     Set settings.namespaceTemp = ##class(%Library.File).TempFilename()_"nonexistentdir"
+    set settings.environmentName = ""
     Do $$$AssertStatusOK(settings.%Save())
     Try {
         Do ##class(%Library.File).RemoveDirectory(settings.namespaceTemp)

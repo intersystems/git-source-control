@@ -17,6 +17,7 @@ ClassMethod Configure()
         }
         set gitExists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
         set gitBinPath = ##class(SourceControl.Git.Utils).GitBinPath(.isDefault)
+
         if gitExists && isDefault {
             // Note: version starts with "git version"
             write !,version," is available via PATH. You may enter a path to a different version if needed."
@@ -37,9 +38,14 @@ ClassMethod Configure()
 }
 
 /// API for git pull - just wraps Utils
-ClassMethod Pull(preview As %Boolean = 0)
+/// - pTerminateOnError: if set to 1, this will terminate on error if there are any errors in the pull, otherwise will return status
+ClassMethod Pull(pTerminateOnError As %Boolean = 0)
 {
-    quit ##class(SourceControl.Git.Utils).Pull(,.preview)
+    set st = ##class(SourceControl.Git.Utils).Pull(,pTerminateOnError)
+    if pTerminateOnError && $$$ISERR(st) {
+        Do $System.Process.Terminate($Job,1)
+    }
+    quit st
 }
 
 /// Locks the environment to prevent changes to code other than through git pull.
@@ -56,5 +62,32 @@ ClassMethod Unlock()
     quit ##class(SourceControl.Git.Utils).Locked(0)
 }
 
+/// Run in terminal to baseline a namespace by adding all items to source control.
+/// - pCommitMessage: if defined, all changes in namespace context will be committed.
+/// - pPushToRemote: if defined, will run a git push to the specified remote
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+{
+    quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote)
 }
 
+ClassMethod MapEverywhere()
+{
+    Quit ##class(SourceControl.Git.Installer).MapEverywhere()
+}
+
+/// Run to baseline all interoperability productions in the namespace to source control.
+/// This should be done after changing the value of the "decompose productions" setting.
+ClassMethod BaselineProductions()
+{
+    do ##class(SourceControl.Git.Util.Production).BaselineProductions()
+}
+
+/// Given the path to a directory that contains production items, this method will import them all
+/// and delete any custom items from the production configuration that do not exist in the directory.
+/// This method may be called on a namespace that is not configured with Embedded Git for source control.
+ClassMethod LoadProductionsFromDirectory(pDirectoryName, Output pFailedItems) As %Status
+{
+    return ##class(SourceControl.Git.Util.Production).LoadProductionsFromDirectory(pDirectoryName, .pFailedItems)
+}
+
+}

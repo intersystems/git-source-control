@@ -34,6 +34,11 @@
 #help-modal .img-fluid {
   max-width: 90%;
 }
+#packageVersion {
+  color: white;
+  font-size: 0.83em;
+  align-self: center;
+}
 html,
 body {
   height: 100%;
@@ -175,7 +180,7 @@ body {
   border-top: 1px solid #1a1a1a;
   border-bottom: 1px solid #1a1a1a;
   color: #eeeeee;
-  padding-bottom: 6em;
+  padding-bottom: 100px;
 }
 #sidebar #sidebar-content > :first-child,
 #sidebar #sidebar-content > :last-child {
@@ -187,18 +192,24 @@ body {
 }
 #sidebar #sidebar-content h4 {
   vertical-align: baseline;
-  margin: 0.5em 0 0 0;
+  margin: 0.25em 0 0 0;
 }
 #sidebar #sidebar-content > section h4 {
   font-size: 125%;
   cursor: pointer;
-  padding: 10px 0;
+  padding: 5px 0;
 }
 #sidebar #sidebar-content #sidebar-workspace h4:before {
   content: url(../img/computer.svg);
 }
 #sidebar #sidebar-content #sidebar-stash h4:before {
   content: url(../img/inboxes.svg);
+}
+#sidebar #sidebar-content #sidebarDiscarded h4:before {
+  content: url(../img/discarded.svg);
+}
+#sidebar #sidebar-content #sidebarDiscarded h4 {
+  border-bottom: 1px solid #5e5e5e;
 }
 #sidebar #sidebar-content #sidebar-remote h4:before {
   content: url(../img/daemon.svg);
@@ -208,18 +219,65 @@ body {
 #sidebar #sidebar-content #sidebar-switch-branches h4:before {
   content: url(../img/branch.svg);
 }
+#sidebar #sidebar-content #space-filler {
+  padding-bottom: 100px;
+}
 #sidebar #sidebar-content #sidebar-tags h4:before {
   content: url(../img/tag.svg);
+}
+#sidebar #sidebar-content #sidebar-vscode a {
+  color: white;
+}
+#sidebar #sidebar-content #sidebar-vscode h4 {
+  padding: 0px;
+  margin-bottom: 10px;
+}
+#sidebar #sidebar-content #sidebar-vscode h4:before {
+  content: url(../img/file.svg);
+}
+#sidebar #sidebar-content #sidebar-vscode {
+  position: absolute;
+  bottom: 60px;
+  width: 16.4em;
+  background-color: #333333;
+}
+#sidebar #sidebar-content #sidebar-context h4 {
+  padding: 0px;
+  margin-bottom: 10px;
+}
+#sidebar #sidebar-content #sidebar-context h4:before {
+  content: url(../img/context.svg);
+}
+#sidebar #sidebar-content #sidebar-context {
+  position: absolute;
+  bottom: 30px;
+  width: 16.4em;
+  background-color: #333333;
+}
+#sidebar #sidebar-content #sidebar-settings h4 {
+  padding: 0px;
+  margin-bottom: 10px;
 }
 #sidebar #sidebar-content #sidebar-settings h4:before {
   content: url(../img/gear-fill.svg);
 }
 #sidebar #sidebar-content #sidebar-settings {
   position: absolute;
-  bottom: 0px;
-  width: 16.7em;
-  padding-bottom: 0.3rem;
-  margin-bottom: 0px;
+  bottom: 0;
+  width: 16.4em;
+  background-color: #333333;
+}
+#sidebar #sidebar-content #sidebar-home h4 {
+  padding: 0px;
+  margin-bottom: 10px;
+}
+#sidebar #sidebar-content #sidebar-home h4:before {
+  content: url(../img/home.svg);
+}
+#sidebar #sidebar-content #sidebar-home {
+  position: absolute;
+  bottom: 90px;
+  width: 16.4em;
   background-color: #333333;
 }
 #sidebar #sidebar-content ul {
@@ -265,7 +323,7 @@ body {
   border: none;
 }
 .modal .card-header {
-  padding: 1% 2% 0% 14%;
+  padding: 0;
   background-color: #fff;
   color: inherit !important;
   border: none !important;
@@ -277,6 +335,10 @@ body {
   padding-bottom: 1%;
   margin: 0%;
   border: none !important;
+  overflow: visible;
+}
+.modal .modal-content {
+  min-width: fit-content;
 }
 #main-view {
   display: flex;
@@ -848,8 +910,133 @@ body {
 #workspace-view .diff-line-offset {
   cursor: pointer;
 }
+#environment {
+  color: white;
+  font-size: 1em;
+  align-self: center;
+}
+#changedFilesContainer {
+  max-width: 100% !important;
+  margin: 0 10px;
+  overflow-y: auto;
+}
+#changedFilesContainer .file-area {
+  padding-top: 15px;
+}
+#changedFilesContainer .file-area .select-all {
+  border-bottom: 1px solid lightgray;
+}
+#changedFilesContainer .file-area .select-all .form-check-label {
+  font-size: 1rem;
+  padding-top: 1px;
+  padding-left: 8px;
+}
+#changedFilesContainer .file-area .select-all .form-check-input {
+  margin-bottom: 2px;
+}
+#changedFilesContainer .file-area .diffed-file {
+  background-color: #7fceff;
+}
+#changedFilesContainer .file-area .form-check {
+  padding: 3px 5px 3px 15px;
+}
+#changedFilesContainer .file-area .changes-check:hover {
+  background-color: rgba(61, 174, 253, 0.2);
+}
+#changedFilesContainer .file-area .file-item-label {
+  padding-top: 1px;
+  padding-left: 8px;
+  font-size: 1rem;
+}
+#changedFilesContainer .file-area .form-check-input {
+  margin-left: -12px !important;
+}
+#changedFilesContainer .file-area .A::after {
+  content: "Added";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .D::after {
+  content: "Deleted";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .M::after {
+  content: "Modified";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .R::after {
+  content: "Renamed";
+  position: absolute;
+  right: 5px;
+}
+#changedFilesContainer .file-area .other-user-label svg {
+  margin-right: 5px;
+}
+#changedFilesContainer .commit-area {
+  padding-top: 15px;
+}
+#changedFilesContainer .commit-area .button-group .btn {
+  margin-right: 5px;
+}
+#confirmAction li {
+  margin-left: 20%;
+}
+#confirmAction p {
+  margin-top: 10px;
+}
 #commit-explorer-view #commit-explorer-navigator-view .panel .panel-body {
   flex: 1 1 0px;
   -webkit-flex: 1 1 0px;
   overflow: auto;
+}
+#discardedView {
+  width: 100%;
+}
+#discardedView #discardedList {
+  height: 100%;
+  border-right: 1px #dddddd solid;
+}
+#discardedView #discardedList h4 {
+  text-align: center;
+  padding-top: 100px;
+}
+#discardedView .active {
+  background-color: rgba(13, 110, 253, 0.9) !important;
+  color: #fff;
+}
+#discardedView header {
+  display: flex;
+  display: -webkit-flex;
+  min-height: 0;
+  min-width: 0;
+}
+#discardedView header .file-internalname {
+  display: inline-block;
+}
+#discardedView header .discard-date {
+  margin-left: auto;
+}
+#discardedView .restore-discarded {
+  padding-top: 15px;
+  margin-left: 15px;
+  margin-right: 15px;
+}
+#discardedView .contents-menu {
+  display: flex;
+  display: -webkit-flex;
+  min-height: 0;
+  min-width: 0;
+}
+#discardedView .contents-menu .external-name {
+  font-size: 1rem;
+  padding: 20px 15px 0 0;
+}
+#discardedView .has-items {
+  padding-bottom: 20px;
+  border-bottom: 1px solid lightgrey;
+}
+#discardedView .file-contents {
+  padding-top: 20px;
 }

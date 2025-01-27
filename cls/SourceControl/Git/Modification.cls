@@ -2,7 +2,7 @@
 Class SourceControl.Git.Modification Extends %RegisteredObject
 {
 
-/// path of the file
+/// path of the file relative to the Git repository
 Property externalName As %String;
 
 /// Name in IRIS SourceControl.Git.Modification
@@ -12,4 +12,3 @@ Property internalName As %String;
 Property changeType As %String;
 
 }
-

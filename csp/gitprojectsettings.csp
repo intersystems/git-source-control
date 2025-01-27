@@ -40,11 +40,18 @@ body {
 #webuiURL {
     display: none;
 }
+#homeURL {
+    display: none;
+}
 
 .custom-switch {
     padding: 0.4rem 0.5rem 0 2.75rem;
     border: 1px solid #ced4da;
     border-left: 0px;
+}
+
+.custom-switch-no-border {
+    border: 0px;
 }
 
 .neutral-feedback {
@@ -53,47 +60,157 @@ body {
     font-size: 80%;
 }
 
+.form-rad {
+    padding-left: 30px;
+}
+
+.form-rad-label {
+    padding-left: 4px;
+}
+
+.alert {
+  padding: 20px;
+  background-color: #04AA6D;;
+  color: white;
+}
+
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
 </style>
 </head>
 <body>
 <server>
  set namespace = $namespace
+ set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
  set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
  set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
+ set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
  set settings = ##class(SourceControl.Git.Settings).%New()
-
- if $Data(%request.Data("gitsettings",1)) {
-    for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace","gitUserName","gitUserEmail"{
+ set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
+ /// After Save
+ if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
+    for param="gitUserName","gitUserEmail" {
         set $Property(settings,param) = $Get(%request.Data(param,1))
     }
-    set i = 1
-    set param = "NoFolders"
-    kill settings.Mappings
-    
-    while ( $Data(%request.Data("MappingsExt",i)) ){
+    if ('settings.settingsUIReadOnly) {
+        for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName" {
+            set $Property(settings,param) = $Get(%request.Data(param,1))
+        }
+
+        if ($Get(%request.Data("mappedItemsReadOnly", 1)) = 1) {
+            set settings.mappedItemsReadOnly = 1
+        } else {
+            set settings.mappedItemsReadOnly = 0
+        }
+
+        set newRemote = $Get(%request.Data("remoteRepo",1))
+        // If entry was modified, set new remote repo
+        if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
+            do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
+        }
+
+        set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
+        set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
+        set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
+
+        if ($Get(%request.Data("basicMode", 1)) = 1) {
+            set settings.basicMode = 1
+        } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
+            set settings.basicMode = "system"
+        } else {
+            set settings.basicMode = 0
+        }
+
+        if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
+            set settings.systemBasicMode = 1
+        } else {
+            set settings.systemBasicMode = 0
+        }
+        set i = 1
+        set param = "NoFolders"
+        kill settings.Mappings
+        
+        while ( $Data(%request.Data("MappingsExt",i)) ){
         if ($get(%request.Data("MappingsExt",i)) '= "") {
-            if ($Get(%request.Data(param,i)) = "NoFolders"){
-                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
-            }
-            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+                if ($Get(%request.Data(param,i)) = "NoFolders"){
+                    set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+                }
+                set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+        }
+            set i = i+1
+        }
+
+        set i = 1
+        set contexts = []
+
+        while ( $Data(%request.Data("favNamespace",i)) ){
+        if ($Get(%request.Data("favNamespace",i)) '= "") {
+            do contexts.%Push($Get(%request.Data("favNamespace",i)))
         }
         set i = i+1
+        }
+
+        set settings.favoriteNamespaces = contexts
+
+        if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
+            do settings.SaveDefaults()
+        }
     }
-    do settings.%Save()
+    set err = ""
+    try {
+        set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+        do buffer.BeginCaptureOutput()
+        $$$ThrowOnError(settings.SaveWithSourceControl())
+        do buffer.EndCaptureOutput(.out)
+        if (out '= "") {
+            &html<<div class="alert alert-primary">
+                    <div>#(..EscapeHTML(out))#</div>
+                </div>>
+        }
+    } catch err {
+        kill buffer
+        do err.Log()
+        &html<<div class="alert alert-danger">An error occurred and has been logged to the application error log.</div>>
+    }
 }
 </server>
-<div class = 'container'>    
-    <form method='post'>
+<div class = 'container'>
+    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
+        <div class = "alert">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+        <strong>Success!</strong> Your changes have been saved.
+    </div>
+    </csp:if>
+    <form id="settingsForm" method='post'>
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">
-            <div class="col-sm-1"></div>
-            <div class="col-sm-8">
+            <div class="offset-sm-1 col-sm-7" id="settingsTitle">
                 <h1>Git Project Settings</h1>
+                <h3> Package version: #(version)# </h3>
             </div>
-            <div class="col-sm-2">
+
+            <div class="col-sm-4" id="settingsNavBtn">
+                <button class="btn btn-lg btn-outline-dark" id="goToHome">Home
+                </button>
+                <div id="homeURL">
+                    #(homeURL)#
+                </div>
                 <button class="btn btn-lg btn-outline-dark" id="goToWebUI">Go to WebUI
                 </button>
                 <div id="webuiURL">
@@ -106,15 +223,14 @@ body {
             <div class="col-md-10"><hr></div>
         </div>
         <div class="row">
-            <div class="col-sm-1"></div>
-            <div class="col-sm-11">
-                <h3>Settings for namespace #(..EscapeHTML(namespace))#</h3><br/>
+            <div class="offset-sm-1 col-sm-11">
+                <h3>Settings for namespace #(..EscapeHTML(namespace))# #($select(settings.settingsUIReadOnly:"(read-only)",1:""))#</h3><br/>
             </div>
         </div>
 
+        <fieldset id="namespaceSettings">
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="gitBinPath" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable">Path to git.exe</label>
+            <label for="gitBinPath" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to the Git executable"><b>Path to git.exe</b></label>
             <div class="col-sm-7">
                 <server>
                     set exists = ##class(SourceControl.Git.Utils).GitBinExists(.version)
@@ -147,8 +263,7 @@ body {
         </div>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="namespaceTemp" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Temp folder for this namespace<br/></label>
+            <label for="namespaceTemp" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to you project">Git Repo Root Directory<br/></label>
             <server>
                 set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
                 if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
@@ -156,9 +271,11 @@ body {
                 } else {
                     set class = "form-control"
                 }
+                set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\someproj\)",
+                        1:"(e.g., /someproj/)")
             </server>
             <div class="col-sm-7">
-                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder="e.g. C:\someproj\"/>
+                <input type="text" class="#(class)#" id="namespaceTemp" name="namespaceTemp" value='#(..EscapeHTML(settings.namespaceTemp))#' placeholder=#(placeholder)#/>
             </div>
         </div>
         <server>
@@ -166,8 +283,7 @@ body {
             if (settings.namespaceTemp '= "") && '##class(%File).DirectoryExists(dir_".git") {
                 &html<
                 <div class="form-group row mb-3">
-                    <div class="col-sm-4"></div>
-                    <div class="col-sm-8 neutral-feedback">
+                    <div class="offset-sm-4 col-sm-8 neutral-feedback">
                         <span id="initMsg">Git has not been not initialized for folder.</span>
                         <button id="initBtn" onclick="init(); return false;" class="btn btn-sm btn-outline-dark">Initialize</button>
                         <button id="cloneBtn" onclick="clone(); return false;" class="btn btn-sm btn-outline-dark">Clone...</button>
@@ -178,8 +294,7 @@ body {
             }
         </server>
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="privateKeyFile" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
+            <label for="privateKeyFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Absolute path to your private SSH key file">SSH Private Key File</label>
             <div class="col-sm-7">
                 <server>
                     Set fileExists = ##class(%File).Exists(settings.privateKeyFile)
@@ -198,8 +313,10 @@ body {
                             "File not found - generate a new key pair?"_
                             "</button>"
                     }
+                    set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\Users\ExampleUser\.ssh\id_rsa)",
+                        1:"(e.g., /home/user/.ssh/id_rsa)")
                 </server>
-                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="C:\Users\ExampleUser\.ssh\id_rsa"/>
+                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder=#(placeholder)#/>
                 <div class = "#(divClass)#">
                     #(feedbackText)#
                     <pre id="sshOutput"></pre>
@@ -218,8 +335,7 @@ body {
                 }
                 &html<
                     <div class="form-group row mb-3">
-                        <div class="col-sm-1"></div>
-                        <div class="col-sm-3">Public key:</div>
+                        <div class="offset-sm-1 col-sm-3">Public key:</div>
                         <div class="col-sm-5">
                             <pre id="publicKey">#(pubKeyText)#</pre>
                         </div>
@@ -233,27 +349,137 @@ body {
         </server>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="pullEventClass" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull">Pull Event Class</label>
+            <label for="pullEventClass" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull"><b>Pull Event Class</b></label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
-                    <option value="SourceControl.Git.PullEventHandler.Default" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.Default":"selected",:""))#>Default</option>
-                    <option value="SourceControl.Git.PullEventHandler.PackageManager" #($Case(settings.pullEventClass,"SourceControl.Git.PullEventHandler.PackageManager":"selected",:""))#>PackageManager</option>
+                    <server>
+                        set rs = ##class(%Dictionary.ClassDefinition).SubclassOfFunc("SourceControl.Git.PullEventHandler")
+                        while rs.%Next() {
+                            set subclass = rs.%GetData(1)
+                            // create option with subclass, set selected if subclass == current pullEventClass
+                            &html<<option value=#(subclass)# #($CASE(subclass, settings.pullEventClass: "selected", :""))#>#($PIECE(subclass, ".", *-0))# </option>>
+                        }
+                    </server>
                 </select>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="percentClassReplace" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed.">'%' Replacement on Export</label>
+            <label for="environmentName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Environment Name"><b>Environment Name</b></label>
+            <div class="col-sm-7">
+                <select class="form-control" id="environmentName" name="environmentName">
+                    <server>
+                        for envName = "TEST","DEVELOPMENT","LIVE","FAILOVER","" {
+                            // create option with envName, set selected if envName == current environmentName
+                            &html<<option #($CASE(envName, settings.environmentName: "selected", :""))# value=#(envName)#>#(envName)# </option>>
+                        }
+                    </server>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="percentClassReplace" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Character(s) to replace '%' with for percent classes while exporting them out to the filesystem. By default, the '%' is removed."><b>'%' Replacement on Export</b></label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="percentClassReplace" name="percentClassReplace" value='#(..EscapeHTML(settings.percentClassReplace))#' placeholder="_, __, <empty>, etc."/>
             </div>
         </div>
+        
+        <div class="form-group row mb-3">
+            <label for="systemBasicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode for all users, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace."><b> Basic Mode as System Default</b></label>
+            <div class="col-sm-7">
+            
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <server>
+                        if (settings.systemBasicMode) {
+                            &html<<input class="custom-control-input" name="systemBasicMode" type="checkbox" id="systemBasicMode" checked value="1">>
+                        } else {
+                            &html<<input class="custom-control-input" name="systemBasicMode" type="checkbox" id="systemBasicMode" value="1">>
+                        }
+                    </server>
+                    
+                    <label class="custom-control-label" for="systemBasicMode"></label>
+                </div>
+                
+            </div>
+            
 
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="defaultMergeBranch" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="In basic mode, the Sync operation will merge changes from this remote branch (leave blank for no branch)"><b>Default merge branch</b></label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="defaultMergeBranch" name="defaultMergeBranch" value='#(..EscapeHTML(settings.defaultMergeBranch))#' placeholder="sample-remote-branch">
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository"><b>Remote Repository</b></label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML(remote))#' placeholder="ex. git@github.com:User/UserRepo.git"/>
+                <div class = "neutral-feedback">
+                    (Username is redacted)
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group row mb-3">
+            <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"><b> Treat Mapped Items as Read-only</b></label>
+            <div class="col-sm-7">
+            
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <server>
+                        if (settings.mappedItemsReadOnly) {
+                            &html<<input class="custom-control-input" name="mappedItemsReadOnly" type="checkbox" id="mappedItemsReadOnly" checked value="1">>
+                        } else {
+                            &html<<input class="custom-control-input" name="mappedItemsReadOnly" type="checkbox" id="mappedItemsReadOnly" value="1">>
+                        }
+                    </server>
+                    
+                    <label class="custom-control-label" for="mappedItemsReadOnly"></label>
+                </div>
+                
+            </div>
+            
+
+        </div>
+        <div class="form-group row mb-3">
+            <label for="compileOnImport" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="If true, the Import All options will compile imported options using the configured pull event handler"><b>Compile Items on Import</b></label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="compileOnImport" type="checkbox" 
+                        id="compileOnImport" #($select(settings.compileOnImport:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="compileOnImport"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="decomposeProductions" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, interoperability productions are source-controlled under separate files for each configuration item">
+                Decompose Productions</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="decomposeProductions" type="checkbox" 
+                        id="decomposeProductions" #($select(settings.decomposeProductions:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="decomposeProductions"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="decomposeProdAllowIDE" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, a decomposed production class may be edited through VS Code or Studio">
+                Decomposed Productions Allow IDE</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="decomposeProdAllowIDE" type="checkbox" 
+                        id="decomposeProdAllowIDE" #($select(settings.decomposeProdAllowIDE:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="decomposeProdAllowIDE"></label>
+                </div>
+            </div>
+        </div>
+        
         <div class="form-group row mb-3 mapping-input-group">
-            <div class="col-sm-1"></div>
-            <div class="col-sm-3">
+            <div class="offset-sm-1 col-sm-3">
                 <label for="MappingsPath" class="col-form-label"  data-toggle="tooltip" data-placement="top" title="Relative paths mapping the files in your project. For web application files, use the extension: /CSP/">Mappings</label>
                 <button type="button" class="btn btn-default btn-add" >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#198754" class="bi bi-plus-circle-fill" viewBox="0 0 16 16">
@@ -336,6 +562,7 @@ body {
                 }
             </script>        
         </div>
+        </fieldset>
 
         <br/>
         <div class="row">
@@ -354,49 +581,151 @@ body {
 
         <br/>
 
+        <fieldset id="userSettings">
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="gitUserName" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
+            <label for="gitUserName" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Firstname Lastname">Git Committer Name </label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="gitUserName" name="gitUserName" value='#(..EscapeHTML(settings.gitUserName))#'/>
             </div>
         </div>
 
         <div class="form-group row mb-3">
-            <div class="col-sm-1"></div>
-            <label for="gitUserEmail" class="col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email </label>
+            <label for="gitUserEmail" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="<git-username-on-remote>@remote.com">Git Committer Email</label>
             <div class="col-sm-7">
                 <input type="email" class="form-control" id="gitUserEmail" name="gitUserEmail" value='#(..EscapeHTML(settings.gitUserEmail))#'/>
             </div>
         </div>
 
+        <div class="form-group mb-3">
+            <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label form-rad-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">Basic Mode</label>
+
+            <div class="form-check offset-sm-4 form-rad">
+                <server>
+                    if (settings.userBasicMode = "1") {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode1" checked value="1">>
+                    } else {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode1" value="1">>
+                    }
+                </server>
+                <label class="form-check-label" for="basicMode1">
+                    Use Basic Mode
+                </label>
+            </div> </br>
+            <div class="form-check offset-sm-4 form-rad">
+                <server>
+                    if (settings.userBasicMode = "0") {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode0" checked value="0">>
+                    } else {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicMode0" value="0">>
+                    }
+                </server>
+                <label class="form-check-label" for="basicMode0">
+                    Use Expert Mode
+                </label>
+            </div> </br>
+            <div class="form-check offset-sm-4 form-rad">
+                <server>
+                    if (settings.userBasicMode = "system") {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicModeDefault" checked value="system">>
+                    } else {
+                        &html<<input class="form-check-input" name="basicMode" type="radio" id="basicModeDefault" value="system">>
+                    }
+                </server>
+                <label class="form-check-label" for="basicModeDefault">
+                    Use System's Default Mode
+                </label>
+            </div>
+
+
+
+          <!--  <label for="basicMode" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Enable basic mode, which reduces the number of menu options and requires less knowledge of git. This is suitable for a single-developer (non-shared) namespace.">Basic Mode</label>
+            <div class="custom-control custom-switch custom-switch-no-border">
+                <server>
+                    if (settings.basicMode) {
+                        &html<<input class="custom-control-input" name="basicMode" type="checkbox" id="basicMode" checked value="1">>
+                    } else {
+                        &html<<input class="custom-control-input" name="basicMode" type="checkbox" id="basicMode" value="1">>
+                    }
+                </server>
+                
+                <label class="custom-control-label" for="basicMode"></label>
+            </div> -->
+        </div>
+
+        <div class="form-group row mb-3">
+            <label for="addToFav" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Favorite namespaces for user to add link on Home page.">*Favorite Namespaces</label>
+            <div class="col-sm-7">
+                <select multiple class="form-control" id="addToFav" name="favNamespace">
+                <server>
+                    set nonFavNamespaces = []
+                    set selectedNamespaces = []
+                    do ##class(%zpkg.isc.sc.git.Favorites).GetFavoriteNamespaces(.selectedNamespaces,.nonFavNamespaces)
+                    set iterator = selectedNamespaces.%GetIterator()
+                    while iterator.%GetNext(.key, .value) {
+                        &html<<option selected value=#(value)#>#(value)#</option>>
+                    }
+                    set iterator = nonFavNamespaces.%GetIterator()
+                    while iterator.%GetNext(.key, .value) {   
+                        &html<<option value=#(value)#>#(value)#</option>>
+                    }
+                </server>
+                </select>
+                <small> Hold the [Ctrl] or [Cmd] key while clicking to select multiple namespaces.</small>
+            </div>
+        </div>
         <br/>
+        </fieldset>
 
         <div class="form-group row mb-3">
             <div class="col-sm-12 text-center">
-                <input type='submit' class="btn-lg btn-primary" value = 'Save'/>
+                <input type="hidden" id="proxySubmitButton" name="proxySubmitButton" value="Save">
+                <input type='submit' class="btn-lg btn-primary" value = 'Save' name="Save"/>
+                <input type="submit" class="btn-lg btn-primary" id="saveDefaults" value = 'Save as Instance Defaults' title="Save these settings as default for new instances" name="saveDefaults"/>
+                <div>
+                    <small> Settings saved as default are <b>bolded </b> </small>
+                </div>
             </div>
         </div>
         
     </form>
-    <csp:if condition='$D(%request.Data("gitsettings",1)) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
-        <em>Settings saved. Click cross in the upper-right corner to close the settings window.</em>
-    </csp:if>
 </div>
 <script src="js/polyfills.js"></script>
 <script src="js/jquery.min.js"></script>
 <script src="js/popper.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script type="text/javascript">
+
+// Removing the home button if not a top-level page
+if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
+    $("#goToHome", self.element).remove();
+    $("#homeURL", self.element).remove();
+    $('#settingsTitle').removeClass('col-sm-7');
+    $('#settingsNavBtn').removeClass('col-sm-4');
+    $('#settingsTitle').addClass('col-sm-8');
+    $('#settingsNavBtn').addClass('col-sm-2');
+}
+
 function getSocket(urlPostfix) {
     var socketURL = window.location.href.replace('http','ws').replace('gitprojectsettings.csp','_zpkg.isc.sc.git.Socket.cls') + "&" + urlPostfix;
 	return new WebSocket(socketURL);
 }
 
+var submitForm = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var proxySubmitButton = document.getElementById('proxySubmitButton');
+    proxySubmitButton.value = "saveDefaults";
+    var form = document.getElementById('settingsForm');
+    form.submit();
+}
+
+document.getElementById('saveDefaults').addEventListener('click',submitForm,false);
+
 function init() {
     disableActionButtons();
-	var ws = getSocket("method=init");
-	ws.onmessage = showOutput('initOutput');
+    var root = document.getElementById("namespaceTemp").value;
+    var ws = getSocket("method=init&root=" + encodeURIComponent(root));
+    ws.onmessage = showOutput('initOutput');
 }
 
 function clone() {
@@ -440,6 +769,11 @@ $(function () {
 });
 $(function()
 {
+    if (#(settings.settingsUIReadOnly)#) {
+        $(document).ready( function() {
+            $("#namespaceSettings input, select").attr("disabled",true);
+        })
+    }
     $(document).on('click', '.btn-add', function(e)
     {
         e.preventDefault();
@@ -462,7 +796,10 @@ $(function()
 
         newEntry.appendTo(controlForm);
         $(("#"+newID)).click(toggleNoFolders);
-        
+
+        // Click twice to toggle and get side effects
+        $(("#"+newID)).click();
+        $(("#"+newID)).click();
     }).on('click', '.btn-remove', function(e)
     {
         $(this).parent().parent().parent().prev('#indent-div').remove();
@@ -474,8 +811,12 @@ $(function()
 
     $(document).on('click', "#goToWebUI", function(e){
         e.preventDefault();
-        console.log($("#webuiURL")[0].innerText);
-        window.location.replace($("#webuiURL")[0].innerText);
+        window.location.href = $("#webuiURL")[0].innerText;
+    })
+
+    $(document).on('click', "#goToHome", function(e){
+        e.preventDefault();
+        window.location.href = $("#homeURL")[0].innerText;
     })
 });
 
@@ -506,11 +847,20 @@ function toggleNoFolders(e){
 
 $('[id^=noFoldersSwitch]').click(toggleNoFolders);
 
+// Check to persist state of no folder switches  
+$('.mapping-input-group').children('.voca').each(function(){
+    var currElement = $(this).children().children(".custom-control").children()[0]
+    if(!$(currElement).hasClass("active")) {
+        $(currElement).parent().siblings("#NoFolders")[0].value = "NoFolders";
+    }
+});
 </script>
 </body>
 </html>
 <script method='OnPreHTTP' language='cache' runat='server' returntype='%Boolean'>	
 	try {
+		set %session.UseSessionCookie = 1 // Always set back to autodetect
+		set %session.CookiePath = "" // Always clear
 		if (%request.UserAgent [ " Code/") {
 			// Workaround for VSCode webview
 			set %session.SessionScope = 0 // none; allowed because...

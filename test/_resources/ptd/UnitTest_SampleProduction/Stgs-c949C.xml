@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26">
+<Project name="Settings-c" LastModified="1841-01-01 00:00:00.0000000">
+  <Items>
+    <ProjectItem name="EnsExportNotes.Settings-c.PTD" type="PTD"></ProjectItem>
+    <ProjectItem name="Settings:c.PTD" type="PTD"></ProjectItem>
+  </Items>
+</Project>
+
+
+<Document name="EnsExportNotes.Settings-c.PTD"><ProjectTextDocument name="EnsExportNotes.Settings-c" description="Export Notes for export Settings-c">
+<![CDATA[<Deployment>
+<Creation>
+<SourceProduction>UnitTest.SampleProduction</SourceProduction>
+<UTC>1841-01-01 00:00:00.000</UTC>
+</Creation>
+<Notes>
+</Notes>
+<Contents>
+<ExportProject>Settings-c</ExportProject>
+<Item num="1">Settings:c.PTD</Item>
+</Contents>
+<ProductionClassInExport></ProductionClassInExport>
+</Deployment>
+
+]]></ProjectTextDocument>
+</Document>
+
+<Document name="Settings:c.PTD"><ProjectTextDocument name="Settings:c" description="Settings for c in Production UnitTest.SampleProduction">
+<![CDATA[<Item Name="c" Category="" ClassName="Ens.Activity.Operation.Local" PoolSize="1" Enabled="false" Foreground="false" Comment="" LogTraceEvents="false" Schedule=""></Item>
+]]></ProjectTextDocument>
+</Document></Export>

@@ -10,6 +10,16 @@ Parameter DESCRIPTION = "Performs an incremental load and compile of all changes
 Method OnPull() As %Status
 {
     set sc = $$$OK
+
+    // certain items must be imported before everything else.
+    for i=1:1:$get(..ModifiedFiles) {
+        set internalName = ..ModifiedFiles(i).internalName
+        if internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME {
+            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName))
+        }
+    }
+    break
+
     set nFiles = 0
 
     for i=1:1:$get(..ModifiedFiles){

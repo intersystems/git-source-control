@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed business processes and rules not being added to source control automatically (#676)
 - Embedded Git commits settings when cloning empty repo to avert any issues
 - Fixed Import All options not importing the Embedded Git configuration file
+- That configuration file now imports before everything else (#697)
 - Improved performance of IDE editing and baselining of decomposed productions
 - Fixed Discard / Stash not working on deletes (#688)
 

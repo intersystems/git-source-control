@@ -18,7 +18,6 @@ Method OnPull() As %Status
             set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName))
         }
     }
-    break
 
     set nFiles = 0
 

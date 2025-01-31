@@ -24,14 +24,29 @@ Method OnPull() As %Status [ Abstract ]
 /// <var>pullEventClass</var>: if defined, override the configured pull event class
 ClassMethod ForModifications(ByRef files, pullEventClass As %String) As %Status
 {
-    set event = $classmethod(
-        $select(
-            $data(pullEventClass)#2: pullEventClass, 
-            1: ##class(SourceControl.Git.Utils).PullEventClass())
-        ,"%New")
-    set event.LocalRoot = ##class(SourceControl.Git.Utils).TempFolder()
-    merge event.ModifiedFiles = files
-    quit event.OnPull()
+    set st = $$$OK
+    try {
+        set log = ##class(SourceControl.Git.DeploymentLog).%New()
+        set log.HeadRevision = ##class(SourceControl.Git.Utils).GetCurrentRevision()
+        set log.StartTimestamp = $zdatetime($ztimestamp,3)
+        set st = log.%Save()
+        quit:$$$ISERR(st)
+        set event = $classmethod(
+            $select(
+                $data(pullEventClass)#2: pullEventClass, 
+                1: ##class(SourceControl.Git.Utils).PullEventClass())
+            ,"%New")
+        set event.LocalRoot = ##class(SourceControl.Git.Utils).TempFolder()
+        merge event.ModifiedFiles = files
+        set st = event.OnPull()
+        set log.EndTimestamp = $zdatetime($ztimestamp,3)
+        set log.Status = st
+        set st = log.%Save()
+        quit:$$$ISERR(st)
+    } catch err {
+        set st = err.AsStatus()
+    }
+    quit st
 }
 
 /// <var>InternalName</var> may be a comma-delimited string or $ListBuild list

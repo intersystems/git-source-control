@@ -754,6 +754,7 @@ ClassMethod Exists(ByRef pFilename) As %Boolean
 	Return 0
 }
 
+/// Adds this item to the list of items that are tracked by source control
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 {
     #dim i as %Integer
@@ -764,10 +765,6 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
             continue
         }
         set @..#Storage@("items", item) = ""
-        #dim sc as %Status =  ..ImportItem(item, 1)
-        if 'sc {
-            set ec = $$$ADDSC(ec, sc)
-        }
     }
     quit ec
 }

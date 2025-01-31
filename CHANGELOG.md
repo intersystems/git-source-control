@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - LoadProductionsFromDirectory method to help custom deployment scripts load decomposed productions from the repository (#670)
 - Added ability to reset head / revert most recent commit (#586)
+- Changes deployed through Git are now logged in a new table SourceControl_Git.DeploymentLog
 
 ### Fixed
 - Fixed not showing warnings on Studio (#660)
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved performance of IDE editing and baselining of decomposed productions
 - Fixed Discard / Stash not working on deletes (#688)
 - Fixed errors deploying decomposed production changes on Windows network drives (#696)
+- Improved performance of deploying changes to decomposed production items (#690)
 
 ## [2.9.0] - 2025-01-09
 

@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed Discard / Stash not working on deletes (#688)
 - Fixed errors deploying decomposed production changes on Windows network drives (#696)
 - Improved performance of deploying changes to decomposed production items (#690)
+- Fixed errors saving decomposed productions when invalid items in item cache (#701)
+- Removed unnecessary Add and Remove menu items from decomposed productions (#701)
 
 ## [2.9.0] - 2025-01-09
 

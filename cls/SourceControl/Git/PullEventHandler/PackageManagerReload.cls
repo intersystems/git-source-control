@@ -13,10 +13,18 @@ Method OnPull() As %Status
     $$$QuitOnError(sc)
     set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
     if $isobject(context.Package) {
-        set sc = ##class(%ZPM.PackageManager).Shell("uninstall "_context.Package.Name)
+        set command = "uninstall "_context.Package.Name
+        set sc = $select(
+            $$$comClassDefined("%IPM.Main"): ##class(%IPM.Main).Shell(command),
+            1: ##class(%ZPM.PackageManager).Shell(command)
+        )
         $$$QuitOnError(sc)
     }
-    quit ##class(%ZPM.PackageManager).Shell("load "_..LocalRoot)
+    set command = "load "_..LocalRoot
+    quit $select(
+        $$$comClassDefined("%IPM.Main"): ##class(%IPM.Main).Shell(command),
+        1: ##class(%ZPM.PackageManager).Shell(command)
+    )
 }
 
 }

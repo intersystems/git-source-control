@@ -35,6 +35,12 @@ Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(Sou
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()} ];
 
+/// Type of git remote
+Property gitRemoteType As %String(VALUELIST = ",HTTPS,SSH");
+
+/// URL for git remote
+Property gitRemoteURL As %String(MAXLEN = "");
+
 /// Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
@@ -153,6 +159,8 @@ Method %Save() As %Status
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
     set @storage@("settings", "basicMode") = ..systemBasicMode
     set @storage@("settings", "environmentName") = ..environmentName
+    set @storage@("settings","gitRemoteType") = ..gitRemoteType
+    set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -435,14 +443,58 @@ Method OnAfterConfigure() As %Boolean
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.WaitForComplete())
         } elseif (value = 2) {
-            set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
+            set remoteTypes(1) = "HTTPS (Only remotes with OAuth2 support)"
+            set remoteTypes(2) = "SSH"
+            set remoteValue = ""
+            set response = ##class(%Library.Prompt).GetMenu("Git remote type:",.remoteValue,.remoteTypes,,defaultPromptFlag + $$$InitialDisplayMask)
+            if (response '= $$$SuccessResponse) {
+                quit
+            }
+
+            set ..gitRemoteType = $select((remoteValue = 1): "HTTPS", 1: "SSH")
+
+            set remote = ""
+            set response = ##class(%Library.Prompt).GetString("Git remote URL:",.remote,,,,defaultPromptFlag)
             if (response '= $$$SuccessResponse) {
                 quit
             }
             if (remote = "") {
                 quit
             }
-             // using work queue manager ensures proper OS user context/file ownership
+            set ..gitRemoteURL = remote
+            do ..%Save()
+
+            if ..gitRemoteType = "HTTPS" {
+                /* Removed for testing
+                set c = ##class(SourceControl.Git.OAuth2).Configure(remote)
+                set redirectURL = ##class(SourceControl.Git.OAuth2).GetOAuthRedirectEndpoint()_"/"_$NAMESPACE
+                set authURL = ##class(SourceControl.Git.OAuth2).AuthCodeURL(c,$namespace, .state, .verifier)
+                Write !, "Please navigate to following link on your browser to login to the git server"
+                write !, authURL
+                */
+
+                // poll attempt count
+                set try = 0
+                // poll every `SLEEPTIME` seconds
+                set SLEEPTIME = 5
+                // stop polling after `TIMEOUT` seconds
+                set TIMEOUT = 300
+                While try*SLEEPTIME < TIMEOUT {
+                    do ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+                    if code '= 1 {
+                        Write "Unable to query credential manager"
+                        // something went wrong, return from method
+                        return
+                    }
+                    
+                    if err = "" {
+                        // token was saved successfully, exit loop
+                        quit
+                    }
+                }
+            }            
+
+            // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.WaitForComplete())

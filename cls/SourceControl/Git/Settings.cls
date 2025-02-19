@@ -159,6 +159,8 @@ Method %Save() As %Status
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
     set @storage@("settings", "basicMode") = ..systemBasicMode
     set @storage@("settings", "environmentName") = ..environmentName
+    set @storage@("settings","gitRemoteType") = ..gitRemoteType
+    set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -441,15 +443,17 @@ Method OnAfterConfigure() As %Boolean
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.WaitForComplete())
         } elseif (value = 2) {
-            set remoteTypes("1") = "HTTPS (Only remotes with OAuth2 support)"
-            set remoteTypes("2") = "SSH"
-            set response = ##class(%Library.Prompt).GetString("Git remote type:",.remoteType,.remoteTypes,,,defaultPromptFlag + $$$InitialDisplayMask)
+            set remoteTypes(1) = "HTTPS (Only remotes with OAuth2 support)"
+            set remoteTypes(2) = "SSH"
+            set remoteValue = ""
+            set response = ##class(%Library.Prompt).GetMenu("Git remote type:",.remoteValue,.remoteTypes,,defaultPromptFlag + $$$InitialDisplayMask)
             if (response '= $$$SuccessResponse) {
                 quit
             }
 
-            set ..gitRemoteType = $select((remoteType = "1"): "HTTPS", 1: "SSH")
+            set ..gitRemoteType = $select((remoteValue = 1): "HTTPS", 1: "SSH")
 
+            set remote = ""
             set response = ##class(%Library.Prompt).GetString("Git remote URL:",.remote,,,,defaultPromptFlag)
             if (response '= $$$SuccessResponse) {
                 quit
@@ -457,12 +461,17 @@ Method OnAfterConfigure() As %Boolean
             if (remote = "") {
                 quit
             }
+            set ..gitRemoteURL = remote
+            do ..%Save()
 
             if ..gitRemoteType = "HTTPS" {
-                do ##class(OAuth2).Configure()
-                set redirectURL = ##class(OAuth2).GetOAuthRedirectEndpoint()_"/"_$NAMESPACE
-                Write "Please navigate to "_" on your browser to login to the git server", !
-                
+                /* Removed for testing
+                set c = ##class(SourceControl.Git.OAuth2).Configure(remote)
+                set redirectURL = ##class(SourceControl.Git.OAuth2).GetOAuthRedirectEndpoint()_"/"_$NAMESPACE
+                set authURL = ##class(SourceControl.Git.OAuth2).AuthCodeURL(c,$namespace, .state, .verifier)
+                Write !, "Please navigate to following link on your browser to login to the git server"
+                write !, authURL
+                */
 
                 // poll attempt count
                 set try = 0
@@ -471,7 +480,7 @@ Method OnAfterConfigure() As %Boolean
                 // stop polling after `TIMEOUT` seconds
                 set TIMEOUT = 300
                 While try*SLEEPTIME < TIMEOUT {
-                    do ##class(SourceControl.Git.Util.CredentialManager).GetToken(, .err, .code)
+                    do ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
                     if code '= 1 {
                         Write "Unable to query credential manager"
                         // something went wrong, return from method

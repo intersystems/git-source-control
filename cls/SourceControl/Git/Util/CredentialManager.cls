@@ -166,7 +166,8 @@ ClassMethod Start() [ Private ]
 	}
 }
 
-ClassMethod StartInternal() [ Private ]
+/// TODO-etamarch -> This was Private, but we cannot have jobs call private methods. Need to find a structural workaround
+ClassMethod StartInternal()
 {
 	try {
 		set lock = $System.AutoLock.Lock(..GetEventName(), , 2)

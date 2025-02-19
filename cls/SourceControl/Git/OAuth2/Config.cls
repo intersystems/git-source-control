@@ -1,4 +1,4 @@
-Class SourceControl.Git.OAuth2.Config Extends %RegisteredObject
+Class SourceControl.Git.OAuth2.Config Extends %Persistent
 {
 
 /// Name is the identifier for this configuration
@@ -17,14 +17,29 @@ Property Endpoint As Endpoint;
 /// to after authenticating with the resource owner
 Property RedirectURL As %String(MAXLEN = "");
 
+Property state As %String;
+
+Property verifier As %String;
+
 /// Scopes specifies the list of scopes we are requesting access to
-Property Scopes;
+Property Scopes As %List;
+
+Property Username As %String;
 
 Index NameID On Name [ IdKey ];
 
+Index Username On Username [ Unique ];
+
+ClassMethod GetConfig(username As %String) As SourceControl.Git.OAuth2.Config
+{
+    set config = ##class(SourceControl.Git.OAuth2.Config).%OpenId(username)
+
+    return config
+}
+
 // TODO: We will need a authStyleCache when we use autodetect for Endpoint.AuthStyle in the future
 
-Method %OnNew(configName As %String, clientID As %String, clientSecret As %String, authEndpoint As %String, tokenEndpoint As %String, redirectURL As %String, scopes As %String) As %Status
+Method %OnNew(configName As %String, clientID As %String, clientSecret As %String, authEndpoint As %String, tokenEndpoint As %String, redirectURL As %String, scopes As %List = "") As %Status
 {
     set ..Name = configName
     set ..ClientID = clientID
@@ -33,6 +48,10 @@ Method %OnNew(configName As %String, clientID As %String, clientSecret As %Strin
     set ..Endpoint.AuthURL = authEndpoint
     set ..Endpoint.TokenURL = tokenEndpoint
     set ..RedirectURL = redirectURL
+
+    if ('scopes) {
+        set scopes = $lb("repo")
+    }
     set ..Scopes = scopes
 
     return $$$OK
@@ -76,6 +95,8 @@ Method Exchange(authCode As %String, verifier As %String, Output sc As %Status) 
     // this is when we will need the `AuthStyle` parameter in the endpoint
     do request.SetHeader("Accept", "application/json")
 
+    do ..CreateSSLConfigIfNonExistent("GitExtensionForIris")
+
     set request.SSLConfiguration = "GitExtensionForIris"
     set sc = request.Get(urlComponents("path"))
     if sc '= $$$OK {
@@ -98,6 +119,34 @@ Method Exchange(authCode As %String, verifier As %String, Output sc As %Status) 
     }
 }
 
+ClassMethod CreateSSLConfigIfNonExistent(name As %String)
+{
+       new $namespace
+        set $namespace = "%SYS"
+
+        do ##class(Security.SSLConfigs).Get(name, .p)
+        if $data(p) quit   
+
+        set p("CipherList")="ALL:!aNULL:!eNULL:!EXP:!SSLv2"
+        set p("CAFile")=""
+        set p("CAPath")=""
+        set p("CRLFile")=""
+        set p("CertificateFile")=""
+        set p("CipherList")="ALL:!aNULL:!eNULL:!EXP:!SSLv2"
+        set p("Description")=""
+        set p("Enabled")=1
+        set p("PrivateKeyFile")=""
+        set p("PrivateKeyPassword")=""
+        set p("PrivateKeyType")=2
+        set p("Protocols")=24
+        set p("SNIName")=""
+        set p("Type")=0
+        set p("VerifyDepth")=9
+        set p("VerifyPeer")=0
+
+        do ##class(Security.SSLConfigs).Create(name, .p)
+}
+
 ClassMethod GetURLWithParams(url As %String, ByRef params As %String) As %String
 {
     if $find(url, "?") {
@@ -116,6 +165,7 @@ ClassMethod GetURLWithParams(url As %String, ByRef params As %String) As %String
 
         quit:(isLastIter)
 
+        // TODO-etamarch -> I had issues with $$$URLENCODE, need to look into this later
         set url = url_$$$URLENCODE(curParamKey)_"="_$$$URLENCODE(curParamValue)
     }
     return url
@@ -142,35 +192,22 @@ Storage Default
 <Value name="6">
 <Value>Scopes</Value>
 </Value>
-</Data>
-<Data name="ConfigState">
-<Value name="1">
-<Value>Name</Value>
+<Value name="7">
+<Value>Username</Value>
 </Value>
-<Value name="2">
-<Value>ClientID</Value>
+<Value name="8">
+<Value>state</Value>
 </Value>
-<Value name="3">
-<Value>ClientSecret</Value>
-</Value>
-<Value name="4">
-<Value>Endpoint</Value>
-</Value>
-<Value name="5">
-<Value>RedirectURL</Value>
-</Value>
-<Value name="6">
-<Value>Scopes</Value>
+<Value name="9">
+<Value>verifier</Value>
 </Value>
 </Data>
 <DataLocation>^SourceControl.Git.O7826.ConfigD</DataLocation>
 <DefaultData>ConfigDefaultData</DefaultData>
 <IdLocation>^SourceControl.Git.O7826.ConfigD</IdLocation>
 <IndexLocation>^SourceControl.Git.O7826.ConfigI</IndexLocation>
-<State>ConfigState</State>
 <StreamLocation>^SourceControl.Git.O7826.ConfigS</StreamLocation>
-<Type>%Storage.Serial</Type>
+<Type>%Storage.Persistent</Type>
 }
 
 }
-

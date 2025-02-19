@@ -82,6 +82,16 @@ ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
 }
 
+ClassMethod GitRemoteType() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","gitRemoteType"), 0)
+}
+
+ClassMethod GitRemoteURL() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","gitRemoteURL"), 0)
+}
+
 ClassMethod FavoriteNamespaces() As %String
 {
     set favNamespaces = []
@@ -264,7 +274,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
     } elseif (menuItemName = "Authenticate") {
         set Action = 2 + externalBrowser
-        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp/"_$namespace_"/?"_urlPostfix
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp/"_$namespace _"/?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -664,6 +674,11 @@ ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean = 0
 ClassMethod Clone(remote As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
+    // Modify remote if using https
+    if (remote [ "https") {
+        set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+        set remote = ##class(SourceControl.Git.OAuth2).GetRemoteURLWithToken(token)
+    }
     // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
     set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
     // can I substitute this with the new print method?
@@ -1860,6 +1875,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
 
     set newArgs($increment(newArgs)) = command
+
+    if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
+        // Need to use token
+        set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username,.err,.code)
+        set url = ##class(SourceControl.Git.OAuth2).GetRemoteURLWithToken(token)
+        set newArgs($increment(newArgs)) = url
+    }
 
     set syncIrisWithDiff = 0 // whether IRIS needs to be synced with repo file changes using diff output
     set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output

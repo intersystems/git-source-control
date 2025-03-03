@@ -1493,7 +1493,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 
     // Config file may exist at the root of the Git repo.
     set configFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Settings.Document).#EXTERNALNAME, ..TempFolder())
-    if ##class(%File).Exists(##class(%File).NormalizeFilename(configFilePath)) {
+    if (configFilePath '= "") && ##class(%File).Exists(##class(%File).NormalizeFilename(configFilePath)) {
         set itemList(..NameToInternalName(configFilePath)) = ""
     }
     

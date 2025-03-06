@@ -335,7 +335,10 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
 ClassMethod IsEnsPortal() As %Boolean
 {
 	Return $Data(%request) && '($IsObject(%request) && 
-        ((%request.UserAgent [ "Code") || (%request.UserAgent [ "node-fetch")))
+        (  
+            (%request.UserAgent [ "Code")   // VS Code
+            || (%request.UserAgent [ "node-fetch")  // VS Code
+            || (%request.Application [ "/api/interop-editors")))  // New interoperability editor
 }
 
 /// Perform check if Production Decomposition logic should be used for given item

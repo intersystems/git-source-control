@@ -4,11 +4,11 @@ Class SourceControl.Git.OAuth2.Config Extends %Persistent
 /// Name is the identifier for this configuration
 Property Name As %String(MAXLEN = 127);
 
-/// ClientID is the OAuth Application ID
-Property ClientID As %String(MAXLEN = "");
+/// ClientID is the OAuth Application ID. Stored in private memopry store only accessible by user
+Property ClientID As %String(MAXLEN = "") [ Transient ];
 
-/// ClientSecret is the OAuth Application secret
-Property ClientSecret As %String(MAXLEN = "");
+/// ClientSecret is the OAuth Application secret. Stored in private memopry store only accessible by user
+Property ClientSecret As %String(MAXLEN = "") [ Transient ];
 
 /// Endpoint contains the resource server's token endpoint
 Property Endpoint As Endpoint;
@@ -26,9 +26,37 @@ Property Scopes As %List;
 
 Property Username As %String;
 
-Index NameID On Name [ IdKey ];
+Index Username On Username [ IdKey, Unique ];
 
-Index Username On Username [ Unique ];
+Method ClientIDSet(InputValue As %String) As %Status
+{
+    set code = "", error = ""
+    do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(..Username,"clientid",InputValue, .error, .code)
+    if (code '= 1) || (error '= "") {
+        return $$$ERROR($$$GeneralError,"Set failed with following error: "_error)
+    }
+    return $$$OK
+}
+
+Method ClientIDGet() As %String
+{
+    return ##class(SourceControl.Git.Util.CredentialManager).GetKeyPair(..Username,"clientid", .error, .code)
+}
+
+Method ClientSecretSet(InputValue As %String) As %Status
+{
+    set code = "", error = ""
+    do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(..Username,"clientsecret",InputValue, .error, .code)
+    if (code '= 1) || (error '= "") {
+        return $$$ERROR($$$GeneralError,"Set failed with following error: "_error)
+    }
+    return $$$OK
+}
+
+Method ClientSecretGet() As %String
+{
+    return ##class(SourceControl.Git.Util.CredentialManager).GetKeyPair(..Username,"clientsecret", .error, .code)
+}
 
 ClassMethod GetConfig(username As %String) As SourceControl.Git.OAuth2.Config
 {
@@ -42,12 +70,14 @@ ClassMethod GetConfig(username As %String) As SourceControl.Git.OAuth2.Config
 Method %OnNew(configName As %String, clientID As %String, clientSecret As %String, authEndpoint As %String, tokenEndpoint As %String, redirectURL As %String, scopes As %List = "") As %Status
 {
     set ..Name = configName
+    set ..Username = $username
     set ..ClientID = clientID
     set ..ClientSecret = clientSecret
     set ..Endpoint = ##class(Endpoint).%New()
     set ..Endpoint.AuthURL = authEndpoint
     set ..Endpoint.TokenURL = tokenEndpoint
     set ..RedirectURL = redirectURL
+
 
     if ('scopes) {
         set scopes = $lb("repo")
@@ -200,6 +230,9 @@ Storage Default
 </Value>
 <Value name="9">
 <Value>verifier</Value>
+</Value>
+<Value name="10">
+<Value>Name</Value>
 </Value>
 </Data>
 <DataLocation>^SourceControl.Git.O7826.ConfigD</DataLocation>

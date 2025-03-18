@@ -13,42 +13,6 @@ ClassMethod GenerateVerifier() As %String
     return ##class(%SYSTEM.Encryption).GenCryptRand(32)
 }
 
-/// Gets the AuthCodeURL for github
-/// namespace: is the name of the namespace that git source control is installed in
-/// (we need this to ensure that we switch to the right namespace when we get the authcode from the server)
-/// state -- Output : random 32 byte string to validate authCode redirects
-/// verifier -- Output : random 32 byte string to validate during token exchange
-ClassMethod AuthCodeURLForGithub(namespace As %String, Output state, Output verifier) As %String
-{
-    // (clientID As %String, clientSecret As %String, authEndpoint As %String, tokenEndpoint As %String, redirectURL As %String, scopes As %String) As %Status
-    set config = ##class(SourceControl.Git.OAuth2.Config).%New(
-        "Github",
-        "Ov23lic1u2IDhK6R5m1Y",
-        "2a84f4846510359697bf0b5f3288330c6a7fe995",
-        "https://github.com/login/oauth/authorize",
-        "https://github.com/login/oauth/access_token"    ,
-        ..GetOAuthRedirectEndpoint(),
-        $lb("repo"))
-        
-    return ..AuthCodeURL(config, namespace, .state, .verifier)
-}
-
-/// Exchanges an authorization code and associated verifier with the server and returns the retreived access_token
-/// authCode: Authorization code received from github after user authenticates
-/// verifier: PKCE verifier whose hash was sent to github via the authCodeURL
-ClassMethod ExchangeForGithub(authCode As %String, verifier As %String, Output sc As %Status) As %String
-{
-    set config = ##class(SourceControl.Git.OAuth2.Config).%New(
-        "Github",
-        "Ov23lic1u2IDhK6R5m1Y",
-        "2a84f4846510359697bf0b5f3288330c6a7fe995",
-        "https://github.com/login/oauth/authorize",
-        "https://github.com/login/oauth/access_token",
-        ..GetOAuthRedirectEndpoint(),
-        $lb("repo"))
-    return config.Exchange(authCode, verifier, .sc)
-}
-
 /// Builds the authorization code URL for the given configuration
 ClassMethod AuthCodeURL(c As SourceControl.Git.OAuth2.Config, namespace As %String, Output state, Output verifier) As %String
 {

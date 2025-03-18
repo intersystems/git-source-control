@@ -61,7 +61,7 @@ ClassMethod GetToken(gitUsername As %String = "", Output error As %String, Outpu
 	return token
 }
 
-/// SetToken is used to retreive the access token for a particular git user
+/// SetToken is used to set the access token for a particular git user
 /// gitUsername (optional) default: `""` -- username for which token is to be set
 /// error -- pass by reference -- returns error: if (error '= "") we got an error from the daemon process
 /// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
@@ -75,6 +75,30 @@ ClassMethod SendResponse(toPID As %Integer, message As %String, error As %String
 	if $System.Event.Signal(toPID, $lb(message, error)) '= 1 {
 		#; do ..LogForDaemon("Unable to send message: """_message_""" to: "_toPID)
 	}
+}
+
+/// SetKeyPair is used to set the value for a key-value pair for a particular git user
+/// gitUsername default: `""` -- username for which value is to be set
+/// error -- pass by reference -- returns error: if (error '= "") we got an error from the daemon process
+/// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
+ClassMethod SetKeyPair(gitUsername As %String = "", key As %String, value As %String, Output error As %String, Output code)
+{
+	if (gitUsername = "") {
+		do ..SendResponse($JOB, "", "provide username")
+		q
+	}
+	set $lb(,error) = ..Signal("SET",$lb($JOB,gitUsername_"-"_key,value), .code)
+}
+
+/// GetKeyPair is used to retreive the value for a key for a particular git user
+/// gitUsername default: `""` -- username for which the value is to be retreived
+/// error -- pass by reference -- returns error: if error '= "" we got an error from the daemon process
+/// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
+/// Returns fetched value
+ClassMethod GetKeyPair(gitUsername As %String = "", key As %String, Output error As %String, Output code) As %String
+{
+	set $lb(value, error) = ..Signal("GET", $lb($JOB, gitUsername_"-"_key), .code)
+	return value
 }
 
 Method HandleMessage(msgType As %String, msgContent As %String) [ Private ]

@@ -82,12 +82,12 @@ ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
 }
 
-ClassMethod GitRemoteType() As %Boolean [ CodeMode = expression ]
+ClassMethod GitRemoteType() As %String [ CodeMode = expression ]
 {
 $Get(@..#Storage@("settings","gitRemoteType"), 0)
 }
 
-ClassMethod GitRemoteURL() As %Boolean [ CodeMode = expression ]
+ClassMethod GitRemoteURL() As %String [ CodeMode = expression ]
 {
 $Get(@..#Storage@("settings","gitRemoteURL"), 0)
 }
@@ -274,7 +274,7 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
     } elseif (menuItemName = "Authenticate") {
         set Action = 2 + externalBrowser
-        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp/"_$namespace _"/?"_urlPostfix
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -3210,6 +3210,24 @@ ClassMethod WriteLineToFile(filePath As %String, line As %String)
     Set file=##class(%File).%New(filePath)
     Do file.Open("WSN")
 	Do file.WriteLine(line)
+}
+
+ClassMethod Authenticated() As %Boolean
+{
+    if (##class(SourceControl.Git.Utils).GitRemoteType() '= "SSH") {
+        try {
+            // Run a git command that requires access to the remote
+            // if does not work, then we are unauthenticated
+            set returncode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote","",.errStream,.outStream,)
+            do errStream.Rewind()
+            if (errStream.ReadLine()) '= "" {
+                return 0
+            }
+        } catch e {
+            return 0
+        }
+    }
+    return 1
 }
 
 }

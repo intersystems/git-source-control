@@ -938,6 +938,10 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         window.location.href = webui.settingsURL;
     }
 
+    self.goToOAuth = function() {
+        window.location.href = webui.oauthURL;
+    }
+
     self.goToHomePage = function() {
         window.location.href = webui.homeURL;
     }
@@ -993,6 +997,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
     self.mainView = mainView;
     self.currentContext = self.getCurrentContext();
+
+    var oauthHTML = '';
+    if (webui.oauthURL != "") {
+        oauthHTML = '<section id="sidebar-oauth"><h4>Authenticate</h4></section>'
+    }
+
     self.element = $(   '<div id="sidebar">' +
                             '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<h5 id="packageVersion"></h5>' +
@@ -1032,6 +1042,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '<section id="sidebar-vscode">' +
                                     '<h4><a href="vscode-workspace" target="_blank">Code Workspace</a></h4>' +
                                 '</section>' +
+                                oauthHTML+
                                 '<section id="sidebar-home">' +
                                     '<h4>Home</h4>' +
                                 '</section>' +
@@ -1069,6 +1080,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             self.changeContextGet(0);
         });
         $("#sidebar-home", self.element).click(self.goToHomePage);
+        $("#sidebar-oauth", self.element).click(self.goToOAuth)
     }
 
     // Removing the link to home if not a top-level page
@@ -1076,7 +1088,6 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $("#sidebar-home", self.element).remove();
     }
 
-    
     self.getPackageVersion();
     self.getEnvironment()
     self.refreshSideBar();
@@ -3267,24 +3278,27 @@ function MainUi() {
             webui.viewonly = data == "1";
             $.get("hostname", function (data) {
                 webui.hostname = data
+                $.get("api/oauth", function (data) {
+                    webui.oauthURL = JSON.parse(data).url
 
-                var body = $("body")[0];
-                $('<div id="message-box">').appendTo(body);
-                var globalContainer = $('<div id="global-container">').appendTo(body)[0];                
+                    var body = $("body")[0];
+                    $('<div id="message-box">').appendTo(body);
+                    var globalContainer = $('<div id="global-container">').appendTo(body)[0];                
 
-                self.sideBarView = new webui.SideBarView(self);
-                globalContainer.appendChild(self.sideBarView.element);
-                
-                self.mainView = $('<div id="main-view">')[0];
-                globalContainer.appendChild(self.mainView);
+                    self.sideBarView = new webui.SideBarView(self);
+                    globalContainer.appendChild(self.sideBarView.element);
+                    
+                    self.mainView = $('<div id="main-view">')[0];
+                    globalContainer.appendChild(self.mainView);
 
-                self.historyView = new webui.HistoryView(self);
-                if (!webui.viewonly) {
-                    self.workspaceView = new webui.WorkspaceView(self);
-                    self.stashView = new webui.StashView(self);
-                    self.discardedView = new webui.DiscardedView(self);
-                }
-                self.sideBarView.selectRef("HEAD");
+                    self.historyView = new webui.HistoryView(self);
+                    if (!webui.viewonly) {
+                        self.workspaceView = new webui.WorkspaceView(self);
+                        self.stashView = new webui.StashView(self);
+                        self.discardedView = new webui.DiscardedView(self);
+                    }
+                    self.sideBarView.selectRef("HEAD");
+                });
             });
         });
     });

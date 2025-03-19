@@ -498,7 +498,7 @@ Method OnAfterConfigure() As %Boolean
                 $$$ThrowOnError(##class(SourceControl.Git.Utils).Commit(##class(SourceControl.Git.Settings.Document).#INTERNALNAME,"initial commit"))
             }
             // Set remote to remove token
-            do ##class(SourceControl.Git.Utils).SetConfiguredRemote(remote)
+            do ##class(SourceControl.Git.Utils).SetConfiguredRemote(..gitRemoteURL)
         }
     }
 }

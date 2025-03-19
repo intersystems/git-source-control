@@ -84,7 +84,7 @@ $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
 
 ClassMethod GitRemoteType() As %String [ CodeMode = expression ]
 {
-$Get(@..#Storage@("settings","gitRemoteType"), 0)
+$Get(@..#Storage@("settings","gitRemoteType"), "")
 }
 
 ClassMethod GitRemoteURL() As %String [ CodeMode = expression ]

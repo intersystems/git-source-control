@@ -85,6 +85,13 @@ body {
 	set namespace = $NAMESPACE
 	set username = $USERNAME
 	set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig(username)
+
+	if (config = "") {
+		set authURL = ""
+		set tokenURL = ""
+		set remote = ##class(SourceControl.Git.Utils).GetConfiguredRemote()
+		set urls = ##class(SourceControl.Git.OAuth2).GetURLsFromRemote(remote,.authURL,.tokenURL)
+	}
 	set authCodeURL = ""
 	set ready = ""
 	/// After submit
@@ -94,7 +101,7 @@ body {
 		set clientSecret = $Get(%request.Data("clientSecret",1))
 		set authURL = $Get(%request.Data("authURL",1))
 		set tokenURL = $Get(%request.Data("tokenURL",1))
-		set redirect = ##class(SourceControl.Git.OAuth2).GetOAuthRedirectEndpoint()
+		set redirect = $piece($Get(%request.Data("redirectURL",1)),"?",1)
 
 		if config = "" {
 			set config = ##class(SourceControl.Git.OAuth2.Config).%New(username, clientID, clientSecret,authURL,tokenURL,redirect)
@@ -159,7 +166,7 @@ body {
             <label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Authorize URL">Authorize URL<br/></label>
             <div class="col-sm-7">
 				<server>
-					set authURL = $select(config:config.Endpoint.AuthURL, 1: "")
+					set authURL = $select(config:config.Endpoint.AuthURL,authURL:authURL, 1: "")
 				</server>
                 <input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#'/>
             </div>
@@ -169,7 +176,7 @@ body {
             <label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Token URL">Token URL<br/></label>
             <div class="col-sm-7">
 				<server>
-					set tokenURL = $select(config:config.Endpoint.TokenURL, 1: "")
+					set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL:tokenURL, 1: "")
 				</server>
                 <input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#'/>
             </div>
@@ -181,6 +188,7 @@ body {
                 <input type='submit' class="btn-lg btn-primary" value = 'Save' name="Authorize"/>
             </div>
         </div>
+		<input type="hidden" id="redirectURL" name="redirectURL">
 
 	</form>
 	<csp:if condition='ready'>
@@ -200,6 +208,8 @@ body {
 		e.preventDefault();
 		e.stopPropagation();
 		var form = document.getElementById('oauthForm');
+		var redirectURL = document.getElementById('redirectURL')
+		redirectURL.value = window.location.href
 		form.submit();
 	}
 

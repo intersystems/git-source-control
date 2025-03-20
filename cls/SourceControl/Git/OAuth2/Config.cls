@@ -151,30 +151,7 @@ Method Exchange(authCode As %String, verifier As %String, Output sc As %Status) 
 
 ClassMethod CreateSSLConfigIfNonExistent(name As %String)
 {
-       new $namespace
-        set $namespace = "%SYS"
-
-        do ##class(Security.SSLConfigs).Get(name, .p)
-        if $data(p) quit   
-
-        set p("CipherList")="ALL:!aNULL:!eNULL:!EXP:!SSLv2"
-        set p("CAFile")=""
-        set p("CAPath")=""
-        set p("CRLFile")=""
-        set p("CertificateFile")=""
-        set p("CipherList")="ALL:!aNULL:!eNULL:!EXP:!SSLv2"
-        set p("Description")=""
-        set p("Enabled")=1
-        set p("PrivateKeyFile")=""
-        set p("PrivateKeyPassword")=""
-        set p("PrivateKeyType")=2
-        set p("Protocols")=24
-        set p("SNIName")=""
-        set p("Type")=0
-        set p("VerifyDepth")=9
-        set p("VerifyPeer")=0
-
-        do ##class(Security.SSLConfigs).Create(name, .p)
+    do ##class(%zpkg.isc.sc.git.SSLConfig).CreateSSLConfigIfNonExistent(name)
 }
 
 ClassMethod GetURLWithParams(url As %String, ByRef params As %String) As %String

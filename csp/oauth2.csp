@@ -166,7 +166,7 @@ body {
             <label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Authorize URL">Authorize URL<br/></label>
             <div class="col-sm-7">
 				<server>
-					set authURL = $select(config:config.Endpoint.AuthURL,authURL:authURL, 1: "")
+					set authURL = $select(config:config.Endpoint.AuthURL,authURL'="":authURL, 1: "")
 				</server>
                 <input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#'/>
             </div>
@@ -176,7 +176,7 @@ body {
             <label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Token URL">Token URL<br/></label>
             <div class="col-sm-7">
 				<server>
-					set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL:tokenURL, 1: "")
+					set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL'="":tokenURL, 1: "")
 				</server>
                 <input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#'/>
             </div>

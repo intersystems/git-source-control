@@ -38,14 +38,13 @@ ClassMethod GetURLsFromRemote(remote As %String, Output authCodeURL, Output toke
     }
 }
 
-ClassMethod GetRemoteURLWithToken(token As %String) As %String
+ClassMethod SetRemoteURLWithToken(remote As %String) As %String
 {
-    set remote = ""
-    set url = ##class(SourceControl.Git.Utils).GitRemoteURL()
-    if url [ "//github.com/" {
-        set remote = "https://"_token_"@github.com"_$piece(url, "github.com", 2)
-    } elseif url [ "gitlab" {
-        set remote = "https://oauth2:"_token_"@gitlab.com"_$piece(url,"https://",2)
+    set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+    if ('(remote [ token)) {
+        set post = $piece($piece(remote,"https://",2),"@",2)
+        set remote = "https://oauth2:"_token_"@"_post
+
     }
     return remote
 }

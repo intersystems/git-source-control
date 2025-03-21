@@ -676,8 +676,7 @@ ClassMethod Clone(remote As %String) As %Status
     set settings = ##class(SourceControl.Git.Settings).%New()
     // Modify remote if using https
     if (remote [ "https") {
-        set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
-        set remote = ##class(SourceControl.Git.OAuth2).GetRemoteURLWithToken(token)
+        set remote = ##class(SourceControl.Git.OAuth2).SetRemoteURLWithToken(remote)
     }
     // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
     set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
@@ -1878,9 +1877,11 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
         // Need to use token
-        set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username,.err,.code)
-        set url = ##class(SourceControl.Git.OAuth2).GetRemoteURLWithToken(token)
-        set newArgs($increment(newArgs)) = url
+        set remote = ..GetConfiguredRemote()
+        set tokenURL = ##class(SourceControl.Git.OAuth2).SetRemoteURLWithToken(remote)
+        if (remote '= tokenURL) {
+            do ..SetConfiguredRemote(tokenURL)
+        }
     }
 
     set syncIrisWithDiff = 0 // whether IRIS needs to be synced with repo file changes using diff output

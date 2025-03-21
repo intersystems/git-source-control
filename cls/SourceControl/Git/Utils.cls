@@ -1876,6 +1876,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set newArgs($increment(newArgs)) = command
 
     if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
+        set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+        if ((token = "") || (token = "key does not exist")) {
+            set errStream = ##class(%Stream.FileCharacter).%New()
+            do errStream.Write("Error: Please authenticate your https connection before attempting to use git")
+            return 128
+        }
         // Need to use token
         set remote = ..GetConfiguredRemote()
         set tokenURL = ##class(SourceControl.Git.OAuth2).SetRemoteURLWithToken(remote)

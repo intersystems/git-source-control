@@ -42,7 +42,10 @@ ClassMethod SetRemoteURLWithToken(remote As %String) As %String
 {
     set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
     if ('(remote [ token)) {
-        set post = $piece($piece(remote,"https://",2),"@",2)
+        set post = $piece(remote,"https://",2)
+        if (post [ "@") {
+            set post = $piece(post, "@",2)
+        }
         set remote = "https://oauth2:"_token_"@"_post
 
     }

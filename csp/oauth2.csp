@@ -140,6 +140,7 @@ body {
 			<li>For GitLab: Go to <a href="https://gitlab.com/-/profile/applications" target="_blank">GitLab Applications</a> and create a new application.</li>
 			</ul>
 			<p>Once generated, enter your Client ID and Client Secret below:</p>
+			<p> The "Authorization callback URL" should be: <b><span id="callbackURL">text</span></b></p>
 		</div>
 		<input type="hidden" name="oauthsettings" value="1" />
 		<div class="form-group row mb-3">
@@ -209,7 +210,7 @@ body {
 		e.stopPropagation();
 		var form = document.getElementById('oauthForm');
 		var redirectURL = document.getElementById('redirectURL')
-		redirectURL.value = window.location.href
+		redirectURL.value = window.location.href;
 		form.submit();
 	}
 
@@ -233,6 +234,9 @@ body {
 		top.opener = window.self;
 		top.close();
 	}
+
+	var redirectURL = document.getElementById('callbackURL');
+	redirectURL.innerText = window.location.href.split("?")[0].replace("http:/","https:/");
 </script>
 </body>
 </html>

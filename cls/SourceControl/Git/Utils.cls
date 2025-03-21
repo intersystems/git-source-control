@@ -1880,6 +1880,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         if ((token = "") || (token = "key does not exist")) {
             set errStream = ##class(%Stream.FileCharacter).%New()
             do errStream.Write("Error: Please authenticate your https connection before attempting to use git")
+            set errStream.RemoveOnClose = 1
             return 128
         }
         // Need to use token

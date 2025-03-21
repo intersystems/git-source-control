@@ -150,6 +150,9 @@ Assuming you have the local and remote repositories created,
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
 
+### HTTPS Support
+We recommend that people connect to their remote git repository using SSH. If you cannot use SSH connections, we also have support for HTTPS connection through OAuth2. See [our documentation for setting up an https connection](/docs/https.md).
+
 ## Support
 
 If you find a bug or would like to request an enhancement, [report an issue](https://github.com/intersystems/git-source-control/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Git" and "Source Control" tags as appropriate.

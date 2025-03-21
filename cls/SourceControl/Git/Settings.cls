@@ -39,7 +39,7 @@ Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(So
 Property gitRemoteURL As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).GetConfiguredRemote()} ];
 
 /// Type of git remote (SSH or HTTPS (Only with OAuth))
-Property gitRemoteType As %String(VALUELIST = ",HTTPS,SSH") [ InitialExpression = {##class(SourceControl.Git.Utils).GitRemoteType()} ];
+Property gitRemoteType As %String(VALUELIST = ",HTTPS,SSH") [ InitialExpression = {##class(SourceControl.Git.Settings).GetRemoteType(##class(SourceControl.Git.Utils).GetConfiguredRemote())} ];
 
 /// Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
@@ -308,7 +308,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set list(5) = """"")
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetArray("_promptQuoted_",.value,.list,,,,"_defaultPromptFlag_")")
         } elseif ((propertyDef) && (propertyDef.Name ="gitRemoteType")) {
-            do %code.WriteLine(" if (inst.gitRemoteURL '= """") { set inst.gitRemoteType = inst.GetRemoteType(inst.gitRemoteURL)}")
+            do %code.WriteLine(" if (inst.gitRemoteURL '= """") { set value = inst.GetRemoteType(inst.gitRemoteURL)}")
         } else {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }
@@ -556,7 +556,7 @@ Method SaveDefaults() As %Boolean
     return ##class(%zpkg.isc.sc.git.Defaults).SetDefaultSettings(defaults)
 }
 
-ClassMethod GetRemoteType(remoteURL As %String)
+ClassMethod GetRemoteType(remoteURL As %String) As %String
 {
     return $select(remoteURL [ "https": "HTTPS",1:"SSH")
 }

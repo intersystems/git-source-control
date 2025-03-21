@@ -82,9 +82,9 @@ ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
 }
 
-ClassMethod GitRemoteType() As %String [ CodeMode = expression ]
+ClassMethod GitRemoteType() As %String
 {
-$Get(@..#Storage@("settings","gitRemoteType"), "")
+    return ##class(SourceControl.Git.Settings).GetRemoteType(..GitRemoteURL())
 }
 
 ClassMethod GitRemoteURL() As %String [ CodeMode = expression ]

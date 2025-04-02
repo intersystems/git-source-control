@@ -3,7 +3,6 @@ Import SourceControl.Git
 /// Main source control extension class, configured namespace-wide to enable use via VSCode and Studio
 Class SourceControl.Git.Extension Extends %Studio.SourceControl.Base
 {
-//get rid of this later
 Parameter DOMAIN = "Studio";
 
 XData Menu
@@ -182,7 +181,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
         }
 
         set settings = ##class(SourceControl.Git.Settings).%New()
-        if settings.lockBranch set BranchLocked = 1
+        if settings.lockBranch set BranchLocked = settings.lockBranch
 
         if ##class(SourceControl.Git.Utils).BasicMode() {
             set Enabled = $CASE(name,

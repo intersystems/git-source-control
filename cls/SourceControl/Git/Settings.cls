@@ -62,6 +62,9 @@ Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(
 /// The name of the environment (DEVELOPMENT, TEST, LIVE)
 Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).EnvironmentName()} ];
 
+/// Whether the branch should or should not be locked down from changing namespaces
+Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).LockBranch()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Property favoriteNamespaces As %DynamicArray;
@@ -153,6 +156,7 @@ Method %Save() As %Status
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
     set @storage@("settings", "basicMode") = ..systemBasicMode
     set @storage@("settings", "environmentName") = ..environmentName
+    set @storage@("settings", "lockBranch") = ..lockBranch
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -506,7 +510,7 @@ Method RetrieveDefaults() As %Boolean
 Method SaveDefaults() As %Boolean
 {
     set defaults = {}
-    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport")
+    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport", "lockBranch")
     for i=1:1:$LISTLENGTH(items) {
         set property = $listget(items,i)
         do defaults.%Set(property, $property($this, property))

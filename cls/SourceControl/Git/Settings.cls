@@ -510,7 +510,7 @@ Method RetrieveDefaults() As %Boolean
 Method SaveDefaults() As %Boolean
 {
     set defaults = {}
-    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport", "lockBranch")
+    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport")
     for i=1:1:$LISTLENGTH(items) {
         set property = $listget(items,i)
         do defaults.%Set(property, $property($this, property))

@@ -187,7 +187,7 @@ ClassMethod EnvironmentName() As %String
 
 ClassMethod LockBranch() As %Boolean
 {
-    quit $get(@..#Storage@("settings","lockBranch"),1)
+    quit $get(@..#Storage@("settings","lockBranch"),0)
 }
 
 ClassMethod IsLIVE() As %Boolean

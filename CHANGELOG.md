@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Pull event handler that does an IPM uninstall and load to handle deletes (#631)
 - Partial support for production decomposition with the new interoperability editors
+- Tooltips on branch operations in Git UI (#725)
 
 ### Fixed
 - Popping from stash is more responsive (#687)

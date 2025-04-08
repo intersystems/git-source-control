@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Partial support for production decomposition with the new interoperability editors
 
 ### Fixed
+- Popping from stash is more responsive (#687)
 - Favorites links for Git pages now works on recent IRIS versions (#734)
 
 ## [2.10.0] - 2025-02-10

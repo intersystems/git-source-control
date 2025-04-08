@@ -2681,7 +2681,7 @@ ClassMethod ConfigureWeb()
     set $Namespace = "%SYS"
     write !,"Adding favorites for all users:"
     set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
-        "select ID,?,? from Security.Users"
+        "select ID,?,$LISTBUILD(?) from Security.Users"
     set caption = "Git: "_installNamespace
     set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
     write !,"Adding Git favorite... "
@@ -3178,3 +3178,4 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
 }
 
 }
+

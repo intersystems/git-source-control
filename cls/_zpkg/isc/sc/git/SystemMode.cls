@@ -4,14 +4,11 @@ Class %zpkg.isc.sc.git.SystemMode
 {
     $$$AddAllRoleTemporary
     do $SYSTEM.Version.SystemMode(environment)
-    set nm = $NAMESPACE
-    zn "%SYS"
+    new $namespace
+    set $namespace = "%SYS"
     set obj = ##class(Config.Startup).Open()
     set obj.SystemMode = environment
-    do obj.%Save()
-    zn nm
-
-    return $$$OK
+    return obj.%Save()
 }
 
 ClassMethod SetSystemMode(environment As %String) As %Status [ NotInheritable ]

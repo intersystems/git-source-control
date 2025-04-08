@@ -2890,11 +2890,10 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
             $$$ThrowOnError(project.AddItem(key_".CLS"))
         }
         $$$ThrowOnError(project.AddItem("SourceControl.Git.INC"))
-        $$$ThrowOnError(project.AddItem("%ZPM.PackageManager.Core.Singleton.CLS"))
 
         // /isc/studio/usertemplates project
         set sourcedir = ##class(%Library.File).NormalizeDirectory($$$sourcedir)
-        set archive = ##class(%ZPM.PackageManager.Core.XDataArchive).%New(sourcedir)
+        set archive = ##class(%IPM.Lifecycle.StudioProject.XDataArchive).%New(sourcedir)
         do archive.AddToProject(project)
 
         kill $$$exportGBL

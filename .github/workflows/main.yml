@@ -82,7 +82,7 @@ jobs:
           
       - name: Produce CE Artifact
         run: |
-          echo "set version=##class(%ZPM.PackageManager.Developer.Module).NameOpen(\"git-source-control\").VersionString" > package.script
+          echo "set version=##class(%IPM.Storage.Module).NameOpen(\"git-source-control\").VersionString" > package.script
           echo "set file=\"/$artifact_dir/git-source-control-\"_version_\".xml\" write !,file,!" >> package.script
           echo "do ##class(SourceControl.Git.Utils).BuildCEInstallationPackage(file)" >> package.script
           echo "halt" >> package.script

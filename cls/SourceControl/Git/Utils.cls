@@ -2981,8 +2981,8 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     try {
         write !, "Exporting items..."
         set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
-            "*.mac,*.int,*.inc,*.cls,*.csp" // Spec - HL7 and LUT
-            , , ,0  // SystemFiles - may already filter out base schemas?
+            "*.mac,*.int,*.inc,*.cls,*.csp" 
+            , , ,0  // SystemFiles 
             ,1      // Flat
             ,0      // NotStudio
             ,0      // ShowGenerated

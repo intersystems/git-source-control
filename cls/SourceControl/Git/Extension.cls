@@ -182,7 +182,12 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
         }
 
         set settings = ##class(SourceControl.Git.Settings).%New()
-        if settings.lockBranch = 1 {set BranchLocked = -1} else {set BranchLocked = 1}
+        if settings.lockBranch = 1 
+        {
+            set BranchLocked = -1
+        } else {
+            set BranchLocked = 1
+        }
 
         if ##class(SourceControl.Git.Utils).BasicMode() {
             set Enabled = $CASE(name,

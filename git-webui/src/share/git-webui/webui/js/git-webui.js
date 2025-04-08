@@ -1009,13 +1009,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '</section>' +
                                 '<section id="sidebar-local-branches">' +
                                     '<h4 class="mt-1">Local Branches' +
-                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
+                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" title="Create new branch">' +
                                         webui.circlePlusIcon+
                                     '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
                                     '<h4 class="mt-1">Remote Branches' +
-                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" >'+
+                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" title="Git fetch of remote branches">'+
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +
                                 '</section>' +

@@ -2681,7 +2681,7 @@ ClassMethod ConfigureWeb()
     set $Namespace = "%SYS"
     write !,"Adding favorites for all users:"
     set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
-        "select ID,?,? from Security.Users"
+        "select ID,?,$LISTBUILD(?) from Security.Users"
     set caption = "Git: "_installNamespace
     set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
     write !,"Adding Git favorite... "
@@ -2890,11 +2890,10 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
             $$$ThrowOnError(project.AddItem(key_".CLS"))
         }
         $$$ThrowOnError(project.AddItem("SourceControl.Git.INC"))
-        $$$ThrowOnError(project.AddItem("%ZPM.PackageManager.Core.Singleton.CLS"))
 
         // /isc/studio/usertemplates project
         set sourcedir = ##class(%Library.File).NormalizeDirectory($$$sourcedir)
-        set archive = ##class(%ZPM.PackageManager.Core.XDataArchive).%New(sourcedir)
+        set archive = ##class(%IPM.Lifecycle.StudioProject.XDataArchive).%New(sourcedir)
         do archive.AddToProject(project)
 
         kill $$$exportGBL
@@ -3178,3 +3177,4 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
 }
 
 }
+

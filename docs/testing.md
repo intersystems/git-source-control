@@ -18,7 +18,7 @@ The following is a testing plan that should be followed prior to release of a ne
   - Add, edit, and delete items through Studio / VS Code. Use the Sync option. All changes should be committed and pushed to the remote.
   - Add, edit, and delete items on the remote. Add, edit, and delete unrelated items through Studio/VSCode. All changes should be pulled, committed, and pushed.
   - Add an item to an interoperability production and sync. Check out a new feature branch. The item should no longer exist in the production. Set the previous branch as the remote merge branch. Sync. The new item should exist in the production.
-  - Add an item to a production and sync. Check out a new feature branch. The item should no longer exist in the production. Set the previous branch as the remote merge branch. Add a new item to the production. Sync. The production should now have both new items, and the source control output should show it automatically resolved a conflict.
+  - Make sure production decomposition is off. Add an item to a production and sync. Check out a new feature branch. The item should no longer exist in the production. Set the previous branch as the remote merge branch. Add a new item to the production. Sync. The production should now have both new items, and the source control output should show it automatically resolved a conflict.
 
   ## Testing production decomposition
   - Enable production decomposition in the git-source-control settings.

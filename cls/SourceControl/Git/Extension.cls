@@ -181,14 +181,22 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             quit $$$OK
         }
 
+        set settings = ##class(SourceControl.Git.Settings).%New()
+        if settings.lockBranch = 1 
+        {
+            set BranchLocked = -1
+        } else {
+            set BranchLocked = 1
+        }
+
         if ##class(SourceControl.Git.Utils).BasicMode() {
             set Enabled = $CASE(name,
                 "Status": 1,
                 "GitWebUI" : 1,
                 "Import": 1,
                 "ImportForce": 1,
-                "NewBranch": 1,
-                "SwitchBranch": 1,
+                "NewBranch": BranchLocked,
+                "SwitchBranch": BranchLocked,
                 "Sync": 1,
                 "": 1,
                 :-1
@@ -202,8 +210,8 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "ExportForce": 1,
                 "Import": 1,
                 "ImportForce": 1,
-                "NewBranch": 1,
-                "SwitchBranch": 1,
+                "NewBranch": BranchLocked,
+                "SwitchBranch": BranchLocked,
                 "Push": 1,
                 "PushForce": 1,
                 "Fetch": 1,

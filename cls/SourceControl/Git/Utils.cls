@@ -185,6 +185,11 @@ ClassMethod EnvironmentName() As %String
     quit $SYSTEM.Version.SystemMode()
 }
 
+ClassMethod LockBranch() As %Boolean
+{
+    quit $get(@..#Storage@("settings","lockBranch"),0)
+}
+
 ClassMethod IsLIVE() As %Boolean
 {
     quit ..EnvironmentName()="LIVE"
@@ -2976,8 +2981,8 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     try {
         write !, "Exporting items..."
         set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
-            "*.mac,*.int,*.inc,*.cls,*.csp" // Spec
-            , , ,0  // SystemFiles
+            "*.mac,*.int,*.inc,*.cls,*.csp" 
+            , , ,0  // SystemFiles 
             ,1      // Flat
             ,0      // NotStudio
             ,0      // ShowGenerated

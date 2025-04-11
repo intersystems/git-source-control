@@ -163,7 +163,7 @@ Method %Save() As %Status
         set @storage@("settings", "user", $username, "basicMode") = ..basicMode
     } 
     try {
-        do $SYSTEM.Version.SystemMode(..environmentName)
+        do ##class(%zpkg.isc.sc.git.SystemMode).SetSystemMode(..environmentName)
     } catch e {
         // no-op; user might not have privileges.
     }

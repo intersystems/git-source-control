@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Popping from stash is more responsive (#687)
 - Favorites links for Git pages now works on recent IRIS versions (#734)
 
+### Fixed
+- Fixed error running Import All when Git settings file does not exist (#713)
+
 ## [2.10.0] - 2025-02-10
 
 ### Added

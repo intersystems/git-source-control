@@ -68,6 +68,9 @@ Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(
 /// The name of the environment (DEVELOPMENT, TEST, LIVE)
 Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).EnvironmentName()} ];
 
+/// Whether the branch should or should not be locked down from changing namespaces
+Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).LockBranch()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Property favoriteNamespaces As %DynamicArray;
@@ -161,13 +164,14 @@ Method %Save() As %Status
     set @storage@("settings", "environmentName") = ..environmentName
     set @storage@("settings","gitRemoteType") = ..gitRemoteType
     set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
+    set @storage@("settings", "lockBranch") = ..lockBranch
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
         set @storage@("settings", "user", $username, "basicMode") = ..basicMode
     } 
     try {
-        do $SYSTEM.Version.SystemMode(..environmentName)
+        do ##class(%zpkg.isc.sc.git.SystemMode).SetSystemMode(..environmentName)
     } catch e {
         // no-op; user might not have privileges.
     }

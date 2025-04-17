@@ -156,8 +156,8 @@ XData ProductionDefinition3
 
 Method OnBeforeAllTests() As %Status
 {
-	merge ..SourceControlGlobal = ^SYS("SourceControl")
-    return $$$OK
+  merge ..SourceControlGlobal = ^SYS("SourceControl")
+  return ##class(Ens.Director).StopProduction(,1)
 }
 
 Method OnBeforeOneTest() As %Status

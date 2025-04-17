@@ -195,6 +195,11 @@ ClassMethod EnvironmentName() As %String
     quit $SYSTEM.Version.SystemMode()
 }
 
+ClassMethod LockBranch() As %Boolean
+{
+    quit $get(@..#Storage@("settings","lockBranch"),0)
+}
+
 ClassMethod IsLIVE() As %Boolean
 {
     quit ..EnvironmentName()="LIVE"
@@ -771,6 +776,7 @@ ClassMethod Exists(ByRef pFilename) As %Boolean
 	Return 0
 }
 
+/// Adds this item to the list of items that are tracked by source control
 ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
 {
     #dim i as %Integer
@@ -781,10 +787,6 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
             continue
         }
         set @..#Storage@("items", item) = ""
-        #dim sc as %Status =  ..ImportItem(item, 1)
-        if 'sc {
-            set ec = $$$ADDSC(ec, sc)
-        }
     }
     quit ec
 }
@@ -1513,7 +1515,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 
     // Config file may exist at the root of the Git repo.
     set configFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Settings.Document).#EXTERNALNAME, ..TempFolder())
-    if ##class(%File).Exists(##class(%File).NormalizeFilename(configFilePath)) {
+    if (configFilePath '= "") && ##class(%File).Exists(##class(%File).NormalizeFilename(configFilePath)) {
         set itemList(..NameToInternalName(configFilePath)) = ""
     }
     
@@ -2729,7 +2731,7 @@ ClassMethod ConfigureWeb()
     set $Namespace = "%SYS"
     write !,"Adding favorites for all users:"
     set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
-        "select ID,?,? from Security.Users"
+        "select ID,?,$LISTBUILD(?) from Security.Users"
     set caption = "Git: "_installNamespace
     set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
     write !,"Adding Git favorite... "
@@ -2938,11 +2940,10 @@ ClassMethod BuildCEInstallationPackage(ByRef destination As %String) As %Status
             $$$ThrowOnError(project.AddItem(key_".CLS"))
         }
         $$$ThrowOnError(project.AddItem("SourceControl.Git.INC"))
-        $$$ThrowOnError(project.AddItem("%ZPM.PackageManager.Core.Singleton.CLS"))
 
         // /isc/studio/usertemplates project
         set sourcedir = ##class(%Library.File).NormalizeDirectory($$$sourcedir)
-        set archive = ##class(%ZPM.PackageManager.Core.XDataArchive).%New(sourcedir)
+        set archive = ##class(%IPM.Lifecycle.StudioProject.XDataArchive).%New(sourcedir)
         do archive.AddToProject(project)
 
         kill $$$exportGBL
@@ -3025,8 +3026,8 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     try {
         write !, "Exporting items..."
         set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
-            "*.mac,*.int,*.inc,*.cls,*.csp" // Spec
-            , , ,0  // SystemFiles
+            "*.mac,*.int,*.inc,*.cls,*.csp" 
+            , , ,0  // SystemFiles 
             ,1      // Flat
             ,0      // NotStudio
             ,0      // ShowGenerated
@@ -3251,3 +3252,4 @@ ClassMethod Authenticated() As %Boolean
 }
 
 }
+

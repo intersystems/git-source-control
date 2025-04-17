@@ -335,7 +335,10 @@ ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
 ClassMethod IsEnsPortal() As %Boolean
 {
 	Return $Data(%request) && '($IsObject(%request) && 
-        ((%request.UserAgent [ "Code") || (%request.UserAgent [ "node-fetch")))
+        (  
+            (%request.UserAgent [ "Code")   // VS Code
+            || (%request.UserAgent [ "node-fetch")  // VS Code
+            || (%request.Application [ "/api/interop-editors")))  // New interoperability editor
 }
 
 /// Perform check if Production Decomposition logic should be used for given item
@@ -380,7 +383,12 @@ ClassMethod ParseExternalName(externalName, Output internalName = "", Output pro
         } else {
             if ##class(%File).Exists(externalName) {
                 // Special case for Config Item Settings PTD, requires checking PTD CDATA for Item and Class name
-                set deployDoc = ##class(EnsLib.EDI.XML.Document).%New(externalName)
+                // XML parser requires \\ instead of // for network directories
+                set deployDoc = ##class(EnsLib.EDI.XML.Document).%New($replace(externalName,"//","\\"))
+                if '$isobject(deployDoc) {
+                    set sc = $$$ADDSC(%objlasterror,$$$ERROR($$$GeneralError,"Failed to create document"))
+                    quit
+                }
                 set exportNotesPTDText = $ZCVT(deployDoc.GetValueAt("/Export/Document[1]/1"),"I","XML")
                 set exportNotesPTD = ##class(EnsLib.EDI.XML.Document).%New(exportNotesPTDText)
                 set productionName = exportNotesPTD.GetValueAt("/Deployment/Creation/SourceProduction")

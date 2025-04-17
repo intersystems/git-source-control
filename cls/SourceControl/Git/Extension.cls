@@ -182,6 +182,14 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             quit $$$OK
         }
 
+        set settings = ##class(SourceControl.Git.Settings).%New()
+        if settings.lockBranch = 1 
+        {
+            set BranchLocked = -1
+        } else {
+            set BranchLocked = 1
+        }
+
         if ##class(SourceControl.Git.Utils).BasicMode() {
             set Enabled = $CASE(name,
                 "Status": 1,
@@ -189,8 +197,8 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "Authenticate":1,
                 "Import": 1,
                 "ImportForce": 1,
-                "NewBranch": 1,
-                "SwitchBranch": 1,
+                "NewBranch": BranchLocked,
+                "SwitchBranch": BranchLocked,
                 "Sync": 1,
                 "": 1,
                 :-1
@@ -205,8 +213,8 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 "ExportForce": 1,
                 "Import": 1,
                 "ImportForce": 1,
-                "NewBranch": 1,
-                "SwitchBranch": 1,
+                "NewBranch": BranchLocked,
+                "SwitchBranch": BranchLocked,
                 "Push": 1,
                 "PushForce": 1,
                 "Fetch": 1,
@@ -266,7 +274,9 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
         } else {
             set Enabled = $case(menuItemName, "AddToSC":1,:-1)
         }
-
+    }
+    if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(itemName) && ((menuItemName = "AddToSC") || (menuItemName = "RemoveFromSC")) {
+        set Enabled = -1
     }
     if (menuItemName '= "") {
 	    set DisplayName = ..LocalizeName(menuItemName)
@@ -368,8 +378,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                 if $data(productionItems) {
                     do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)
                 }
-            }
-            if ..IsInSourceControl(InternalName) {
+            } elseif ..IsInSourceControl(InternalName) {
                 if fromWebApp {
                     if fullExternalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName) {
                         // Reimport item into database

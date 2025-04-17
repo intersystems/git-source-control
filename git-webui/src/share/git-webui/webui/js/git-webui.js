@@ -1019,13 +1019,13 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                 '</section>' +
                                 '<section id="sidebar-local-branches">' +
                                     '<h4 class="mt-1">Local Branches' +
-                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" >' +
+                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" title="Create new branch">' +
                                         webui.circlePlusIcon+
                                     '</button>' + '</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-remote-branches">' +
                                     '<h4 class="mt-1">Remote Branches' +
-                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" >'+
+                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" title="Git fetch of remote branches">'+
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +
                                 '</section>' +
@@ -2016,10 +2016,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
         webui.git_command(["stash", "apply", "stash@{"+stashIndex+"}"], function(output) {
-            webui.showSuccess(output);
-            parent.stashView.update(0);
+            webui.showSuccess("Applied stash item");
+            parent.update();
             self.clear()
-        });
+        }, webui.showWarning(output), webui.showError(output));
     }
 
     self.popSelectedStash = function() {
@@ -2028,10 +2028,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
         webui.git_command(["stash", "pop", "stash@{"+stashIndex+"}"], function(output) {
-            webui.showSuccess(output);
-            parent.stashView.update(0);
+            webui.showSuccess("Popped from stash");
+            parent.update();
             self.clear()
-        });
+        }, webui.showWarning(output), webui.showError(output));
     }
 
     self.dropSelectedStash = function() {
@@ -2040,10 +2040,10 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         }
         var stashIndex = parseInt($(".log-entry.active .stash-list-index").text());
         webui.git_command(["stash", "drop", "stash@{"+stashIndex+"}"], function() {
-            webui.showSuccess(output.substring(output.indexOf("Dropped")));
-            parent.stashView.update(0);
+            webui.showSuccess("Dropped from stash");
+            parent.update();
             self.clear();
-        });
+        }, webui.showWarning(output), webui.showError(output));
     }
 
     var html = '<div class="diff-view-container panel panel-default">';

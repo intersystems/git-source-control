@@ -351,7 +351,7 @@ ClassMethod GetAddOrDeletedItems(productionName As %String, ByRef modifiedItems)
 ClassMethod IsEnsPortal(Output source As %String = "") As %Boolean
 {
 	if $Data(%request) && $isobject(%request) {
-		if ((%request.UserAgent [ "Code") || (%request.UserAgent [ "node-fetch")) {
+		if (%request.Application [ "/api/atelier") {
 			set source = "IDE"
 		} elseif (%request.Application [ "/api/interop-editors") {
 			set source = "Interop Editor"

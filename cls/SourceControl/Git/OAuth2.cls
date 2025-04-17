@@ -52,4 +52,9 @@ ClassMethod SetRemoteURLWithToken(remote As %String) As %String
     return remote
 }
 
+ClassMethod GetToken() As %String
+{
+    return ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+}
+
 }

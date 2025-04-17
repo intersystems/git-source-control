@@ -1875,6 +1875,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     set newArgs($increment(newArgs)) = command
 
+    /*
     if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
         set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
         if ((token = "") || (token = "key does not exist")) {
@@ -1890,6 +1891,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             do ..SetConfiguredRemote(tokenURL)
         }
     }
+    */
 
     set syncIrisWithDiff = 0 // whether IRIS needs to be synced with repo file changes using diff output
     set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output
@@ -2016,10 +2018,20 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
+
+    if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
+        set token = ##class(SourceControl.Git.OAuth2).GetToken()
+        if $$$isWINDOWS {
+            set env("GIT_ASKPASS") = """cmd /c "_token_""";"
+        } else {
+            set env("GIT_ASKPASS") = "sh -c ""echo "_token_""""
+        }
+    }
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
         set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
+        set env("GIT_ASKPASS") = """cmd /c "_token_""";"
         set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {

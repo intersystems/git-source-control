@@ -29,7 +29,7 @@ Index ChangeList On (ItemFile, CommittedTime) [ Data = Action, Unique ];
 /// <li><var>ActiveCommit</var> - used for historical tracking purposes for the %Studio_SourceControl.Change table</li>
 /// <li><var>CommitCCR</var> - used for historical tracking purposes for the %Studio_SourceControl.Change table</li>
 /// </ul>
-ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 1, CommitCCR) As %Status
+ClassMethod RemoveUncommitted(FileList, Display As %Boolean = 1, Revert As %Boolean = 0, ActiveCommit As %Boolean = 1, CommitCCR As %String) As %Status
 {
     if '$data(FileList) quit $$$ERROR($$$GeneralError,"No filenames were passed")
     set filename=FileList,SCs=$$$OK
@@ -105,7 +105,7 @@ ClassMethod GetOtherDeveloperChanges() As %Boolean
 }
 
 /// Goes through Uncommitted queue and removes any items of action 'edit' or 'add' which are ReadOnly or non-existent on the filesystem
-ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, Force As %Boolean = 0) As %Status
+ClassMethod RefreshUncommitted(Display As %Boolean = 0, IncludeRevert As %Boolean = 0, Output gitFiles, Force As %Boolean = 0) As %Status
 {
     
     set lock = $System.AutoLock.Lock("^SourceControl.Git.Refresh",,10)
@@ -296,3 +296,4 @@ Storage Default
 }
 
 }
+

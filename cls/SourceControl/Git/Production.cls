@@ -73,7 +73,7 @@ ClassMethod DeleteProductionDefinitionShards(productionClass As %String, deleteM
 }
 
 /// Exports a Studio project including both the provided PTD and export notes for the PTD
-ClassMethod ExportProjectForPTD(productionClass, ptdName, exportPath) As %Status
+ClassMethod ExportProjectForPTD(productionClass As %String, ptdName As %String, exportPath As %String) As %Status
 {
     set st = $$$OK
     try {
@@ -136,9 +136,9 @@ ClassMethod ExportProjectForPTD(productionClass, ptdName, exportPath) As %Status
 
 /// Creates and exports a PTD item for a given internal name, either a single config item
 /// or the production settings.
-ClassMethod ExportPTD(internalName As %String, nameMethod) As %Status
+ClassMethod ExportPTD(internalName As %String, nameMethod As %String) As %Status
 {
-	Set name = $Piece(internalName,".",1,$Length(internalName,".")-1)
+	Set name = $Piece(internalName,".",1,*-1)
     Set $ListBuild(productionName, itemName) = $ListFromString(name, "||")
     Set $ListBuild(itemName, itemClassName) = $ListFromString(itemName, "|")
     Set sc = $$$OK
@@ -228,7 +228,7 @@ ClassMethod ExportProductionSettings(productionClass As %String, nameMethod As %
     Return sc
 }
 
-ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedItems)
+ClassMethod GetModifiedItemsBeforeSave(internalName As %String, Location As %String, Output modifiedItems)
 {
     kill modifiedItems
     set productionName = $piece(internalName,".",1,*-1)
@@ -255,17 +255,27 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
             set modifiedInternalName = ""
             if $isobject(modifiedItem) {
                 set modifiedInternalName = ..CreateInternalName(productionName, modifiedItem.Name, modifiedItem.ClassName, 0)
-            } else {
+            } elseif productionConfig.%IsModified() {
                 // cannot check %IsModified on production config settings because they are not actually modified at this point.
                 // workaround: just assume any change not to a specific item is to the production settings
                 set modifiedInternalName = ..CreateInternalName(productionName,,,1)
+            } else {
+	            // if nothing is modified, assume this is deleting a config item
+	            // only allow if no items are checked out by other users
+	            // TODO: determine specific item being deleted in OnBeforeSave to allow for accurate editability checks
+	            if $isobject(productionConfig) {
+		            set modifiedItems(..CreateInternalName(productionName,,,1)) = "M"
+		            for i=1:1:productionConfig.Items.Count() {
+		                set item = productionConfig.Items.GetAt(i)
+		                set modifiedItems(..CreateInternalName(productionName, item.Name, item.ClassName, 0)) = "M"
+		            }
+        		}
             }
         }
         if ($get(modifiedInternalName) '= "") {
             set modifiedItems(modifiedInternalName) = "M"
         }
     } else {
-        // FUTURE: get the actually modified items by comparing the XDATA in Location with the XDATA in the compiled class
         // If making changes from Studio, list every item in the production.
         if $isobject(productionConfig) {
             set modifiedItems(..CreateInternalName(productionName,,,1)) = "M"
@@ -289,63 +299,80 @@ ClassMethod GetModifiedItemsBeforeSave(internalName, Location, Output modifiedIt
     }
 }
 
-ClassMethod GetModifiedItemsAfterSave(internalName, Output modifiedItems)
+ClassMethod GetModifiedItemsAfterSave(internalName As %String, Output modifiedItems)
 {
     kill modifiedItems
     set productionName = $piece(internalName,".",1,*-1)
-    if ..IsEnsPortal() {
-        // If adding/deleting from SMP, get the modified items by comparing items in temp global with items now
-        set rs = ..ExecDirectNoPriv(
-            "select Name, ClassName from Ens_Config.Item where Production = ?"
-            , productionName)
-        throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
-        while rs.%Next() {
-            if '$get(^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))) {
-                set itemInternalName = ..CreateInternalName(productionName, rs.Name, rs.ClassName, 0)
-                set modifiedItems(itemInternalName) = "A"
-            }
-            kill ^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))
-        }
-        set key = $order(^IRIS.Temp("sscProd",$job,"items",""))
-        while (key '= "") {
-            set itemInternalName = ..CreateInternalName(productionName, $listget(key,1), $listget(key,2), 0)
-            set modifiedItems(itemInternalName) = "D"
-            set key = $order(^IRIS.Temp("sscProd",$job,"items",key))
-        }
+    if ..IsEnsPortal(.source) {
+	    // If adding/deleting from SMP, get the modified items by comparing items in temp global with items now
+        do ..GetAddOrDeletedItems(productionName, .modifiedItems)
         // If editing from SMP, get the modified items from a cache stored in OnBeforeSave.
         // Only do this if there are no added/deleted items, because otherwise production settings will be incorrectly included.
         if '$data(modifiedItems) {
             merge modifiedItems = ^IRIS.Temp("sscProd",$job,"modifiedItems")
         }
     } else {
-        // If editing in the IDE, list every item in the production.
-        // FUTURE: get the actually modified items using the temp global set in OnBeforeSave
+	    // If editing/adding/deleting from Studio, VS Code, or Interop Editor UI, mark all items for edit then find adds/deletes
+	    if source = "IDE" {
+		    // only compile f editing from IDE
+	    	$$$ThrowOnError($System.OBJ.Compile(productionName, "ck-d/multicompile=0"))
+	    }
         set productionConfig = ##class(Ens.Config.Production).%OpenId(productionName)
         if $isobject(productionConfig) {
-            set modifiedItems(..CreateInternalName(productionName,,,1)) = "M"
-            for i=1:1:productionConfig.Items.Count() {
-                set item = productionConfig.Items.GetAt(i)
-                set modifiedItems(..CreateInternalName(productionName, item.Name, item.ClassName, 0)) = "M"
-            }
+	        merge modifiedItems = ^IRIS.Temp("sscProd",$job,"modifiedItems")
+	        do ..GetAddOrDeletedItems(productionName, .modifiedItems)
         }
     }
 }
 
-/// Check if current CSP session is EnsPortal page
-ClassMethod IsEnsPortal() As %Boolean
+/// Get added or deleted Config Items by checking Ens_Config.Item table against cache from OnBeforeSave
+ClassMethod GetAddOrDeletedItems(productionName As %String, ByRef modifiedItems)
 {
-	Return $Data(%request) && '($IsObject(%request) && 
-        (  
-            (%request.UserAgent [ "Code")   // VS Code
-            || (%request.UserAgent [ "node-fetch")  // VS Code
-            || (%request.Application [ "/api/interop-editors")))  // New interoperability editor
+	set rs = ..ExecDirectNoPriv(
+        "select Name, ClassName from Ens_Config.Item where Production = ?"
+        , productionName)
+    throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
+    while rs.%Next() {
+        if '$get(^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))) {
+            set itemInternalName = ..CreateInternalName(productionName, rs.Name, rs.ClassName, 0)
+            set modifiedItems(itemInternalName) = "A"
+        }
+        kill ^IRIS.Temp("sscProd",$job,"items", $listbuild(rs.Name, rs.ClassName))
+    }
+    set key = $order(^IRIS.Temp("sscProd",$job,"items",""))
+    while (key '= "") {
+        set itemInternalName = ..CreateInternalName(productionName, $listget(key,1), $listget(key,2), 0)
+        set modifiedItems(itemInternalName) = "D"
+        set key = $order(^IRIS.Temp("sscProd",$job,"items",key))
+    }
+}
+
+/// Check if current CSP session is EnsPortal page
+ClassMethod IsEnsPortal(Output source As %String = "") As %Boolean
+{
+	if $Data(%request) && $isobject(%request) {
+		if (%request.Application [ "/api/atelier") {
+			set source = "IDE"
+		} elseif (%request.Application [ "/api/interop-editors") {
+			set source = "Interop Editor"
+		} else {
+			return 1
+		}
+	} else {
+		Set source = "IDE"
+	}
+	return 0
 }
 
 /// Perform check if Production Decomposition logic should be used for given item
 ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %Boolean
 {
 	if (className '= "") && $$$comClassDefined(className) {
-		return $classmethod(className, "%Extends", "Ens.Production")
+		try {
+			return $classmethod(className, "%Extends", "Ens.Production")
+		} catch err {
+			if '(err.AsStatus() [ "CLASS DOES NOT EXIST") throw err
+		}
 	} else {
 		// check if there exists a Production settings PTD export for ths Production
 		set settingsPTD = ..CreateInternalName(className,,,1)
@@ -371,7 +398,7 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 }
 
 /// Given a file name for a PTD item, returns a suggested internal name. This method assumes that the file exists on disk.
-ClassMethod ParseExternalName(externalName, Output internalName = "", Output productionName = "") As %Status
+ClassMethod ParseExternalName(externalName As %String, Output internalName = "", Output productionName = "") As %Status
 {
 	set sc = $$$OK
     try {
@@ -413,7 +440,7 @@ ClassMethod ParseExternalName(externalName, Output internalName = "", Output pro
 /// - itemName: name of the configuration item
 /// - productionName: name of the associated production
 /// - isProdSettings: if true, this item is a production settings; if false, this item is a configuration item settings
-ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fileName, Output itemName, Output itemClassName, Output productionName, Output isProdSettings As %Boolean)
+ClassMethod ParseInternalName(internalName As %String, noFolders As %Boolean = 0, Output fileName As %String, Output itemName As %String, Output itemClassName As %String, Output productionName As %String, Output isProdSettings As %Boolean)
 {
     set name = $piece(internalName,".",1,*-1)
     if 'noFolders {
@@ -436,7 +463,7 @@ ClassMethod ParseInternalName(internalName, noFolders As %Boolean = 0, Output fi
 }
 
 /// Calculates the internal name for a decomposed production item
-ClassMethod CreateInternalName(productionName = "", itemName = "", itemClassName = "", isProductionSettings As %Boolean = 0) As %String
+ClassMethod CreateInternalName(productionName As %String = "", itemName As %String = "", itemClassName As %String = "", isProductionSettings As %Boolean = 0) As %String
 {
     return $select(
         isProductionSettings: productionName_"||ProductionSettings-"_productionName_".PTD",
@@ -445,7 +472,7 @@ ClassMethod CreateInternalName(productionName = "", itemName = "", itemClassName
 }
 
 /// Given an external name for a PTD item, removes that item from the production.
-ClassMethod RemoveItemByExternalName(externalName, nameMethod) As %Status
+ClassMethod RemoveItemByExternalName(externalName As %String, nameMethod As %String) As %Status
 {
     set sc = $$$OK
     set productionName = $replace($piece($replace(externalName,"\","/"),"/",*-1),"_",".")
@@ -466,7 +493,7 @@ ClassMethod RemoveItemByExternalName(externalName, nameMethod) As %Status
 }
 
 /// Given an internal name for a PTD item, removes that item from the production.
-ClassMethod RemoveItem(internalName, noFolders As %Boolean = 0) As %Status
+ClassMethod RemoveItem(internalName As %String, noFolders As %Boolean = 0) As %Status
 {
     set sc = $$$OK
     try {
@@ -477,10 +504,20 @@ ClassMethod RemoveItem(internalName, noFolders As %Boolean = 0) As %Status
         if 'isProdSettings {
             set production = ##class(Ens.Config.Production).%OpenId(productionName,,.sc)
             quit:$$$ISERR(sc)
-            set configItem = ##class(Ens.Config.Production).OpenItemByConfigName(productionName_"||"_itemName_"|"_itemClassName,.sc)
-            quit:$$$ISERR(sc)
-            do production.RemoveItem(configItem)
+             set configItem = ##class(Ens.Config.Production).OpenItemByConfigName(productionName_"||"_itemName_"|"_itemClassName,.sc)
+		    
+		    // only remove config item if it still exists and if item was opened ok
+		    if $$$ISERR(sc) {
+			    if '(sc [ "ErrConfigItemNotFound") {
+				    return sc
+			    }
+		    } else {
+			    do production.RemoveItem(configItem)
+		    }
+		    
             set sc = production.%Save()
+            quit:$$$ISERR(sc)
+            set sc = production.SaveToClass()
             quit:$$$ISERR(sc)
         }
     } catch err {
@@ -491,7 +528,7 @@ ClassMethod RemoveItem(internalName, noFolders As %Boolean = 0) As %Status
 
 /// Given internal name for a Production Settings PTD, creates the corresponding Production 
 /// Class if it does not already exist in this namespace
-ClassMethod CreateProduction(productionName As %String, superClasses = "") As %Status
+ClassMethod CreateProduction(productionName As %String, superClasses As %String = "") As %Status
 {
 	set classDef = ##class(%Dictionary.ClassDefinition).%New(productionName)
 	if superClasses '= "" {
@@ -525,7 +562,7 @@ ClassMethod GetUserProductionChanges(productionName As %String, ByRef items)
 }
 
 /// Executes a SQL query without privilege checking if possible on this IRIS version
-ClassMethod ExecDirectNoPriv(sql, args...) As %SQL.StatementResult
+ClassMethod ExecDirectNoPriv(sql As %String, args...) As %SQL.StatementResult
 {
 	// once minimum version is IRIS 2021.1.3, remove and just use %ExecDirectNoPriv
     try {

@@ -79,7 +79,7 @@ $Get(@..#Storage@("settings","decomposeProductions"), 0)
 
 ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 {
-$Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
+$Get(@..#Storage@("settings","decomposeProdAllowIDE"), 1)
 }
 
 ClassMethod FavoriteNamespaces() As %String
@@ -3182,4 +3182,3 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
 }
 
 }
-

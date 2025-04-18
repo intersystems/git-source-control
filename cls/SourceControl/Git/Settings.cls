@@ -464,6 +464,7 @@ Method OnAfterConfigure() As %Boolean
             if ..gitRemoteType = "HTTPS" {
                 Write !, "Please navigate to the Embedded Git UI on your browser, and press ""Authenticate"" in the bottom left corner."
                 Write !, "Once that process is complete, return here to verify cloning was successful"
+                Write !, "*Note: You must log in to the Management Portal as the current user"
 
                 // poll attempt count
                 set try = 0

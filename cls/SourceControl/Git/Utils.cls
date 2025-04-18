@@ -3052,6 +3052,9 @@ ClassMethod GetConfiguredRemote() As %String
     d ..RunGitCommand("remote",.err,.out,"-v")
     set line = out.ReadLine()
     set url = $piece($piece(line,$char(9),2)," ",1)
+    if (url = "") {
+        return ..GitRemoteURL()
+    }
     return url
 }
 

@@ -82,6 +82,16 @@ ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 1)
 }
 
+ClassMethod GitRemoteType() As %String
+{
+    return ##class(SourceControl.Git.Settings).GetRemoteType(..GitRemoteURL())
+}
+
+ClassMethod GitRemoteURL() As %String [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","gitRemoteURL"), 0)
+}
+
 ClassMethod FavoriteNamespaces() As %String
 {
     set favNamespaces = []
@@ -267,6 +277,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "GitWebUI") {
         set Action = 2 + externalBrowser
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
+    } elseif (menuItemName = "Authenticate") {
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -1985,6 +1998,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
+
+    if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
+        set token = ##class(SourceControl.Git.OAuth2).GetToken()
+        set ^mtempet = token
+        if (token) {
+            if ($$$isWINDOWS) {
+                set env("GIT_ASKPASS") = """cmd /c "_token_""";"
+            } else {
+                set env("GIT_ASKPASS") = "sh -c ""echo "_token_""""
+            }
+        }
+    }
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
@@ -3024,6 +3049,9 @@ ClassMethod GetConfiguredRemote() As %String
     d ..RunGitCommand("remote",.err,.out,"-v")
     set line = out.ReadLine()
     set url = $piece($piece(line,$char(9),2)," ",1)
+    if (url = "") {
+        return ..GitRemoteURL()
+    }
     return url
 }
 
@@ -3179,6 +3207,31 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
 
     set output = {"staged": (stagedList), "tracked": (trackedList)} 
     return $$$OK
+}
+
+ClassMethod WriteLineToFile(filePath As %String, line As %String)
+{
+    Set file=##class(%File).%New(filePath)
+    Do file.Open("WSN")
+	Do file.WriteLine(line)
+}
+
+ClassMethod Authenticated() As %Boolean
+{
+    if (##class(SourceControl.Git.Utils).GitRemoteType() '= "SSH") {
+        try {
+            // Run a git command that requires access to the remote
+            // if does not work, then we are unauthenticated
+            set returncode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote","",.errStream,.outStream,)
+            do errStream.Rewind()
+            if (errStream.ReadLine()) '= "" {
+                return 0
+            }
+        } catch e {
+            return 0
+        }
+    }
+    return 1
 }
 
 }

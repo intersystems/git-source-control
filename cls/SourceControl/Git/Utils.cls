@@ -679,10 +679,6 @@ ClassMethod Pull(remote As %String = "origin", pTerminateOnError As %Boolean = 0
 ClassMethod Clone(remote As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
-    // Modify remote if using https
-    if (remote [ "https") {
-        set remote = ##class(SourceControl.Git.OAuth2).SetRemoteURLWithToken(remote)
-    }
     // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
     set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
     // can I substitute this with the new print method?
@@ -2005,6 +2001,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
+        set ^mtempet = token
         if (token) {
             if ($$$isWINDOWS) {
                 set env("GIT_ASKPASS") = """cmd /c "_token_""";"

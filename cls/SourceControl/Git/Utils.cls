@@ -1270,7 +1270,7 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
     set type = ..Type(.name)
     
     if ($extract(name) '= "/") && (type'="csp") {
-        quit $piece(name,".",1,*-1)_"."_$zconvert($piece(name,".",*),"U")
+        quit ..NormalizeExtension(name)
     }
 
     if (name [ "/") && (type = "csp") {
@@ -1293,7 +1293,7 @@ ClassMethod NormalizeExtension(name As %String) As %String
 {
     #dim extension = $piece(name, ".", $length(name, "."))
     if $length(extension) <= 3 {
-        set $piece(name, ".", $length(name, ".")) = $zconvert(extension, "L")
+        set $piece(name, ".", $length(name, ".")) = $zconvert(extension, "U")
     }
     quit name
 }

@@ -103,6 +103,9 @@ body {
 		set tokenURL = $Get(%request.Data("tokenURL",1))
 		set redirect = $piece($Get(%request.Data("redirectURL",1)),"?",1)
 
+		/// This make sure private memory store works
+		do ##class(SourceControl.Git.Util.CredentialManager).StopMemoryStore()
+
 		if config = "" {
 			set config = ##class(SourceControl.Git.OAuth2.Config).%New(username, clientID, clientSecret,authURL,tokenURL,redirect)
 		} else {

@@ -202,6 +202,11 @@ ClassMethod StartInternal()
 	}
 }
 
+ClassMethod StopMemoryStore()
+{
+	do ..Stop()
+}
+
 ClassMethod Stop() [ Private ]
 {
 	do ##class(%SYSTEM.Event).Delete(..GetEventName())

@@ -2,7 +2,7 @@
 
 We highly recommend that you use SSH to connect to your repositories. If this is not possible, then HTTPS is another option.
 
-First, add your remote repo in the settings page, or during the Configure step.
+First, add your remote repo in the settings page, or during the Configure step. (Note: do NOT provide a username in the url)
 
 After this, you have to authenticate using OAuth tokens. To do this, press "Authenticate" in the bottom left of the Embedded Git UI, or from the Source Control Menu.
 

@@ -2001,7 +2001,6 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
-        set ^mtempet = token
         if (token) {
             if ($$$isWINDOWS) {
                 set env("GIT_ASKPASS") = """cmd /c "_token_""";"
@@ -3065,6 +3064,7 @@ ClassMethod GetRedactedRemote() As %String
 
 ClassMethod SetConfiguredRemote(url) As %String
 {
+    set url = ##class(SourceControl.Git.OAuth2).FixRemoteURL(url)
     do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url)
     set output = outStream.ReadLine(outStream.Size)
     quit output
@@ -3235,4 +3235,3 @@ ClassMethod Authenticated() As %Boolean
 }
 
 }
-

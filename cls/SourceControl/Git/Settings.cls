@@ -176,6 +176,8 @@ Method %Save() As %Status
         // no-op; user might not have privileges.
     }
 
+    do ##class(SourceControl.Git.Utils).SetConfiguredRemote(..gitRemoteURL)
+
     
 
     // update value of basicUserMode to reflect the updated setting for basicMode
@@ -461,7 +463,9 @@ Method OnAfterConfigure() As %Boolean
             set ..gitRemoteType = ..GetRemoteType(..gitRemoteURL)
             do ..%Save()
 
+
             if ..gitRemoteType = "HTTPS" {
+                set remote = ##class(SourceControl.Git.OAuth2).FixRemoteURL(remote)
                 Write !, "Please navigate to the Embedded Git UI on your browser, and press ""Authenticate"" in the bottom left corner."
                 Write !, "Once that process is complete, return here to verify cloning was successful"
                 Write !, "*Note: You must log in to the Management Portal as the current user"

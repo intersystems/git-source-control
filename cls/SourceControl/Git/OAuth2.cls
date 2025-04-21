@@ -24,7 +24,7 @@ ClassMethod AuthCodeURL(c As SourceControl.Git.OAuth2.Config, namespace As %Stri
 
 ClassMethod GetURLsFromRemote(remote As %String, Output authCodeURL, Output tokenURL) As %Boolean
 {
-    if remote [ "//github.com/" {
+    if remote [ "github.com/" {
         set authCodeURL = "https://github.com/login/oauth/authorize"
         set tokenURL = "https://github.com/login/oauth/access_token"
         return 1

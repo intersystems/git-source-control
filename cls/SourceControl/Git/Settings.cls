@@ -62,7 +62,7 @@ Property warnInstanceWideUncommitted As %Boolean [ InitialExpression = {##class(
 /// The name of the environment (DEVELOPMENT, TEST, LIVE)
 Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).EnvironmentName()} ];
 
-/// Whether the branch should or should not be locked down from changing namespaces
+/// Whether the namespace should or should not be prevented from switching branches (recommended for protected namespaces)
 Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).LockBranch()} ];
 
 Property Mappings [ MultiDimensional ];

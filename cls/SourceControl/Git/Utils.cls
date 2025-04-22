@@ -3209,7 +3209,7 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
     return $$$OK
 }
 
-}
+
 ClassMethod WriteLineToFile(filePath As %String, line As %String)
 {
     Set file=##class(%File).%New(filePath)

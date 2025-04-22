@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Partial support for production decomposition with the new interoperability editors
 - Added Lock Branch setting to prevent switching branches for a protected namespace (#709)
 - Tooltips on branch operations in Git UI (#725)
+- Support for https connections (#279)
 
 ### Fixed
 - Changing system mode (environment name) in setting spersists after instance restart (#655)

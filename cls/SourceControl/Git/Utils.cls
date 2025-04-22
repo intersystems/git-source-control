@@ -1291,11 +1291,7 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
 
 ClassMethod NormalizeExtension(name As %String) As %String
 {
-    #dim extension = $piece(name, ".", $length(name, "."))
-    if $length(extension) <= 3 {
-        set $piece(name, ".", $length(name, ".")) = $zconvert(extension, "U")
-    }
-    quit name
+    return ##class(%Studio.SourceControl.Interface).normalizeName(name)
 }
 
 ClassMethod RoutineTSH(InternalName As %String) As %String
@@ -2401,8 +2397,8 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 
     if InternalName["/" {
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
-        set InternalName=$extract(InternalName,$length(p)+2,*)
-        quit $translate(found_$translate(InternalName,"%","_"),"\","/")
+        set relativeInternalName=$extract(InternalName,$length(p)+2,*)
+        quit $translate(found_$translate(relativeInternalName,"%","_"),"\","/")
     } elseif (..Type(InternalName) = "ptd") {
         do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,'default,.filename)
         return $translate(found_filename, "\","/")

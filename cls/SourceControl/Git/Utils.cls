@@ -79,7 +79,7 @@ $Get(@..#Storage@("settings","decomposeProductions"), 0)
 
 ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 {
-$Get(@..#Storage@("settings","decomposeProdAllowIDE"), 0)
+$Get(@..#Storage@("settings","decomposeProdAllowIDE"), 1)
 }
 
 ClassMethod GitRemoteType() As %String
@@ -3209,6 +3209,7 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
     return $$$OK
 }
 
+}
 ClassMethod WriteLineToFile(filePath As %String, line As %String)
 {
     Set file=##class(%File).%New(filePath)

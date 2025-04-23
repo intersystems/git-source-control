@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tooltips on branch operations in Git UI (#725)
 
 ### Fixed
-- Changing system mode (environment name) in setting spersists after instance restart (#655)
+- Changing system mode (environment name) in settings persists after instance restart (#655)
 - Popping from stash is more responsive (#687, #747)
 - Favorites links for Git pages now works on recent IRIS versions (#734)
 - IDE editing of decomposed productions now properly handles adds and deletes (#643)

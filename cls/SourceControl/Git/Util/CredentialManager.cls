@@ -121,8 +121,6 @@ Method HandleMessage(msgType As %String, msgContent As %String) [ Private ]
 		quit
 	}
 	
-
-
 	set irisUsername = ##class(%SYS.ProcessQuery).%OpenId(senderPID).UserName
 	// key that the token would be mapped from 
 	set key = $lb(irisUsername, gitUsername)
@@ -190,7 +188,6 @@ ClassMethod Start() [ Private ]
 	}
 }
 
-/// TODO-etamarch -> This was Private, but we cannot have jobs call private methods. Need to find a structural workaround
 ClassMethod StartInternal()
 {
 	try {

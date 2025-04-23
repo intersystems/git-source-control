@@ -120,9 +120,6 @@ Method Exchange(authCode As %String, verifier As %String, Output sc As %Status) 
     do:(..ClientSecret '= "") request.SetParam("client_secret", ..ClientSecret)
     // we don't need the redirect_uri parameter because we will be consuming the token here
 
-    // TODO: also add support to put client creds in header instead of params
-    // either is allowed, will have to try both to see which succeeds
-    // this is when we will need the `AuthStyle` parameter in the endpoint
     do request.SetHeader("Accept", "application/json")
 
     do ..CreateSSLConfigIfNonExistent("GitExtensionForIris")
@@ -172,7 +169,6 @@ ClassMethod GetURLWithParams(url As %String, ByRef params As %String) As %String
 
         quit:(isLastIter)
 
-        // TODO-etamarch -> I had issues with $$$URLENCODE, need to look into this later
         set url = url_$$$URLENCODE(curParamKey)_"="_$$$URLENCODE(curParamValue)
     }
     return url

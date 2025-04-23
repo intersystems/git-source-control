@@ -25,6 +25,12 @@ body {
   color: white;
 }
 
+.alert-red {
+  padding: 20px;
+  background-color:rgb(212, 44, 63);;
+  color: white;
+}
+
 .closebtn {
   margin-left: 15px;
   color: white;
@@ -43,6 +49,7 @@ body {
 </head>
 <body>
 <server>
+	set failed = 0
 	set authenticated = 0
 	if $Data(%request.Data("state",1),state)#2 {
 		// Redirected here from github
@@ -51,36 +58,35 @@ body {
 		new $Namespace
 		set $Namespace = namespace
 
+
 		set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig($username)
 		if (config.state '= state){
-			w "Invalid State"
+			set failed =1
+			set failuremessage = "Invalid state"
 			quit 1
 		}
 
 		if '$Data(%request.Data("code",1),code)#2 {
-			w "Bad request: Invalid parameters"
+			set failed =1
+			set failuremessage = "Invalid request parameters"
 			quit 1
 		}
 
 		set verifier = config.verifier
-
 		set result = config.Exchange(code, verifier, .sc)
 		if sc '= $$$OK {
 			do $SYSTEM.Status.DisplayError(sc) 
-			w "<br>"
-			w "Unable to retreive access token"
+			set failed = 1
+			set failuremessage = "Unable to retrieve access token"
 		} else {
 			do ##class(SourceControl.Git.Util.CredentialManager).SetToken($username,result, .err, .code)
 			if (code '= 1) || (err '= "") {
-				w "Unable to save credential"
+				set failed = 1
+				set failuremessage = "Unable to save credentials"
 			} else {
 				set authenticated = 1
 			}
 		}
-
-
-		// https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GNET_http
-
 	}
 	set namespace = $NAMESPACE
 	set username = $USERNAME
@@ -131,6 +137,12 @@ body {
         <strong>Success!</strong> You have been authenticated.
     </div>
     </csp:if>
+	<csp:if condition='(failed = 1)'>
+	    <div class = "alert-red">
+			<span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+			<strong>Error!</strong> #(failuremessage)#
+    	</div>
+	</csp:if>
 
 	<form id="oauthForm" method="post">
 		<div>

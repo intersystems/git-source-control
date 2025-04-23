@@ -38,20 +38,6 @@ ClassMethod GetURLsFromRemote(remote As %String, Output authCodeURL, Output toke
     }
 }
 
-ClassMethod SetRemoteURLWithToken(remote As %String) As %String
-{
-    set token = ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
-    if ('(remote [ token)) {
-        set post = $piece(remote,"https://",2)
-        if (post [ "@") {
-            set post = $piece(post, "@",2)
-        }
-        set remote = "https://oauth2:"_token_"@"_post
-
-    }
-    return remote
-}
-
 ClassMethod FixRemoteURL(url As %String) As %String
 {
     /// OAuth Https authentication requires connecting as api

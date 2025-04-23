@@ -29,8 +29,7 @@ Method %OnNew(size As %Integer) As %Status [ Private, ServerOnly = 1 ]
 Method Store(key As %String, value As %String)
 {
     if key = "" {
-        // TODO: throw a better exception
-        throw ##class(%Exception.General).%New("INVALID_KEY_EXCEPTION","999",, "Invalid key `""""`")
+        throw ##class(%Exception.General).%New("INVALID_KEY_EXCEPTION","999",, "Invalid key for private memory store `""""`")
     }
     set length = $length(value)
     // this will clear it if it exists

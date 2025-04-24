@@ -149,7 +149,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
         // skip files belonging to other git enabled packages
         if ($EXTRACT(filename, 1, $LENGTH(packageRoot)) '= packageRoot) continue
 
-        if (('##class(%File).Exists(filename)) || (InternalName = "") || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && 
+        if ((InternalName = "") || ((InternalName '= "") && ('$data(gitFiles(InternalName), found)) && 
             (($data($$$TrackedItems(InternalName))) || ##class(SourceControl.Git.Utils).NormalizeExtension($data($$$TrackedItems(InternalName))))))  {
             set sc=..RemoveUncommitted(filename,Display,0,0)
             if $$$ISERR(sc) continue

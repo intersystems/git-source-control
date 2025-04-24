@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Expanded Baseline Export to include custom HL7, X12, ASTM schemas and Lookup Tables (#693)
 
+### Fixed
+- Deletes are now properly owned by the user who did the delete (#729)
+
 ## [2.11.0] - 2025-04-23
 
 ### Added

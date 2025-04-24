@@ -2008,7 +2008,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             webui.showSuccess("Applied stash item");
             parent.update();
             self.clear()
-        }, webui.showWarning(output), webui.showError(output));
+        });
     }
 
     self.popSelectedStash = function() {
@@ -2020,7 +2020,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             webui.showSuccess("Popped from stash");
             parent.update();
             self.clear()
-        }, webui.showWarning(output), webui.showError(output));
+        });
     }
 
     self.dropSelectedStash = function() {
@@ -2032,7 +2032,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
             webui.showSuccess("Dropped from stash");
             parent.update();
             self.clear();
-        }, webui.showWarning(output), webui.showError(output));
+        });
     }
 
     var html = '<div class="diff-view-container panel panel-default">';

@@ -2685,8 +2685,8 @@ ClassMethod ConfigureWeb()
     new $Namespace
     set $Namespace = "%SYS"
     write !,"Adding favorites for all users:"
-    set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
-        "select ID,?,$LISTBUILD(?) from Security.Users"
+    set sql = "insert or update %NOCHECK into %SYS_Portal.Users (Username, Page, Data) "_
+        "select ID,?,? from Security.Users"
     set caption = "Git: "_installNamespace
     set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
     write !,"Adding Git favorite... "
@@ -3198,3 +3198,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

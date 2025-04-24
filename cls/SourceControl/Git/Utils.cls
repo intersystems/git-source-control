@@ -765,7 +765,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
-        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim item as %String = ##class(%Studio.SourceControl.Interface).normalizeName($piece(InternalName, ",", i))
         if (item = "") {
             continue
         }
@@ -781,7 +781,7 @@ ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %B
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
-        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim item as %String = ##class(%Studio.SourceControl.Interface).normalizeName($piece(InternalName, ",", i))
         #dim type as %String = ..Type(.item)
 
         #dim sc as %Status =  ..ExportItem(item,,1,.filenames)
@@ -791,7 +791,7 @@ ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %B
 
         for i=1:1:$Get(filenames) {
             set ignoreNonexistent = (type '= "ptd")
-            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(
+            set FileInternalName = ##class(%Studio.SourceControl.Interface).normalizeName(
                 ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,ignoreNonexistent,1))
             if (FileInternalName = "") {
                 continue
@@ -971,7 +971,7 @@ ClassMethod RemoveFromServerSideSourceControl(InternalName As %String) As %Statu
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
-        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim item as %String = ##class(%Studio.SourceControl.Interface).normalizeName($piece(InternalName, ",", i))
         #dim tsc as %Status = $$$OK
         #dim type as %String = ..Type(.InternalName)
         
@@ -999,8 +999,8 @@ ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %B
         #dim type as %String = ..Type(.InternalName)
 
         set item = $piece(InternalName, ",", i)
-        if $data(@..#Storage@("items", ..NormalizeExtension(item))) {
-            set item = ..NormalizeExtension(item)
+        if $data(@..#Storage@("items", ##class(%Studio.SourceControl.Interface).normalizeName(item))) {
+            set item = ##class(%Studio.SourceControl.Interface).normalizeName(item)
         }
         
         if $data(@..#Storage@("items", item)) {
@@ -1202,21 +1202,21 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 {
     #dim isInSourceControl as %Boolean = 1
     set sourceControlItem = ""
-    set InternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(InternalName)
+    set InternalName = ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
     if (InternalName = "") {
         quit 0
     }
     
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    if $data(@..#Storage@("items", ..NormalizeExtension(InternalName))) {
-        set InternalName = ..NormalizeExtension(InternalName)
+    if $data(@..#Storage@("items", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))) {
+        set InternalName = ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
     }
     
     set isInSourceControl = $data(@..#Storage@("items", InternalName)) > 0
     if isInSourceControl {
         // Direct reference to namespace-default project
         set sourceControlItem = InternalName
-    } elseif context.IsInGitEnabledPackage && (InternalName = ..NormalizeExtension(context.InternalName)) {
+    } elseif context.IsInGitEnabledPackage && (InternalName = ##class(%Studio.SourceControl.Interface).normalizeName(context.InternalName)) {
         // Next thing to check is if we're in a package manager-based package
         set isInSourceControl = 1
         set sourceControlItem = context.ResourceReference.Name
@@ -1270,7 +1270,7 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
     set type = ..Type(.name)
     
     if ($extract(name) '= "/") && (type'="csp") {
-        quit ..NormalizeExtension(name)
+        quit ##class(%Studio.SourceControl.Interface).normalizeName(name)
     }
 
     if (name [ "/") && (type = "csp") {
@@ -1289,16 +1289,11 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
     quit name
 }
 
-ClassMethod NormalizeExtension(name As %String) As %String
-{
-    return ##class(%Studio.SourceControl.Interface).normalizeName(name)
-}
-
 ClassMethod RoutineTSH(InternalName As %String) As %String
 {
     #dim type = ..Type(InternalName)
     //for csp-files (csp,js,html,css, all that stored in csp/...) we always check for changes in external file
-    #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ..NormalizeExtension(InternalName))))
+    #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))))
     
     // in case an OS level error is returned
     set:(($$$isUNIX & (tsh = -2)) || ($$$isWINDOWS & (tsh = -3))) tsh = 0
@@ -1317,13 +1312,13 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
 
 ClassMethod UpdateRoutineTSH(InternalName As %String, tsh As %String) As %Status
 {
-    set @..#Storage@("TSH", ..NormalizeExtension(InternalName)) = $get(tsh, $h)
+    set @..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)) = $get(tsh, $h)
     quit $$$OK
 }
 
 ClassMethod RemoveRoutineTSH(InternalName As %String) As %Status
 {
-    kill @..#Storage@("TSH", ..NormalizeExtension(InternalName))
+    kill @..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))
     quit $$$OK
 }
 

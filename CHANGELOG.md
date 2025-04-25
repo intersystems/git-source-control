@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Baseline Export to include custom HL7, X12, ASTM schemas and Lookup Tables (#693)
 
 ### Fixed
+- Deletes are now properly owned by the user who did the delete (#729)
 - Pull page output now displays better when pull preview shows a lot of changes (#740)
 
 ## [2.11.0] - 2025-04-23

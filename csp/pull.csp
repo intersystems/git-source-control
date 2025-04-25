@@ -25,7 +25,7 @@
 	</server>
 </select>
 </pre>
-<pre id="preview" style="white-space: pre-wrap;">
+<pre id="preview" style="white-space: pre-wrap; max-height: 30%">
 </pre>
 <button id="execute" onclick="execute()" disabled="true">Pull and Load Changes</button>
 <pre id="pull" style="white-space: pre-wrap;">

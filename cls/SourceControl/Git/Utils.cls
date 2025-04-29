@@ -2425,10 +2425,12 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 
 ClassMethod ExpandMappingParameters(MapDirectory, Settings As SourceControl.Git.Settings = {##class(SourceControl.Git.Settings).%New()})
 {
-    return $replace(MapDirectory,"<env>", $zconvert($select(
+    set expandedDir = $replace(MapDirectory,"<env>", $zconvert($select(
             Settings.environmentName = "": "DEVELOPMENT", 
             1: Settings.environmentName)
         ,"l"))
+    set expandedDir = $replace(expandedDir,"<namespace>", $zconvert($namespace,"l"))
+    return expandedDir
 }
 
 /// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.

@@ -64,16 +64,18 @@ Method TestMixedFoldering()
     do $$$AssertEquals(##class(Utils).Name("TestPackage.Hello.World.mac"),"rtn/TestPackage/Hello/World.mac")
 }
 
-Method TestEnvExpansion()
+Method TestParamExpansion()
 {
     try {
         set $$$SourceMapping("ESD","*") = "config/<env>/"
         set $$$SourceMapping("ESD","*","NoFolders") = 1
+        set $$$SourceMapping("CLS","*") = "<namespace>/cls/"
         set settings = ##class(SourceControl.Git.Settings).%New()
         set oldEnvName = settings.environmentName
         set settings.environmentName = "TEST"
         $$$ThrowOnError(settings.%Save())
         do $$$AssertEquals(##class(SourceControl.Git.Utils).Name("Ens.Config.DefaultSettings.esd"),"config/test/Ens.Config.DefaultSettings.esd")
+        do $$$AssertEquals(##class(SourceControl.Git.Utils).Name("test.class.cls"),$zconvert($namespace,"l")_"/cls/test/class.cls")
     } catch err {
         do $$$AssertStatusOK(err.AsStatus())
     }

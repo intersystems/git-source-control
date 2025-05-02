@@ -71,6 +71,9 @@ Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(
 /// Whether the branch should or should not be locked down from changing namespaces
 Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).LockBranch()} ];
 
+/// Whether we are using OAuth for https
+Property OAuth As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).UsingOAuth()} ];
+
 Property Mappings [ MultiDimensional ];
 
 Property favoriteNamespaces As %DynamicArray;
@@ -165,6 +168,11 @@ Method %Save() As %Status
     set @storage@("settings","gitRemoteType") = ..gitRemoteType
     set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
     set @storage@("settings", "lockBranch") = ..lockBranch
+    if (..gitRemoteType = "HTTPS") {
+        set @storage@("settings","OAuth") = ..OAuth
+    } else {
+        set @storage@("settings","OAuth") = 0
+    }
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -315,6 +323,11 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetArray("_promptQuoted_",.value,.list,,,,"_defaultPromptFlag_")")
         } elseif ((propertyDef) && (propertyDef.Name ="gitRemoteType")) {
             do %code.WriteLine(" if (inst.gitRemoteURL '= """") { set value = inst.GetRemoteType(inst.gitRemoteURL)}")
+        } elseif ((propertyDef) && (propertyDef.Name = "OAuth")) {
+            do %code.WriteLine(" if (inst.gitRemoteType = ""HTTPS"") {")
+            do %code.WriteLine(" set value = 0")
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetYesNo("_promptQuoted_",.value,,"_defaultPromptFlag)
+            do %code.WriteLine(" }")
         } else {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }
@@ -464,7 +477,18 @@ Method OnAfterConfigure() As %Boolean
             do ..%Save()
 
 
-            if ..gitRemoteType = "HTTPS" {
+            if ((..gitRemoteType = "HTTPS") && ('..OAuth)) {
+                set value = 0
+                set response = ##class(%Library.Prompt).GetYesNo("Do you want to use OAuth for your https remote",.value,,defaultPromptFlag)
+                if (response '= $$$SuccessResponse) {
+                    quit
+                }
+                set ..OAuth = value
+                do ..%Save()
+            }   
+               
+
+            if ((..gitRemoteType = "HTTPS") && ..OAuth) {
                 set remote = ##class(SourceControl.Git.OAuth2).FixRemoteURL(remote)
                 Write !, "Please navigate to the Embedded Git UI on your browser, and press ""Authenticate"" in the bottom left corner."
                 Write !, "Once that process is complete, return here to verify cloning was successful"

@@ -82,6 +82,11 @@ ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 1)
 }
 
+ClassMethod UsingOAuth() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","OAuth"), 0)
+}
+
 ClassMethod GitRemoteType() As %String
 {
     return ##class(SourceControl.Git.Settings).GetRemoteType(..GitRemoteURL())
@@ -1999,7 +2004,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
 
-    if ((..GitRemoteType() = "HTTPS") && ((command = "pull") || (command = "push") || (command = "fetch"))) {
+    if ((..UsingOAuth()) && ((command = "pull") || (command = "push") || (command = "fetch"))) {
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
         if (token) {
             if ($$$isWINDOWS) {
@@ -3209,7 +3214,6 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
     return $$$OK
 }
 
-
 ClassMethod WriteLineToFile(filePath As %String, line As %String)
 {
     Set file=##class(%File).%New(filePath)
@@ -3219,7 +3223,7 @@ ClassMethod WriteLineToFile(filePath As %String, line As %String)
 
 ClassMethod Authenticated() As %Boolean
 {
-    if (##class(SourceControl.Git.Utils).GitRemoteType() '= "SSH") {
+    if (##class(SourceControl.Git.Utils).UsingOAuth()) {
         try {
             // Run a git command that requires access to the remote
             // if does not work, then we are unauthenticated

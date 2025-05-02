@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.11.0] - Unreleased
+## [2.12.0] - Unreleased
+
+### Added
+- Expanded Baseline Export to include custom HL7, X12, ASTM schemas and Lookup Tables (#693)
+
+### Fixed
+- Deletes are now properly owned by the user who did the delete (#729)
+- Pull page output now displays better when pull preview shows a lot of changes (#740)
+
+## [2.11.0] - 2025-04-23
 
 ### Added
 - Pull event handler that does an IPM uninstall and load to handle deletes (#631)
@@ -15,12 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for https connections (#279)
 
 ### Fixed
-- Changing system mode (environment name) in setting spersists after instance restart (#655)
-- Popping from stash is more responsive (#687)
+- Changing system mode (environment name) in settings persists after instance restart (#655)
+- Popping from stash is more responsive (#687, #747)
 - Favorites links for Git pages now works on recent IRIS versions (#734)
 - IDE editing of decomposed productions now properly handles adds and deletes (#643)
-
-### Fixed
 - Fixed error running Import All when Git settings file does not exist (#713)
 
 ## [2.10.0] - 2025-02-10

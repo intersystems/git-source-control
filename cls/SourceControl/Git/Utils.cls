@@ -2714,8 +2714,8 @@ ClassMethod ConfigureWeb()
     new $Namespace
     set $Namespace = "%SYS"
     write !,"Adding favorites for all users:"
-    set sql = "insert or update into %SYS_Portal.Users (Username, Page, Data) "_
-        "select ID,?,$LISTBUILD(?) from Security.Users"
+    set sql = "insert or update %NOCHECK into %SYS_Portal.Users (Username, Page, Data) "_
+        "select ID,?,? from Security.Users"
     set caption = "Git: "_installNamespace
     set link = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_installNamespace_"/"
     write !,"Adding Git favorite... "
@@ -3010,7 +3010,7 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     try {
         write !, "Exporting items..."
         set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
-            "*.mac,*.int,*.inc,*.cls,*.csp" 
+            "*.mac,*.int,*.inc,*.cls,*.csp,*.HL7,*.LUT,*.AST,*.X12"
             , , ,0  // SystemFiles 
             ,1      // Flat
             ,0      // NotStudio
@@ -3021,6 +3021,7 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         while rs.%Next(.sc) {
             $$$ThrowOnError(sc)
             set internalName = rs.Name
+            continue:..IsSchemaStandard(internalName)
             // exclude items in a non-default IPM package
             set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
             continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
@@ -3239,4 +3240,20 @@ ClassMethod Authenticated() As %Boolean
     return 1
 }
 
+ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
+{
+	Set parts = $Length(pName,".")
+	Set category = $Piece(pName,".",1,parts-1)
+	Set ext = $Piece(pName,".",parts)
+	If (pName = "") {
+		Quit 0
+	}
+	Quit +$Case(ext,
+		"AST":$Get(^EnsEDI.ASTM.Description(category,"std")),
+		"HL7":$Get(^EnsHL7.Description(category,"std")),
+		"X12":$Get(^EnsEDI.X12.Description(category,"std")),
+		:0)
 }
+
+}
+

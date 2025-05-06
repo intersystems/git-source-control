@@ -2003,8 +2003,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
-
-    if ((..UsingOAuth()) && ((command = "pull") || (command = "push") || (command = "fetch"))) {
+    set shortcommand = $piece(command," ", 1)
+    if ((..UsingOAuth()) && ((shortcommand = "pull") || (shortcommand = "push") || (shortcommand = "fetch"))) {
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
         if (token) {
             if ($$$isWINDOWS) {

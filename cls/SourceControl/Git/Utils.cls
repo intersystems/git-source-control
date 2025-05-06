@@ -2021,7 +2021,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
+            k env("XDG_CONFIG_HOME")
+            set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
         } else {
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
             k env("XDG_CONFIG_HOME")

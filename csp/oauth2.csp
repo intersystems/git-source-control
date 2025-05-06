@@ -84,7 +84,12 @@ body {
 				set failed = 1
 				set failuremessage = "Unable to save credentials"
 			} else {
-				set authenticated = 1
+				if (##class(SourceControl.Git.OAuth2).GetToken() '= "") {
+					set authenticated = 1
+				} else {
+					set failed = 1
+					set failuremessage = "Something went wrong"
+				}
 			}
 		}
 	}

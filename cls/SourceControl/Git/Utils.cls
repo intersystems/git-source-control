@@ -2024,7 +2024,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
         } else {
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
+            k env("XDG_CONFIG_HOME")
+            set returnCode = $zf(-100,"/SHELL /ENV=env... "_baseArgs,gitCommand,newArgs...)
         }
     }
 

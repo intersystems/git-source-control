@@ -2010,14 +2010,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
         set ^mtempet("token") = token
         if (token) {
+            set ^mtempet("passed") = "here"
             if ($$$isWINDOWS) {
+                set ^mtempet("SYSTEM") = "WINDOWS"
                 set askpassFile = $System.Util.GetEnviron("TEMP")_"\askpass.bat"
                 if ('##class(%File).Exists(askpassFile)) {
                     open askpassFile:"NW":0
                     use askpassFile Write "@echo off",!,"echo %GIT_TOKEN%",!
                     close askpassFile
                 }
+                SET ^mtempet("SYSTEM") = "FINISHED WINDOWS"
             } else {
+                set ^mtempet("SYSTEM") = "UNIX"
                 set askpassFile = $System.Util.GetEnviron("TEMP")_"\askpass.sh"
                 if ('##class(%File).Exists(askpassFile)) {
                     open askpassFile:"NW":0
@@ -2026,6 +2030,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                     // Make file executable
                     Do $zf(-1, "chmod +x "_askpassFile)
                 }
+                SET ^mtempet("SYSTEM") = "FINISHED UNIX"
             }
             set ^mtempet("askpass") = askpassFile
             set env("GIT_ASKPASS") = askpassFile

@@ -2009,7 +2009,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set ^mtempet = "here"
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
         set ^mtempet("token") = token
-        if (token) {
+        if (token '= "") {
             set ^mtempet("passed") = "here"
             if ($$$isWINDOWS) {
                 set ^mtempet("SYSTEM") = "WINDOWS"

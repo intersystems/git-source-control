@@ -2033,7 +2033,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 SET ^mtempet("SYSTEM") = "FINISHED UNIX"
             }
             set ^mtempet("askpass") = askpassFile
-            set gitCommand = "GIT_TOKEN="""_token_""" GIT_ASKPASS=""tmp"_askpassFile_""" GIT_TERMINAL_PROMPT=0"_gitCommand
+            set gitCommand = "GIT_TOKEN="""_token_""" GIT_ASKPASS="""_askpassFile_""" GIT_TERMINAL_PROMPT=0"_gitCommand
         }
     }
     try {

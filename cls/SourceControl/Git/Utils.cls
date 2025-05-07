@@ -2032,7 +2032,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 SET ^mtempet("SYSTEM") = "FINISHED UNIX"
             }
             set ^mtempet("askpass") = askpassFile
-            set baseArgs = baseArgs_" GIT_TOKEN="""_token_""" GIT_ASKPASS="""_askpassFile_""" GIT_TERMINAL_PROMPT=0"
+            set env("GIT_TOKEN") = token
+            set env("GIT_ASKPASS") = askpassFile
+            set env("GIT_TERMINAL_PROMPT") = 0
+            //set baseArgs = baseArgs_" GIT_TOKEN="""_token_""" GIT_ASKPASS="""_askpassFile_""" GIT_TERMINAL_PROMPT=0"
             set ^mtempet("command") = baseArgs_" "_gitCommand_" "
             merge ^mtempet("new args") = newArgs
         }
@@ -2044,10 +2047,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
+            k env("XDG_CONFIG_HOME")
+            set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
         } else {
+            k env("XDG_CONFIG_HOME")
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
+            set returnCode = $zf(-100,"/SHELL /ENV=env... "_baseArgs,gitCommand,newArgs...)
         }
     }
 

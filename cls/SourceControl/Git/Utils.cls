@@ -2005,7 +2005,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
     set shortcommand = $piece(command," ", 1)
     if ((..UsingOAuth()) && ((shortcommand = "pull") || (shortcommand = "push") || (shortcommand = "fetch"))) {
+        
+        set ^mtempet = "here"
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
+        set ^mtempet("token") = token
         if (token) {
             if ($$$isWINDOWS) {
                 set askpassFile = $System.Util.GetEnviron("TEMP")_"\askpass.bat"
@@ -2024,6 +2027,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                     Do $zf(-1, "chmod +x "_askpassFile)
                 }
             }
+            set ^mtempet("askpass") = askpassFile
             set env("GIT_ASKPASS") = askpassFile
             set env("GIT_TOKEN") = token
         }

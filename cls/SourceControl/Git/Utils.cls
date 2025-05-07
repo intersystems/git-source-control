@@ -2034,6 +2034,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             }
             set ^mtempet("askpass") = askpassFile
             set gitCommand = "GIT_TOKEN="""_token_""" GIT_ASKPASS="""_askpassFile_""" GIT_TERMINAL_PROMPT=0 "_gitCommand
+            set ^mtempet("command") = gitCommand
         }
     }
     try {

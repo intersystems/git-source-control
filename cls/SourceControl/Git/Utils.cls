@@ -2013,7 +2013,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set ^mtempet("passed") = "here"
             if ($$$isWINDOWS) {
                 set ^mtempet("SYSTEM") = "WINDOWS"
-                set askpassFile = $System.Util.GetEnviron("TEMP")_"\askpass.bat"
+                set askpassFile = "C:\Windows\Temp\askpass.bat"
                 if ('##class(%File).Exists(askpassFile)) {
                     open askpassFile:"NW":0
                     use askpassFile Write "@echo off",!,"echo %GIT_TOKEN%",!
@@ -2022,7 +2022,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 SET ^mtempet("SYSTEM") = "FINISHED WINDOWS"
             } else {
                 set ^mtempet("SYSTEM") = "UNIX"
-                set askpassFile = $System.Util.GetEnviron("TEMP")_"\askpass.sh"
+                set askpassFile = "/tmp/askpass.sh"
                 if ('##class(%File).Exists(askpassFile)) {
                     open askpassFile:"NW":0
                     use askpassFile Write "#!/bin/bash",!,"echo $GIT_TOKEN",!
@@ -2033,7 +2033,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 SET ^mtempet("SYSTEM") = "FINISHED UNIX"
             }
             set ^mtempet("askpass") = askpassFile
-            set gitCommand = "GIT_TOKEN="""_token_""" GIT_ASKPASS="""_askpassFile_""" GIT_TERMINAL_PROMPT=0"_gitCommand
+            set gitCommand = "GIT_TOKEN="""_token_""" GIT_ASKPASS=""tmp"_askpassFile_""" GIT_TERMINAL_PROMPT=0"_gitCommand
         }
     }
     try {

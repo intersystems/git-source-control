@@ -2003,24 +2003,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set gitCommand = $extract(..GitBinPath(),2,*-1)
     
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
+    // Use OAuth Authentication if needed (TODO: Should this be done always, or only for certain commands?)
     if ((..UsingOAuth())) {
-        
-        set ^mtempet = "here"
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
-        set ^mtempet("token") = token
         if (token '= "") {
-            set ^mtempet("passed") = "here"
             if ($$$isWINDOWS) {
-                set ^mtempet("SYSTEM") = "WINDOWS"
                 set askpassFile = "C:\Windows\Temp\askpass.bat"
                 if ('##class(%File).Exists(askpassFile)) {
                     open askpassFile:"NW":0
                     use askpassFile Write "@echo off",!,"echo %GIT_TOKEN%",!
                     close askpassFile
                 }
-                SET ^mtempet("SYSTEM") = "FINISHED WINDOWS"
             } else {
-                set ^mtempet("SYSTEM") = "UNIX"
                 set askpassFile = "/tmp/askpass.sh"
                 if ('##class(%File).Exists(askpassFile)) {
                     open askpassFile:"NW":0
@@ -2029,15 +2023,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                     // Make file executable
                     Do $zf(-1, "chmod +x "_askpassFile)
                 }
-                SET ^mtempet("SYSTEM") = "FINISHED UNIX"
             }
-            set ^mtempet("askpass") = askpassFile
             set env("GIT_TOKEN") = token
             set env("GIT_ASKPASS") = askpassFile
             set env("GIT_TERMINAL_PROMPT") = 0
-            //set baseArgs = baseArgs_" GIT_TOKEN="""_token_""" GIT_ASKPASS="""_askpassFile_""" GIT_TERMINAL_PROMPT=0"
-            set ^mtempet("command") = baseArgs_" "_gitCommand_" "
-            merge ^mtempet("new args") = newArgs
         }
     }
     try {

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Deletes are now properly owned by the user who did the delete (#729)
 - Pull page output now displays better when pull preview shows a lot of changes (#740)
+- Changing remotes in the git project settings pages now works if remote is not already defined (#746)
 
 ## [2.11.0] - 2025-04-23
 

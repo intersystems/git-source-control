@@ -192,6 +192,7 @@ body {
 								&html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" value="1">>
 							}
 					</server>
+					<label class="custom-control-label" for="usingDirectToken"></label>
 				</div>
 				</div>
         </div>

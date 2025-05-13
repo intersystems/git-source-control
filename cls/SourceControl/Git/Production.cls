@@ -384,7 +384,7 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		// compilable or not have been intended for import yet). Then check for Production Definition
 		// XData. Approach taken from CvtXmlToClientDoc method in %Api.Atelier.v1
 		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
-		if ##class(%File).Exists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
+		if ##class(%File).Exists(filename) && '##class(%File).DirectoryExists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
 			try {
 				set ^||%oddDEF=1
 				$$$ThrowOnError($system.OBJ.Load(filename, "-d"))

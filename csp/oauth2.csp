@@ -182,16 +182,18 @@ body {
 		</div>
 		<div class="form-group row mb-3">
             <label for="usingDirectToken" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Directly input OAuth Token">Use direct OAuth token<br/></label>
-            <div class="col-sm-7">
-				<server>
-						set directToken = $select(config:config.directToken, 1: 0)
-					    if (directToken) {
-                            &html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" checked value="1">>
-                        } else {
-                            &html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" value="1">>
-                        }
-				</server>
-            </div>
+				<div class="col-sm-7">
+				<div class="custom-control custom-switch custom-switch-no-border">
+					<server>
+							set directToken = $select(config:config.directToken, 1: 0)
+							if (directToken) {
+								&html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" checked value="1">>
+							} else {
+								&html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" value="1">>
+							}
+					</server>
+				</div>
+				</div>
         </div>
 		<input type="hidden" name="oauthsettings" value="1" />
 		<div class="form-group row mb-3" id="directTokenDiv" style="display: none;">
@@ -288,7 +290,7 @@ body {
 			document.getElementById('clientOAuth').style.display = 'none';
 		} else {
 			document.getElementById('directTokenDiv').style.display = 'none';
-			document.getElementById('clientOAuth').style.display = 'flex';
+			document.getElementById('clientOAuth').style.display = 'block';
 		}
 	});
 

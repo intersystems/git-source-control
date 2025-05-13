@@ -26,6 +26,10 @@ Property Scopes As %List;
 
 Property Username As %String;
 
+// Using a direct input of authentication token as opposed to ClientId and ClientToken
+
+Property directToken As %String;
+
 Index Username On Username [ IdKey, Unique ];
 
 Method ClientIDSet(InputValue As %String) As %Status
@@ -77,6 +81,7 @@ Method %OnNew(configName As %String, clientID As %String, clientSecret As %Strin
     set ..Endpoint.AuthURL = authEndpoint
     set ..Endpoint.TokenURL = tokenEndpoint
     set ..RedirectURL = redirectURL
+    set ..directToken = 0
 
 
     if ('scopes) {
@@ -206,6 +211,9 @@ Storage Default
 </Value>
 <Value name="10">
 <Value>Name</Value>
+</Value>
+<Value name="11">
+<Value>directToken</Value>
 </Value>
 </Data>
 <DataLocation>^SourceControl.Git.O7826.ConfigD</DataLocation>

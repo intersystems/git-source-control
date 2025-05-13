@@ -45,6 +45,16 @@ body {
 .closebtn:hover {
   color: black;
 }
+
+.custom-switch {
+    padding: 0.4rem 0.5rem 0 2.75rem;
+    border: 1px solid #ced4da;
+    border-left: 0px;
+}
+
+.custom-switch-no-border {
+    border: 0px;
+}
 </style>
 </head>
 <body>
@@ -113,6 +123,8 @@ body {
 		set authURL = $Get(%request.Data("authURL",1))
 		set tokenURL = $Get(%request.Data("tokenURL",1))
 		set redirect = $piece($Get(%request.Data("redirectURL",1)),"?",1)
+		set usingDirectToken = $Get(%request.Data("usingDirectToken"), 1)
+		set directToken = $Get(%request.Data("directToken", 1))
 
 		/// This make sure private memory store works
 		do ##class(SourceControl.Git.Util.CredentialManager).StopMemoryStore()
@@ -125,13 +137,19 @@ body {
 			set config.Endpoint.AuthURL = authURL
 			set config.Endpoint.TokenURL = tokenURL
 			set config.RedirectURL = redirect
+			set config.directToken = $select(usingDirectToken = 1: 1, 1: 0)
 		}
 
 		do config.%Save()
-
-		set authCodeURL = ##class(SourceControl.Git.OAuth2).AuthCodeURL(config,namespace,.state,.verifier)
-		set config.state = state
-		set config.verifier = verifier
+		if (usingDirectToken '= 1) {
+			set authCodeURL = ##class(SourceControl.Git.OAuth2).AuthCodeURL(config,namespace,.state,.verifier)
+			set config.state = state
+			set config.verifier = verifier
+		} else {
+			do ##class(SourceControl.Git.Util.CredentialManager).SetToken($username,directToken, .err, .code)
+			set ready = ""
+			set authenticated = 1
+		}
 		do config.%Save()
 	}
 </server>
@@ -139,7 +157,7 @@ body {
 	<csp:if condition='(authenticated = 1)'>
         <div class = "alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
-        <strong>Success!</strong> You have been authenticated.
+        <strong>Success!</strong> You have been authenticated. You may now close this page.
     </div>
     </csp:if>
 	<csp:if condition='(failed = 1)'>
@@ -162,46 +180,70 @@ body {
 			<p>Once generated, enter your Client ID and Client Secret below:</p>
 			<p> The "Authorization callback URL" should be: <b><span id="callbackURL">text</span></b></p>
 		</div>
+		<div class="form-group row mb-3">
+            <label for="usingDirectToken" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Directly input OAuth Token">Use direct OAuth token<br/></label>
+            <div class="col-sm-7">
+				<server>
+						set directToken = $select(config:config.directToken, 1: 0)
+					    if (directToken) {
+                            &html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" checked value="1">>
+                        } else {
+                            &html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" value="1">>
+                        }
+				</server>
+            </div>
+        </div>
 		<input type="hidden" name="oauthsettings" value="1" />
-		<div class="form-group row mb-3">
-            <label for="clientID" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab ClientID">ClientID<br/></label>
+		<div class="form-group row mb-3" id="directTokenDiv" style="display: none;">
+            <label for="directToken" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="OAuth Token">OAuth Token</label>
             <div class="col-sm-7">
 				<server>
-					set clientID = $select(config:config.ClientID, 1: "")
+					set directToken =  ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
 				</server>
-                <input type="text" class="form-control" id="clientID" name="clientID" value='#(..EscapeHTML(clientID))#'/>
+                <input type="text" class="form-control" id="directToken" name="directToken" value='#(directToken)#'/>
             </div>
         </div>
+		<div id="clientOAuth">
+			<div class="form-group row mb-3">
+				<label for="clientID" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab ClientID">ClientID<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set clientID = $select(config:config.ClientID, 1: "")
+					</server>
+					<input type="text" class="form-control" id="clientID" name="clientID" value='#(..EscapeHTML(clientID))#'/>
+				</div>
+			</div>
 
-		<div class="form-group row mb-3">
-            <label for="clientSecret" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Client Secret">Client Secret<br/></label>
-            <div class="col-sm-7">
-				<server>
-					set clientSecret = $select(config:config.ClientSecret, 1: "")
-				</server>
-                <input type="text" class="form-control" id="clientSecret" name="clientSecret" value='#(..EscapeHTML(clientSecret))#'/>
-            </div>
-        </div>
+			<div class="form-group row mb-3">
+				<label for="clientSecret" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Client Secret">Client Secret<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set clientSecret = $select(config:config.ClientSecret, 1: "")
+					</server>
+					<input type="text" class="form-control" id="clientSecret" name="clientSecret" value='#(..EscapeHTML(clientSecret))#'/>
+				</div>
+			</div>
 
-		<div class="form-group row mb-3">
-            <label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Authorize URL">Authorize URL<br/></label>
-            <div class="col-sm-7">
-				<server>
-					set authURL = $select(config:config.Endpoint.AuthURL,authURL'="":authURL, 1: "")
-				</server>
-                <input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#'/>
-            </div>
-        </div>
+			<div class="form-group row mb-3">
+				<label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Authorize URL">Authorize URL<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set authURL = $select(config:config.Endpoint.AuthURL,authURL'="":authURL, 1: "")
+					</server>
+					<input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#'/>
+				</div>
+			</div>
 
-		<div class="form-group row mb-3">
-            <label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Token URL">Token URL<br/></label>
-            <div class="col-sm-7">
-				<server>
-					set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL'="":tokenURL, 1: "")
-				</server>
-                <input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#'/>
-            </div>
-        </div>
+			<div class="form-group row mb-3">
+				<label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Token URL">Token URL<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL'="":tokenURL, 1: "")
+					</server>
+					<input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#'/>
+				</div>
+			</div>
+		</div>
 
 		<div class="form-group row mb-3">
             <div class="col-sm-12 text-center">
@@ -233,6 +275,22 @@ body {
 		redirectURL.value = window.location.href;
 		form.submit();
 	}
+
+	const usingDirectToken = document.getElementById('usingDirectToken');
+	if ((usingDirectToken.checked)) {
+			document.getElementById('directTokenDiv').style.display = 'flex';
+			document.getElementById('clientOAuth').style.display = 'none';
+
+	}
+	usingDirectToken.addEventListener('change', function () {
+		if ((usingDirectToken.checked)) {
+			document.getElementById('directTokenDiv').style.display = 'flex';
+			document.getElementById('clientOAuth').style.display = 'none';
+		} else {
+			document.getElementById('directTokenDiv').style.display = 'none';
+			document.getElementById('clientOAuth').style.display = 'flex';
+		}
+	});
 
 	/* HACK: 
 		Popups don't work with redirection (Cross-browser origin problems),

@@ -1251,9 +1251,12 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
     quit isInSourceControl
 }
 
-ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists As %Boolean) As %String [ CodeMode = expression ]
+ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
-..TempFolder()_..ExternalName(.InternalName, .MappingExists)
+    set externalName = ..ExternalName(.InternalName, .MappingExists)
+    return $select(
+        externalName="":"",
+        1: ..TempFolder()_externalName)
 }
 
 ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %Boolean = 0, Output cspFilename) As %String
@@ -3198,4 +3201,3 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
-

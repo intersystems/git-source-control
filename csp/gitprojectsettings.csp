@@ -191,6 +191,9 @@ body {
         set successfullySavedSettings = 1
     }
     set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
+    if (remote'="") && (##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote",,.errStream,,"origin")'=0) {
+        set remoteConnectionError = errStream.Read()
+    }
 } catch err {
     do err.Log()
     &html<<div class="error alert-danger">An error occurred and has been logged to the application error log.</div>>
@@ -324,7 +327,7 @@ body {
                     set placeholder = $Select($system.Version.GetOS()="Windows":"(e.g. C:\Users\ExampleUser\.ssh\id_rsa)",
                         1:"(e.g., /home/user/.ssh/id_rsa)")
                 </server>
-                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder=#(placeholder)#/>
+                <input type="text" class="#(class)#" id="privateKeyFile" name="privateKeyFile" value='#(..EscapeHTML(settings.privateKeyFile))#' placeholder="#(..EscapeHTML(placeholder))#"/>
                 <div class = "#(divClass)#">
                     #(feedbackText)#
                     <pre id="sshOutput"></pre>
@@ -424,9 +427,15 @@ body {
         <div class="form-group row mb-3">
             <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository (origin)"><b>Remote Repository</b></label>
             <div class="col-sm-7">
-                <input type="text" class="form-control" id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML($get(remote)))#' placeholder="ex. git@github.com:User/UserRepo.git"/>
+                <input type="text" class='form-control #($select($get(remote)="":"",$get(remoteConnectionError)="":"is-valid",1:"is-invalid"))#' id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML($get(remote)))#' placeholder="e.g. git@github.com:User/UserRepo.git"/>
                 <div class = "neutral-feedback">
                     (Username is redacted)
+                </div>
+                <div class="invalid-feedback">
+                    Unable to contact remote: #(..EscapeHTML($get(remoteConnectionError)))#
+                </div>
+                <div class="valid-feedback">
+                    Connection successful
                 </div>
             </div>
         </div>

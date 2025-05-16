@@ -119,11 +119,6 @@ body {
                 set settings.mappedItemsReadOnly = 0
             }
 
-            set newRemote = $Get(%request.Data("remoteRepo",1))
-            // If entry was modified, set new remote repo
-            if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
-                do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
-            }
 
             set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
             set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
@@ -187,6 +182,14 @@ body {
         } catch err {
             kill buffer
             throw err
+        }
+        set newRemote = $Get(%request.Data("remoteRepo",1))
+        // If entry was modified and git repo is initialized, set new remote repo
+        set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
+        if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
+            if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
+                do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
+            }
         }
         set successfullySavedSettings = 1
     }

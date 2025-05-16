@@ -3022,15 +3022,23 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     return sc
 }
 
-/// Returns the url for the remote repository (censoring the username)
-ClassMethod GetConfiguredRemote() As %String
+/// Returns the url for the "origin" remote repository
+ClassMethod GetConfiguredRemote(Output remoteExists As %Boolean = 0) As %String
 {
-    d ..RunGitCommand("remote",.err,.out,"-v")
-    set line = out.ReadLine()
-    set url = $piece($piece(line,$char(9),2)," ",1)
+    set exitCode = ..RunGitCommand("remote",.err,.out,"get-url","origin")
+    if (exitCode = 0) {
+        set remoteExists = 1
+        set url = out.ReadLine()
+    } elseif (exitCode = 2) {
+        set remoteExists = 0
+        set url = ""
+    } else {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
+    }
     return url
 }
 
+/// Returns the url for the "origin" remote repository, redacting the username
 ClassMethod GetRedactedRemote() As %String
 {
     set url = ..GetConfiguredRemote()
@@ -3041,7 +3049,15 @@ ClassMethod GetRedactedRemote() As %String
 
 ClassMethod SetConfiguredRemote(url) As %String
 {
-    do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url)
+    do ..GetConfiguredRemote(.remoteExists)
+    set returnCode = $select(
+        remoteExists&&(url=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"remove","origin"),
+        remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url),
+        'remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"add","origin",url),
+        1: 0)
+    if (returnCode '= 0) {
+        $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
+    }
     set output = outStream.ReadLine(outStream.Size)
     quit output
 }

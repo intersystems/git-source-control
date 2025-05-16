@@ -70,12 +70,15 @@ Method TestParamExpansion()
         set $$$SourceMapping("ESD","*") = "config/<env>/"
         set $$$SourceMapping("ESD","*","NoFolders") = 1
         set $$$SourceMapping("CLS","*") = "<namespace>/cls/"
+        set $$$SourceMapping("INC","*") = "<token>/inc/"
         set settings = ##class(SourceControl.Git.Settings).%New()
         set oldEnvName = settings.environmentName
         set settings.environmentName = "TEST"
+        set settings.mappingsToken = "mdi"
         $$$ThrowOnError(settings.%Save())
         do $$$AssertEquals(##class(SourceControl.Git.Utils).Name("Ens.Config.DefaultSettings.esd"),"config/test/Ens.Config.DefaultSettings.esd")
         do $$$AssertEquals(##class(SourceControl.Git.Utils).Name("test.class.cls"),$zconvert($namespace,"l")_"/cls/test/class.cls")
+        do $$$AssertEquals(##class(SourceControl.Git.Utils).Name("test.routine.inc"),"mdi/inc/test/routine.inc")
     } catch err {
         do $$$AssertStatusOK(err.AsStatus())
     }

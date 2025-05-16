@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Expanded Baseline Export to include custom HL7, X12, ASTM schemas and Lookup Tables (#693)
-- Mapping configuration expands \<namespace\> parameter to support namespace-specific mappings (#710)
+- Mapping configuration expands \<namespace\> and \<token\> parameters to better support multi-namespace solutions (#710)
 - Settings page includes a test of the connection to the remote (#746)
 
 ### Fixed

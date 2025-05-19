@@ -190,6 +190,11 @@ ClassMethod LockBranch() As %Boolean
     quit $get(@..#Storage@("settings","lockBranch"),0)
 }
 
+ClassMethod MappingsToken() As %String
+{
+    quit $get(@..#Storage@("settings","mappingsToken"),"")
+}
+
 ClassMethod IsLIVE() As %Boolean
 {
     quit ..EnvironmentName()="LIVE"
@@ -2425,10 +2430,13 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 
 ClassMethod ExpandMappingParameters(MapDirectory, Settings As SourceControl.Git.Settings = {##class(SourceControl.Git.Settings).%New()})
 {
-    return $replace(MapDirectory,"<env>", $zconvert($select(
+    set expandedDir = $replace(MapDirectory,"<env>", $zconvert($select(
             Settings.environmentName = "": "DEVELOPMENT", 
             1: Settings.environmentName)
         ,"l"))
+    set expandedDir = $replace(expandedDir,"<namespace>", $zconvert($namespace,"l"))
+    set expandedDir = $replace(expandedDir,"<token>", Settings.mappingsToken)
+    return expandedDir
 }
 
 /// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.
@@ -3217,3 +3225,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

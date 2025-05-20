@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Deletes are now properly owned by the user who did the delete (#729)
 - Pull page output now displays better when pull preview shows a lot of changes (#740)
+- Extensions in item cache are consistently upper-case, so "export all" doesn't duplicate work (#727)
 - Fixed loop of loading classes with compilation errors in Studio (#766)
 - Fixed error popup when creating new record map or other interop items (#753)
 - Changing remotes in the git project settings pages now works if remote is not already defined (#746)

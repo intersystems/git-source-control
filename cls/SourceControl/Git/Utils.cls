@@ -3031,17 +3031,18 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 /// Returns the url for the "origin" remote repository
-ClassMethod GetConfiguredRemote(Output remoteExists As %Boolean = 0) As %String
+ClassMethod GetConfiguredRemote(Output remoteExists As %Boolean = 0, Output sc As %Status = {$$$OK}) As %String
 {
     set exitCode = ..RunGitCommand("remote",.err,.out,"get-url","origin")
     if (exitCode = 0) {
         set remoteExists = 1
         set url = out.ReadLine()
-    } elseif (exitCode = 2) {
+    } else {
         set remoteExists = 0
         set url = ""
-    } else {
-        $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
+        if '$listfind($listbuild(2,3),exitCode) {
+            set sc = $$$ERROR($$$GeneralError,"git reported failure")
+        }
     }
     return url
 }

@@ -2,7 +2,7 @@
 Class SourceControl.Git.Installer
 {
 
-ClassMethod MapEverywhere()
+ClassMethod MapEverywhere() As %Status
 {
     set sc = $$$OK
     try {

@@ -3097,6 +3097,7 @@ ClassMethod GetRedactedRemote() As %String
 
 ClassMethod SetConfiguredRemote(url) As %String
 {
+    set outStream = ""
     do ..GetConfiguredRemote(.remoteExists)
     set returnCode = $select(
         remoteExists&&(url=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"remove","origin"),

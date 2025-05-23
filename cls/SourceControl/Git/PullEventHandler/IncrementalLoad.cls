@@ -100,7 +100,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         if deleted && $$$ISOK(sc) {
             if (item '= "") {
                 do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
-                kill $$$TrackedItems(##class(SourceControl.Git.Utils).NormalizeExtension(item))
+                kill $$$TrackedItems(##class(%Studio.SourceControl.Interface).normalizeName(item))
             }
         } else {
             if +$system.Status.GetErrorCodes(sc) = $$$ClassDoesNotExist {

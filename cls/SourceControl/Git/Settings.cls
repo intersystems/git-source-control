@@ -71,8 +71,13 @@ Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(
 /// Whether the branch should or should not be locked down from changing namespaces
 Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).LockBranch()} ];
 
+
 /// Whether we are using OAuth for https
 Property OAuth As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).UsingOAuth()} ];
+
+/// (Optional) A namespace-specific string that may be included in mapping configurations as <token> to support multi-namespace repositories
+Property mappingsToken As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).MappingsToken()} ];
+
 
 Property Mappings [ MultiDimensional ];
 
@@ -168,11 +173,15 @@ Method %Save() As %Status
     set @storage@("settings","gitRemoteType") = ..gitRemoteType
     set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
     set @storage@("settings", "lockBranch") = ..lockBranch
+
     if (..gitRemoteType = "HTTPS") {
         set @storage@("settings","OAuth") = ..OAuth
     } else {
         set @storage@("settings","OAuth") = 0
     }
+
+    set @storage@("settings", "mappingsToken") = ..mappingsToken
+
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -593,3 +602,4 @@ ClassMethod GetRemoteType(remoteURL As %String) As %String
 }
 
 }
+

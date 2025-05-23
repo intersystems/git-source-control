@@ -205,6 +205,11 @@ ClassMethod LockBranch() As %Boolean
     quit $get(@..#Storage@("settings","lockBranch"),0)
 }
 
+ClassMethod MappingsToken() As %String
+{
+    quit $get(@..#Storage@("settings","mappingsToken"),"")
+}
+
 ClassMethod IsLIVE() As %Boolean
 {
     quit ..EnvironmentName()="LIVE"
@@ -783,7 +788,7 @@ ClassMethod AddToServerSideSourceControl(InternalName As %String) As %Status
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
-        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim item as %String = ##class(%Studio.SourceControl.Interface).normalizeName($piece(InternalName, ",", i))
         if (item = "") {
             continue
         }
@@ -799,7 +804,7 @@ ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %B
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
-        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim item as %String = ##class(%Studio.SourceControl.Interface).normalizeName($piece(InternalName, ",", i))
         #dim type as %String = ..Type(.item)
 
         #dim sc as %Status =  ..ExportItem(item,,1,.filenames)
@@ -809,7 +814,7 @@ ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %B
 
         for i=1:1:$Get(filenames) {
             set ignoreNonexistent = (type '= "ptd")
-            set FileInternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(
+            set FileInternalName = ##class(%Studio.SourceControl.Interface).normalizeName(
                 ##class(SourceControl.Git.Utils).NameToInternalName(filenames(i), 0,ignoreNonexistent,1))
             if (FileInternalName = "") {
                 continue
@@ -989,7 +994,7 @@ ClassMethod RemoveFromServerSideSourceControl(InternalName As %String) As %Statu
     #dim i as %Integer
     #dim ec as %Status = $$$OK
     for i = 1:1:$length(InternalName, ",") {
-        #dim item as %String = ..NormalizeExtension($piece(InternalName, ",", i))
+        #dim item as %String = ##class(%Studio.SourceControl.Interface).normalizeName($piece(InternalName, ",", i))
         #dim tsc as %Status = $$$OK
         #dim type as %String = ..Type(.InternalName)
         
@@ -1017,8 +1022,8 @@ ClassMethod RemoveFromSourceControl(InternalName As %String, cascadeDelete As %B
         #dim type as %String = ..Type(.InternalName)
 
         set item = $piece(InternalName, ",", i)
-        if $data(@..#Storage@("items", ..NormalizeExtension(item))) {
-            set item = ..NormalizeExtension(item)
+        if $data(@..#Storage@("items", ##class(%Studio.SourceControl.Interface).normalizeName(item))) {
+            set item = ##class(%Studio.SourceControl.Interface).normalizeName(item)
         }
         
         if $data(@..#Storage@("items", item)) {
@@ -1220,21 +1225,21 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
 {
     #dim isInSourceControl as %Boolean = 1
     set sourceControlItem = ""
-    set InternalName = ##class(SourceControl.Git.Utils).NormalizeExtension(InternalName)
+    set InternalName = ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
     if (InternalName = "") {
         quit 0
     }
     
     set context = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    if $data(@..#Storage@("items", ..NormalizeExtension(InternalName))) {
-        set InternalName = ..NormalizeExtension(InternalName)
+    if $data(@..#Storage@("items", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))) {
+        set InternalName = ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
     }
     
     set isInSourceControl = $data(@..#Storage@("items", InternalName)) > 0
     if isInSourceControl {
         // Direct reference to namespace-default project
         set sourceControlItem = InternalName
-    } elseif context.IsInGitEnabledPackage && (InternalName = ..NormalizeExtension(context.InternalName)) {
+    } elseif context.IsInGitEnabledPackage && (InternalName = ##class(%Studio.SourceControl.Interface).normalizeName(context.InternalName)) {
         // Next thing to check is if we're in a package manager-based package
         set isInSourceControl = 1
         set sourceControlItem = context.ResourceReference.Name
@@ -1269,9 +1274,12 @@ ClassMethod IsInSourceControl(InternalName As %String, ByRef sourceControlItem A
     quit isInSourceControl
 }
 
-ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists As %Boolean) As %String [ CodeMode = expression ]
+ClassMethod FullExternalName(ByRef InternalName As %String, ByRef MappingExists As %Boolean) As %String
 {
-..TempFolder()_..ExternalName(.InternalName, .MappingExists)
+    set externalName = ..ExternalName(.InternalName, .MappingExists)
+    return $select(
+        externalName="":"",
+        1: ..TempFolder()_externalName)
 }
 
 ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %Boolean = 0, Output cspFilename) As %String
@@ -1288,7 +1296,7 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
     set type = ..Type(.name)
     
     if ($extract(name) '= "/") && (type'="csp") {
-        quit $piece(name,".",1,*-1)_"."_$zconvert($piece(name,".",*),"U")
+        quit ##class(%Studio.SourceControl.Interface).normalizeName(name)
     }
 
     if (name [ "/") && (type = "csp") {
@@ -1307,20 +1315,11 @@ ClassMethod NormalizeInternalName(ByRef name As %String, Output fromWebApp As %B
     quit name
 }
 
-ClassMethod NormalizeExtension(name As %String) As %String
-{
-    #dim extension = $piece(name, ".", $length(name, "."))
-    if $length(extension) <= 3 {
-        set $piece(name, ".", $length(name, ".")) = $zconvert(extension, "L")
-    }
-    quit name
-}
-
 ClassMethod RoutineTSH(InternalName As %String) As %String
 {
     #dim type = ..Type(InternalName)
     //for csp-files (csp,js,html,css, all that stored in csp/...) we always check for changes in external file
-    #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ..NormalizeExtension(InternalName))))
+    #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))))
     
     // in case an OS level error is returned
     set:(($$$isUNIX & (tsh = -2)) || ($$$isWINDOWS & (tsh = -3))) tsh = 0
@@ -1339,13 +1338,13 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
 
 ClassMethod UpdateRoutineTSH(InternalName As %String, tsh As %String) As %Status
 {
-    set @..#Storage@("TSH", ..NormalizeExtension(InternalName)) = $get(tsh, $h)
+    set @..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)) = $get(tsh, $h)
     quit $$$OK
 }
 
 ClassMethod RemoveRoutineTSH(InternalName As %String) As %Status
 {
-    kill @..#Storage@("TSH", ..NormalizeExtension(InternalName))
+    kill @..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))
     quit $$$OK
 }
 
@@ -2318,12 +2317,14 @@ ClassMethod GitStatus(ByRef files, IncludeAllFiles = 0)
     set list = $listfromstring(lines, $char(0))
     set pointer = 0
     while $listnext(list, pointer, item) {
-        set operation = $zstrip($extract(item, 1, 2), "<W")
+        set operation = $zstrip($extract(item, 1, 2), "<>W")
         set externalName = $extract(item, 4, *)
         set internalName = ..NameToInternalName(externalName,,0)
         if (internalName '= "") {
             set files(internalName) = $listbuild(operation, externalName)
-            set @..#Storage@("items",..NormalizeInternalName(internalName)) = ""
+            if (operation '= "D") {
+                set @..#Storage@("items",..NormalizeInternalName(internalName)) = ""
+            }
         } elseif ((IncludeAllFiles) && (externalName '= "")) {
             set externalName = $TRANSLATE(externalName, "\", "/")
             set files($I(files)) = $listbuild(operation, externalName)
@@ -2445,8 +2446,8 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 
     if InternalName["/" {
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
-        set InternalName=$extract(InternalName,$length(p)+2,*)
-        quit $translate(found_$translate(InternalName,"%","_"),"\","/")
+        set relativeInternalName=$extract(InternalName,$length(p)+2,*)
+        quit $translate(found_$translate(relativeInternalName,"%","_"),"\","/")
     } elseif (..Type(InternalName) = "ptd") {
         do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,'default,.filename)
         return $translate(found_filename, "\","/")
@@ -2468,10 +2469,13 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
 
 ClassMethod ExpandMappingParameters(MapDirectory, Settings As SourceControl.Git.Settings = {##class(SourceControl.Git.Settings).%New()})
 {
-    return $replace(MapDirectory,"<env>", $zconvert($select(
+    set expandedDir = $replace(MapDirectory,"<env>", $zconvert($select(
             Settings.environmentName = "": "DEVELOPMENT", 
             1: Settings.environmentName)
         ,"l"))
+    set expandedDir = $replace(expandedDir,"<namespace>", $zconvert($namespace,"l"))
+    set expandedDir = $replace(expandedDir,"<token>", Settings.mappingsToken)
+    return expandedDir
 }
 
 /// Implementation copied from %Library.RoutineMgr, but with results cached in a PPG.
@@ -3066,17 +3070,18 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 }
 
 /// Returns the url for the "origin" remote repository
-ClassMethod GetConfiguredRemote(Output remoteExists As %Boolean = 0) As %String
+ClassMethod GetConfiguredRemote(Output remoteExists As %Boolean = 0, Output sc As %Status = {$$$OK}) As %String
 {
     set exitCode = ..RunGitCommand("remote",.err,.out,"get-url","origin")
     if (exitCode = 0) {
         set remoteExists = 1
         set url = out.ReadLine()
-    } elseif (exitCode = 2) {
+    } else {
         set remoteExists = 0
         set url = ""
-    } else {
-        $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
+        if '$listfind($listbuild(2,3),exitCode) {
+            set sc = $$$ERROR($$$GeneralError,"git reported failure")
+        }
     }
     return url
 }
@@ -3285,3 +3290,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

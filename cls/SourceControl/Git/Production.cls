@@ -380,10 +380,24 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		if ##class(%File).Exists(settingsPTDFilename) {
 			return 1
 		}
-		// check if there is a class export for this Production, load it for class definition
+		// uses temporary flag to load item without loading into database (since the item may not be 
+		// compilable or not have been intended for import yet). Then check for Production Definition
+		// XData. Approach taken from CvtXmlToClientDoc method in %Api.Atelier.v1
 		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
-		if ##class(%File).Exists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
-			$$$ThrowOnError($System.OBJ.Load(filename))
+		if ##class(%File).Exists(filename) && '##class(%File).DirectoryExists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
+			try {
+				set ^||%oddDEF=1
+				$$$ThrowOnError($system.OBJ.Load(filename, "-d"))
+				// class XDatas are stored in ^||%oddDEF("<class name>","x","<XData name>") after temp load
+				set hasProdDef = $data(^||%oddDEF(className,$$$cCLASSxdata,"ProductionDefinition"))
+				kill ^||%oddDEF
+				if hasProdDef {
+					return 1
+				}
+			} catch err {
+				kill ^||%oddDEF
+				throw err
+			}
 		}
 		// if Production exists as a class definition on the server, check if extending Ens.Production
 		set classDef = ##class(%Dictionary.ClassDefinition).%OpenId(className)

@@ -3098,13 +3098,12 @@ ClassMethod GetRedactedRemote() As %String
 
 ClassMethod SetConfiguredRemote(url) As %String
 {
-    set outStream = ""
     do ..GetConfiguredRemote(.remoteExists)
     set returnCode = $select(
         remoteExists&&(url=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"remove","origin"),
         remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url),
         'remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"add","origin",url),
-        1: 0)
+        1: -1)
     if (returnCode '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
     }

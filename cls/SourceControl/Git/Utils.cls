@@ -3108,7 +3108,7 @@ ClassMethod SetConfiguredRemote(url) As %String
     if (returnCode '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
     }
-    set output = outStream.ReadLine(outStream.Size)
+    set output = outStream.Read()
     quit output
 }
 

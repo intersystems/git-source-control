@@ -3102,10 +3102,10 @@ ClassMethod SetConfiguredRemote(url) As %String
     set returnCode = $select(
         remoteExists&&(url=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"remove","origin"),
         remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url),
-        'remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"add","origin",url),
+        (('remoteExists)&&(url'="")): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"add","origin",url),
         1: -1)
     if (returnCode = -1) {
-        return ""
+        quit ""
     }
     if (returnCode '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))

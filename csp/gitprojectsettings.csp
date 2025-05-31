@@ -185,12 +185,16 @@ body {
             kill buffer
             throw err
         }
-        set newRemote = $Get(%request.Data("remoteRepo",1))
-        // If entry was modified and git repo is initialized, set new remote repo
-        set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
-        if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
-            if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
-                do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
+        // Do not attempt to set a new remote repo if 'remoteRepo' is not actually present in the request
+        // This may occur for example when settingsUIReadOnly is true where 'remoteRepo' is not user editable
+        if ($data(%request.Data("remoteRepo",1)) '= 0) {
+            set newRemote = $Get(%request.Data("remoteRepo",1))
+            // If entry was modified and git repo is initialized, set new remote repo
+            set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
+            if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
+                if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
+                    do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
+                }
             }
         }
         set successfullySavedSettings = 1

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed loop of loading classes with compilation errors in Studio (#766)
 - Fixed error popup when creating new record map or other interop items (#753)
 - Changing remotes in the git project settings pages now works if remote is not already defined (#746)
+- User-specific basic mode setting can now be changed when settingsUIReadOnly is set (#775)
+- Fixed an error displaying the Web UI after reverting a commit (#776)
 
 ## [2.11.0] - 2025-04-23
 

@@ -1350,12 +1350,12 @@ webui.LogView = function(historyView) {
                 if (type == 'revert') {
                     webui.git_command(["revert", "--no-commit","HEAD"], function(output) {
                         webui.showSuccess(output);
-                        workspaceView.update();
+                        updateSideBar();;
                     });
                 } else if (type == 'hardReset') {
                     webui.git_command(["reset", "--hard", "HEAD~1"], function(output) {
                         webui.showSuccess(output);
-                        workspaceView.update();
+                        updateSideBar();;
                     });
                 }
     

@@ -1890,10 +1890,14 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     if (command = "checkout") {
         set syncIrisWithDiff = 1
+        // Sync using diff output after the checkout has been performed
+        // Allows syncing remote branches as the diff will otherwise fail prior
+        set syncIrisWithDiffAfterGit = 1
         if hasFileList {
             set invert = 1
         } elseif $data(args) && $data(args(args),diffCompare) {
-            // no-op
+            // Record the current branch to diff against after the checkout
+            set diffBase = ..GetCurrentBranch()
         }
     } elseif (command = "restore") {
         // Leave diffCompare empty, this actually does the right thing.
@@ -1935,12 +1939,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set newArgs($increment(newArgs)) = args(i)
             if (args(i) = "checkout") {
                 set syncIrisWithDiff = 1
+                // Sync using diff output after the checkout has been performed
+                // Allows syncing remote branches as the diff will otherwise fail prior
+                set syncIrisWithDiffAfterGit = 1
                 if hasFileList {
                     set invert = 1
                 } else {
                     set diffCompare = args(i + 1)
                     if args = (i + 2) {
                         set diffBase = args(i + 2)
+                    } else {
+                        // Record the current branch to diff against after the checkout
+                        set diffBase = ..GetCurrentBranch()
                     }
                 }
             } elseif (args(i) = "restore") {

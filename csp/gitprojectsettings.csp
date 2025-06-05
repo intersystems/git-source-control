@@ -130,6 +130,12 @@ body {
             }
 
 
+            if ((newRemote [ "https") && ($Get(%request.Data("OAuth"), 1) = 1) ) {
+                set settings.OAuth = 1
+            } else {
+                set settings.OAuth = 0
+            }
+
             set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
             set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
             set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
@@ -169,6 +175,7 @@ body {
             if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
                 do settings.SaveDefaults()
             }
+            do settings.%Save()
         }
         set err = ""
         try {
@@ -203,9 +210,29 @@ body {
     if (remote'="") && (##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote",,.errStream,,"origin")'=0) {
         set remoteConnectionError = errStream.Read()
     }
-} catch err {
-    do err.Log()
-    &html<<div class="error alert-danger">An error occurred and has been logged to the application error log.</div>>
+    } catch err {
+        do err.Log()
+        &html<<div class="error alert-danger">An error occurred and has been logged to the application error log.</div>>
+        if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
+            do settings.SaveDefaults()
+        }
+    }
+    set err = ""
+    try {
+        set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+        do buffer.BeginCaptureOutput()
+        $$$ThrowOnError(settings.SaveWithSourceControl())
+        do buffer.EndCaptureOutput(.out)
+        if (out '= "") {
+            &html<<div class="alert alert-primary">
+                    <div>#(..EscapeHTML(out))#</div>
+                </div>>
+        }
+    } catch err {
+        kill buffer
+        do err.Log()
+        &html<<div class="alert alert-danger">An error occurred and has been logged to the application error log.</div>>
+    }
 }
 </server>
 <div class = 'container'>
@@ -445,6 +472,16 @@ body {
                 </div>
                 <div class="valid-feedback">
                     Connection successful
+                </div>
+            </div>
+
+        </div>
+        <div class="form-group row mb-3" id="remoteOAuth" style="display: none;">
+            <label for="OAuth" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether to use OAuth authentication flow for the https remote">Use Oauth authentication</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" #($select(settings.OAuth:"checked",1:""))# type="checkbox" id="OAuth" name="OAuth" value="1">
+                    <label class="custom-control-label" for="OAuth"></label>
                 </div>
             </div>
         </div>
@@ -762,6 +799,19 @@ var submitForm = function(e) {
     var form = document.getElementById('settingsForm');
     form.submit();
 }
+
+const remoteURL = document.getElementById('remoteRepo');
+if ((remoteURL.value.toLowerCase().includes('https'))) {
+        document.getElementById('remoteOAuth').style.display = 'flex';
+}
+remoteURL.addEventListener('change', function () {
+    console.log(remoteURL.value)
+    if ((remoteURL.value.toLowerCase().includes('https'))) {
+        document.getElementById('remoteOAuth').style.display = 'flex';
+    } else {
+        document.getElementById('remoteOAuth').style.display = 'none';
+    }
+});
 
 document.getElementById('saveDefaults').addEventListener('click',submitForm,false);
 

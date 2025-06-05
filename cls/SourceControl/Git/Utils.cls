@@ -1860,6 +1860,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set newArgs($increment(newArgs)) = command
 
     set syncIrisWithDiff = 0 // whether IRIS needs to be synced with repo file changes using diff output
+    set syncIrisWithDiffAfterGit = 0 // whether to sync using diff output after the git command is performed
+    set syncIrisWithDiffVerbose = 1 // whether to use verbose output when syncing using diff output
     set syncIrisWithCommand = 0 // // whether IRIS needs to be synced with repo file changes using command output
     set diffBase = ""
     set diffCompare = ""
@@ -1898,6 +1900,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set syncIrisWithDiff = 1
     } elseif (command = "pull") {
         set syncIrisWithDiff = 1
+        // If performing a pull don't perform a diff until after the pull has occured.
+        // This is to avoid a double fetch, as pull performs one for us and also to avoid a potential
+        // race condition if the remote changes between now and the pull actually being performed.
+        set syncIrisWithDiffAfterGit = 1
+        // Verbose output should not be required as pull already outputs a summary
+        set syncIrisWithDiffVerbose = 0
         // The current revision, prior to the pull, will be compared against
         set diffCompare = ..GetCurrentRevision()
     } elseif (command = "merge") || (command = "rebase") {
@@ -1964,10 +1972,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set syncIrisWithCommand = 0
     }
 
-    // If performing a pull don't perform a diff until after the pull has occured.
-    // This is to avoid a double fetch, as pull performs one for us and also to avoid a potential
-    // race condition if the remote changes between now and the pull actually being performed.
-    if syncIrisWithDiff && (command '= "pull") {
+    // If syncing with diff output before the git command
+    if syncIrisWithDiff && 'syncIrisWithDiffAfterGit {
         if diffBase = "" {
             set diffBase = ..GetCurrentBranch()
         }
@@ -1975,7 +1981,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         do ..RunGitCommand("fetch", .errorStream, .outputStream,"--prune")
         kill errorStream, outputStream
         do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
-        do ..ParseDiffStream(outputStream,,.files)
+        do ..ParseDiffStream(outputStream,syncIrisWithDiffVerbose,.files)
     }
 
     set outLog = ##class(%Library.File).TempFilename()
@@ -1998,11 +2004,10 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         }
     }
 
-    // If performing a pull then do a diff now after the pull has occured.
-    if syncIrisWithDiff && (command = "pull") {
-        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffCompare, "--name-status")
-        // Verbose output should not be required as pull already outputs a summary
-        do ..ParseDiffStream(outputStream,0,.files)
+    // If syncing with diff output after the git command
+    if syncIrisWithDiff && syncIrisWithDiffAfterGit {
+        do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("diff",,.errorStream,.outputStream, diffBase_$Case(diffCompare,"":"",:"..")_diffCompare, "--name-status")
+        do ..ParseDiffStream(outputStream,syncIrisWithDiffVerbose,.files)
     }
 
     set errStream = ##class(%Stream.FileCharacter).%OpenId(errLog,,.sc)

@@ -748,11 +748,11 @@ ClassMethod Exists(ByRef pFilename) As %Boolean
 	If ##class(%File).Exists(pFilename) {
 		Return 1
 	}
-	Set tDirectory = ##class(%File).ParentDirectoryName(pFilename)
+    Set tDirectory = ##class(%File).GetDirectory(pFilename)
 	If '##class(%File).DirectoryExists(tDirectory) {
 		Return 0
 	}
-	Set tName = $Piece(pFilename, tDirectory, 2, *)
+    Set tName = ##class(%File).GetFilename(pFilename)
 	Set tFileName = $Piece(tName, ".", 1, * - 1)
 	Set tFileExt = $Piece(tName, ".", *)
 	for tExt = $$$LOWER(tFileExt), $$$UPPER(tFileExt) {
@@ -3234,4 +3234,3 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
-

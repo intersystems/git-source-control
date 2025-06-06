@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changing remotes in the git project settings pages now works if remote is not already defined (#746)
 - User-specific basic mode setting can now be changed when settingsUIReadOnly is set (#775)
 - Fixed an error displaying the Web UI after reverting a commit (#776)
+- Fixed checkout of a remote branch not syncing files with IRIS (#783)
 - Fixed errors exporting items when directory casing does not match mappings (#781)
 - Improved accessibility of UI when tabbing through items (#764)
 

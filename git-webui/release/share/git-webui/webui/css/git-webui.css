@@ -114,9 +114,19 @@ body {
 .btn-sidebar-icon {
   padding: 2% 5%;
 }
+.btn-sidebar-icon:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.4);
+}
+.btn-sidebar-icon:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.4);
+}
 .btn-ok {
   float: right;
-  margin-top: -0.6rem;
+  margin-top: -1.9rem;
   margin-right: 0.8rem;
 }
 #error-modal .modal-body {

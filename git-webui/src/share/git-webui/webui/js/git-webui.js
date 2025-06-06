@@ -519,10 +519,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         if($("#btn_createList").length == 0){
             var newBranchForm = $('#sidebar-local-branches');
     
-            var inputForm = '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
+            var inputForm = '<input type="text" class="form-control form-control-xs" id="newBranchName"/>' +
+                            '<button type="submit" class="btn btn-md btn-default btn-ok" id="btn_createList">' +
                                 webui.checkIcon+
-                            '</button>' +
-                            '<input type="text" class="form-control form-control-xs" id="newBranchName"/>'
+                            '</button>'
+                            
             newBranchForm.append(inputForm);
             $("#sidebar-local-branches input").focus();
         }
@@ -994,28 +995,28 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     self.mainView = mainView;
     self.currentContext = self.getCurrentContext();
     self.element = $(   '<div id="sidebar">' +
-                            '<a href="#" data-toggle="modal" data-target="#help-modal"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
+                            '<a href="#" data-toggle="modal" data-target="#help-modal" tabindex="0"><img id="sidebar-logo" src="img/git-logo.png"></a>' +
                             '<h5 id="packageVersion"></h5>' +
                             '<h4 id="environment"></h4>'+ 
                             '<div id="sidebar-content">' +
                                 '<section id="sidebar-workspace">' +
-                                    '<h4>Workspace</h4>' +
+                                    '<h4 tabindex="0">Workspace</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-stash">' +
-                                    '<h4>Stash</h4>' +
+                                    '<h4 tabindex="0">Stash</h4>' +
                                 '</section>' +
                                 '<section id="sidebarDiscarded">' +
-                                    '<h4>Discarded Files</h4>' +
+                                    '<h4 tabindex="0">Discarded Files</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-local-branches">' +
+                                '<section id="sidebar-local-branches" >' +
                                     '<h4 class="mt-1">Local Branches' +
-                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" title="Create new branch">' +
+                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-add shadow-none" title="Create new branch" tabindex="0">' +
                                         webui.circlePlusIcon+
                                     '</button>' + '</h4>' +
                                 '</section>' +
-                                '<section id="sidebar-remote-branches">' +
+                                '<section id="sidebar-remote-branches" >' +
                                     '<h4 class="mt-1">Remote Branches' +
-                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" title="Git fetch of remote branches">'+
+                                    '<button type="button" class="btn btn-default btn-sidebar-icon btn-prune-remote-branches shadow-none" title="Git fetch of remote branches" tabindex="0  ">'+
                                         webui.refreshIcon+
                                       '</button>' +'</h4>' +
                                 '</section>' +
@@ -1023,17 +1024,17 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                                     '<h4>Tags</h4>' +
                                 '</section>' +
                                 '<section id="space-filler"></section>'+
-                                '<section id="sidebar-settings">' +
-                                    '<h4>Settings</h4>' +
-                                '</section>' +
-                                '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '">' + 
-                                    '<h4>Change Context</h4>' +
+                                '<section id="sidebar-home" tabindex="0">' +
+                                    '<h4>Home</h4>' +
                                 '</section>' +
                                 '<section id="sidebar-vscode">' +
-                                    '<h4><a href="vscode-workspace" target="_blank">Code Workspace</a></h4>' +
+                                    '<h4><a href="vscode-workspace" target="_blank" tabindex="0">Code Workspace</a></h4>' +
                                 '</section>' +
-                                '<section id="sidebar-home">' +
-                                    '<h4>Home</h4>' +
+                                '<section id="sidebar-context" data-toggle="tooltip" data-placement="right" title="' + self.currentContext + '" tabindex="0">' + 
+                                    '<h4>Change Context</h4>' +
+                                '</section>' +
+                                '<section id="sidebar-settings" tabindex="0">' +
+                                    '<h4>Settings</h4>' +
                                 '</section>' +
                             '</div>' +
                         '</div>')[0];
@@ -1041,34 +1042,73 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     if (webui.viewonly) {
         $("#sidebar-workspace", self.element).remove();
     } else {
+        function onKeydown(e, outcome) {
+            if (e.key === "Enter" || e.key === " ") {
+                outcome()
+            }
+        }
+
         var workspaceElement = $("#sidebar-workspace h4", self.element);
-        workspaceElement.click(function (event) {
+        function navigateToWorkspace() {
             $("*", self.element).removeClass("active");
             workspaceElement.addClass("active");
             self.mainView.workspaceView.show();
+        }
+        workspaceElement.click(function (event) {
+            navigateToWorkspace()
         });
+        workspaceElement.on("keydown", function (e) {
+            onKeydown(e,navigateToWorkspace)
+        })
 
         var stashElement = $("#sidebar-stash h4", self.element);
-        stashElement.click(function (event) {
+        function navigateToStash() {
             $("*", self.element).removeClass("active");
             stashElement.addClass("active");
             self.mainView.stashView.update(0);
+        }
+        stashElement.click(function (event) {
+            navigateToStash()
         });
+        stashElement.on("keydown", function (e) {
+            onKeydown(e,navigateToStash)
+        })
 
         var discardedElement = $("#sidebarDiscarded", self.element);
-        discardedElement.click(function() {
+        function navigateToDiscard() {
             $("*", self.element).removeClass("active");
             discardedElement.addClass("active");
             self.mainView.discardedView.show();
+        }
+        discardedElement.click(function() {
+            navigateToDiscard()
         });
+        discardedElement.on("keydown", function (e) {
+            onKeydown(e,navigateToDiscard)
+        })
 
         $(".btn-add", self.element).click(self.createNewLocalBranch);
         $('.btn-prune-remote-branches', self.element).click(self.pruneRemoteBranches);
         $("#sidebar-settings", self.element).click(self.goToSettingsPage);
+        $("#sidebar-settings", self.element).on("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+                self.goToSettingsPage();
+            }
+          });
         $("#sidebar-context", self.element).click(function() {
             self.changeContextGet(0);
         });
+        $("#sidebar-context", self.element).on("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+                self.changeContextGet(0);
+            }
+          });
         $("#sidebar-home", self.element).click(self.goToHomePage);
+        $("#sidebar-home", self.element).on("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") {
+                self.goToHomePage();
+            }
+          });
     }
 
     // Removing the link to home if not a top-level page

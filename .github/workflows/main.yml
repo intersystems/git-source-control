@@ -55,7 +55,7 @@ jobs:
           
           # Run InterSystems IRIS Instance
           docker pull $container_image
-          docker run -d -h $instance --name $instance -v $GITHUB_WORKSPACE:/source:rw -v $GITHUB_WORKSPACE/$test_reports:/$test_reports:rw -v $GITHUB_WORKSPACE/$artifact_dir:/$artifact_dir:rw -v $GITHUB_WORKSPACE/$sys_dir:/$sys_dir:rw --env ISC_DATA_DIRECTORY=/$sys_dir --init $container_image
+          docker run -d -h $instance --name $instance -v $GITHUB_WORKSPACE:/source:rw -v $GITHUB_WORKSPACE/$test_reports:/$test_reports:rw -v $GITHUB_WORKSPACE/$artifact_dir:/$artifact_dir:rw -v $GITHUB_WORKSPACE/$sys_dir:/$sys_dir --env ISC_DATA_DIRECTORY=/$sys_dir --init $container_image
           echo halt > wait
           # Wait for instance to be ready
           until docker exec --interactive $instance iris session $instance < wait; do sleep 1; done

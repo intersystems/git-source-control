@@ -24,11 +24,11 @@
 
       <!-- Pages for the Git menu in Studio/VSCode - moved to /isc/studio/usertemplates -->
       <!-- Can't call the folder git-source-control because this causes errors in CSP compliation! -->
-      <FileCopy Name="csp/gitprojectsettings.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
-      <FileCopy Name="csp/pull.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/pull.csp" />
-      <FileCopy Name="csp/webuidriver.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />
-      <FileCopy Name="csp/sync.csp" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/sync.csp" />
-      <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${libdir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
+      <FileCopy Name="csp/gitprojectsettings.csp" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/gitprojectsettings.csp" />
+      <FileCopy Name="csp/pull.csp" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/pull.csp" />
+      <FileCopy Name="csp/webuidriver.csp" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/webuidriver.csp" />
+      <FileCopy Name="csp/sync.csp" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/sync.csp" />
+      <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 
       <Invoke Class="SourceControl.Git.Utils" Method="OutputConfigureMessage" />
       <Invoke Class="SourceControl.Git.Utils" Method="Localize" />

@@ -102,7 +102,7 @@ Method UpdateHash(stream)
 /// or "" if the routine does not exist.
 ClassMethod TimeStamp(name As %String) As %TimeStamp
 {
-    return $get(@##class(SourceControl.Git.Utils).#Storage@("settings","TS"), $zdatetime($h,3))
+    return $get(@##class(SourceControl.Git.Utils).#Storage@("settings","TS"), "")
 }
 
 }

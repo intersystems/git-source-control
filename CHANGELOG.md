@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed importing Lookup Tables that do not already exist (#791)
+- Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
 
 ## [2.12.1] - 2025-06-27
 

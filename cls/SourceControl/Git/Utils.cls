@@ -1308,7 +1308,8 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
 
     if tsh = "" {
         #dim ts as %String = ##class(%RoutineMgr).TS(InternalName)
-        if ts '= "" {
+        // lut files that do not exist always return the current time as a timestamp, check that they exist before using it
+        if (ts '= "") && ((type '= "lut") || ((type = "lut") && ##class(%RoutineMgr).Exists(InternalName))) {
             // prj files have milliseconds in timestamp, so we crop them
             set tsh = $piece($zdatetimeh(ts, 3),".",1)
         } else {

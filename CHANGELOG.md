@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed importing Lookup Tables that do not already exist (#791)
 - Fix initial import of settings file that has yet to be imported (#794)
+- Fixed syncing IRIS with files after pull to diff in the intended direction (#802)
 
 ## [2.12.1] - 2025-06-27
 

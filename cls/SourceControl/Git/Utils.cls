@@ -1912,7 +1912,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         // Verbose output should not be required as pull already outputs a summary
         set syncIrisWithDiffVerbose = 0
         // The current revision, prior to the pull, will be compared against
-        set diffCompare = ..GetCurrentRevision()
+        set diffBase = ..GetCurrentRevision()
     } elseif (command = "merge") || (command = "rebase") {
         set syncIrisWithCommand = 1
         if $data(args) && $data(args(args),diffCompare) {

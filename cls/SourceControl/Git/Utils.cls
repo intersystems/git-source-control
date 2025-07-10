@@ -1578,20 +1578,27 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
         set doImport = ..IsRoutineOutdated(internalName) || force
-        if ..IsInSourceControl(internalName) {
-            set sc = ..ImportItem(internalName, force)            
-        } else {
+        if '..IsInSourceControl(internalName) {
             set sc = ..AddToServerSideSourceControl(internalName)
+            if $$$ISERR(sc) {
+                set ec = $$$ADDSC(ec, sc)
+            }
         }
-        if $$$ISERR(sc) {
-            set ec = $$$ADDSC(ec, sc)
-        }
-        if doImport && settings.compileOnImport {
-            set modification = ##class(SourceControl.Git.Modification).%New()
-            set modification.changeType = "M"
-            set modification.internalName = internalName
-            set modification.externalName = ..ExternalName(internalName)
-            set files($increment(files)) = modification
+        if doImport {
+            // If compiling then allow the pull event handler to import
+            if (settings.compileOnImport) {
+                set modification = ##class(SourceControl.Git.Modification).%New()
+                set modification.changeType = "M"
+                set modification.internalName = internalName
+                set modification.externalName = ..ExternalName(internalName)
+                set files($increment(files)) = modification
+            } else {
+                // If not compiling then import now as otherwise it won't happen
+                set sc = ..ImportItem(internalName, force)
+                if $$$ISERR(sc) {
+                    set ec = $$$ADDSC(ec, sc)
+                }
+            }
         }
     }
 

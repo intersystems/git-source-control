@@ -15,7 +15,8 @@ Method OnPull() As %Status
     for i=1:1:$get(..ModifiedFiles) {
         set internalName = ..ModifiedFiles(i).internalName
         if internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME {
-            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName))
+            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+            quit
         }
     }
 
@@ -23,6 +24,10 @@ Method OnPull() As %Status
 
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
+        
+        // Don't import the config file a second time
+        continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
+        
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
             write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
         } elseif (..ModifiedFiles(i).changeType = "D") {

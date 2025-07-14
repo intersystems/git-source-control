@@ -2011,6 +2011,15 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                     // despite the fact that it will disappear after the reset is performed
                     set diffBase = ..GetCurrentRevision()
                 }
+            } elseif (args(i) = "revert") {
+                // Sync files after performing a 'Revert' via the WebUI
+                if (args(i + 1) = "--no-commit") {
+                    set syncIrisWithDiff = 1
+                    set syncIrisWithDiffAfterGit = 1
+                    set syncIrisWithDiffVerbose = 1
+                    // When syncing diff against what is being reverted
+                    set diffBase = args(i + 2)
+                }
             }
         }
     }

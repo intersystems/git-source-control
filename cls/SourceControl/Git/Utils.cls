@@ -1567,7 +1567,23 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
-
+    
+    // If there is a config file it must be imported before everything else.
+    if $Data(itemList(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
+        set sc = ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, force)
+        
+        if $$$ISERR(sc) {
+            set ec = $$$ADDSC(ec, sc)
+        } else {
+            kill err, itemList
+            set err = 0
+            
+            // Get the item list again as it may be different after just importing the config file
+            set ec = $$$ADDSC(ec, ..ListItemsInFiles(.itemList, .err))
+        }
+        quit:'ec ec
+    }
+    
     kill files
     
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -1575,6 +1591,10 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
+        
+        // Don't import the config file a second time
+        continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
+        
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
         set doImport = ..IsRoutineOutdated(internalName) || force

@@ -1,4 +1,4 @@
-Import SourceControl.Git
+Include SourceControl.Git
 
 /// Main source control extension class, configured namespace-wide to enable use via VSCode and Studio
 Class SourceControl.Git.Extension Extends %Studio.SourceControl.Base
@@ -529,7 +529,8 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
     } else {
         // If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
         set Editable=1, IsCheckedOut=0, UserCheckedOut=""
-        if ##class(SourceControl.Git.Change).IsUncommitted(filename){
+        if ##class(SourceControl.Git.Change).IsUncommitted(filename)
+                && '('$data(files(InternalName)) && $data($$$TrackedItems(##class(%Studio.SourceControl.Interface).normalizeName(InternalName)))) {
             #; Remove the item from the list of uncommitted changes;
             set sc=##class(SourceControl.Git.Change).RemoveUncommitted(filename,1,1)
             if $$$ISERR(sc) write "Error removing uncommitted file "_filename_" - "_$system.OBJ.DisplayError(sc)

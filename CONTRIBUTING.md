@@ -14,11 +14,11 @@ We encourage use of [Conventional Commits](https://www.conventionalcommits.org/e
 
 Generally speaking, just try to match the conventions you see in the code you are reading. For this project, these include:
 
-* Do not use shortened command and function names - e.g., `s` instead of `set`, `$p` instead of `$piece`
+* Do not use shortened command and function names. For example, use `set` instead of `s` instead of `set` and `$piece` instead of `$p`
 * One command per line
 * Do not use dot syntax
 * Indentation with tabs
-* Pascal case class and method names
+* [Pascal case](https://en.wikipedia.org/wiki/Camel_case) class and method names
 * Avoid using postconditionals
 * Local variables start with `t`; formal parameter names start with `p`
 * Always check %Status return values

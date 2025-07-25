@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.13.0] - Unreleased
 
+### Added
+- Expanded Baseline Export to include XSL Transforms (#815)
+
 ### Fixed
 - Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
 
@@ -117,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added 'git push --force' in expert mode (#527)
 - Add remote repository to settings page (#448)
 - Added change context option to pull page (#468)
-- Added favorite namespaces setting for a user (#468, #510) 
+- Added favorite namespaces setting for a user (#468, #510)
 - Added environment awareness in configuration, and showing of environment name in UI (#124)
 - Warning on sync page if other users have unstaged changes (#493)
 - Added "Export System Default Settings" menu item (#544)

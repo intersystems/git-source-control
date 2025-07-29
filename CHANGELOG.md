@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.13.0] - Unreleased
 
+### Added
+- Expanded Baseline Export to include XSL Transforms (#815)
+
 ### Fixed
 - Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
 - Fix baselining output more consistent, human readable (#814)

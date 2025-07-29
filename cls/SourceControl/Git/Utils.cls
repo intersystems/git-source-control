@@ -1571,19 +1571,19 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     // If there is a config file it must be imported before everything else.
     if $Data(itemList(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
         set sc = ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, force)
-        
+
         if $$$ISERR(sc) {
             set ec = $$$ADDSC(ec, sc)
         } else {
             kill err, itemList
             set err = 0
-            
+
             // Get the item list again as it may be different after just importing the config file
             set ec = $$$ADDSC(ec, ..ListItemsInFiles(.itemList, .err))
         }
         quit:'ec ec
     }
-    
+
     kill files
 
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -3047,7 +3047,7 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
     try {
         write !, "Exporting items..."
         set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
-            "*.mac,*.int,*.inc,*.cls,*.csp,*.HL7,*.LUT,*.AST,*.X12"
+            "*.mac,*.int,*.inc,*.cls,*.csp,*.xsl,*.HL7,*.LUT,*.AST,*.X12"
             , , ,0  // SystemFiles
             ,1      // Flat
             ,0      // NotStudio

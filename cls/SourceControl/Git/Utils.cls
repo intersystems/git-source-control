@@ -1567,7 +1567,23 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
 
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
-
+    
+    // If there is a config file it must be imported before everything else.
+    if $Data(itemList(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
+        set sc = ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, force)
+        
+        if $$$ISERR(sc) {
+            set ec = $$$ADDSC(ec, sc)
+        } else {
+            kill err, itemList
+            set err = 0
+            
+            // Get the item list again as it may be different after just importing the config file
+            set ec = $$$ADDSC(ec, ..ListItemsInFiles(.itemList, .err))
+        }
+        quit:'ec ec
+    }
+    
     kill files
 
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -1575,6 +1591,10 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
+        
+        // Don't import the config file a second time
+        continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
+        
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
         set doImport = ..IsRoutineOutdated(internalName) || force
@@ -1981,6 +2001,25 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 set diffCompare = args(i + 1)
             } elseif (args(i) = "commit") {
                 set isCommit = 1
+            } elseif (args(i) = "reset") {
+                // Sync files after performing a 'Hard Reset' via the WebUI
+                if (args(i + 1) = "--hard") {
+                    set syncIrisWithDiff = 1
+                    set syncIrisWithDiffAfterGit = 1
+                    set syncIrisWithDiffVerbose = 1
+                    // The current commit will still be able to be referenced to diff against
+                    // despite the fact that it will disappear after the reset is performed
+                    set diffBase = ..GetCurrentRevision()
+                }
+            } elseif (args(i) = "revert") {
+                // Sync files after performing a 'Revert' via the WebUI
+                if (args(i + 1) = "--no-commit") {
+                    set syncIrisWithDiff = 1
+                    set syncIrisWithDiffAfterGit = 1
+                    set syncIrisWithDiffVerbose = 1
+                    // When syncing diff against what is being reverted
+                    set diffBase = args(i + 2)
+                }
             }
         }
     }

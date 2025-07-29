@@ -12,12 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
+- Fix baselining output more consistent, human readable (#814)
+- Import All now imports configuration file before everything else (#806)
+- Fixed another instance of deletes showing as owned by undefined user (#812)
+- Fix Revert not syncing files with IRIS (#789)
 
 ## [2.12.2] - 2025-07-08
 
 ### Fixed
 - Fixed importing Lookup Tables that do not already exist (#791)
-- Fix initial import of settings file that has yet to be imported (#794)
+- Fixed initial import of settings file that has yet to be imported (#794)
 - Fixed syncing IRIS with files after pull to diff in the intended direction (#802)
 
 ## [2.12.1] - 2025-06-27

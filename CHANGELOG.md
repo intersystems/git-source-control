@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
+- Fix baselining output more consistent, human readable (#814)
 - Import All now imports configuration file before everything else (#806)
 - Fixed another instance of deletes showing as owned by undefined user (#812)
 - Fix Revert not syncing files with IRIS (#789)
@@ -17,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed importing Lookup Tables that do not already exist (#791)
-- Fix initial import of settings file that has yet to be imported (#794)
+- Fixed initial import of settings file that has yet to be imported (#794)
 - Fixed syncing IRIS with files after pull to diff in the intended direction (#802)
 
 ## [2.12.1] - 2025-06-27
@@ -120,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added 'git push --force' in expert mode (#527)
 - Add remote repository to settings page (#448)
 - Added change context option to pull page (#468)
-- Added favorite namespaces setting for a user (#468, #510) 
+- Added favorite namespaces setting for a user (#468, #510)
 - Added environment awareness in configuration, and showing of environment name in UI (#124)
 - Warning on sync page if other users have unstaged changes (#493)
 - Added "Export System Default Settings" menu item (#544)

@@ -251,6 +251,22 @@ body {
   width: 16.4em;
   background-color: #333333;
 }
+#sidebar #sidebar-content #sidebar-oauth a {
+  color: white;
+}
+#sidebar #sidebar-content #sidebar-oauth h4 {
+  padding: 0px;
+  margin-bottom: 10px;
+}
+#sidebar #sidebar-content #sidebar-oauth h4:before {
+  content: url(../img/oauth.svg);
+}
+#sidebar #sidebar-content #sidebar-oauth {
+  position: absolute;
+  bottom: 120px;
+  width: 16.4em;
+  background-color: #333333;
+}
 #sidebar #sidebar-content #sidebar-context h4 {
   padding: 0px;
   margin-bottom: 10px;

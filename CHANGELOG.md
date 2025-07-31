@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.12.0] - Unreleased
+## [2.13.0] - Unreleased
+
+### Added
+- Expanded Baseline Export to include XSL Transforms (#815)
+
+### Fixed
+- Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
+- Fix baselining output more consistent, human readable (#814)
+- Import All now imports configuration file before everything else (#806)
+- Fixed another instance of deletes showing as owned by undefined user (#812)
+- Fix Revert not syncing files with IRIS (#789)
+
+## [2.12.2] - 2025-07-08
+
+### Fixed
+- Fixed importing Lookup Tables that do not already exist (#791)
+- Fixed initial import of settings file that has yet to be imported (#794)
+- Fixed syncing IRIS with files after pull to diff in the intended direction (#802)
+
+## [2.12.1] - 2025-06-27
+
+### Fixed
+- Fixed an edge case installing the package on containers with Durable SYS (#795)
+
+## [2.12.0] - 2025-06-06
 
 ### Added
 - Expanded Baseline Export to include custom HL7, X12, ASTM schemas and Lookup Tables (#693)
@@ -19,6 +43,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed loop of loading classes with compilation errors in Studio (#766)
 - Fixed error popup when creating new record map or other interop items (#753)
 - Changing remotes in the git project settings pages now works if remote is not already defined (#746)
+- User-specific basic mode setting can now be changed when settingsUIReadOnly is set (#775)
+- Fixed an error displaying the Web UI after reverting a commit (#776)
+- Fixed checkout of a remote branch not syncing files with IRIS (#783)
+- Fixed errors exporting items when directory casing does not match mappings (#781)
+- Improved accessibility of UI when tabbing through items (#764)
 
 ## [2.11.0] - 2025-04-23
 
@@ -96,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added 'git push --force' in expert mode (#527)
 - Add remote repository to settings page (#448)
 - Added change context option to pull page (#468)
-- Added favorite namespaces setting for a user (#468, #510) 
+- Added favorite namespaces setting for a user (#468, #510)
 - Added environment awareness in configuration, and showing of environment name in UI (#124)
 - Warning on sync page if other users have unstaged changes (#493)
 - Added "Export System Default Settings" menu item (#544)

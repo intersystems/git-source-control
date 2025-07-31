@@ -66,6 +66,12 @@ ClassMethod AddDeletedToUncommitted(Filename, InternalName) As %Status
     Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "", 0)
 }
 
+/// Determine if an item is deleted, if it is not in a provided list of git files but is a known tracked item
+ClassMethod IsDeleted(InternalName As %String, ByRef gitFiles) As %Boolean
+{
+    Quit ('$data(gitFiles(InternalName))) && ($data($$$TrackedItems(##class(%Studio.SourceControl.Interface).normalizeName(InternalName))))
+}
+
 /// The Filename here is an ExternalName formatted name with the full file path
 ClassMethod IsUncommitted(Filename, ByRef ID) As %Boolean
 {
@@ -151,8 +157,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
 
         if ((InternalName = "") 
                 || ((InternalName '= "") 
-                    && ('$data(gitFiles(InternalName), found)) 
-                    && ($data($$$TrackedItems(##class(%Studio.SourceControl.Interface).normalizeName(InternalName))))))  {
+                    && ..IsDeleted(InternalName, .gitFiles)))  {
             set sc=..RemoveUncommitted(filename,Display,0,0)
             if $$$ISERR(sc) continue
         }

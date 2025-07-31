@@ -108,6 +108,16 @@ body {
         for param="gitUserName","gitUserEmail" {
             set $Property(settings,param) = $Get(%request.Data(param,1))
         }
+
+        // Users may set basicMode even if settingsUIReadOnly is true
+        if ($Get(%request.Data("basicMode", 1)) = 1) {
+            set settings.basicMode = 1
+        } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
+            set settings.basicMode = "system"
+        } else {
+            set settings.basicMode = 0
+        }
+
         if ('settings.settingsUIReadOnly) {
             for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken" {
                 set $Property(settings,param) = $Get(%request.Data(param,1))
@@ -130,14 +140,6 @@ body {
             set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
             set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
             set settings.lockBranch = ($Get(%request.Data("lockBranch", 1)) = 1)
-
-            if ($Get(%request.Data("basicMode", 1)) = 1) {
-                set settings.basicMode = 1
-            } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
-                set settings.basicMode = "system"
-            } else {
-                set settings.basicMode = 0
-            }
 
             if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
                 set settings.systemBasicMode = 1
@@ -190,12 +192,16 @@ body {
             kill buffer
             throw err
         }
-        set newRemote = $Get(%request.Data("remoteRepo",1))
-        // If entry was modified and git repo is initialized, set new remote repo
-        set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
-        if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
-            if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
-                do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
+        // Do not attempt to set a new remote repo if 'remoteRepo' is not actually present in the request
+        // This may occur for example when settingsUIReadOnly is true where 'remoteRepo' is not user editable
+        if ($data(%request.Data("remoteRepo",1)) '= 0) {
+            set newRemote = $Get(%request.Data("remoteRepo",1))
+            // If entry was modified and git repo is initialized, set new remote repo
+            set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
+            if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
+                if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
+                    do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
+                }
             }
         }
         set successfullySavedSettings = 1

@@ -1535,7 +1535,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     }
 
     if $get(err) > 0 {
-        write !, "There were some errors while importing files"
+        write !, "Warning: unrecognized files found in the sources directory:"
         for i=1:1:err {
             write !, err(i)
         }

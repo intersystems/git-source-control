@@ -47,6 +47,8 @@ Method TestPull()
     do ..WriteFile(remoteDir_"/cls/TestGit/SampleClass1.cls","Class TestGit.SampleClass1 {}")
     do ..WriteFile(remoteDir_"/cls/TestGit/SampleClass2.cls","Class TestGit.SampleClass2 {}")
     do $zf(-100,"/SHELL","git","init",remoteDir)
+    do $zf(-100,"/SHELL","git", "-C", remoteDir, "config", "user.email", "unittest@example.com")
+    do $zf(-100,"/SHELL","git", "-C", remoteDir, "config", "user.name", "Unit Test")
     do $zf(-100,"/SHELL","git", "-C", remoteDir, "add", ".")
     do $zf(-100,"/SHELL","git", "-C", remoteDir, "commit", "-m", "initial commit in remote for unit test")
     // initialize local repo, cloning remote.

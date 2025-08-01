@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import All now imports configuration file before everything else (#806)
 - Fixed another instance of deletes showing as owned by undefined user (#812)
 - Fix Revert not syncing files with IRIS (#789)
+- Fix "Export All" stopping prematurely because a tracked item no longer exist in the namespace (#821)
 
 ## [2.12.2] - 2025-07-08
 

@@ -982,6 +982,7 @@ ClassMethod RemoveFromServerSideSourceControl(InternalName As %String) As %Statu
 
         if $data(@..#Storage@("items", item)) {
             kill @..#Storage@("items", item)
+            do ..RemoveRoutineTSH(item)
             do ..RemoveFolderIfEmpty(..TempFolder())
         } elseif (type = "cls") {
             set tsc = ..MakeError(item _ " is not in SourceControl")
@@ -1567,7 +1568,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
 
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
-    
+
     // If there is a config file it must be imported before everything else.
     if $Data(itemList(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
         set sc = ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, force)
@@ -1591,10 +1592,10 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
-        
+
         // Don't import the config file a second time
         continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
-        
+
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
         set doImport = ..IsRoutineOutdated(internalName) || force
@@ -1720,7 +1721,11 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 write !, "Production decomposition enabled, skipping export of production class"
                 set filename = ""
             } else {
-                $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+                set tSC = $SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff")
+                if $$$ISERR(tSC) {
+                    write !?5, InternalName, " not found.  Cleaning up source control."
+                    do ..RemoveFromServerSideSourceControl(InternalName)
+                }
             }
             if (filename '= "") && ##class(%File).Exists(filename) {
                 set filenames($I(filenames)) = filename

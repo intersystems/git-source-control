@@ -443,13 +443,14 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
-    // Make sure that branch exists first (-a lists both local and remote)
-    do ..RunGitWithArgs(.errStream,.outStream,"branch", "-a")
+    // First, make sure that branch exists
+    do ..RunGitCommand("fetch", .errStream, .outStream, "--prune")    // refresh list of remote branches
+    do ..RunGitWithArgs(.errStream, .outStream, "branch", "-a")       // -a lists both local and remote
     set branches = outStream.Read()
-    if ('$find(branches,targetBranchName)) {
+    if ('$FIND(branches, targetBranchName)) {
         quit $$$ERROR($$$GeneralError, "Selected branch does not exist"_$C(10))
     }
-    k outStream, errStream
+    kill outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
     // Checkout can fail due to unstaged changes
@@ -1567,7 +1568,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
 
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
-    
+
     // If there is a config file it must be imported before everything else.
     if $Data(itemList(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
         set sc = ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, force)
@@ -1591,10 +1592,10 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
-        
+
         // Don't import the config file a second time
         continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
-        
+
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
         set doImport = ..IsRoutineOutdated(internalName) || force
@@ -2814,7 +2815,7 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
 
 XData ProductionConfigScript [ MimeType = text/javascript ]
 {
-    function checkProductionConfigLoad() {
+function checkProductionConfigLoad() {
         timerState(false);
     }
 

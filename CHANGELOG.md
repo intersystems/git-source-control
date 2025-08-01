@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Expanded Baseline Export to include XSL Transforms (#815)
+- Enhanced "Check out branch" to first refresh list of remote branches to eliminate failure due to stale information (#823)
 
 ### Fixed
 - Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import All now imports configuration file before everything else (#806)
 - Fixed another instance of deletes showing as owned by undefined user (#812)
 - Fix Revert not syncing files with IRIS (#789)
+
 
 ## [2.12.2] - 2025-07-08
 

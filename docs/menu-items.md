@@ -29,7 +29,10 @@ This option pushes the commits in the branch to the remote repository. This exhi
 This option forcibly pushes the commits in the branch to the remote repository. This is potentially destructive and may overwrite the commit history of the remote branch. This exhibits the same behavior as the [git push --force](https://git-scm.com/docs/git-push) command.
 
 ## Fetch from remote
-Much like the [git fetch](https://git-scm.com/docs/git-fetch) command, this option fetches the most recent versions of the branch without merging that version into the local copy of the branch.
+This option first [fetches](https://git-scm.com/docs/git-fetch) the most recent version of the branch without merging that version into the local copy of the branch.  It will then list all files modified between the current version and the remote version.
+
+This also has the effect of refreshing the list of all remote branches and pruning any references that no longer exist in the remote.  (see: [git fetch --prune](https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt---prune))
+
 ## Pull changes from remote branch
 Much like the [git pull](https://git-scm.com/docs/git-pull) command, this menu option pulls the most recent version of the current branch from a remote source, merging the changes into the local copy.
 
@@ -40,7 +43,10 @@ This option will synchronize a local repo with the remote repo. The sync operati
 This menu option creates a new branch in the repository for changes to be committed to. It also changes the current branch to be the created branch. This mimics the behavior of the [git checkout -b](https://git-scm.com/docs/git-checkout) command.
 
 ## Check out an existing branch
-This option changes the currently checkout branch to a chosen branch. This mimics the behavior of the [git checkout](https://git-scm.com/docs/git-checkout) command.
+This option refreshes the local list of branches available in the upstream repository, and then changes the currently checkedout branch to the provided branch.  This mimics the behavior of the [git fetch --prune](https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt---prune) and [git checkout](https://git-scm.com/docs/git-checkout) commands.
+
+If the desired branch does not exist in your local or in the remote, then you will receive the "Selected branch does not exist" error message.
+
 ## Export all
 This option exports class files to the local file tree at the configured location.
 

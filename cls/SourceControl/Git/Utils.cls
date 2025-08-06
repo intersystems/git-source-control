@@ -983,6 +983,7 @@ ClassMethod RemoveFromServerSideSourceControl(InternalName As %String) As %Statu
 
         if $data(@..#Storage@("items", item)) {
             kill @..#Storage@("items", item)
+            do ..RemoveRoutineTSH(item)
             do ..RemoveFolderIfEmpty(..TempFolder())
         } elseif (type = "cls") {
             set tsc = ..MakeError(item _ " is not in SourceControl")
@@ -1721,7 +1722,13 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 write !, "Production decomposition enabled, skipping export of production class"
                 set filename = ""
             } else {
-                $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+	            if '##class(%RoutineMgr).Exists(InternalName) {
+                    write !?5, InternalName, " not found.  Cleaning up source control."
+                    do ..RemoveFromServerSideSourceControl(InternalName)
+	            }
+	            else {
+	                $$$QuitOnError($SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+                }
             }
             if (filename '= "") && ##class(%File).Exists(filename) {
                 set filenames($I(filenames)) = filename
@@ -3282,3 +3289,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

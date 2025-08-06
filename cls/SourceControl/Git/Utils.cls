@@ -1722,10 +1722,12 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 write !, "Production decomposition enabled, skipping export of production class"
                 set filename = ""
             } else {
-                set tSC = $SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff")
-                if $$$ISERR(tSC) {
+	            if '##class(%RoutineMgr).Exists(InternalName) {
                     write !?5, InternalName, " not found.  Cleaning up source control."
                     do ..RemoveFromServerSideSourceControl(InternalName)
+	            }
+	            else {
+	                $$$QuitOnError($SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
                 }
             }
             if (filename '= "") && ##class(%File).Exists(filename) {
@@ -3287,3 +3289,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

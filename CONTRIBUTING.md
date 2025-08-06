@@ -14,7 +14,7 @@ We encourage use of [Conventional Commits](https://www.conventionalcommits.org/e
 
 Generally speaking, just try to match the conventions you see in the code you are reading. For this project, these include:
 
-* Do not use shortened command and function names. For example, use `set` instead of `s` instead of `set` and `$piece` instead of `$p`
+* Do not use shortened command and function names. For example, use `set` instead of `s` and `$piece` instead of `$p`
 * One command per line
 * Do not use dot syntax
 * Indentation with tabs

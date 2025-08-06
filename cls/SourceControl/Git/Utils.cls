@@ -443,13 +443,14 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
-    // Make sure that branch exists first (-a lists both local and remote)
-    do ..RunGitWithArgs(.errStream,.outStream,"branch", "-a")
+    // First, make sure that branch exists
+    do ..RunGitCommand("fetch", .errStream, .outStream, "--prune")    // refresh list of remote branches
+    do ..RunGitWithArgs(.errStream, .outStream, "branch", "-a")       // -a lists both local and remote
     set branches = outStream.Read()
-    if ('$find(branches,targetBranchName)) {
+    if ('$FIND(branches, targetBranchName)) {
         quit $$$ERROR($$$GeneralError, "Selected branch does not exist"_$C(10))
     }
-    k outStream, errStream
+    kill outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
     // Checkout can fail due to unstaged changes
@@ -1536,7 +1537,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     }
 
     if $get(err) > 0 {
-        write !, "There were some errors while importing files"
+        write !, "Warning: unrecognized files found in the sources directory:"
         for i=1:1:err {
             write !, err(i)
         }
@@ -2819,7 +2820,7 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
 
 XData ProductionConfigScript [ MimeType = text/javascript ]
 {
-    function checkProductionConfigLoad() {
+function checkProductionConfigLoad() {
         timerState(false);
     }
 

@@ -386,16 +386,16 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
 		if ##class(%File).Exists(filename) && '##class(%File).DirectoryExists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
 			try {
-				set ^||%oddDEF=1
+				set ^||%oddDEF(className) = ""
 				$$$ThrowOnError($system.OBJ.Load(filename, "-d"))
 				// class XDatas are stored in ^||%oddDEF("<class name>","x","<XData name>") after temp load
 				set hasProdDef = $data(^||%oddDEF(className,$$$cCLASSxdata,"ProductionDefinition"))
-				kill ^||%oddDEF
+				kill ^||%oddDEF(className)
 				if hasProdDef {
 					return 1
 				}
 			} catch err {
-				kill ^||%oddDEF
+				kill ^||%oddDEF(className)
 				throw err
 			}
 		}

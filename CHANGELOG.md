@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix Revert not syncing files with IRIS (#789)
 - Fix "Export All" stopping prematurely because a tracked item no longer exist in the namespace (#821)
 - Import All now outputs a warning instead of an error when an item is in the wrong path (#291)
+- Fixed an error where classes with compilation errors would revert to broken versions on export (#830)
 
 
 ## [2.12.2] - 2025-07-08

@@ -35,6 +35,12 @@ Property gitUserName As %String(MAXLEN = 255) [ InitialExpression = {##class(Sou
 /// Attribution: Email address for user ${username}
 Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(SourceControl.Git.Utils).GitUserEmail()} ];
 
+/// URL for git remote
+Property gitRemoteURL As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).GetConfiguredRemote()} ];
+
+/// Type of git remote (SSH or HTTPS (Only with OAuth))
+Property gitRemoteType As %String(VALUELIST = ",HTTPS,SSH") [ InitialExpression = {##class(SourceControl.Git.Settings).GetRemoteType(##class(SourceControl.Git.Utils).GetConfiguredRemote())} ];
+
 /// Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
@@ -64,6 +70,9 @@ Property environmentName As %String(MAXLEN = "") [ InitialExpression = {##class(
 
 /// Whether the branch should or should not be locked down from changing namespaces
 Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).LockBranch()} ];
+
+/// Whether we are using OAuth for https
+Property OAuth As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).UsingOAuth()} ];
 
 /// (Optional) A namespace-specific string that may be included in mapping configurations as <token> to support multi-namespace repositories
 Property mappingsToken As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).MappingsToken()} ];
@@ -159,8 +168,18 @@ Method %Save() As %Status
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
     set @storage@("settings", "basicMode") = ..systemBasicMode
     set @storage@("settings", "environmentName") = ..environmentName
+    set @storage@("settings","gitRemoteType") = ..gitRemoteType
+    set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
     set @storage@("settings", "lockBranch") = ..lockBranch
+
+    if (..gitRemoteType = "HTTPS") {
+        set @storage@("settings","OAuth") = ..OAuth
+    } else {
+        set @storage@("settings","OAuth") = 0
+    }
+
     set @storage@("settings", "mappingsToken") = ..mappingsToken
+
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -307,6 +326,13 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
             do %code.WriteLine(" set list(4) = ""FAILOVER""")
             do %code.WriteLine(" set list(5) = """"")
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetArray("_promptQuoted_",.value,.list,,,,"_defaultPromptFlag_")")
+        } elseif ((propertyDef) && (propertyDef.Name ="gitRemoteType")) {
+            do %code.WriteLine(" if (inst.gitRemoteURL '= """") { set value = inst.GetRemoteType(inst.gitRemoteURL)}")
+        } elseif ((propertyDef) && (propertyDef.Name = "OAuth")) {
+            do %code.WriteLine(" if (inst.gitRemoteType = ""HTTPS"") {")
+            do %code.WriteLine(" set value = 0")
+            do %code.WriteLine(" set response = ##class(%Library.Prompt).GetYesNo("_promptQuoted_",.value,,"_defaultPromptFlag)
+            do %code.WriteLine(" }")
         } else {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }
@@ -443,14 +469,58 @@ Method OnAfterConfigure() As %Boolean
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Init"))
             $$$ThrowOnError(workMgr.WaitForComplete())
         } elseif (value = 2) {
-            set response = ##class(%Library.Prompt).GetString("Git remote URL (note: if authentication is required, use SSH, not HTTPS):",.remote,,,,defaultPromptFlag)
+            set remote = $select(..gitRemoteURL:..gitRemoteURL, 1:"")
+            set response = ##class(%Library.Prompt).GetString("Git remote URL:",.remote,,,,defaultPromptFlag)
             if (response '= $$$SuccessResponse) {
                 quit
             }
             if (remote = "") {
                 quit
             }
-             // using work queue manager ensures proper OS user context/file ownership
+            set ..gitRemoteURL = remote
+            set ..gitRemoteType = ..GetRemoteType(..gitRemoteURL)
+            do ..%Save()
+
+
+            if ((..gitRemoteType = "HTTPS") && ('..OAuth)) {
+                set value = 0
+                set response = ##class(%Library.Prompt).GetYesNo("Do you want to use OAuth for your https remote",.value,,defaultPromptFlag)
+                if (response '= $$$SuccessResponse) {
+                    quit
+                }
+                set ..OAuth = value
+                do ..%Save()
+            }   
+               
+
+            if ((..gitRemoteType = "HTTPS") && ..OAuth) {
+                set remote = ##class(SourceControl.Git.OAuth2).FixRemoteURL(remote)
+                Write !, "Please navigate to the Embedded Git UI on your browser, and press ""Authenticate"" in the bottom left corner."
+                Write !, "Once that process is complete, return here to verify cloning was successful"
+                Write !, "*Note: You must log in to the Management Portal as the current user"
+
+                // poll attempt count
+                set try = 0
+                // poll every `SLEEPTIME` seconds
+                set SLEEPTIME = 5
+                // stop polling after `TIMEOUT` seconds
+                set TIMEOUT = 300
+                While try*SLEEPTIME < TIMEOUT {
+                    do ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+                    if code '= 1 {
+                        Write "Unable to query credential manager"
+                        // something went wrong, return from method
+                        return
+                    }
+                    
+                    if err = "" {
+                        // token was saved successfully, exit loop
+                        quit
+                    }
+                }
+            }            
+
+            // using work queue manager ensures proper OS user context/file ownership
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.WaitForComplete())
@@ -522,5 +592,9 @@ Method SaveDefaults() As %Boolean
     return ##class(%zpkg.isc.sc.git.Defaults).SetDefaultSettings(defaults)
 }
 
+ClassMethod GetRemoteType(remoteURL As %String) As %String
+{
+    return $select(remoteURL [ "https": "HTTPS",1:"SSH")
 }
 
+}

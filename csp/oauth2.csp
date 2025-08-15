@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTPS OAuth Configuration</title>
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+<link rel="stylesheet" type="text/css" href="css/git-webui.css" />
+<style type='text/css'>
+
+body {
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+    font-size: 1rem;
+    font-weight: 350;
+    line-height: 1.5;
+    color: #212529;
+    text-align: left;
+	padding-top: 20px;
+}
+
+.alert {
+  padding: 20px;
+  background-color: #04AA6D;;
+  color: white;
+}
+
+.alert-red {
+  padding: 20px;
+  background-color:rgb(212, 44, 63);;
+  color: white;
+}
+
+.closebtn {
+  margin-left: 15px;
+  color: white;
+  font-weight: bold;
+  float: right;
+  font-size: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.closebtn:hover {
+  color: black;
+}
+
+.custom-switch {
+    padding: 0.4rem 0.5rem 0 2.75rem;
+    border: 1px solid #ced4da;
+    border-left: 0px;
+}
+
+.custom-switch-no-border {
+    border: 0px;
+}
+</style>
+</head>
+<body>
+<server>
+	set failed = 0
+	set authenticated = 0
+	if $Data(%request.Data("state",1),state)#2 {
+		// Redirected here from github
+		// switch to the namespace that the extension is installed to
+		set namespace = $Piece(state,"_",1)
+		new $Namespace
+		set $Namespace = namespace
+
+
+		set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig($username)
+		if (config.state '= state){
+			set failed =1
+			set failuremessage = "Invalid state"
+			quit 1
+		}
+
+		if '$Data(%request.Data("code",1),code)#2 {
+			set failed =1
+			set failuremessage = "Invalid request parameters"
+			quit 1
+		}
+
+		set verifier = config.verifier
+		set result = config.Exchange(code, verifier, .sc)
+		if sc '= $$$OK {
+			do $SYSTEM.Status.DisplayError(sc) 
+			set failed = 1
+			set failuremessage = "Unable to retrieve access token"
+		} else {
+			do ##class(SourceControl.Git.Util.CredentialManager).SetToken($username,result, .err, .code)
+			if (code '= 1) || (err '= "") {
+				set failed = 1
+				set failuremessage = "Unable to save credentials"
+			} else {
+				if (##class(SourceControl.Git.OAuth2).GetToken() '= "") {
+					set authenticated = 1
+				} else {
+					set failed = 1
+					set failuremessage = "Something went wrong"
+				}
+			}
+		}
+	}
+	set namespace = $NAMESPACE
+	set username = $USERNAME
+	set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig(username)
+
+	if (config = "") {
+		set authURL = ""
+		set tokenURL = ""
+		set remote = ##class(SourceControl.Git.Utils).GetConfiguredRemote()
+		set urls = ##class(SourceControl.Git.OAuth2).GetURLsFromRemote(remote,.authURL,.tokenURL)
+	}
+	set authCodeURL = ""
+	set ready = ""
+	/// After submit
+	if (%request.Method="POST") && $Data(%request.Data("oauthsettings",1)) {
+		set ready = 1
+		set clientID = $Get(%request.Data("clientID",1))
+		set clientSecret = $Get(%request.Data("clientSecret",1))
+		set authURL = $Get(%request.Data("authURL",1))
+		set tokenURL = $Get(%request.Data("tokenURL",1))
+		set redirect = $piece($Get(%request.Data("redirectURL",1)),"?",1)
+		set usingDirectToken = $Get(%request.Data("usingDirectToken"), 1)
+		set directToken = $Get(%request.Data("directToken", 1))
+
+		/// This make sure private memory store works
+		do ##class(SourceControl.Git.Util.CredentialManager).StopMemoryStore()
+
+		if config = "" {
+			set config = ##class(SourceControl.Git.OAuth2.Config).%New(username, clientID, clientSecret,authURL,tokenURL,redirect)
+		} else {
+			set config.ClientID = clientID
+			set config.ClientSecret = clientSecret
+			set config.Endpoint.AuthURL = authURL
+			set config.Endpoint.TokenURL = tokenURL
+			set config.RedirectURL = redirect
+			set config.directToken = $select(usingDirectToken = 1: 1, 1: 0)
+		}
+
+		do config.%Save()
+		if (usingDirectToken '= 1) {
+			set authCodeURL = ##class(SourceControl.Git.OAuth2).AuthCodeURL(config,namespace,.state,.verifier)
+			set config.state = state
+			set config.verifier = verifier
+		} else {
+			do ##class(SourceControl.Git.Util.CredentialManager).SetToken($username,directToken, .err, .code)
+			set ready = ""
+			set authenticated = 1
+		}
+		do config.%Save()
+	}
+</server>
+<div class = 'container'>
+	<csp:if condition='(authenticated = 1)'>
+        <div class = "alert">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+        <strong>Success!</strong> You have been authenticated. You may now close this page.
+    </div>
+    </csp:if>
+	<csp:if condition='(failed = 1)'>
+	    <div class = "alert-red">
+			<span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+			<strong>Error!</strong> #(failuremessage)#
+    	</div>
+	</csp:if>
+
+	<form id="oauthForm" method="post">
+		<div>
+			<p>
+			To connect your GitHub or GitLab repository, you need to generate a Client ID and Client Secret.
+			Follow these steps:
+			</p>
+			<ul>
+			<li>For GitHub: Go to <a href="https://github.com/settings/developers" target="_blank">GitHub Developer Settings</a> and create an OAuth app.</li>
+			<li>For GitLab: Go to <a href="https://gitlab.com/-/profile/applications" target="_blank">GitLab Applications</a> and create a new application.</li>
+			</ul>
+			<p>Once generated, enter your Client ID and Client Secret below:</p>
+			<p> The "Authorization callback URL" should be: <b><span id="callbackURL">text</span></b></p>
+		</div>
+		<div class="form-group row mb-3">
+            <label for="usingDirectToken" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Directly input OAuth Token">Use direct OAuth token<br/></label>
+				<div class="col-sm-7">
+				<div class="custom-control custom-switch custom-switch-no-border">
+					<server>
+							set directToken = $select(config:config.directToken, 1: 0)
+							if (directToken) {
+								&html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" checked value="1">>
+							} else {
+								&html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" value="1">>
+							}
+					</server>
+					<label class="custom-control-label" for="usingDirectToken"></label>
+				</div>
+				</div>
+        </div>
+		<input type="hidden" name="oauthsettings" value="1" />
+		<div class="form-group row mb-3" id="directTokenDiv" style="display: none;">
+            <label for="directToken" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="OAuth Token">OAuth Token</label>
+            <div class="col-sm-7">
+				<server>
+					set directToken =  ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+				</server>
+                <input type="text" class="form-control" id="directToken" name="directToken" value='#(directToken)#'/>
+            </div>
+        </div>
+		<div id="clientOAuth">
+			<div class="form-group row mb-3">
+				<label for="clientID" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab ClientID">ClientID<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set clientID = $select(config:config.ClientID, 1: "")
+					</server>
+					<input type="text" class="form-control" id="clientID" name="clientID" value='#(..EscapeHTML(clientID))#'/>
+				</div>
+			</div>
+
+			<div class="form-group row mb-3">
+				<label for="clientSecret" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Client Secret">Client Secret<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set clientSecret = $select(config:config.ClientSecret, 1: "")
+					</server>
+					<input type="text" class="form-control" id="clientSecret" name="clientSecret" value='#(..EscapeHTML(clientSecret))#'/>
+				</div>
+			</div>
+
+			<div class="form-group row mb-3">
+				<label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Authorize URL">Authorize URL<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set authURL = $select(config:config.Endpoint.AuthURL,authURL'="":authURL, 1: "")
+					</server>
+					<input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#'/>
+				</div>
+			</div>
+
+			<div class="form-group row mb-3">
+				<label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Token URL">Token URL<br/></label>
+				<div class="col-sm-7">
+					<server>
+						set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL'="":tokenURL, 1: "")
+					</server>
+					<input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#'/>
+				</div>
+			</div>
+		</div>
+
+		<div class="form-group row mb-3">
+            <div class="col-sm-12 text-center">
+                <input type="hidden" id="proxySubmitButton" name="proxySubmitButton" value="Save">
+                <input type='submit' class="btn-lg btn-primary" value = 'Save' name="Authorize"/>
+            </div>
+        </div>
+		<input type="hidden" id="redirectURL" name="redirectURL">
+
+	</form>
+	<csp:if condition='ready'>
+    	<a href="#(authCodeURL)#" target="_blank" rel="noopener noreferrer" id="githubLink"></a>
+	</csp:if>
+	<a href="http://localhost:52776/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp" target="_blank" rel="noopener noreferrer" id="pageLink"></a>
+
+	
+</div>
+<script src="js/polyfills.js"></script>
+<script src="js/jquery.min.js"></script>
+<script src="js/popper.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script type="text/javascript">
+
+	var submitForm = function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		var form = document.getElementById('oauthForm');
+		var redirectURL = document.getElementById('redirectURL')
+		redirectURL.value = window.location.href;
+		form.submit();
+	}
+
+	const usingDirectToken = document.getElementById('usingDirectToken');
+	if ((usingDirectToken.checked)) {
+			document.getElementById('directTokenDiv').style.display = 'flex';
+			document.getElementById('clientOAuth').style.display = 'none';
+
+	}
+	usingDirectToken.addEventListener('change', function () {
+		if ((usingDirectToken.checked)) {
+			document.getElementById('directTokenDiv').style.display = 'flex';
+			document.getElementById('clientOAuth').style.display = 'none';
+		} else {
+			document.getElementById('directTokenDiv').style.display = 'none';
+			document.getElementById('clientOAuth').style.display = 'block';
+		}
+	});
+
+	/* HACK: 
+		Popups don't work with redirection (Cross-browser origin problems),
+		so we want to reopen this in a browser tab as soon as popup is opened
+		TODO: Need to test opening this from VSCode / Studio (>_<)
+	*/
+	var link = document.getElementById('githubLink');
+	if (link) {
+		window.location.href = link.href
+	}
+
+	// HACK: Zen popups don't allow 
+	if ((window !== window.parent) || (navigator.userAgent.indexOf('MSIE 7') > -1) || (navigator.userAgent.indexOf(" Code/") > -1)) {
+		var newPage = document.getElementById('pageLink');
+		newPage.href = window.location.href;
+		newPage.click();
+		// hack to get the popup window to close
+		var top = window.self;
+		top.opener = window.self;
+		top.close();
+	}
+
+	var redirectURL = document.getElementById('callbackURL');
+	redirectURL.innerText = window.location.href.split("?")[0].replace("http:/","https:/");
+</script>
+</body>
+</html>

@@ -2772,8 +2772,10 @@ ClassMethod ConfigureWeb()
     write !,"Adding Git Pull favorite... "
     do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link).%Display()
     write !,"Setting GroupById to %ISCMgtPortal for /isc/studio/usertemplates... "
-    set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
-    do ##class(%SQL.Statement).%ExecDirect(statement,sql).%Display()
+    kill props
+    set props("GroupById") = "%ISCMgtPortal"
+    set st = ##class(Security.Applications).Modify("/isc/studio/usertemplates",.props)
+    if $$$ISERR(st) do $System.Status.DisplayError(st)
 }
 
 ClassMethod CheckInitialization()
@@ -3289,4 +3291,3 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
-

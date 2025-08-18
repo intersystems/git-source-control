@@ -1468,8 +1468,8 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
         Quit $$$OK
     }
     // Delete original if exists, otherwise create new file
-    if '(##class(%File).CopyFile(srcFile, cspFile, 1)) {
-        set sc = $$$ERROR($$$GeneralError, "Unable to import '"_srcFile_"'")
+    if '(##class(%File).CopyFile(srcFile, cspFile, 1, .ret)) {
+        set sc = $$$ERROR($$$GeneralError,"Unable to copy CSP file from "_srcFile_" to "_cspFile_": return code "_ret)
     }
 
     Quit sc
@@ -1486,8 +1486,12 @@ ClassMethod ListItemsRecursively(type, fileSpec, directory, ByRef itemList) [ Pr
             set internalName = files.ItemName
             if ($zconvert(type,"l") = "ptd") {
                 do ##class(SourceControl.Git.Production).ParseExternalName($translate(files.Name,"\","/"), .internalName)
+            } else {
+                set internalName = ..NameToInternalName(files.Name,,0)
             }
-            set itemList(internalName) = ""
+            if (internalName '= "") {
+                set itemList(internalName) = ""
+            }
         }
     }
 }
@@ -1515,7 +1519,9 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
 
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                if ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
+                if (mappingFileType = "/CSP/") {
+                    do ..ListItemsRecursively(mappingFileType,"*",mappedFilePath,.itemList)
+                } elseif ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
                     set fileSpec = $select(
                         userTypeClass="Ens.Util.ProjectTextDocument": "*.xml;*.XML",
                         1: "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U"))
@@ -1599,7 +1605,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
 
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
-        set doImport = ..IsRoutineOutdated(internalName) || force
+        set doImport = force || ..IsRoutineOutdated(internalName)
         if '..IsInSourceControl(internalName) {
             set sc = ..AddToServerSideSourceControl(internalName)
             if $$$ISERR(sc) {

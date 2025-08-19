@@ -82,6 +82,21 @@ ClassMethod DecomposeProdAllowIDE() As %Boolean [ CodeMode = expression ]
 $Get(@..#Storage@("settings","decomposeProdAllowIDE"), 1)
 }
 
+ClassMethod UsingOAuth() As %Boolean [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","OAuth"), 0)
+}
+
+ClassMethod GitRemoteType() As %String
+{
+    return ##class(SourceControl.Git.Settings).GetRemoteType(..GitRemoteURL())
+}
+
+ClassMethod GitRemoteURL() As %String [ CodeMode = expression ]
+{
+$Get(@..#Storage@("settings","gitRemoteURL"), 0)
+}
+
 ClassMethod FavoriteNamespaces() As %String
 {
     set favNamespaces = []
@@ -272,6 +287,9 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "GitWebUI") {
         set Action = 2 + externalBrowser
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
+    } elseif (menuItemName = "Authenticate") {
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp?"_urlPostfix
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -2055,6 +2073,32 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     set gitCommand = $extract(..GitBinPath(),2,*-1)
 
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
+    // Use OAuth Authentication if needed (TODO: Should this be done always, or only for certain commands?)
+    if ((..UsingOAuth())) {
+        set token = ##class(SourceControl.Git.OAuth2).GetToken()
+        if (token '= "") {
+            if ($$$isWINDOWS) {
+                set askpassFile = "C:\Windows\Temp\askpass.bat"
+                if ('##class(%File).Exists(askpassFile)) {
+                    open askpassFile:"NW":0
+                    use askpassFile Write "@echo off",!,"echo %GIT_TOKEN%",!
+                    close askpassFile
+                }
+            } else {
+                set askpassFile = "/tmp/askpass.sh"
+                if ('##class(%File).Exists(askpassFile)) {
+                    open askpassFile:"NW":0
+                    use askpassFile Write "#!/bin/bash",!,"echo $GIT_TOKEN",!
+                    close askpassFile
+                    // Make file executable
+                    Do $zf(-1, "chmod +x "_askpassFile)
+                }
+            }
+            set env("GIT_TOKEN") = token
+            set env("GIT_ASKPASS") = askpassFile
+            set env("GIT_TERMINAL_PROMPT") = 0
+        }
+    }
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config
@@ -2062,10 +2106,12 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
         if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
+            k env("XDG_CONFIG_HOME")
+            set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
         } else {
+            k env("XDG_CONFIG_HOME")
             // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
+            set returnCode = $zf(-100,"/SHELL /ENV=env... "_baseArgs,gitCommand,newArgs...)
         }
     }
 
@@ -3098,6 +3144,7 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 /// Returns the url for the "origin" remote repository
 ClassMethod GetConfiguredRemote(Output remoteExists As %Boolean = 0, Output sc As %Status = {$$$OK}) As %String
 {
+    set url = ""
     set exitCode = ..RunGitCommand("remote",.err,.out,"get-url","origin")
     if (exitCode = 0) {
         set remoteExists = 1
@@ -3125,14 +3172,17 @@ ClassMethod SetConfiguredRemote(url) As %String
 {
     do ..GetConfiguredRemote(.remoteExists)
     set returnCode = $select(
-        remoteExists&&(url=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"remove","origin"),
-        remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url),
-        'remoteExists&&(url'=""): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"add","origin",url),
-        1: 0)
+        (remoteExists&&(url="")): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"remove","origin"),
+        (remoteExists&&(url'="")): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"set-url","origin",url),
+        (('remoteExists)&&(url'="")): ##class(SourceControl.Git.Utils).RunGitCommandWithInput("remote",,.errStream,.outStream,"add","origin",url),
+        1: -1)
+    if (returnCode = -1) {
+        quit ""
+    }
     if (returnCode '= 0) {
         $$$ThrowStatus($$$ERROR($$$GeneralError,"git reported failure"))
     }
-    set output = outStream.ReadLine(outStream.Size)
+    set output = outStream.Read()
     quit output
 }
 
@@ -3273,6 +3323,31 @@ ClassMethod GitUnstage(Output output As %Library.DynamicObject) As %Status
 
     set output = {"staged": (stagedList), "tracked": (trackedList)}
     return $$$OK
+}
+
+ClassMethod WriteLineToFile(filePath As %String, line As %String)
+{
+    Set file=##class(%File).%New(filePath)
+    Do file.Open("WSN")
+	Do file.WriteLine(line)
+}
+
+ClassMethod Authenticated() As %Boolean
+{
+    if (##class(SourceControl.Git.Utils).UsingOAuth()) {
+        try {
+            // Run a git command that requires access to the remote
+            // if does not work, then we are unauthenticated
+            set returncode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote","",.errStream,.outStream,)
+            do errStream.Rewind()
+            if (errStream.ReadLine()) '= "" {
+                return 0
+            }
+        } catch e {
+            return 0
+        }
+    }
+    return 1
 }
 
 ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]

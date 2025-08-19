@@ -11,6 +11,7 @@ XData Menu
 <MenuBase>
 <Menu Name="%SourceMenu" Type="0">
 <MenuItem Name="Status" />
+<MenuItem Name="Authenticate" />
 <MenuItem Name="Settings" />
 <MenuItem Name="Init" />
 <MenuItem Name="GitWebUI" Save="101" />
@@ -193,6 +194,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
             set Enabled = $CASE(name,
                 "Status": 1,
                 "GitWebUI" : 1,
+                "Authenticate":1,
                 "Import": 1,
                 "ImportForce": 1,
                 "NewBranch": BranchLocked,
@@ -206,6 +208,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
                 // cases
                 "Status": 1,
                 "GitWebUI" : 1,
+                "Authenticate" : 1,
                 "Export": 1,
                 "ExportForce": 1,
                 "Import": 1,

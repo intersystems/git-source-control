@@ -18,6 +18,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..Uncommitted()
         } elseif $extract(pagePath,6,*) = "settings" {
             set responseJSON = ..GetSettingsURL(%request)
+        } elseif $extract(pagePath, 6, *) = "oauth" {
+            set responseJSON = ..GetOAuthURL(%request)  
         } elseif $extract(pagePath, 6, *) = "get-package-version"{
             set responseJSON = ..GetPackageVersion()
         } elseif $extract(pagePath, 6, *) = "git-version" {
@@ -434,6 +436,17 @@ ClassMethod GetSettingsURL(%request As %CSP.Request) As %SystemBase
     set settingsURL = "/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp?CSPSHARE=1&Namespace="_$namespace_"&Username="_$username
     set settingsURL = ..GetURLPrefix(%request, settingsURL)
     quit {"url": (settingsURL)}
+}
+
+ClassMethod GetOAuthURL(%request As %CSP.Request) As %SystemBase
+{
+    set oauthURL = ""
+    if ('##class(SourceControl.Git.Utils).Authenticated()) {
+        set oauthURL = "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp?CSPSHARE=1&Namespace="_$namespace_"&Username="_$username
+        set oauthURL = ..GetURLPrefix(%request, oauthURL)
+    }
+    set ^mtempet = oauthURL
+    quit {"url": (oauthURL)}
 }
 
 ClassMethod GetPackageVersion() As %Library.DynamicObject

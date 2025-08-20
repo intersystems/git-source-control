@@ -1,28 +1,51 @@
-Class UnitTest.SourceControl.Git.ImportAll Extends %UnitTest.TestCase
+Class UnitTest.SourceControl.Git.ImportAll Extends UnitTest.SourceControl.Git.AbstractTest
 {
 
-Property InitialExtension As %String [ InitialExpression = {##class(%Studio.SourceControl.Interface).SourceControlClassGet()} ];
-
-Property SourceControlGlobal [ MultiDimensional ];
+Property WebAppPath As %String;
 
 Method %OnNew(initvalue) As %Status
 {
-	Merge ..SourceControlGlobal = ^SYS("SourceControl")
+	$$$QuitOnError(##super(initvalue))
 	Kill ^SYS("SourceControl")
+	/// add mappings for MAC and CSP
 	Set settings = ##class(SourceControl.Git.Settings).%New()
-	Set settings.namespaceTemp = ##class(%Library.File).TempFilename()_"dir"
 	Set settings.Mappings("MAC","*")="rtn/"
+	Set settings.Mappings("/CSP/","/csp/git/unittest/xsl")="csp/git/unittest/xsl"
 	$$$ThrowOnError(settings.%Save())
-	Do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("SourceControl.Git.Extension")
-	Quit ##super(initvalue)
+	set ..WebAppPath = ##class(%File).TempFilename()_"d"
+	do ##class(%File).CreateDirectoryChain(..WebAppPath)
+	do ..CreateTestWebApp("/csp/git/unittest/xsl", ..WebAppPath)
+	return $$$OK
+}
+
+ClassMethod CreateTestWebApp(name, path)
+{
+	new $namespace
+	set $namespace = "%SYS"
+	kill props
+	set props("Path") = path
+	if '##class(Security.Applications).Exists(name) {
+		$$$ThrowOnError(##class(Security.Applications).Create(name, .props))
+	} else {
+		$$$ThrowOnError(##class(Security.Applications).Create(name, .props))
+	}
+}
+
+ClassMethod DeleteTestWebApp(name)
+{
+	
+	new $namespace
+	set $namespace = "%SYS"
+	if ##class(Security.Applications).Exists(name) {
+		$$$ThrowOnError(##class(Security.Applications).Delete(name))
+	}
 }
 
 Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
 {
-	Do ##class(%Studio.SourceControl.Interface).SourceControlClassSet(..InitialExtension)
-	Kill ^SYS("SourceControl")
-	Merge ^SYS("SourceControl") = ..SourceControlGlobal
-	Quit $$$OK
+	do ..DeleteTestWebApp("/csp/git/unittest/xsl")
+	do ##class(%File).RemoveDirectoryTree(..WebAppPath)
+	quit ##super()
 }
 
 Method TestImportAll()
@@ -30,9 +53,13 @@ Method TestImportAll()
 	do ..CreateTestRoutine()
 	$$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl("test.mac"))
 	do ..CreateStrayFileInRtn()
+	do ..WriteFile(##class(SourceControl.Git.Settings).%New().namespaceTemp_"csp/git/unittest/xsl/test.xsl", "<?xml version=""1.0"" encoding=""UTF-8""?> <xsl:stylesheet version=""1.0""></xsl:stylesheet>")
 	$$$ThrowOnError(##class(%Routine).Delete("test.mac"))
+	do ##class(%RoutineMgr).Delete("/csp/git/unittest/xsl/test.xsl")
 	$$$ThrowOnError(##class(SourceControl.Git.Utils).ImportAll(1))
 	do $$$AssertTrue(##class(%Routine).Exists("test.mac"))
+	do $$$AssertTrue(##class(%RoutineMgr).Exists("/csp/git/unittest/xsl/test.xsl"))
+	do $$$AssertFilesSame(##class(SourceControl.Git.Settings).%New().namespaceTemp_"csp/git/unittest/xsl/test.xsl", ..WebAppPath_"/test.xsl")
 }
 
 Method CreateTestRoutine()

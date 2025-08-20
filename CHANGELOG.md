@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.1] - Unreleased
+
+### Fixed
+- Fixed Import All deploying changes to files in a CSP application (#828)
+
 ## [2.13.0] - 2025-08-20
 
 ### Added
@@ -20,7 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix "Export All" stopping prematurely because a tracked item no longer exist in the namespace (#821)
 - Import All now outputs a warning instead of an error when an item is in the wrong path (#291)
 - Fixed an error where classes with compilation errors would revert to broken versions on export (#830)
-- Fixed Import All deploying changes to files in a CSP application (#828)
 - Fixed installation of the package on IRIS versions with the IRISSECURITY database (#770)
 
 ## [2.12.2] - 2025-07-08

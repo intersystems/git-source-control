@@ -1,6 +1,8 @@
 Class UnitTest.SourceControl.Git.ImportAll Extends UnitTest.SourceControl.Git.AbstractTest
 {
 
+Parameter WebAppName As STRING = "/csp/git/unittest/xsl";
+
 Property WebAppPath As %String;
 
 Method %OnNew(initvalue) As %Status
@@ -10,11 +12,11 @@ Method %OnNew(initvalue) As %Status
 	/// add mappings for MAC and CSP
 	Set settings = ##class(SourceControl.Git.Settings).%New()
 	Set settings.Mappings("MAC","*")="rtn/"
-	Set settings.Mappings("/CSP/","/csp/git/unittest/xsl")="csp/git/unittest/xsl"
+	Set settings.Mappings("/CSP/",..#WebAppName)="csp/git/unittest/xsl"
 	$$$ThrowOnError(settings.%Save())
 	set ..WebAppPath = ##class(%File).TempFilename()_"d"
 	do ##class(%File).CreateDirectoryChain(..WebAppPath)
-	do ..CreateTestWebApp("/csp/git/unittest/xsl", ..WebAppPath)
+	do ..CreateTestWebApp(..#WebAppName, ..WebAppPath)
 	return $$$OK
 }
 
@@ -43,7 +45,7 @@ ClassMethod DeleteTestWebApp(name)
 
 Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
 {
-	do ..DeleteTestWebApp("/csp/git/unittest/xsl")
+	do ..DeleteTestWebApp(..#WebAppName)
 	do ##class(%File).RemoveDirectoryTree(..WebAppPath)
 	quit ##super()
 }

@@ -1469,7 +1469,7 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
     }
     // Delete original if exists, otherwise create new file
     if '(##class(%File).CopyFile(srcFile, cspFile, 1, .ret)) {
-        set sc = $$$ERROR($$$GeneralError,"Unable to copy CSP file from "_srcFile_" to "_cspFile_": return code "_ret)
+        set sc = $$$ERROR($$$GeneralError,"Unable to copy web application file from "_srcFile_" to "_cspFile_": return code "_ret)
     }
 
     Quit sc
@@ -3297,3 +3297,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

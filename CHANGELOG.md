@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Import All deploying changes to files in a CSP application (#828)
+- Fixed an error when discarding a large number of changes through the Web UI (#845)
 
 ## [2.13.0] - 2025-08-20
 

@@ -5,12 +5,15 @@ Property InitialExtension As %String [ InitialExpression = {##class(%Studio.Sour
 
 Property SourceControlGlobal [ MultiDimensional ];
 
+Property TempGitRepoPath As %String;
+
 Method %OnNew(initvalue) As %Status
 {
 	Merge ..SourceControlGlobal = ^SYS("SourceControl")
 	Kill ^SYS("SourceControl")
 	Set settings = ##class(SourceControl.Git.Settings).%New()
-	Set settings.namespaceTemp = ##class(%Library.File).TempFilename()_"dir"
+	set ..TempGitRepoPath = ##class(%Library.File).TempFilename()_"dir"
+	Set settings.namespaceTemp = ..TempGitRepoPath
 	Set settings.Mappings("CLS","*")="cls/"
 	Do settings.%Save()
 	Do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("SourceControl.Git.Extension")
@@ -19,6 +22,7 @@ Method %OnNew(initvalue) As %Status
 
 Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
 {
+	Do ##class(%File).RemoveDirectoryTree(..TempGitRepoPath)
 	Do ##class(%Studio.SourceControl.Interface).SourceControlClassSet(..InitialExtension)
 	Kill ^SYS("SourceControl")
 	Merge ^SYS("SourceControl") = ..SourceControlGlobal

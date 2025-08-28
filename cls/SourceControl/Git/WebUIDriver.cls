@@ -264,7 +264,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
 
                 set inFile = ""
                 if (gitCmd = "stash") {
-                    set st = ##class(SourceControl.Git.Utils).RunGitAndHandleMerge("-c",inFile, .resolver, .succeeded, .returnCode, .errStream, .outStream, argsArr...)
+                    set st = ##class(SourceControl.Git.Utils).RunGitAndHandleMerge("-c",inFile, .resolver, .succeeded, .returnCode, .errStream, .outStream, .argsArr)
                     
                     set %data = ##class(%Stream.TmpCharacter).%New()
                     set changeTerminators = (%data.LineTerminator '= $char(13,10))
@@ -287,7 +287,7 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
                     do %data.Write("Git-Return-Code: " _ returnCode) // No ending newline expected
                     do %data.Rewind()
                 } else {
-                    set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c", inFile, .errStream, .outStream, argsArr...)
+                    set returnCode = ##class(SourceControl.Git.Utils).RunGitCommandWithInput("-c", inFile, .errStream, .outStream, .argsArr)
                     do ..ConvertGitOutput(.outStream,.errStream,returnCode,.%data)
                 }
                 set handled = 1

@@ -1866,8 +1866,14 @@ ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream
     quit ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
 }
 
-ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
+ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, pArgs...) As %Integer
 {
+    // pArgs may be a variable number of arguments or a single multidimensional array
+    if ($get(pArgs) = 1) && ($data(pArgs(1)) >= 10) {
+        merge args = pArgs(1)
+    } else {
+        merge args = pArgs
+    }
     // Special case: git --version is used internally even when the settings incorporated here may be invalid/unspecified.
     set tempFolder = ..TempFolder()
     if (command '= "--version") {

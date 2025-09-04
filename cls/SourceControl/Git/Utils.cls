@@ -414,6 +414,10 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     quit $$$OK
 }
 
+/// <p>This function performs <code>git checkout -b [newBranchName]</code> from the current commit.</p>
+/// <p>If the user is in "Basic Mode" AND there is a Default Merge Branch defined,
+/// then this method first checks out and pulls that default merge branch before creating the new branch. This is
+/// equivalent to <code>git checkout [defaultMergeBranch] && git pull</code>.</p>
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -511,8 +515,12 @@ ClassMethod StageAddedFiles()
     }
 }
 
-/// Merges the files from the configured branch as part of the Sync operation
-/// Returns true if this resulted in durable changes to the local git repo
+/// <p>If there is a configured "Default Merge Branch", then
+/// <ol>
+///  <li>fetch the current version of the default merge branch.</li>
+///  <li>attempt to rebase the current branch onto the default merge branch.</li>
+/// </ol>
+/// Returns true if this resulted in durable changes to the local git repo, false otherwise.</p>
 ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
 {
     set rebased = 0

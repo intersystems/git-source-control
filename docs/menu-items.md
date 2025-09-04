@@ -48,7 +48,7 @@ Much like the [git pull](https://git-scm.com/docs/git-pull) command, this menu o
 ## Sync
 This option will synchronize the current branch checked out a local repo with the same branch in a remote repo.  It encapsulates the pattern of fetching, pulling, committing, and pushing into one menu action.
 - If you are on the Default Merge Branch, then Sync only pulls the latest commits from the remote.  Committing is disallowed on the Default Merge Branch.
-- If there is no defined remote repository, it will simply commit any uncommitted files.
+- If there is no defined remote repository, it will simply commit all staged files.
 - If there is a Default Merge Branch defined, then sync attempts to perform a [rebase](https://git-scm.com/docs/git-rebase) onto the latest Default Merge Branch from the remote.
     - If the rebase were to result in merge conflicts, then this action is aborted so the system is not left in an inconsistent state.
 

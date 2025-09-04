@@ -1329,8 +1329,14 @@ ClassMethod UpdateRoutineTSH(InternalName As %String, tsh As %String) As %Status
 
 ClassMethod RemoveRoutineTSH(InternalName As %String) As %Status
 {
-    kill @..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))
-    quit $$$OK
+    Quit:(InternalName = "") $$$OK
+    Set tInternalName = ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
+
+    // Prevent a possible null subscript error
+    Quit:(tInternalName = "") $$$OK
+    Kill @..#Storage@("TSH", tInternalName)
+
+    Quit $$$OK
 }
 
 ClassMethod DeleteExternalFile(InternalName As %String) As %Status

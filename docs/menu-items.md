@@ -27,21 +27,21 @@ This menu option is analogous to the [git add](https://git-scm.com/docs/git-add)
 This menu option will only appear if the currently open file has been already added using the 'Add' menu option. It undoes the effect of adding the file, similar to running [git reset](https://git-scm.com/docs/git-reset) on a specific file.
 
 
-## Push to remote branch
+## Push to Remote Branch
 This option pushes the commits in the branch to the remote repository. This exhibits the same behavior as the [git push](https://git-scm.com/docs/git-push) command.
 
 
-## Push to remote branch (force)
+## Push to Remote Branch (force)
 This option forcibly pushes the commits in the branch to the remote repository. This is potentially destructive and may overwrite the commit history of the remote branch. This exhibits the same behavior as the [git push --force](https://git-scm.com/docs/git-push) command.
 
 
-## Fetch from remote
+## Fetch from Remote
 This option first [fetches](https://git-scm.com/docs/git-fetch) the most recent version of the branch without merging that version into the local copy of the branch.  It will then list all files modified between the current version and the remote version.
 
 This also has the effect of refreshing the list of all remote branches and pruning any references that no longer exist in the remote.  (see: [git fetch --prune](https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt---prune))
 
 
-## Pull changes from remote branch
+## Pull Changes from Remote Branch
 Much like the [git pull](https://git-scm.com/docs/git-pull) command, this menu option pulls the most recent version of the current branch from a remote source, merging the changes into the local copy.
 
 
@@ -55,29 +55,29 @@ This option will synchronize the current branch checked out a local repo with th
 The sync operation is only enabled in basic mode.
 
 
-## Create new branch
+## Create New Branch
 This menu option creates a new branch in the repository for changes to be committed to. It also changes the current branch to be the created branch. This mimics the behavior of the [git checkout -b](https://git-scm.com/docs/git-checkout) command.
 
 In basic mode, this option first checks out the Default Merge Branch (if defined) and pulls that branch from the remote before creating the new branch.
 
 
-## Check out an existing branch
+## Check Out an Existing Branch
 This option refreshes the local list of branches available in the upstream repository, and then changes the currently checked out branch to the provided branch.  This mimics the behavior of the [git fetch --prune](https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt---prune) and [git checkout](https://git-scm.com/docs/git-checkout) commands.
 
 If the desired branch does not exist in your local or in the remote, then you will receive the "Selected branch does not exist" error message.
 
 
-## Export all
+## Export All
 This option exports class files to the local file tree at the configured location.
 
 
-## Export all (force)
+## Export All (Force)
 This option exports all class files regardless of whether they're already up to date in the local file tree or not.
 
 
-## Import all
+## Import All
 This option imports the versions of the files that are found in the configured directory into the project. Files that are out of date or the same as the files in the project won't be imported.
 
 
-## Import all (force)
+## Import All (Force)
 This menu option behaves similarly to the regular import but forces the files to be imported regardless of whether the on-disk version is the same or older.

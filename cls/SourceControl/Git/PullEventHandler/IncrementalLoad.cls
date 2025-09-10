@@ -117,7 +117,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         $$$ThrowOnError(sc)
     } catch e {
         set filename = ##class(SourceControl.Git.Utils).FullExternalName(item)
-        if '##class(%File).Exists(filename) {
+        if (filename = "") || '##class(%File).Exists(filename) {
             do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
             // file doesn't exist anymore despite error -- should be ok
             set sc = $$$OK

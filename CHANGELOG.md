@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Import All deploying changes to files in a CSP application (#828)
+- Fixed pull failure when deleted items have no internal or external name (#848)
 
 ## [2.13.0] - 2025-08-20
 

@@ -30,6 +30,7 @@
       <FileCopy Name="csp/sync.csp" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/sync.csp" />
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 
+      <Invoke Class="SourceControl.Git.Utils" Method="CompileGitUIs" />
       <Invoke Class="SourceControl.Git.Utils" Method="OutputConfigureMessage" />
       <Invoke Class="SourceControl.Git.Utils" Method="Localize" />
       <Invoke Class="SourceControl.Git.Utils" Method="ConfigureWeb" />

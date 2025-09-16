@@ -2798,6 +2798,14 @@ ClassMethod ConfigureWeb()
     if $$$ISERR(st) do $System.Status.DisplayError(st)
 }
 
+ClassMethod CompileGitUIs()
+{
+    new $namespace
+    set $namespace = "%SYS"
+    set st = ##class(%SYSTEM.CSP).LoadPageDir("/isc/studio/usertemplates/gitsourcecontrol/")
+    if $$$ISERR(st) do $System.Status.DisplayError(st)
+}
+
 ClassMethod CheckInitialization()
 {
     if ##class(SourceControl.Git.Utils).GitBinExists(.version) {
@@ -3311,4 +3319,3 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
-

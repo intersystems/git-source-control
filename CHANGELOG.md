@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Option to lock/unlock namespace is now available on the settings page (#650)
 
+### Fixed
+- When cloning a repo with Configure, that repo's embedded-git-config file will overwrite previous settings (#819)
+
 ## [2.13.1] - 2025-09-16
 
 ### Fixed

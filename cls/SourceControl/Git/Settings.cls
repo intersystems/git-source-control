@@ -454,8 +454,13 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.WaitForComplete())
-            // export settings file without committing
-            $$$ThrowOnError(..SaveWithSourceControl())
+            if ##class(%File).Exists(##class(SourceControl.Git.Utils).FullExternalName(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
+                write !, "Importing Embedded Git settings from cloned repository:"
+                do ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)
+            } else {
+                // export settings file without committing
+                $$$ThrowOnError(..SaveWithSourceControl())
+            }
 
             // Empty repo breaks Embedded Git, commit the settings file
             do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("log",,.errStream,.outStream)
@@ -523,4 +528,3 @@ Method SaveDefaults() As %Boolean
 }
 
 }
-

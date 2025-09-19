@@ -119,6 +119,7 @@ body {
         }
 
         if ('settings.settingsUIReadOnly) {
+            do ##class(SourceControl.Git.Utils).Locked($get(%request.Data("lockNamespace",1)))
             for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken" {
                 set $Property(settings,param) = $Get(%request.Data(param,1))
             }
@@ -215,7 +216,7 @@ body {
         <strong>Success!</strong> Your changes have been saved.
     </div>
     </csp:if>
-    <form id="settingsForm" method='post'>
+    <form id="settingsForm" method='post' onsubmit="return validateForm();">
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
@@ -516,6 +517,18 @@ body {
             </div>
         </div>
         <div class="form-group row mb-3">
+            <label for="lockNamespace" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, any source-controlled code or configuration may not be directly edited in this namespace">
+                Lock Edits in Namespace</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="lockNamespace" type="checkbox" 
+                        id="lockNamespace" #($select(##class(SourceControl.Git.Utils).Locked():"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="lockNamespace"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
             <label for="mappingsToken" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="(Optional) A namespace-specific string that may be included in mapping configurations as <token> to support multi-namespace repositories">Mappings Token</label>
             <div class="col-sm-7">
                 <input type="text" class="form-control" id="mappingsToken" name="mappingsToken" value='#(..EscapeHTML(settings.mappingsToken))#'>
@@ -804,6 +817,19 @@ function showOutput(target) {
         var msg = JSON.parse(atob(event.data.split('\r\n').join('')));
         document.getElementById(target).innerHTML += msg.content;
     }
+}
+
+function validateForm() {
+    var confirmText = "";
+    var lockNamespaceInitValue = #(''##class(SourceControl.Git.Utils).Locked())#;
+    var cbLockNamespace = document.getElementById("lockNamespace");
+    if (!cbLockNamespace) return true;
+    if (cbLockNamespace.checked && (lockNamespaceInitValue !== 1)) {
+        confirmText = "Are you sure? This will lock any source-controlled items from being edited in this namespace.";
+    } else if (!cbLockNamespace.checked && (lockNamespaceInitValue == 1)) {
+        confirmText = "Are you sure? This will allow edits of source-controlled items in this namespace.";
+    }
+    return confirmText ? confirm(confirmText) : true;
 }
 
 $(function () {

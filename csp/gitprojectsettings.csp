@@ -210,6 +210,14 @@ body {
 }
 </server>
 <div class = 'container'>
+    <csp:if condition='$case(##class(%Studio.SourceControl.Interface).SourceControlClassGet(),"SourceControl.Git.Extension":0,:1)'>
+        <div class="error alert-danger">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+        Embedded Git is not the configured source control extension for this namespace. To change, modify the 
+            <a href="#($Piece(%request.Application,%request.AppMatch)_"/csp/sys/mgr/%25CSP.UI.Portal.SourceControl.zen?$NAMESPACE="_$namespace)#">
+            Source Control Settings</a>.
+        </div>
+    </csp:if>
     <csp:if condition='$get(successfullySavedSettings) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
         <div class = "alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  

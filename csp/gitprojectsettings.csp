@@ -229,12 +229,30 @@ body {
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">
-            <div class="offset-sm-1 col-sm-7" id="settingsTitle">
+            <div class="offset-sm-1 col-sm-6" id="settingsTitle">
                 <h1>Git Project Settings</h1>
                 <h3> Package version: #(version)# </h3>
             </div>
 
-            <div class="col-sm-4" id="settingsNavBtn">
+            <div class="col-sm-5" id="settingsNavBtn">
+                <button class="btn btn-lg btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" title="Switch Namespace">
+                    #(..EscapeHTML($namespace))#
+                </button>
+                <div class="dropdown-menu">
+                    <script language="cache" runat=server>
+                    try {
+                        kill allNamespaces
+                        $$$ThrowOnError(##class(%SYS.Namespace).ListAll(.allNamespaces))
+                        set key = $order(allNamespaces(""))
+                        while key'="" {
+                            &html<<a class="dropdown-item" href="?Namespace=#(..EscapeHTML(key))#">#(..EscapeHTML(key))#</a>>
+                            set key = $order(allNamespaces(key))
+                        }
+                    } catch err {
+                        do err.Log()
+                    }
+                    </script>
+                </div>
                 <button class="btn btn-lg btn-outline-dark" id="goToHome">Home
                 </button>
                 <div id="homeURL">

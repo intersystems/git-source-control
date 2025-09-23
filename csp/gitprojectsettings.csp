@@ -460,7 +460,7 @@ body {
             </div>
         </div>
 
-        <div class="form-group row mb-3">
+        <div id="formGroupRemoteRepo" class="form-group row mb-3">
             <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository (origin)"><b>Remote Repository</b></label>
             <div class="col-sm-7">
                 <input type="text" class='form-control #($select($get(remote)="":"",$get(remoteConnectionError)="":"is-valid",1:"is-invalid"))#' id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML($get(remote)))#' placeholder="e.g. git@github.com:User/UserRepo.git"/>
@@ -817,6 +817,11 @@ function clone() {
         return;
     }
     disableActionButtons();
+    var formGroupRemoteRepo = document.getElementById("formGroupRemoteRepo");
+    var namespaceSettings = document.getElementById("namespaceSettings");
+    if (formGroupRemoteRepo && settingsForm) {
+        namespaceSettings.removeChild(formGroupRemoteRepo);
+    }
 	var ws = getSocket("method=clone&remote=" + encodeURIComponent(remote));
 	ws.onmessage = showOutput('initOutput');
 }
@@ -849,13 +854,21 @@ function validateForm() {
     var confirmText = "";
     var lockNamespaceInitValue = #(''##class(SourceControl.Git.Utils).Locked())#;
     var cbLockNamespace = document.getElementById("lockNamespace");
-    if (!cbLockNamespace) return true;
-    if (cbLockNamespace.checked && (lockNamespaceInitValue !== 1)) {
-        confirmText = "Are you sure? This will lock any source-controlled items from being edited in this namespace.";
-    } else if (!cbLockNamespace.checked && (lockNamespaceInitValue == 1)) {
-        confirmText = "Are you sure? This will allow edits of source-controlled items in this namespace.";
+    if (cbLockNamespace) {
+        if (cbLockNamespace.checked && (lockNamespaceInitValue !== 1)) {
+            confirmText = "\nThis will lock any source-controlled items from being edited in this namespace.";
+        } else if (!cbLockNamespace.checked && (lockNamespaceInitValue == 1)) {
+            confirmText = "\nThis will allow edits of source-controlled items in this namespace.";
+        }
     }
-    return confirmText ? confirm(confirmText) : true;
+    var remoteInitValue = "#(##class(SourceControl.Git.Utils).GetRedactedRemote())#";
+    var inputRemote = document.getElementById("remoteRepo");
+    if (inputRemote) {
+        if ((inputRemote.value == "") && (remoteInitValue !== "")) {
+            confirmText += "\nThis will remove the origin remote from the repository."
+        }
+    }
+    return confirmText ? confirm("Are you sure?" + confirmText) : true;
 }
 
 $(function () {

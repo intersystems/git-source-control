@@ -1631,7 +1631,6 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
             if (settings.compileOnImport) {
                 set modification = ##class(SourceControl.Git.Modification).%New()
                 set modification.changeType = "M"
-                set modification.internalName = internalName
                 set modification.externalName = ..ExternalName(internalName)
                 set files($increment(files)) = modification
             } else {
@@ -1660,7 +1659,6 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
             write !,fullExternalName," does not exist - deleting ",item
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "D"
-            set modification.internalName = item
             set modification.externalName = externalName
             set files($increment(files)) = modification
         }
@@ -2170,7 +2168,6 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
             set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = fileOperation
-            set modification.internalName = internalName
             set modification.externalName = externalName
             set files($i(files)) = modification
             if fileOperation = "A" {
@@ -2191,8 +2188,7 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
                         while $ListNext(possibleClasses,pointer,class) {
                             set modification = ##class(SourceControl.Git.Modification).%New()
                             set modification.changeType = "C"
-                            set modification.internalName = class_".CLS"
-                            set modification.externalName = ..ExternalName(modification.internalName)
+                            set modification.externalName = ..ExternalName(class_".CLS")
                             set files($i(files)) = modification
                         }
                     } else {
@@ -2206,7 +2202,6 @@ ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status
             } else {
                 set modification = ##class(SourceControl.Git.Modification).%New()
                 set modification.changeType = "C"
-                set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(externalName,,0)
                 set modification.externalName = externalName
                 set files($i(files)) = modification
             }
@@ -2251,6 +2246,8 @@ ClassMethod ExpandClasses(externalName As %String) As %List
     quit classes
 }
 
+/// Parses a stream with Git diff output and returns a list of modifications.
+/// - files: output variable with an array of SourceControl.Git.Modification
 ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, Output files)
 {
     kill files
@@ -2264,22 +2261,20 @@ ClassMethod ParseDiffStream(stream As %Stream.Object, verbose As %Boolean = 1, O
         set modification.externalName = $zstrip($piece(file, $c(9), 2),"<W")
         if $extract(modification.changeType) = "R" {
             set modification.changeType = "D"
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
             set files($increment(files)) = modification
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "A"
-            set modification.internalName = ""
             set modification.externalName = $zstrip($piece(file, $c(9), 3),"<W")
-        } else {
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-        }
+        } 
         set files($increment(files)) = modification
         if verbose {
-            write !, "    ", modification.changeType, "    ", modification.internalName, "    ", modification.externalName
+            write !, "    ", modification.changeType, "    ", modification.externalName
         }
     }
 }
 
+/// Loads an array of modifications from a Git diff output into IRIS.
+/// - files: an array of SourceControl.Git.Modification
 ClassMethod SyncIrisWithRepoThroughDiff(ByRef files, ByRef filterToFiles, invert As %Boolean = 0) As %Status
 {
     if invert {
@@ -2302,15 +2297,16 @@ ClassMethod SyncIrisWithRepoThroughDiff(ByRef files, ByRef filterToFiles, invert
     set deletedFiles = ""
     set addedFiles = ""
     while (key '= "") {
-        set modification = files(key)
+        #dim modification as SourceControl.Git.Modification = files(key)
         if (modification.changeType = "D") {
-            if (modification.internalName '= "") {
-                set deletedFiles = deletedFiles_","_modification.internalName
+            set internalName = ..NameToInternalName(modification.externalName,,0)
+            if (internalName '= "") {
+                set deletedFiles = deletedFiles_","_internalName
             }
         } elseif (modification.changeType = "A") {
-            set modification.internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
-            if (modification.internalName '= "") {
-                set addedFiles = addedFiles_","_modification.internalName
+            set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(modification.externalName,,0)
+            if (internalName '= "") {
+                set addedFiles = addedFiles_","_internalName
                 set files(key) = modification
             }
         }

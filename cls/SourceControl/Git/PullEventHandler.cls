@@ -56,8 +56,7 @@ ClassMethod ForInternalNames(InternalName As %String) As %Status
     set pointer = 0
     while $listnext(list,pointer,InternalName) {
         set mod = ##class(SourceControl.Git.Modification).%New()
-        set mod.internalName = InternalName
-        set mod.externalName = ##class(SourceControl.Git.Utils).FullExternalName(InternalName)
+        set mod.externalName = ##class(SourceControl.Git.Utils).ExternalName(InternalName)
         set mod.changeType = "M"
         set files($i(files)) = mod
     }

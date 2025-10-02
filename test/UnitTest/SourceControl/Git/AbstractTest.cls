@@ -37,4 +37,11 @@ ClassMethod WriteFile(filePath, contents)
     $$$ThrowOnError(fileStream.%Save())
 }
 
+ClassMethod ResetLocalRepo()
+{
+    set localRepo = ##class(SourceControl.Git.Settings).%New().namespaceTemp
+    do ##class(%File).RemoveDirectoryTree(localRepo)
+    do ##class(%File).CreateDirectoryChain(localRepo)
+}
+
 }

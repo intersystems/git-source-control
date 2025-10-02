@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - When cloning a repo with Configure, that repo's embedded-git-config file will overwrite previous settings (#819)
 - Settings page no longer removes remote when saving after cloning (#858)
+- When a change includes modification to the mappings in the configuration file, the other files are deployed based on the new mappings (#864)
 
 ## [2.13.1] - 2025-09-16
 

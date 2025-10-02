@@ -13,9 +13,8 @@ Method OnPull() As %Status
 
     // certain items must be imported before everything else.
     for i=1:1:$get(..ModifiedFiles) {
-        set internalName = ..ModifiedFiles(i).internalName
-        if internalName = ##class(SourceControl.Git.Settings.Document).#INTERNALNAME {
-            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+        if ..ModifiedFiles(i).externalName = ##class(SourceControl.Git.Settings.Document).#EXTERNALNAME {
+            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, 1))
             quit
         }
     }
@@ -23,7 +22,7 @@ Method OnPull() As %Status
     set nFiles = 0
 
     for i=1:1:$get(..ModifiedFiles){
-        set internalName = ..ModifiedFiles(i).internalName
+        set internalName = ##class(SourceControl.Git.Utils).NameToInternalName(..ModifiedFiles(i).externalName,,0)
         
         // Don't import the config file a second time
         continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME

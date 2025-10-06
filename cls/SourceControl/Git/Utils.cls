@@ -1912,6 +1912,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set newArgs($increment(newArgs)) = "user.name="_username
         set newArgs($increment(newArgs)) = "-c"
         set newArgs($increment(newArgs)) = "user.email="_email
+        set newArgs($increment(newArgs)) = "-c"
+        set newArgs($increment(newArgs)) = "credential.interactive=false"
     }
 
     set newArgs($increment(newArgs)) = command

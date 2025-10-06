@@ -93,6 +93,9 @@ Property Mappings [ MultiDimensional ];
 /// (user-level) List of namespaces on this instance to include Embedded Git links in the SMP favorites
 Property favoriteNamespaces As %DynamicArray;
 
+/// (Optional) Path to an SSH client configuration file for use with SSH connections to a Git remote
+Property sshConfigFile As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).SSHConfigFile()} ];
+
 Method %OnNew() As %Status
 {
     set mappingsNode = ##class(SourceControl.Git.Utils).MappingsNode()
@@ -183,6 +186,7 @@ Method %Save() As %Status
     set @storage@("settings", "environmentName") = ..environmentName
     set @storage@("settings", "lockBranch") = ..lockBranch
     set @storage@("settings", "mappingsToken") = ..mappingsToken
+    set @storage@("settings", "sshConfigFile") = ..sshConfigFile
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
     } else {
@@ -551,3 +555,4 @@ Method SaveDefaults() As %Boolean
 }
 
 }
+

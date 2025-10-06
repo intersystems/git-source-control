@@ -616,6 +616,7 @@ ClassMethod Push(remote As %String = "origin", force As %Boolean = 0) As %Status
     if (force) {
         set args($i(args)) = "--force"
     }
+    set args($i(args)) = "--set-upstream"
     set args($i(args)) = remote
     set args($i(args)) = branchName
     do ..RunGitWithArgs(.errStream, .outStream, "push", args...)

@@ -2,6 +2,19 @@ Include %syPrompt
 
 IncludeGenerator %syPrompt
 
+/// Public API for configuring Embedded Git settings. Settings may be configured:
+/// <ul>
+/// <li>Interactively in terminal by running do ##class(SourceControl.Git.API).Configure()</li>
+/// <li>In the Settings page accessed through the source control menu</li>
+/// <li>Through a configuration file embedded-git-config.json</li>
+/// <li>Programmatically by creating an instance of this object.</li>
+/// </ul>
+/// For an example of the last, see below:
+/// <pre>
+/// set settings = ##class(SourceControl.Git.Settings).%New()
+/// set settings.mappedItemsReadOnly = 1
+/// $$$ThrowOnError(settings.%Save())
+/// </pre>
 Class SourceControl.Git.Settings Extends %RegisteredObject
 {
 
@@ -68,8 +81,16 @@ Property lockBranch As %Boolean [ InitialExpression = {##class(SourceControl.Git
 /// (Optional) A namespace-specific string that may be included in mapping configurations as <token> to support multi-namespace repositories
 Property mappingsToken As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).MappingsToken()} ];
 
+/// A multi-dimensional array that maps item types to directories in the source repository, structured as follows:
+/// settings.Mappings("<item type>","<filter>") = "<folder>"
+/// settings.Mappings("<item type>","<filter>","NoFolders") = 1
+/// - item type: file extension to use, e.g., CLS, MAC. As a special case for web application files, use "/CSP/".
+/// - filter: a filter on files of that type, e.g. * for all, or a package name or web application folder
+/// - folder: folder relative to the repo root that contains the item
+/// - NoFolders: if the value of this node is false, dots in the item name will be expanded to subdirectories. e.g. /cls/PackageName/ClassName.cls
 Property Mappings [ MultiDimensional ];
 
+/// (user-level) List of namespaces on this instance to include Embedded Git links in the SMP favorites
 Property favoriteNamespaces As %DynamicArray;
 
 Method %OnNew() As %Status
@@ -87,6 +108,7 @@ Method %OnNew() As %Status
     quit $$$OK
 }
 
+/// Saves namespace settings to a configuration file and adds it to the source control repository.
 Method SaveWithSourceControl() As %Status
 {
     set sc = $$$OK
@@ -191,7 +213,7 @@ Method %Save() As %Status
     quit $$$OK
 }
 
-Method ToDynamicObject() As %DynamicObject
+Method ToDynamicObject() As %DynamicObject [ Internal ]
 {
     // uses custom methods rather than %JSON.Adaptor because Mappings multidimensional
     // array is not supported
@@ -217,7 +239,7 @@ Method ToDynamicObject() As %DynamicObject
     return settingsJSON
 }
 
-Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
+Method ImportDynamicObject(pSettingsDyn As %DynamicObject) [ Internal ]
 {
     set ..pullEventClass = pSettingsDyn.%Get("pullEventClass")
     set ..percentClassReplace = pSettingsDyn.%Get("percentClassReplace")
@@ -238,7 +260,7 @@ Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
     }
 }
 
-ClassMethod CreateNamespaceTempFolder() As %Status
+ClassMethod CreateNamespaceTempFolder() As %Status [ Internal ]
 {
     set storage = ##class(SourceControl.Git.Utils).#Storage
     if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){ 
@@ -248,7 +270,7 @@ ClassMethod CreateNamespaceTempFolder() As %Status
     return $$$OK
 }
 
-ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
+ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator, Internal ]
 {
     do %code.WriteLine(" set inst = ..%New()")
     do %code.WriteLine(" do inst.RetrieveDefaults()")
@@ -321,7 +343,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     do %code.WriteLine(" quit 1")
 }
 
-Method ConfigureNamespaceWebApplication()
+Method ConfigureNamespaceWebApplication() [ Internal ]
 {
     Set root = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).TempFolder())
     Set deleteWebApp = ..HasNamespaceWebApp(.appDirectory) && '..namespaceLevelGitWebApp
@@ -381,7 +403,7 @@ Method WebAppOperation(name, create As %Boolean, delete As %Boolean, root As %St
     }
 }
 
-ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean
+ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean [ Internal ]
 {
     Set webAppDirectory = $System.CSP.GetFileName("/git/"_$Namespace_"/")
     If (webAppDirectory '= "") {
@@ -390,7 +412,7 @@ ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean
     Quit (webAppDirectory '= "")
 }
 
-Method OnAfterConfigure() As %Boolean
+Method OnAfterConfigure() As %Boolean [ Internal ]
 {
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
     if (..privateKeyFile '= "") && '##class(%File).Exists(..privateKeyFile) {
@@ -474,7 +496,7 @@ Method OnAfterConfigure() As %Boolean
     }
 }
 
-Method ConfigureBinPath(ByRef path As %String) As %Boolean
+Method ConfigureBinPath(ByRef path As %String) As %Boolean [ Internal ]
 {
     if (path = "") { return 1 }
     // Sometimes path is quoted 
@@ -506,7 +528,7 @@ Method ConfigureBinPath(ByRef path As %String) As %Boolean
     return 1
 }
 
-Method RetrieveDefaults() As %Boolean
+Method RetrieveDefaults() As %Boolean [ Internal ]
 {
     do ##class(%zpkg.isc.sc.git.Defaults).GetDefaultSettings(.settings)
     set iterator = settings.%GetIterator()
@@ -516,6 +538,7 @@ Method RetrieveDefaults() As %Boolean
     return $$$OK
 }
 
+/// Saves certain settings as default settings for the instance. Instance defaults are overwritten by namespace-level settings.
 Method SaveDefaults() As %Boolean
 {
     set defaults = {}

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to lock/unlock namespace is now available on the settings page (#650)
 - Settings page now warns if Embedded Git is not the configured source control extension (#857)
 - Settings page now has option to switch namespace (#856)
+- SourceControl.Git.Settings is now documented as part of the public API to allow programmatic configuration of settings (#262)
 
 ### Fixed
 - When cloning a repo with Configure, that repo's embedded-git-config file will overwrite previous settings (#819)

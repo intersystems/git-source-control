@@ -151,6 +151,14 @@ Assuming you have the local and remote repositories created,
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
 
+## Editing files in the Git repository server-side
+
+There are some circumstances where you'll want to edit files in the Git repository on the IRIS server. For example,
+- To edit interoperability system default settings for a different environment
+- To edit custom configuration files
+
+Embedded Git allows you to edit files in the Git repository server-side through VS Code. Enable the "Define a namespace-level web application " option by running `do ##class(SourceControl.Git.API).Configure()`. This will automatically create a new IRIS web application for editing files with the VS Code ObjectScript extension. Then go to the Embedded Git Web UI and use the "Code Workspace" option to download a VS Code workspace. The workspace will allow you to edit files in the Git repository on the server.
+
 ## Support
 
 If you find a bug or would like to request an enhancement, [report an issue](https://github.com/intersystems/git-source-control/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Git" and "Source Control" tags as appropriate.

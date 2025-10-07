@@ -195,6 +195,11 @@ ClassMethod MappingsToken() As %String
     quit $get(@..#Storage@("settings","mappingsToken"),"")
 }
 
+ClassMethod SSHConfigFile() As %String
+{
+    quit $get(@..#Storage@("settings","sshConfigFile"),"")
+}
+
 ClassMethod IsLIVE() As %Boolean
 {
     quit ..EnvironmentName()="LIVE"
@@ -1896,8 +1901,14 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 set privateKeyFile = $replace(privateKeyFile,"\","\\")
             }
             set newArgs($increment(newArgs)) = "-c"
+            set sshConfigFile = ..SSHConfigFile()
+            if sshConfigFile="" {
+                set sshConfigFile = "/dev/null"
+            } elseif $$$isWINDOWS {
+                set sshConfigFile = $replace(sshConfigFile,"\","\\")
+            }
             // StrictHostKeyChecking=accept-new for good behavior on first connection
-            set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
+            set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F "_sshConfigFile_" -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
         }
 
         set username = ""
@@ -1912,6 +1923,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set newArgs($increment(newArgs)) = "user.name="_username
         set newArgs($increment(newArgs)) = "-c"
         set newArgs($increment(newArgs)) = "user.email="_email
+        set newArgs($increment(newArgs)) = "-c"
+        set newArgs($increment(newArgs)) = "credential.interactive=false"
     }
 
     set newArgs($increment(newArgs)) = command

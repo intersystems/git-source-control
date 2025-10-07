@@ -120,7 +120,7 @@ body {
 
         if ('settings.settingsUIReadOnly) {
             do ##class(SourceControl.Git.Utils).Locked($get(%request.Data("lockNamespace",1)))
-            for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken" {
+            for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken","sshConfigFile" {
                 set $Property(settings,param) = $Get(%request.Data(param,1))
             }
 
@@ -394,6 +394,13 @@ body {
             }
         }
         </server>
+
+        <div class="form-group row mb-3">
+            <label for="sshConfigFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="(Optional) Path to an SSH client configuration file for use with SSH connections to a Git remote">Path to SSH Config File</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="sshConfigFile" name="sshConfigFile" value='#(..EscapeHTML(settings.sshConfigFile))#' placeholder=""/>
+            </div>
+        </div>
 
         <div class="form-group row mb-3">
             <label for="pullEventClass" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull"><b>Pull Event Class</b></label>

@@ -3064,6 +3064,14 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("MAC","*")="rtn/"
     set @mappingsNode@("DFI","*")="dfi/"
     set @mappingsNode@("PTD","*")="ptd/"
+    set @mappingsNode@("ESD","*")="config/<env>/"
+    // for HealthShare, HealthConnect, or IRIS for Health
+    if ($System.Version.GetISCProduct() = 3) || $listfind($System.Version.GetISCComponents(4),"Health") {
+        set @mappingsNode@("HL7","*") = "data/hl7/"
+        set @mappingsNode@("HL7","*","NoFolders") = 1
+        set @mappingsNode@("LUT","*") = "data/lut/"
+        set @mappingsNode@("LUT","*","NoFolders") = 1
+    }
 }
 
 ClassMethod PrintStreams(streams... As %Stream.FileCharacter)
@@ -3320,3 +3328,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

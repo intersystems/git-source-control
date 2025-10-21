@@ -52,7 +52,7 @@ Method OnPull() As %Status
         write !, "Nothing to compile."
         quit $$$OK
     }
-    set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ck"))
+    set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ckbryu"))
     // after compilation, deploy any PTD items
     set key = $order(ptdList(""))
     while (key '= "") {

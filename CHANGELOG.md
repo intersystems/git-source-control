@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings page now has option to switch namespace (#856)
 - SourceControl.Git.Settings is now documented as part of the public API to allow programmatic configuration of settings (#262)
 - New setting to define an SSH client configuration file for connections to SSH remotes (#293)
+- Changed default compilation flags from "ck" to "ckbryu" to include related items (#882)
 
 ### Fixed
 - When cloning a repo with Configure, that repo's embedded-git-config file will overwrite previous settings (#819)

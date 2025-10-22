@@ -154,13 +154,17 @@ ClassMethod ExportPTD(internalName As %String, nameMethod As %String) As %Status
     Return sc
 }
 
-/// Imports a PTD into a produciton given an external name and produciton name
+/// Imports a PTD into a production given an external name and produciton name
 ClassMethod ImportPTD(externalName As %String, productionName As %String) As %Status
 {
 	try {
 		set ^IRIS.Temp("sscProd",$job,"bypassLock") = 1
 		set rollbackFile = ##class(%File).TempFilename()
 		set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
+        if $$$ISERR(sc) {
+            set sc2 = ##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag()
+            if $$$ISERR(sc2) set sc = $$$ADDSC(sc, sc2)
+        }
 		do ##class(%File).Delete(rollbackFile)
 		kill ^IRIS.Temp("sscProd",$job,"bypassLock")
 	} catch err {

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Settings page now warns if Embedded Git is not the configured source control extension (#857)
 - Settings page now has option to switch namespace (#856)
 - SourceControl.Git.Settings is now documented as part of the public API to allow programmatic configuration of settings (#262)
+- Newly configured instances start with default mappings for ESD, LUT and HL7 when relevant (#724)
 - New setting to define an SSH client configuration file for connections to SSH remotes (#293)
 
 ### Fixed

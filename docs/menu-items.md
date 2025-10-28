@@ -7,7 +7,7 @@ This menu option is analogous to the [git status](https://git-scm.com/docs/git-s
 ## Settings
 This option opens the GUI's settings page project specific git-source-control settings can be configured. This includes the settings that were configured when running:
 ```
-d ##class(SourceControl.Git.API).Configure()
+do ##class(SourceControl.Git.API).Configure()
 ```
 
 This page also includes the mappings configurations.
@@ -65,6 +65,9 @@ In basic mode, this option first checks out the Default Merge Branch (if defined
 This option refreshes the local list of branches available in the upstream repository, and then changes the currently checked out branch to the provided branch.  This mimics the behavior of the [git fetch --prune](https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt---prune) and [git checkout](https://git-scm.com/docs/git-checkout) commands.
 
 If the desired branch does not exist in your local or in the remote, then you will receive the "Selected branch does not exist" error message.
+
+## Export System Default Settings
+This option will export interoperability [system default settings](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=ECONFIG_other_default_settings) to the Git repository. Only system default settings marked as "deployable" will be exported. The Embedded Git settings must be configured with a mapping for items of type ESD to a location in the repository for system default settings to export.
 
 
 ## Export All

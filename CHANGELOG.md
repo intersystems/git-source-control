@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Always set the remote as the upstream branch when pushing (#871)
 - Fixed import of HL7 and LUT files added at the same time as their mappings (#864)
 - Fixed issue where Git's interactive credential manager causes Git push/pull/fetch to hang (#235)
+- Failed deployment of one interoperability production item no longer causes all other production items to fail (#886)
 
 ## [2.13.1] - 2025-09-16
 

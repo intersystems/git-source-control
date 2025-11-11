@@ -981,6 +981,12 @@ body {
   position: absolute;
   right: 5px;
 }
+#changedFilesContainer .file-area .U::after {
+  content: "Unmerged";
+  position: absolute;
+  right: 5px;
+  color: red;
+}
 #changedFilesContainer .file-area .other-user-label svg {
   margin-right: 5px;
 }

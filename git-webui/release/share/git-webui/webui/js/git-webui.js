@@ -2805,8 +2805,21 @@ webui.NewChangedFilesView = function(workspaceView) {
                     }
                     
                 });
+
+                $("#abortMergeBtn").off("click");
+                $("#abortMergeBtn").on("click", function() {
+                    self.confirmAbortMerge();
+                })
             });
         });
+
+        webui.git_command(["rev-parse", "--quiet", "--verify", "MERGE_HEAD"], function () {
+            // success code with --verify means MERGE_HEAD exists
+            $("#abortMergeBtn").show().prop("disabled",false);
+        }, null, function() {
+            // error code with --verify means MERGE_HEAD does not exist
+            $("#abortMergeBtn").hide().prop("disabled",true);
+        })
     }
 
     self.confirmDiscard = function() {
@@ -2916,6 +2929,63 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     
         $('#confirmAmend').find('#cancelAmendBtn, .close').click(function() {
+            removePopup(popup);
+        });
+    }
+
+    self.confirmAbortMerge = function() {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#confirmAbortMerge").remove();
+        }
+    
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="confirmAbortMerge" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Confirm Abort Merge</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body"></div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+    
+        $("body").append(popup);
+        var popupContent = $(".modal-body", popup)[0];
+        webui.detachChildren(popupContent);
+    
+        $(
+            '<div class="row">' +
+                '<div class="col-sm-1">' +
+                    webui.warningIcon +
+                '</div>' +
+                '<div class="col-sm-11">' +
+                    '<p>A merge is in progress. Are you sure you want to abort it?</p>' + 
+                '</div>' +
+            '</div>'
+        ).appendTo(popupContent);
+    
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+    
+        $(
+            '<button class="btn btn-sm btn-warning action-btn" id="confirmAbortMergeBtn">Confirm</button>' +
+            '<button class="btn btn-sm btn-secondary action-btn" id="cancelAbortMergeBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+    
+        $(popup).modal('show');
+    
+        $('#confirmAbortMergeBtn').on('click', function() {
+            removePopup(popup); 
+            self.abortMerge();
+        });
+    
+        $('#confirmAbortMerge').find('#cancelAbortMergeBtn, .close').click(function() {
             removePopup(popup);
         });
     }
@@ -3172,6 +3242,13 @@ webui.NewChangedFilesView = function(workspaceView) {
         webui.git_command(["add", "--"].concat(selectedItems), restoreCommand,undefined,restoreCommand);
     }
 
+    self.abortMerge = function() {
+        webui.git_command(["merge", "--abort"], function() {
+            workspaceView.update();
+        });
+        $("#abortMergeBtn").hide().prop("disabled",true);
+    }
+
     self.amend = function(message, details) {
         if (self.commitMsgEmpty()) {
             $.ajax({
@@ -3274,6 +3351,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                         '<button type="button" class="btn btn-outline-primary file-action-button" id="amendBtn" disabled> Amend </button>' +
                         '<button type="button" class="btn btn-secondary file-action-button" id="stashBtn" disabled> Stash </button>' +
                         '<button type="button" class="btn btn-danger file-action-button" id="discardBtn" disabled> Discard </button>' +
+                        '<button type="button" class="btn btn-warning file-action-button" style="display: none" id="abortMergeBtn" disabled> Abort Merge </button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +

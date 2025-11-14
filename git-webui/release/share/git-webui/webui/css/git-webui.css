@@ -982,7 +982,7 @@ body {
   right: 5px;
 }
 #changedFilesContainer .file-area .U::after {
-  content: "Unmerged";
+  content: "Merge Conflict";
   position: absolute;
   right: 5px;
   color: red;

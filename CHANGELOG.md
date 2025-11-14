@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Import All has been added to public-facing API (#891)
+- Web UI workspace view now has an option to abort merge in progress (#895)
 
 ## Fixed
-- Web UI workspace view labels changes as Unmerged if there are merge conflicts (#890)
+- Web UI workspace view labels changes as Merge Conflict if there are unmerged changes (#890)
 
 ## [2.14.0] - 2025-11-07
 

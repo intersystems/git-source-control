@@ -3210,7 +3210,7 @@ webui.NewChangedFilesView = function(workspaceView) {
         self.fileToDiff = $(element).attr("data-filename");
         var indexStatus = $(element).attr("data-index-status");
         var gitOpts = [];
-        if (indexStatus != " ") {
+        if ((indexStatus != " ") && (indexStatus != "U")) {
             gitOpts.push("--cached");
         }
         workspaceView.diffView.update("diff", gitOpts, self.fileToDiff, "stage");

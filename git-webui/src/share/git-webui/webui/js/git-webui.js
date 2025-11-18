@@ -37,6 +37,9 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
                 "#e47b07", "#e36920", "#d34e2a", "#ec3b24", "#ba3d99", "#9d45c9", "#4f5aec", "#615dcf", "#3286cf", "#00abca", "#279227", "#3a980c", "#6c7f00", "#ab8b0a", "#b56427", "#757575",
                 "#ff911a", "#fc8120", "#e7623e", "#fa5236", "#ca4da9", "#a74fd3", "#5a68ff", "#6d69db", "#489bd9", "#00bcde", "#36a436", "#47a519", "#798d0a", "#c1a120", "#bf7730", "#8e8e8e"]
 
+webui.UNMERGED_STATUSES = ["DD","AU","UD","UA","DU","AA","UU"];
+webui.STAGED_STATUSES = ["M","A","D","R","C"];
+
 webui.peopleIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">'+
                         '<path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>'+
                         '<path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>'+
@@ -2687,7 +2690,10 @@ webui.NewChangedFilesView = function(workspaceView) {
                     formCheck.attr("data-index-status", indexStatus);
                     formCheck.attr("data-working-tree-status", workingTreeStatus);
 
-                    var displayStatus = (indexStatus == " ") ? workingTreeStatus : indexStatus;
+                    var statusPair = (indexStatus || "") + (workingTreeStatus || "");
+                    var displayStatus = (webui.UNMERGED_STATUSES.indexOf(statusPair) > -1) ? "U"
+                        : (indexStatus == " ") ? workingTreeStatus 
+                        : indexStatus;
 
                     var checkboxInput;
                     
@@ -3209,8 +3215,10 @@ webui.NewChangedFilesView = function(workspaceView) {
     self.refreshDiff = function(element) {
         self.fileToDiff = $(element).attr("data-filename");
         var indexStatus = $(element).attr("data-index-status");
+        var workingTreeStatus = $(element).attr("data-working-tree-status");
+        var statusPair = (indexStatus || "") + (workingTreeStatus || "");
         var gitOpts = [];
-        if (indexStatus != " ") {
+        if ((webui.STAGED_STATUSES.indexOf(indexStatus) > -1) && (webui.UNMERGED_STATUSES.indexOf(statusPair) == -1)) {
             gitOpts.push("--cached");
         }
         workspaceView.diffView.update("diff", gitOpts, self.fileToDiff, "stage");

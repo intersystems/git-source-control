@@ -1469,7 +1469,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 write !, InternalName," has been imported from ", filename
             }
         } else {
-            write !, "ERROR importing" ,InternalName, !
+            write !, "ERROR importing " ,InternalName, !
             do $system.Status.DisplayError(sc)
         }
     } elseif verbose {

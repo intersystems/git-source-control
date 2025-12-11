@@ -441,6 +441,22 @@ Method OnAfterDelete(InternalName As %String) As %Status
     quit $$$OK
 }
 
+/// This is called if you compile a class and the compilation updates the class storage.
+/// It is called after the storage has been updated so you can determine how to deal with this
+/// change in the class. The <var>Location</var> is the global reference to the class definition that was changed.
+Method OnAfterStorage(InternalName As %String, Location As %String = "") As %Status
+{
+    if (InternalName '= "") {
+        write !,"Item '"_InternalName_"' changed during compile so exporting new version."
+        set ..Modified(InternalName) = 1
+        set sc = ..OnAfterSave(InternalName)
+        if $$$ISERR(sc) {
+            do $System.OBJ.DisplayError(sc)
+        }
+    }
+    return $$$OK
+}
+
 /// Convert the internal name, e.g. TEST.MAC, to an external name that is used to export
 /// the routine/class/csp item. This is often a filename to write the file out to.
 Method ExternalName(InternalName As %String) As %String

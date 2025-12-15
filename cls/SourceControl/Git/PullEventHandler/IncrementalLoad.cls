@@ -9,7 +9,7 @@ Parameter DESCRIPTION = "Performs an incremental load and compile of all changes
 
 Method OnPull() As %Status
 {
-    set sc = $$$OK
+    #Dim sc As %Status = $$$OK
 
     // certain items must be imported before everything else.
     for i=1:1:$get(..ModifiedFiles) {
@@ -21,22 +21,20 @@ Method OnPull() As %Status
     }
 
     set nFiles = 0
-
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
-        
+
         // Don't import the config file a second time
         continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
-        
+        set tExternalName = ..ModifiedFiles(i).externalName
+
         if ((internalName = "") && (..ModifiedFiles(i).changeType '= "D")) {
-            write !, ..ModifiedFiles(i).externalName, " was not imported into the database and will not be compiled. "
+            write !, tExternalName, " was not imported into the database and will not be compiled. "
         } elseif (..ModifiedFiles(i).changeType = "D") {
-            set delSC = ..DeleteFile(internalName, ..ModifiedFiles(i).externalName)
-            if delSC {
-                write !, ..ModifiedFiles(i).externalName, " was deleted."
-            } else {
-                write !, "WARNING: Deletion of ", ..ModifiedFiles(i).externalName, " failed."
-            }
+            #; Deleted production items will not have an internal name
+            set delIndex = $select(##class(SourceControl.Git.Util.Production).ItemIsPTD(tExternalName): 1, 1: 2)
+            set:(delIndex=1) internalName = "-"_i   ;; This is a total hack because deleted production items will not have an internal name
+            set delList(delIndex, internalName) = tExternalName
         } else {
             set nFiles = nFiles + 1
             if (##class(SourceControl.Git.Utils).Type(internalName) = "ptd") {
@@ -48,23 +46,51 @@ Method OnPull() As %Status
         }
     }
 
+    #; First remove production items, then everything else
+    write:$data(delList) !!,"Removing items..."
+    for orderIndex = 1,2 {
+        set item = $order(delList(orderIndex, ""), 1, tExternalName)
+        while (item '= "") {
+            set delSC = ..RemoveItem(item, tExternalName)
+            set item = $order(delList(orderIndex, item), 1, tExternalName)
+        }
+    }
+
     if (nFiles = 0) {
         write !, "Nothing to compile."
         quit $$$OK
     }
+    write !
     set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ckbryu"))
+
     // after compilation, deploy any PTD items
+    set start = $zhorolog
     set key = $order(ptdList(""))
     while (key '= "") {
         set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
         set key = $order(ptdList(key))
     }
+    write:$data(ptdList) !,"Production items updated in ",($zhorolog-start),"s"
     if $$$comClassDefined("Ens.Director") && ##class(Ens.Director).IsProductionRunning() {
+        set start = $zhorolog
         write !,"Updating production... "
         set sc = $$$ADDSC(sc,##class(Ens.Director).UpdateProduction())
-        write "done."
+        write "done in ",($zhorolog-start),"s."
     }
     quit sc
+}
+
+Method RemoveItem(pInternalName, pExternalName) As %Status
+{
+    #Dim delSC As %Status
+    set delSC = ..DeleteFile(pInternalName, pExternalName)
+    if delSC {
+        write !, pExternalName, " was deleted."
+    } else {
+        write !, "WARNING: Deletion of ", pExternalName, " failed."
+        write !,?3,$system.Status.DisplayError(delSC)
+    }
+    quit delSC
 }
 
 Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
@@ -101,7 +127,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         } else {
             set deleted = 0
         }
-        
+
         if deleted && $$$ISOK(sc) {
             if (item '= "") {
                 do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
@@ -124,7 +150,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         } else {
             // Item still exists and was not deleted -- bad
             set sc = e.AsStatus()
-            do e.Log() 
+            do e.Log()
         }
     }
     return sc

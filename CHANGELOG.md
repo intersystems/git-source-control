@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - Web UI workspace view labels changes as Merge Conflict if there are unmerged changes (#890)
 - Web UI workspace view displays diff correctly for files with merge conflicts (#898)
-- Catch and log exceptions thrown by pull handler (#909)
+- Catch and log exceptions thrown by pull handlers (#909)
+- Fix Incremental Load to first remove production items before removing classes (#907)
 
 ## [2.14.0] - 2025-11-07
 

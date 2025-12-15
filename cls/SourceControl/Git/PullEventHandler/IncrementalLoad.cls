@@ -55,22 +55,31 @@ Method OnPull() As %Status
             set item = $order(delList(orderIndex, item), 1, tExternalName)
         }
     }
-
     if (nFiles = 0) {
-        write !, "Nothing to compile."
+        write !, "Nothing to Load."
         quit $$$OK
     }
-    write !
-    set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ckbryu"))
 
-    // after compilation, deploy any PTD items
-    set start = $zhorolog
-    set key = $order(ptdList(""))
-    while (key '= "") {
-        set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
-        set key = $order(ptdList(key))
+    if $data(compilelist) {
+        write !
+        set sc = $$$ADDSC(sc,$system.OBJ.CompileList(.compilelist, "ckbryu"))
     }
-    write:$data(ptdList) !,"Production items updated in ",($zhorolog-start),"s"
+    else {
+        write !,"Nothing to Compile."
+    }
+
+    #; Deploy any PTD items
+    if $data(ptdList) {
+        write !,"Loading production items..."
+        set start = $zhorolog
+        set key = $order(ptdList(""))
+        while (key '= "") {
+            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
+            set key = $order(ptdList(key))
+        }
+        write !,"Production items imported in ",($zhorolog-start),"s"
+    }
+
     if $$$comClassDefined("Ens.Director") && ##class(Ens.Director).IsProductionRunning() {
         set start = $zhorolog
         write !,"Updating production... "
@@ -95,8 +104,9 @@ Method RemoveItem(pInternalName, pExternalName) As %Status
 
 Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
 {
+    #Dim sc As %Status = $$$OK
+    #Dim err As %Exception.AbstractException
     try {
-        set sc = $$$OK
         set type = $select(
             ##class(SourceControl.Git.Util.Production).ItemIsPTD(externalName): "ptd",
             1: ##class(SourceControl.Git.Utils).Type(item)
@@ -106,15 +116,15 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         set deleted = 1
         if type = "prj" {
             set sc = $system.OBJ.DeleteProject(name)
-        }elseif type = "cls" {
+        } elseif type = "cls" {
             if ##class(SourceControl.Git.Utils).ItemIsProductionToDecompose(name) {
                 write !, "Production decomposition enabled, skipping delete of production class"
             } else {
                 set sc = $system.OBJ.Delete(item)
             }
-        }elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
+        } elseif $listfind($listbuild("mac","int","inc","bas","mvb","mvi"), type) > 0 {
             set sc = ##class(%Routine).Delete(item)
-        }elseif type = "csp" {
+        } elseif type = "csp" {
             set sc = $System.CSP.DeletePage(item)
         } elseif settings.decomposeProductions && (type = "ptd") {
             set normalizedFilePath = ##class(%File).NormalizeFilename(##class(SourceControl.Git.Utils).TempFolder()_externalName)
@@ -122,7 +132,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
                 ##class(SourceControl.Git.Production).RemoveItemByExternalName(normalizedFilePath,"FullExternalName"),
                 ##class(%Library.RoutineMgr).Delete(item)
             )
-        }elseif ##class(SourceControl.Git.Utils).UserTypeCached(item) {
+        } elseif ##class(SourceControl.Git.Utils).UserTypeCached(item) {
             set sc = ##class(%Library.RoutineMgr).Delete(item)
         } else {
             set deleted = 0
@@ -141,7 +151,7 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
         }
         // Force the catch if failing
         $$$ThrowOnError(sc)
-    } catch e {
+    } catch err {
         set filename = ##class(SourceControl.Git.Utils).FullExternalName(item)
         if (filename = "") || '##class(%File).Exists(filename) {
             do ##class(SourceControl.Git.Utils).RemoveRoutineTSH(item)
@@ -149,8 +159,8 @@ Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
             set sc = $$$OK
         } else {
             // Item still exists and was not deleted -- bad
-            set sc = e.AsStatus()
-            do e.Log()
+            set sc = err.AsStatus()
+            do err.Log()
         }
     }
     return sc

@@ -155,6 +155,11 @@ ClassMethod MappedItemsReadOnly() As %Boolean
     quit $get(@..#Storage@("settings", "mappedItemsReadOnly"), 1)
 }
 
+ClassMethod GeneratedFilesReadOnly() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "generatedFilesReadOnly"), 0)
+}
+
 ClassMethod GitUserName() As %String
 {
     quit $get(@..#Storage@("settings","user",$username,"gitUserName"),$username)
@@ -1101,6 +1106,17 @@ ClassMethod Type(InternalName As %String) As %String
 	}
 
     quit type
+}
+
+ClassMethod ItemIsGenerated(InternalName As %String) As %Boolean
+{
+    set normalizedName = InternalName
+    set normalizedName = ..NormalizeInternalName(.normalizedName)
+    quit:normalizedName="" 0
+    quit:..Type(.normalizedName)'="cls" 0
+    set className = ..NameWithoutExtension(normalizedName)
+    quit:className="" 0
+    quit ($$$defClassKeyGet(className,$$$cCLASSgeneratedby)'="")
 }
 
 ClassMethod NameWithoutExtension(InternalName As %String) As %String [ CodeMode = expression ]
@@ -3341,4 +3357,3 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
-

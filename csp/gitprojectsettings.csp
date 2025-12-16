@@ -130,6 +130,12 @@ body {
                 set settings.mappedItemsReadOnly = 0
             }
 
+            if ($Get(%request.Data("generatedFilesReadOnly", 1)) = 1) {
+                set settings.generatedFilesReadOnly = 1
+            } else {
+                set settings.generatedFilesReadOnly = 0
+            }
+
 
             set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
             set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
@@ -499,6 +505,18 @@ body {
                     <label class="custom-control-label" for="mappedItemsReadOnly"></label>
                 </div>
                 
+            </div>
+            
+
+        </div>
+        <div class="form-group row mb-3">
+            <label for="generatedFilesReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="When enabled, classes marked as generated (for example, by the IRIS compiler) are treated as read-only and cannot be edited from Studio/VS Code."><b> Treat Generated Files as Read-only</b></label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="generatedFilesReadOnly" type="checkbox" id="generatedFilesReadOnly" 
+                        #($select(settings.generatedFilesReadOnly:"checked", 1: ""))# value="1">
+                    <label class="custom-control-label" for="generatedFilesReadOnly"></label>
+                </div>
             </div>
             
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Import All has been added to public-facing API (#891)
 - Web UI workspace view now has an option to abort merge in progress (#895)
+- New setting lets you treat generated classes as read-only in Studio/VS Code (#712)
 
 ## Fixed
 - Web UI workspace view labels changes as Merge Conflict if there are unmerged changes (#890)

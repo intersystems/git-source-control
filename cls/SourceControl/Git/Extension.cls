@@ -474,6 +474,8 @@ Method IsReadOnly(InternalName As %String) As %Boolean
     set settings = ##class(SourceControl.Git.Settings).%New()
     quit (##class(SourceControl.Git.Utils).Locked() 
             && '$get(^IRIS.Temp("sscProd",$job,"bypassLock")))
+        || (settings.generatedFilesReadOnly
+            && ##class(SourceControl.Git.Utils).ItemIsGenerated(InternalName))
         || (##class(SourceControl.Git.Utils).ItemIsProductionToDecompose($get(InternalName))
             && 'settings.decomposeProdAllowIDE
             && '##class(SourceControl.Git.Production).IsEnsPortal())
@@ -588,3 +590,4 @@ Method CheckBusinessProcessesAndRules(InternalName As %String) As %Status
 }
 
 }
+

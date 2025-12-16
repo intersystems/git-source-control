@@ -51,6 +51,9 @@ Property gitUserEmail As %String(MAXLEN = 255) [ InitialExpression = {##class(So
 /// Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
+/// Whether generated files should be read-only within Studio/VS Code
+Property generatedFilesReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).GeneratedFilesReadOnly()} ];
+
 /// Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
 Property basicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
 
@@ -179,6 +182,7 @@ Method %Save() As %Status
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
+    set @storage@("settings", "generatedFilesReadOnly") = ..generatedFilesReadOnly
     set @storage@("settings", "defaultMergeBranch") = ..defaultMergeBranch
     set @storage@("settings", "compileOnImport") = ..compileOnImport
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
@@ -224,6 +228,7 @@ Method ToDynamicObject() As %DynamicObject [ Internal ]
     set settingsJSON = {
         "pullEventClass": (..pullEventClass),
         "percentClassReplace": (..percentClassReplace),
+        "generatedFilesReadOnly": (..generatedFilesReadOnly),
         "Mappings": {}
     }
     do settingsJSON.%Set("decomposeProductions",..decomposeProductions,"boolean")
@@ -248,6 +253,7 @@ Method ImportDynamicObject(pSettingsDyn As %DynamicObject) [ Internal ]
     set ..pullEventClass = pSettingsDyn.%Get("pullEventClass")
     set ..percentClassReplace = pSettingsDyn.%Get("percentClassReplace")
     set ..decomposeProductions = pSettingsDyn.%Get("decomposeProductions")
+    set ..generatedFilesReadOnly = pSettingsDyn.%Get("generatedFilesReadOnly")
     kill ..Mappings
     set mappingsDyn = pSettingsDyn.%Get("Mappings", {})
     set i1 = mappingsDyn.%GetIterator()
@@ -546,7 +552,7 @@ Method RetrieveDefaults() As %Boolean [ Internal ]
 Method SaveDefaults() As %Boolean
 {
     set defaults = {}
-    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport")
+    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "generatedFilesReadOnly", "compileOnImport")
     for i=1:1:$LISTLENGTH(items) {
         set property = $listget(items,i)
         do defaults.%Set(property, $property($this, property))
@@ -555,4 +561,3 @@ Method SaveDefaults() As %Boolean
 }
 
 }
-

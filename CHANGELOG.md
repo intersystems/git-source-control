@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Web UI workspace view labels changes as Merge Conflict if there are unmerged changes (#890)
 - Web UI workspace view displays diff correctly for files with merge conflicts (#898)
 - Storage definition changes in persistent classes are now correctly exported to the Git repository (#906)
+- Catch and log exceptions thrown by pull handlers (#909)
+- Fix Incremental Load to first remove production items before removing classes (#907)
 
 ## [2.14.0] - 2025-11-07
 

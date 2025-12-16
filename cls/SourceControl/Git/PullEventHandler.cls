@@ -24,7 +24,9 @@ Method OnPull() As %Status [ Abstract ]
 /// <var>pullEventClass</var>: if defined, override the configured pull event class
 ClassMethod ForModifications(ByRef files, pullEventClass As %String) As %Status
 {
-    set st = $$$OK
+    #Dim err As %Exception.AbstractException
+    #Dim pullError As %Exception.AbstractException
+    #Dim st As %Status = $$$OK
     try {
         set log = ##class(SourceControl.Git.DeploymentLog).%New()
         set log.HeadRevision = ##class(SourceControl.Git.Utils).GetCurrentRevision()
@@ -33,15 +35,20 @@ ClassMethod ForModifications(ByRef files, pullEventClass As %String) As %Status
         quit:$$$ISERR(st)
         set event = $classmethod(
             $select(
-                $data(pullEventClass)#2: pullEventClass, 
+                $data(pullEventClass)#2: pullEventClass,
                 1: ##class(SourceControl.Git.Utils).PullEventClass())
             ,"%New")
         set event.LocalRoot = ##class(SourceControl.Git.Utils).TempFolder()
         merge event.ModifiedFiles = files
-        set st = event.OnPull()
+        try {
+            set st = event.OnPull()
+        }
+        catch pullError {
+            set st = pullError.AsStatus()
+        }
         set log.EndTimestamp = $zdatetime($ztimestamp,3)
         set log.Status = st
-        set st = log.%Save()
+        set st = log.%Save()  // this hides any errors returned or thrown by OnPull()
         quit:$$$ISERR(st)
     } catch err {
         set st = err.AsStatus()

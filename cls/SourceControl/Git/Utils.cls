@@ -1110,13 +1110,7 @@ ClassMethod Type(InternalName As %String) As %String
 
 ClassMethod ItemIsGenerated(InternalName As %String) As %Boolean
 {
-    set normalizedName = InternalName
-    set normalizedName = ..NormalizeInternalName(.normalizedName)
-    quit:normalizedName="" 0
-    quit:..Type(.normalizedName)'="cls" 0
-    set className = ..NameWithoutExtension(normalizedName)
-    quit:className="" 0
-    quit ($$$defClassKeyGet(className,$$$cCLASSgeneratedby)'="")
+    return ##class(%RoutineMgr).IsGenerated(..NormalizeInternalName(InternalName))
 }
 
 ClassMethod NameWithoutExtension(InternalName As %String) As %String [ CodeMode = expression ]

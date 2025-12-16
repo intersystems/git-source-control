@@ -1,4 +1,4 @@
-Class UnitTest.SourceControl.Git.Extension Extends %UnitTest.TestCase
+Class UnitTest.SourceControl.Git.Extension Extends UnitTest.SourceControl.Git.AbstractTest
 {
 
 Method TestGeneratedFilesReadOnlyOption()

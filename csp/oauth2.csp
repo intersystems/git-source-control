@@ -61,36 +61,59 @@ body {
 <server>
 	set failed = 0
 	set authenticated = 0
-	if $Data(%request.Data("state",1),state)#2 {
+	merge ^mtempdc($zh,"request.data") = %request.Data
+	// Check if this is an OAuth callback from GitHub (has state parameter)
+	set state = $Get(%request.Data("state",1))
+	if state '= "" {
 		// Redirected here from github
+		set ^mtempdc($zh,"received state") = state
 		// switch to the namespace that the extension is installed to
-		set namespace = $Piece(state,"_",1)
-		new $Namespace
-		set $Namespace = namespace
+		set ^mtempdc($zh,"namespace") = $get(%request.Data("Namespace",1), $namespace)
+		new $namespace
+		set $namespace = $get(%request.Data("Namespace",1), $namespace)
 
-
+		set ^mtempdc($zh,"username") = $username
 		set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig($username)
-		if (config.state '= state){
+		set configStage = ##class(SourceControl.Git.Util.CredentialManager).GetKeyPair($username,"state", .error, .statusCode)
+		if (statusCode '= 1) || (error '= "") {
+			set failed = 1
+			set failuremessage = "Failed to get State with error: " _ error
+		}
+		set ^mtempdc($zh,"configStage") = configStage
+		if (configStage '= state){
 			set failed =1
 			set failuremessage = "Invalid state"
 			quit 1
 		}
 
-		if '$Data(%request.Data("code",1),code)#2 {
+		// Get the authorization code from GitHub's callback
+		set authCode = $Get(%request.Data("code",1))
+		set ^mtempdc($zh,"received authCode") = authCode
+		if authCode = "" {
 			set failed =1
-			set failuremessage = "Invalid request parameters"
+			set failuremessage = "Invalid request parameters - missing authorization code"
 			quit 1
 		}
 
-		set verifier = config.verifier
-		set result = config.Exchange(code, verifier, .sc)
+		//set verifier = config.Verifier
+		set verifier = ##class(SourceControl.Git.Util.CredentialManager).GetKeyPair($username,"verifier", .error, .statusCode)
+		if (statusCode '= 1) || (error '= "") {
+			set failed = 1
+			set failuremessage = "Failed to get Verifier with error: " _ error
+		}
+		set ^mtempdc($zh,"verifier") = verifier
+
+		set result = config.Exchange(authCode, verifier, .sc)
+		set ^mtempdc($zh,"exchange authCode") = authCode
+		set ^mtempdc($zh,"exchange verifier") = verifier
+		set ^mtempdc($zh,"exchange result") = result
 		if sc '= $$$OK {
 			do $SYSTEM.Status.DisplayError(sc) 
 			set failed = 1
 			set failuremessage = "Unable to retrieve access token"
 		} else {
-			do ##class(SourceControl.Git.Util.CredentialManager).SetToken($username,result, .err, .code)
-			if (code '= 1) || (err '= "") {
+			do ##class(SourceControl.Git.Util.CredentialManager).SetAccessToken($username, result, .error, .code)
+			if (code '= 1) || (error '= "") {
 				set failed = 1
 				set failuremessage = "Unable to save credentials"
 			} else {
@@ -105,8 +128,8 @@ body {
 	}
 	set namespace = $NAMESPACE
 	set username = $USERNAME
-	set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig(username)
 
+	set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig(username)
 	if (config = "") {
 		set authURL = ""
 		set tokenURL = ""
@@ -123,11 +146,14 @@ body {
 		set authURL = $Get(%request.Data("authURL",1))
 		set tokenURL = $Get(%request.Data("tokenURL",1))
 		set redirect = $piece($Get(%request.Data("redirectURL",1)),"?",1)
-		set usingDirectToken = $Get(%request.Data("usingDirectToken"), 1)
+		set usingDirectToken = $Get(%request.Data("usingDirectToken"), 0)
 		set directToken = $Get(%request.Data("directToken", 1))
 
 		/// This make sure private memory store works
 		do ##class(SourceControl.Git.Util.CredentialManager).StopMemoryStore()
+		set ^mtempdc($zh,"username")=username
+		set ^mtempdc($zh,"usingDirectToken")=usingDirectToken
+		set ^mtempdc($zh,"directToken")=directToken
 
 		if config = "" {
 			set config = ##class(SourceControl.Git.OAuth2.Config).%New(username, clientID, clientSecret,authURL,tokenURL,redirect)
@@ -137,16 +163,30 @@ body {
 			set config.Endpoint.AuthURL = authURL
 			set config.Endpoint.TokenURL = tokenURL
 			set config.RedirectURL = redirect
-			set config.directToken = $select(usingDirectToken = 1: 1, 1: 0)
+			set config.DirectToken = $select(usingDirectToken = 1: 1, 1: 0)
 		}
 
 		do config.%Save()
 		if (usingDirectToken '= 1) {
 			set authCodeURL = ##class(SourceControl.Git.OAuth2).AuthCodeURL(config,namespace,.state,.verifier)
-			set config.state = state
-			set config.verifier = verifier
+			do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair($username, "state", state, .error, .code)
+			if (code '= 1) || (error '= "") {
+				set failed = 1
+				set failuremessage = "Set failed with following error: "_error
+			} 
+			do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair($username, "verifier", verifier, .error, .code)
+			if (code '= 1) || (error '= "") {
+				set failed = 1
+				set failuremessage = "Set failed with following error: "_error
+			} 
+			set ^mtempdc($zh,"authCodeURL")=authCodeURL
+			set ^mtempdc($zh,"state")=state
+			set ^mtempdc($zh,"verifier")=verifier
 		} else {
-			do ##class(SourceControl.Git.Util.CredentialManager).SetToken($username,directToken, .err, .code)
+			do ##class(SourceControl.Git.Util.CredentialManager).SetAccessToken($username, directToken, .error, .code)
+			set ^mtempdc($zh,"directToken")=directToken
+			set ^mtempdc($zh,"error")=error
+			set ^mtempdc($zh,"code")=code
 			set ready = ""
 			set authenticated = 1
 		}
@@ -185,7 +225,7 @@ body {
 				<div class="col-sm-7">
 				<div class="custom-control custom-switch custom-switch-no-border">
 					<server>
-							set directToken = $select(config:config.directToken, 1: 0)
+							set directToken = $select(config:config.DirectToken, 1: 0)
 							if (directToken) {
 								&html<<input class="custom-control-input" name="usingDirectToken" type="checkbox" id="usingDirectToken" checked value="1">>
 							} else {
@@ -201,49 +241,49 @@ body {
             <label for="directToken" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="OAuth Token">OAuth Token</label>
             <div class="col-sm-7">
 				<server>
-					set directToken =  ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+					set directToken =  ##class(SourceControl.Git.Util.CredentialManager).GetAccessToken($username, .error, .code)
 				</server>
                 <input type="text" class="form-control" id="directToken" name="directToken" value='#(directToken)#'/>
             </div>
         </div>
 		<div id="clientOAuth">
 			<div class="form-group row mb-3">
-				<label for="clientID" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab ClientID">ClientID<br/></label>
+				<label for="clientID" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="GitHub/GitLab ClientID">ClientID<br/></label>
 				<div class="col-sm-7">
 					<server>
 						set clientID = $select(config:config.ClientID, 1: "")
 					</server>
-					<input type="text" class="form-control" id="clientID" name="clientID" value='#(..EscapeHTML(clientID))#'/>
+					<input type="text" class="form-control" id="clientID" name="clientID" value='#(..EscapeHTML(clientID))#' required/>
 				</div>
 			</div>
 
 			<div class="form-group row mb-3">
-				<label for="clientSecret" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Client Secret">Client Secret<br/></label>
+				<label for="clientSecret" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="GitHub/GitLab Client Secret">Client Secret<br/></label>
 				<div class="col-sm-7">
 					<server>
 						set clientSecret = $select(config:config.ClientSecret, 1: "")
 					</server>
-					<input type="text" class="form-control" id="clientSecret" name="clientSecret" value='#(..EscapeHTML(clientSecret))#'/>
+					<input type="text" class="form-control" id="clientSecret" name="clientSecret" value='#(..EscapeHTML(clientSecret))#' required/>
 				</div>
 			</div>
 
 			<div class="form-group row mb-3">
-				<label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Authorize URL">Authorize URL<br/></label>
+				<label for="authURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="GitHub/GitLab Authorize URL">Authorize URL<br/></label>
 				<div class="col-sm-7">
 					<server>
 						set authURL = $select(config:config.Endpoint.AuthURL,authURL'="":authURL, 1: "")
 					</server>
-					<input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#'/>
+					<input type="text" class="form-control" id="authURL" name="authURL" value='#(..EscapeHTML(authURL))#' required/>
 				</div>
 			</div>
 
 			<div class="form-group row mb-3">
-				<label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Github/gitlab Token URL">Token URL<br/></label>
+				<label for="tokenURL" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="GitHub/GitLab Token URL">Token URL<br/></label>
 				<div class="col-sm-7">
 					<server>
 						set tokenURL = $select(config:config.Endpoint.TokenURL, tokenURL'="":tokenURL, 1: "")
 					</server>
-					<input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#'/>
+					<input type="text" class="form-control" id="tokenURL" name="tokenURL" value='#(..EscapeHTML(tokenURL))#' required/>
 				</div>
 			</div>
 		</div>
@@ -255,6 +295,7 @@ body {
             </div>
         </div>
 		<input type="hidden" id="redirectURL" name="redirectURL">
+		<input type="hidden" id="namespace" name="namespace">
 
 	</form>
 	<csp:if condition='ready'>
@@ -317,7 +358,18 @@ body {
 	}
 
 	var redirectURL = document.getElementById('callbackURL');
-	redirectURL.innerText = window.location.href.split("?")[0].replace("http:/","https:/");
+	var actualURL = window.location.href.split("?")[0];
+	redirectURL.innerText = actualURL;
+
+	// Warn if using HTTP (not secure for production)
+	if (actualURL.startsWith("http://") && !actualURL.startsWith("http://localhost")) {
+		var callbackContainer = redirectURL.parentElement;
+		var warning = document.createElement("div");
+		warning.className = "alert-red";
+		warning.style.marginTop = "10px";
+		warning.innerHTML = "<strong>Warning:</strong> Using HTTP is not secure. For production use, configure SSL/TLS and use HTTPS.";
+		callbackContainer.appendChild(warning);
+	}
 </script>
 </body>
 </html>

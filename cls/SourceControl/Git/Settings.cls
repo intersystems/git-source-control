@@ -506,12 +506,12 @@ Method OnAfterConfigure() As %Boolean
                 // stop polling after `TIMEOUT` seconds
                 set TIMEOUT = 300
                 While try*SLEEPTIME < TIMEOUT {
-                    do ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
-                    if code '= 1 {
-                        Write "Unable to query credential manager"
-                        // something went wrong, return from method
-                        return
-                    }
+                    do ##class(SourceControl.Git.Util.CredentialManager).GetAccessToken($username, .err, .code)
+                    #; if code '= 1 {
+                    #;     set ^mtempdc($zh,"err") = err
+                    #;     set ^mtempdc($zh,"code") = code
+                    #;     $$$ThrowStatus($$$ERROR($$$GeneralError, "Unable to authenticate with OAuth"))
+                    #; }
                     
                     if err = "" {
                         // token was saved successfully, exit loop

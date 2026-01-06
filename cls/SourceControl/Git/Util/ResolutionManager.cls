@@ -118,4 +118,3 @@ Method ResolveClass(className As %String, fileName As %String, resolverClass As 
 }
 
 }
-

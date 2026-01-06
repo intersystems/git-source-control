@@ -1,16 +1,18 @@
-Class %zpkg.isc.sc.git.SSLConfig 
+Class %zpkg.isc.sc.git.SSLConfig
 {
 
-    ClassMethod CreateSSLConfigIfNonExistent(name As %String) {
+ClassMethod CreateSSLConfigIfNonExistent(name As %String)
+{
         try {
             do ..CheckSSLConfig(name)
         } catch e {
             return e.AsStatus()
         }
-        return $$$OK  
-    }
+        return $$$OK
+}
 
-    ClassMethod CheckSSLConfig(name As %String) [ Private, NotInheritable ] {
+ClassMethod CheckSSLConfig(name As %String) [ NotInheritable, Private ]
+{
         $$$AddAllRoleTemporary
         new $namespace
         set $namespace = "%SYS"
@@ -36,6 +38,6 @@ Class %zpkg.isc.sc.git.SSLConfig
         set p("VerifyPeer")=0
 
         do ##class(Security.SSLConfigs).Create(name, .p)
-    }
+}
 
 }

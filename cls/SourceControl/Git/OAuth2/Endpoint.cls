@@ -7,7 +7,6 @@ Property DeviceAuthURL As %String;
 
 Property TokenURL As %String;
 
-
 Storage Default
 {
 <Data name="EndpointState">

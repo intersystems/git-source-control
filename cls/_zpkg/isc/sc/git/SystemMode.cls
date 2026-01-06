@@ -1,6 +1,7 @@
 Class %zpkg.isc.sc.git.SystemMode
 {
-    ClassMethod SetEnvironment(environment As %String) As %Status [ NotInheritable, Private ]
+
+ClassMethod SetEnvironment(environment As %String) As %Status [ NotInheritable, Private ]
 {
     $$$AddAllRoleTemporary
     do $SYSTEM.Version.SystemMode(environment)
@@ -20,4 +21,5 @@ ClassMethod SetSystemMode(environment As %String) As %Status [ NotInheritable ]
     }
     return $$$OK
 }
+
 }

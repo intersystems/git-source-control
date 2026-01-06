@@ -74,7 +74,7 @@ ClassMethod FixRemoteURL(url As %String) As %String
 
 ClassMethod GetToken() As %String
 {
-    return ##class(SourceControl.Git.Util.CredentialManager).GetToken($username, .err, .code)
+    return ##class(SourceControl.Git.Util.CredentialManager).GetAccessToken($username, .err, .code)
 }
 
 /// Base64URLEncode converts data to base64url format (RFC 4648 Section 5)

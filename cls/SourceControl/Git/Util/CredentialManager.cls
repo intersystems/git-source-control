@@ -4,32 +4,6 @@ Class SourceControl.Git.Util.CredentialManager Extends %RegisteredObject
 /// Description
 Property pvtStore [ Internal, Private ];
 
-ClassMethod Test() [ Private ]
-{
-	Do ##class(SourceControl.Git.Util.CredentialManager).Stop()
-
-	set username = "testUser"
-	w "Getting token for user """_username_""", expect error", !
-	set token = ..GetToken(username, .err, .code)
-	zw token, err, code
-
-	set token = "testToken"
-	w !, "Setting token """_token_""" for user """_username_"""", !
-	do ..SetToken(username, token, .err, .code)
-	zw err, code
-
-	w !, "Getting token for user "_username_", expect to get token """_token_"""", !
-	set token = ..GetToken(username, .err, .code)
-	zw token, err, code
-}
-
-ClassMethod Test2() [ Private ]
-{
-	set username = "testUser"
-	set token = ..GetToken(username, .err, .code)
-	zw token, err, code
-}
-
 /// Creates the `..GetEventName()` named event
 /// Waits on signals and services request
 Method Run() [ Private ]
@@ -50,24 +24,53 @@ Method Run() [ Private ]
 	}
 }
 
-/// GetToken is used to retreive the access token for a particular git user
-/// gitUsername (optional) default: `""` -- username for which token is to be retreived
+/// GetAccessToken is used to retrieve the access token for a particular git user
+/// gitUsername (optional) default: `""` -- username for which token is to be retrieved
 /// error -- pass by reference -- returns error: if error '= "" we got an error from the daemon process
 /// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
-/// Returns fetched token
-ClassMethod GetToken(gitUsername As %String = "", Output error As %String, Output code As %String) As %String
+/// Returns fetched access token
+ClassMethod GetAccessToken(gitUsername As %String = "", Output error As %String, Output code As %String) As %String
 {
-	set $lb(token, error) = ..Signal("GET", $lb($JOB, gitUsername), .code)
+	set token = ""
+	set $lb(token, error) = ..Signal("GET", $lb($JOB, gitUsername_"-accesstoken"), .code)
 	return token
 }
 
-/// SetToken is used to set the access token for a particular git user
+/// SetAccessToken is used to set the access token for a particular git user
 /// gitUsername (optional) default: `""` -- username for which token is to be set
 /// error -- pass by reference -- returns error: if (error '= "") we got an error from the daemon process
 /// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
-ClassMethod SetToken(gitUsername As %String = "", gitToken As %String, Output error As %String, Output code)
+ClassMethod SetAccessToken(gitUsername As %String = "", gitToken As %String, Output error As %String, Output code)
 {
-	set $lb(, error) = ..Signal("SET", $lb($JOB, gitUsername, gitToken), .code)
+	set ^mtempdc($zh,"set access token") = $lb(gitUsername, gitToken)
+	set error = ""
+	set $lb(, error) = ..Signal("SET", $lb($JOB, gitUsername_"-accesstoken", gitToken), .code)
+}
+
+ClassMethod DeleteAccessToken(gitUsername As %String, Output error As %String, Output code)
+{
+	set $lb(, error) = ..Signal("DEL", $lb($JOB, gitUsername_"-accesstoken"), .code)
+}
+
+/// GetRefreshToken retrieves the refresh token for a git user
+/// gitUsername (optional) default: `""` -- username for which refresh token is to be retrieved
+/// error -- pass by reference -- returns error: if error '= "" we got an error from the daemon process
+/// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
+/// Returns fetched refresh token
+ClassMethod GetRefreshToken(gitUsername As %String = "", Output error As %String, Output code As %String) As %String
+{
+	set token = ""
+	set $lb(token, error) = ..Signal("GET", $lb($JOB, gitUsername_"-refreshtoken"), .code)
+	return token
+}
+
+/// SetRefreshToken sets the refresh token for a git user
+/// gitUsername (optional) default: `""` -- username for which refresh token is to be set
+/// error -- pass by reference -- returns error: if (error '= "") we got an error from the daemon process
+/// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
+ClassMethod SetRefreshToken(gitUsername As %String = "", gitToken As %String, Output error As %String, Output code)
+{
+	set $lb(, error) = ..Signal("SET", $lb($JOB, gitUsername_"-refreshtoken", gitToken), .code)
 }
 
 ClassMethod SendResponse(toPID As %Integer, message As %String, error As %String) [ Private ]
@@ -85,7 +88,7 @@ ClassMethod SetKeyPair(gitUsername As %String = "", key As %String, value As %St
 {
 	if (gitUsername = "") {
 		do ..SendResponse($JOB, "", "provide username")
-		q
+		quit
 	}
 	set $lb(,error) = ..Signal("SET",$lb($JOB,gitUsername_"-"_key,value), .code)
 }
@@ -137,6 +140,9 @@ Method HandleMessage(msgType As %String, msgContent As %String) [ Private ]
 		}
 		do i%pvtStore.Store(key, gitToken)
 		do ..SendResponse(senderPID, gitToken, "")
+	} elseif msgType = "DEL" {
+		do i%pvtStore.Clear(key)
+		do ..SendResponse(senderPID, "", "")
 	}
 }
 

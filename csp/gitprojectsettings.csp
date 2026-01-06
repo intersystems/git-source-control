@@ -95,121 +95,122 @@ body {
 </head>
 <body>
 <server>
- set namespace = $namespace
- set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
- set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
- set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
- set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
+    set namespace = $namespace
+    set version = ##class(SourceControl.Git.Utils).GetPackageVersion()
+    set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
+    set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
+    set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
- set settings = ##class(SourceControl.Git.Settings).%New()
- try {
-    /// After Save
-    if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
-        for param="gitUserName","gitUserEmail" {
-            set $Property(settings,param) = $Get(%request.Data(param,1))
-        }
-
-        // Users may set basicMode even if settingsUIReadOnly is true
-        if ($Get(%request.Data("basicMode", 1)) = 1) {
-            set settings.basicMode = 1
-        } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
-            set settings.basicMode = "system"
-        } else {
-            set settings.basicMode = 0
-        }
-
-        if ('settings.settingsUIReadOnly) {
-            for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken" {
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    try {
+        /// After Save
+        if (%request.Method="POST") && $Data(%request.Data("gitsettings",1)) {
+            for param="gitUserName","gitUserEmail" {
                 set $Property(settings,param) = $Get(%request.Data(param,1))
             }
 
-            if ($Get(%request.Data("mappedItemsReadOnly", 1)) = 1) {
-                set settings.mappedItemsReadOnly = 1
+            // Users may set basicMode even if settingsUIReadOnly is true
+            if ($Get(%request.Data("basicMode", 1)) = 1) {
+                set settings.basicMode = 1
+            } elseif ($Get(%request.Data("basicMode", 1)) = "system"){
+                set settings.basicMode = "system"
             } else {
-                set settings.mappedItemsReadOnly = 0
+                set settings.basicMode = 0
             }
-
-
-            if ((newRemote [ "https") && ($Get(%request.Data("OAuth"), 1) = 1) ) {
-                set settings.OAuth = 1
-            } else {
-                set settings.OAuth = 0
-            }
-
-            set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
-            set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
-            set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
-            set settings.lockBranch = ($Get(%request.Data("lockBranch", 1)) = 1)
-
-            if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
-                set settings.systemBasicMode = 1
-            } else {
-                set settings.systemBasicMode = 0
-            }
-            set i = 1
-            set param = "NoFolders"
-            kill settings.Mappings
             
-            while ( $Data(%request.Data("MappingsExt",i)) ){
-            if ($get(%request.Data("MappingsExt",i)) '= "") {
-                    if ($Get(%request.Data(param,i)) = "NoFolders"){
-                        set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+            // Do not attempt to set a new remote repo if 'remoteRepo' is not actually present in the request
+            // This may occur for example when settingsUIReadOnly is true where 'remoteRepo' is not user editable
+            if ($data(%request.Data("remoteRepo",1)) '= 0) {
+                set newRemote = $Get(%request.Data("remoteRepo",1))
+                // If entry was modified and git repo is initialized, set new remote repo
+                set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
+                if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
+                    if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
+                        do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
                     }
-                    set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
-            }
-                set i = i+1
-            }
-
-            set i = 1
-            set contexts = []
-
-            while ( $Data(%request.Data("favNamespace",i)) ){
-            if ($Get(%request.Data("favNamespace",i)) '= "") {
-                do contexts.%Push($Get(%request.Data("favNamespace",i)))
-            }
-            set i = i+1
-            }
-
-            set settings.favoriteNamespaces = contexts
-
-            if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
-                do settings.SaveDefaults()
-            }
-            do settings.%Save()
-        }
-        set err = ""
-        try {
-            set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
-            do buffer.BeginCaptureOutput()
-            $$$ThrowOnError(settings.SaveWithSourceControl())
-            do buffer.EndCaptureOutput(.out)
-            if (out '= "") {
-                &html<<div class="alert alert-primary">
-                        <div>#(..EscapeHTML(out))#</div>
-                    </div>>
-            }
-        } catch err {
-            kill buffer
-            throw err
-        }
-        // Do not attempt to set a new remote repo if 'remoteRepo' is not actually present in the request
-        // This may occur for example when settingsUIReadOnly is true where 'remoteRepo' is not user editable
-        if ($data(%request.Data("remoteRepo",1)) '= 0) {
-            set newRemote = $Get(%request.Data("remoteRepo",1))
-            // If entry was modified and git repo is initialized, set new remote repo
-            set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
-            if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
-                if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
-                    do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
                 }
             }
+
+            if ('settings.settingsUIReadOnly) {
+                for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken" {
+                    set $Property(settings,param) = $Get(%request.Data(param,1))
+                }
+
+                if ($Get(%request.Data("mappedItemsReadOnly", 1)) = 1) {
+                    set settings.mappedItemsReadOnly = 1
+                } else {
+                    set settings.mappedItemsReadOnly = 0
+                }
+
+
+                if ((newRemote [ "https") && ($Get(%request.Data("OAuth"), 1) = 1) ) {
+                    set settings.OAuth = 1
+                } else {
+                    set settings.OAuth = 0
+                }
+
+                set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
+                set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
+                set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
+                set settings.lockBranch = ($Get(%request.Data("lockBranch", 1)) = 1)
+
+                if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
+                    set settings.systemBasicMode = 1
+                } else {
+                    set settings.systemBasicMode = 0
+                }
+                set i = 1
+                set param = "NoFolders"
+                kill settings.Mappings
+                
+                while ( $Data(%request.Data("MappingsExt",i)) ){
+                if ($get(%request.Data("MappingsExt",i)) '= "") {
+                        if ($Get(%request.Data(param,i)) = "NoFolders"){
+                            set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i)), $Get(%request.Data(param,i))) = 1
+                        }
+                        set settings.Mappings($Get(%request.Data("MappingsExt",i)), $Get(%request.Data("MappingsCov",i))) = $Get(%request.Data("MappingsPath",i))
+                }
+                    set i = i+1
+                }
+
+                set i = 1
+                set contexts = []
+
+                while ( $Data(%request.Data("favNamespace",i)) ){
+                if ($Get(%request.Data("favNamespace",i)) '= "") {
+                    do contexts.%Push($Get(%request.Data("favNamespace",i)))
+                }
+                set i = i+1
+                }
+
+                set settings.favoriteNamespaces = contexts
+
+                if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
+                    do settings.SaveDefaults()
+                }
+                do settings.%Save()
+            }
+            set err = ""
+            try {
+                set buffer = ##class(SourceControl.Git.Util.Buffer).%New()
+                do buffer.BeginCaptureOutput()
+                $$$ThrowOnError(settings.SaveWithSourceControl())
+                do buffer.EndCaptureOutput(.out)
+                if (out '= "") {
+                    &html<<div class="alert alert-primary">
+                            <div>#(..EscapeHTML(out))#</div>
+                        </div>>
+                }
+            } catch err {
+                kill buffer
+                throw err
+            }
+            set successfullySavedSettings = 1
         }
-        set successfullySavedSettings = 1
-    }
-    set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
-    if (remote'="") && (##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote",,.errStream,,"origin")'=0) {
-        set remoteConnectionError = errStream.Read()
-    }
+        set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
+        if (remote'="") && (##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote",,.errStream,,"origin")'=0) {
+            set remoteConnectionError = errStream.Read()
+        }
     } catch err {
         do err.Log()
         &html<<div class="error alert-danger">An error occurred and has been logged to the application error log.</div>>
@@ -233,7 +234,6 @@ body {
         do err.Log()
         &html<<div class="alert alert-danger">An error occurred and has been logged to the application error log.</div>>
     }
-}
 </server>
 <div class = 'container'>
     <csp:if condition='$get(successfullySavedSettings) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>

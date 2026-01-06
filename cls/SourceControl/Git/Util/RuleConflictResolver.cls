@@ -4,4 +4,3 @@ Class SourceControl.Git.Util.RuleConflictResolver Extends SourceControl.Git.Util
 Parameter ExpectedConflictTag = "</rule>";
 
 }
-

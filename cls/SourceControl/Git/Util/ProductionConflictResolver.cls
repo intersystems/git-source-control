@@ -8,4 +8,3 @@ Parameter ExpectedConflictTag = "</Item>";
 Parameter OutputIndent = "  ";
 
 }
-

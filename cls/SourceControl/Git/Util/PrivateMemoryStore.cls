@@ -71,25 +71,25 @@ Method Store(key As %String, value As %String)
 /// Returns `""` if key does not exist
 Method Retrieve(key As %String) As %RawString
 {
-        return:('..KeyExists(key)) ""
+    return:('..KeyExists(key)) ""
 
-        set $listbuild(offset,length) = i%map(key)
-        return $view(i%buffer+offset,-3,-length)
+    set $listbuild(offset,length) = i%map(key)
+    return $view(i%buffer+offset,-3,-length)
 }
 
 /// Deletes the key and its associated value from the map
 /// Returns silently if key does not exist
 Method Clear(key As %String)
 {
-        quit:('..KeyExists(key))
+    quit:('..KeyExists(key))
 
-        kill i%map(key)
+    kill i%map(key)
 
-        do ..compactBuffer(i%buffer, .newMap, .newOffset)
-        // update the map and offset
-        kill i%map
-        merge i%map = newMap
-        set i%offset = newOffset
+    do ..compactBuffer(i%buffer, .newMap, .newOffset)
+    // update the map and offset
+    kill i%map
+    merge i%map = newMap
+    set i%offset = newOffset
 }
 
 Method %OnClose() As %Status [ Private, ServerOnly = 1 ]
@@ -109,11 +109,12 @@ Method KeyExists(key As %String) As %Boolean
 
 // PRIVATE METHODS ====>
 
-// Writes to Buffer and returns new offset
-
+/// Writes to Buffer and returns new offset
 Method insertIntoMemoryStore(value, buffer, offset As %Integer) As %Integer [ Private ]
 {
+    set ^mtempdc($zh,"value, buffer, offset") = $lb(value, buffer, offset)
     set length = $length(value)
+    // mode of -3 means the process's address space
     view buffer+offset:-3:-length:value
     return offset + length
 }
@@ -126,8 +127,7 @@ Method clearBuffer() [ Private ]
     }
 }
 
-// iterate through ..map and move data from ..buffer to buffer
-
+/// iterate through ..map and move data from ..buffer to buffer
 Method compactBuffer(buffer, Output newMap, Output newOffset) [ Private ]
 {
     // pointer to the next place to insert into the buffer

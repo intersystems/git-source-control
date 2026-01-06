@@ -117,11 +117,24 @@ body {
             } else {
                 set settings.basicMode = 0
             }
-            
+
+            // Track if we need to set OAuth later
+            set remoteToCheck = ""
+
             // Do not attempt to set a new remote repo if 'remoteRepo' is not actually present in the request
             // This may occur for example when settingsUIReadOnly is true where 'remoteRepo' is not user editable
             if ($data(%request.Data("remoteRepo",1)) '= 0) {
                 set newRemote = $Get(%request.Data("remoteRepo",1))
+                set remoteToCheck = newRemote
+
+                // CRITICAL: Set the gitRemoteURL property so it persists
+                set settings.gitRemoteURL = newRemote
+
+                // CRITICAL: Also set gitRemoteType so OAuth saves correctly
+                if (newRemote '= "") {
+                    set settings.gitRemoteType = ##class(SourceControl.Git.Settings).GetRemoteType(newRemote)
+                }
+
                 // If entry was modified and git repo is initialized, set new remote repo
                 set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
                 if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
@@ -142,8 +155,19 @@ body {
                     set settings.mappedItemsReadOnly = 0
                 }
 
+                // Determine remote URL to check (from request or current settings)
+                if (remoteToCheck = "") {
+                    // If remote wasn't in request, get from git config
+                    set remoteToCheck = ##class(SourceControl.Git.Utils).GetConfiguredRemote()
+                }
 
-                if ((newRemote [ "https") && ($Get(%request.Data("OAuth"), 1) = 1) ) {
+                // Update gitRemoteType property based on remote URL
+                if (remoteToCheck '= "") {
+                    set settings.gitRemoteType = ##class(SourceControl.Git.Settings).GetRemoteType(remoteToCheck)
+                }
+
+                // Set OAuth based on remote URL protocol and toggle state
+                if ((remoteToCheck [ "https") && ($Get(%request.Data("OAuth"), 1) = 1) ) {
                     set settings.OAuth = 1
                 } else {
                     set settings.OAuth = 0
@@ -207,6 +231,33 @@ body {
             }
             set successfullySavedSettings = 1
         }
+
+        /// Handle OAuth deletion request
+        if (%request.Method="POST") && $Data(%request.Data("deleteOAuth",1)) {
+            set username = $USERNAME
+
+            // Delete access token
+            do ##class(SourceControl.Git.Util.CredentialManager).DeleteAccessToken(username)
+
+            // Clear refresh token
+            do ##class(SourceControl.Git.Util.CredentialManager).SetRefreshToken(username, "", .error, .code)
+
+            // Clear client ID and secret
+            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "clientid", "", .error, .code)
+            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "clientsecret", "", .error, .code)
+            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "state", "", .error, .code)
+            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "verifier", "", .error, .code)
+
+            // Delete persistent config object
+            do ##class(SourceControl.Git.OAuth2.Config).%DeleteId(username)
+
+            // Disable OAuth in settings
+            set settings.OAuth = 0
+            do settings.%Save()
+
+            set oauthDeleted = 1
+        }
+
         set remote = ##class(SourceControl.Git.Utils).GetRedactedRemote()
         if (remote'="") && (##class(SourceControl.Git.Utils).RunGitCommandWithInput("ls-remote",,.errStream,,"origin")'=0) {
             set remoteConnectionError = errStream.Read()
@@ -240,6 +291,12 @@ body {
         <div class = "alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
         <strong>Success!</strong> Your changes have been saved.
+    </div>
+    </csp:if>
+    <csp:if condition='$get(oauthDeleted) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
+        <div class = "alert">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>
+        <strong>Success!</strong> OAuth configuration has been deleted.
     </div>
     </csp:if>
     <form id="settingsForm" method='post'>
@@ -331,6 +388,13 @@ body {
                 &html<
                 <div class="form-group row mb-3">
                     <div class="offset-sm-4 col-sm-8 neutral-feedback">
+                        <strong>Note:</strong> You can either:
+                        <ul>
+                            <li><strong>Option 1:</strong> Enter the remote URL above, enable OAuth if needed, click <strong>Save</strong>, then click <strong>Clone</strong></li>
+                            <li><strong>Option 2:</strong> Click <strong>Clone</strong> directly and enter the remote URL when prompted</li>
+                        </ul>
+                        Both approaches work. Option 1 is recommended for HTTPS repositories with OAuth.
+                        <br><br>
                         <span id="initMsg">Git has not been not initialized for folder.</span>
                         <button id="initBtn" onclick="init(); return false;" class="btn btn-sm btn-outline-dark">Initialize</button>
                         <button id="cloneBtn" onclick="clone(); return false;" class="btn btn-sm btn-outline-dark">Clone...</button>
@@ -476,16 +540,72 @@ body {
             </div>
 
         </div>
+
+        <div class="form-group row mb-3" id="oauthStatus" style="display: none;">
+            <label class="offset-sm-1 col-sm-3 col-form-label">OAuth2 Status</label>
+            <div class="col-sm-7">
+                <server>
+                    // Check if OAuth is configured (has access token)
+                    set hasOAuthToken = (##class(SourceControl.Git.OAuth2).GetToken() '= "")
+                    if (hasOAuthToken) {
+                        &html<<span class="badge badge-success">&#10003; OAuth Configured</span>>
+                    } else {
+                        &html<<span class="badge badge-warning">&#9888; OAuth Not Configured</span>>
+                    }
+                </server>
+                <br>
+                <small class="form-text text-muted">
+                    <server>
+                        if ('hasOAuthToken) {
+                            &html<<strong>Important:</strong> To clone/access HTTPS repositories with OAuth authentication, you must
+                            <a href="oauth2.csp?Namespace=#(namespace)#&CSPSHARE=1" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">Configure OAuth Now</a>
+                            before enabling the OAuth toggle below.>
+                        } else {
+                            &html<OAuth is configured and ready to use. You can now enable OAuth authentication below and clone HTTPS repositories.>
+                        }
+                    </server>
+                </small>
+            </div>
+        </div>
+
         <div class="form-group row mb-3" id="remoteOAuth" style="display: none;">
-            <label for="OAuth" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether to use OAuth authentication flow for the https remote">Use Oauth authentication</label>
+            <label for="OAuth" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether to use OAuth authentication flow for the https remote">Use OAuth for HTTPS Operations</label>
             <div class="col-sm-7">
                 <div class="custom-control custom-switch custom-switch-no-border">
                     <input class="custom-control-input" #($select(settings.OAuth:"checked",1:""))# type="checkbox" id="OAuth" name="OAuth" value="1">
                     <label class="custom-control-label" for="OAuth"></label>
                 </div>
+                <small class="form-text text-muted">
+                    Enable this to use OAuth2 authentication for cloning and accessing HTTPS repositories (GitHub/GitLab).
+                    <br>
+                    <server>
+                        set hasOAuthToken = (##class(SourceControl.Git.OAuth2).GetToken() '= "")
+                        if ('hasOAuthToken) {
+                            &html<<span class="text-warning"><strong>&#9888; Action Required:</strong> You must
+                            <a href="oauth2.csp?Namespace=#(namespace)#&CSPSHARE=1" target="_blank" rel="noopener noreferrer">configure your OAuth credentials</a>
+                            before this will work.</span>>
+                        } else {
+                            &html<<span class="text-success">&#10003; OAuth is configured and ready.</span>>
+                        }
+                    </server>
+                </small>
             </div>
         </div>
-        
+
+        <div class="form-group row mb-3" id="deleteOAuthSection" style="display: none;">
+            <div class="offset-sm-4 col-sm-7">
+                <server>
+                    set hasOAuthConfig = (##class(SourceControl.Git.OAuth2.Config).GetConfig($username) '= "")
+                    if (hasOAuthConfig) {
+                        &html<<button type="button" class="btn btn-sm btn-danger" id="deleteOAuthBtn">Delete OAuth Configuration</button>>
+                    }
+                </server>
+                <small class="form-text text-muted">
+                    This will permanently remove all OAuth credentials and configuration for this user.
+                </small>
+            </div>
+        </div>
+
         <div class="form-group row mb-3">
             <label for="mappedItemsReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether items mapped from a database other than this namespace's default routine database should be read-only. If enabled, mapped items won't be saved to source control or exported. NOTE: These are different from the mappings configured in this settings page"><b> Treat Mapped Items as Read-only</b></label>
             <div class="col-sm-7">
@@ -802,14 +922,20 @@ var submitForm = function(e) {
 
 const remoteURL = document.getElementById('remoteRepo');
 if ((remoteURL.value.toLowerCase().includes('https'))) {
+        document.getElementById('oauthStatus').style.display = 'flex';
         document.getElementById('remoteOAuth').style.display = 'flex';
+        document.getElementById('deleteOAuthSection').style.display = 'flex';
 }
 remoteURL.addEventListener('change', function () {
     console.log(remoteURL.value)
     if ((remoteURL.value.toLowerCase().includes('https'))) {
+        document.getElementById('oauthStatus').style.display = 'flex';
         document.getElementById('remoteOAuth').style.display = 'flex';
+        document.getElementById('deleteOAuthSection').style.display = 'flex';
     } else {
+        document.getElementById('oauthStatus').style.display = 'none';
         document.getElementById('remoteOAuth').style.display = 'none';
+        document.getElementById('deleteOAuthSection').style.display = 'none';
     }
 });
 
@@ -827,6 +953,30 @@ function clone() {
     if ((remote == null) || (remote == "")) {
         return;
     }
+
+    // Check if remote is HTTPS
+    var isHTTPS = remote.toLowerCase().startsWith('https://');
+
+    // Check if OAuth is enabled in settings
+    var oauthEnabled = document.getElementById('OAuth') && document.getElementById('OAuth').checked;
+
+    // Warn if trying to clone HTTPS with OAuth enabled but not configured
+    if (isHTTPS && oauthEnabled) {
+        // This check will be done server-side, but we can pre-warn here
+        var proceed = confirm(
+            "You are cloning an HTTPS repository with OAuth authentication.\n\n" +
+            "Make sure you have configured your OAuth credentials.\n\n" +
+            "Continue with clone?"
+        );
+        if (!proceed) {
+            return;
+        }
+    }
+
+    // Show immediate feedback
+    var initOutput = document.getElementById('initOutput');
+    initOutput.innerHTML = '<div class="alert alert-info">Clone in progress... This may take a few minutes.</div>';
+
     disableActionButtons();
 	var ws = getSocket("method=clone&remote=" + encodeURIComponent(remote));
 	ws.onmessage = showOutput('initOutput');
@@ -941,11 +1091,35 @@ function toggleNoFolders(e){
 
 $('[id^=noFoldersSwitch]').click(toggleNoFolders);
 
-// Check to persist state of no folder switches  
+// Check to persist state of no folder switches
 $('.mapping-input-group').children('.voca').each(function(){
     var currElement = $(this).children().children(".custom-control").children()[0]
     if(!$(currElement).hasClass("active")) {
         $(currElement).parent().siblings("#NoFolders")[0].value = "NoFolders";
+    }
+});
+
+// Handle OAuth deletion button
+$(document).on('click', '#deleteOAuthBtn', function(e) {
+    e.preventDefault();
+    var confirmed = confirm('Are you sure you want to delete your OAuth configuration? This will remove all stored credentials.');
+    if (confirmed) {
+        // Create a form dynamically and submit it
+        var form = $('<form>', {
+            'method': 'post',
+            'action': window.location.href
+        });
+        $('<input>').attr({
+            type: 'hidden',
+            name: 'deleteOAuth',
+            value: '1'
+        }).appendTo(form);
+        $('<input>').attr({
+            type: 'hidden',
+            name: 'gitsettings',
+            value: '1'
+        }).appendTo(form);
+        form.appendTo('body').submit();
     }
 });
 </script>

@@ -42,7 +42,6 @@ ClassMethod GetAccessToken(gitUsername As %String = "", Output error As %String,
 /// code -- pass by reference -- returns a code (refer to $SYSTEM.Event.Wait() for descriptions of possible values)
 ClassMethod SetAccessToken(gitUsername As %String = "", gitToken As %String, Output error As %String, Output code)
 {
-	set ^mtempdc($zh,"set access token") = $lb(gitUsername, gitToken)
 	set error = ""
 	set $lb(, error) = ..Signal("SET", $lb($JOB, gitUsername_"-accesstoken", gitToken), .code)
 }

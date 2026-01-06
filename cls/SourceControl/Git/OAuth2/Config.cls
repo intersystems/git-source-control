@@ -115,11 +115,6 @@ Method AuthCodeURL(state As %String, verifier As %String) As %String
 
         set params("code_challenge_method") = "S256"
         set params("code_challenge") = codeChallenge
-
-        // Debug logging for PKCE
-        set ^mtempdc($zh,"pkce.verifier") = verifier
-        set ^mtempdc($zh,"pkce.challenge") = codeChallenge
-        set ^mtempdc($zh,"pkce.method") = params("code_challenge_method")
     }
 
     return ..GetURLWithParams(..Endpoint.AuthURL, .params)
@@ -127,14 +122,7 @@ Method AuthCodeURL(state As %String, verifier As %String) As %String
 
 Method Exchange(authCode As %String, verifier As %String, Output sc As %Status) As %String
 {
-    set ^mtempdc($zh,"Exchange") = $lb(authCode, verifier)
     set sc = $$$OK
-
-    // Debug: Log input parameters
-    set ^mtempdc($zh,"Exchange.authCode") = authCode
-    set ^mtempdc($zh,"Exchange.verifier") = verifier
-    set ^mtempdc($zh,"Exchange.ClientID") = ..ClientID
-    set ^mtempdc($zh,"Exchange.TokenURL") = ..Endpoint.TokenURL
 
     // Create and configure token request
     set request = ..CreateTokenRequest(.sc)
@@ -200,20 +188,6 @@ Method Exchange(authCode As %String, verifier As %String, Output sc As %Status) 
 
         return accessToken
     } else {
-        // Log the actual response for debugging
-        if $IsObject(obj) {
-            set ^mtempdc($zh,"Exchange.noToken.response") = obj.%ToJSON()
-            set ^mtempdc($zh,"Exchange.noToken.hasAccessToken") = obj.%IsDefined("access_token")
-            if obj.%IsDefined("access_token") {
-                set ^mtempdc($zh,"Exchange.noToken.accessTokenType") = obj.%GetTypeOf("access_token")
-            }
-            if obj.%IsDefined("error") {
-                set ^mtempdc($zh,"Exchange.noToken.error") = obj.%Get("error")
-                if obj.%IsDefined("error_description") {
-                    set ^mtempdc($zh,"Exchange.noToken.errorDesc") = obj.%Get("error_description")
-                }
-            }
-        }
         set sc = $$$ERROR($$$GeneralError,"Unable to read access_token from response")
         return ""
     }
@@ -261,19 +235,14 @@ Method ExecuteTokenRequest(request As %Net.HttpRequest, Output sc As %Status) As
     do ##class(%Net.URLParser).Decompose(..Endpoint.TokenURL, .urlComponents)
 
     // POST to token endpoint
-    set ^mtempdc($zh,"ExecuteTokenRequest.url") = ..Endpoint.TokenURL
-    set ^mtempdc($zh,"ExecuteTokenRequest.path") = urlComponents("path")
     set postSc = request.Post(urlComponents("path"))
     if postSc '= $$$OK {
-        set ^mtempdc($zh,"ExecuteTokenRequest.postError") = $SYSTEM.Status.GetErrorText(postSc)
         set sc = $$$ERROR($$$GeneralError, "Network error: "_$SYSTEM.Status.GetErrorText(postSc))
         return ""
     }
-    set ^mtempdc($zh,"ExecuteTokenRequest.postSuccess") = 1
 
     // Check HTTP status
     set httpStatus = request.HttpResponse.StatusCode
-    set ^mtempdc($zh,"ExecuteTokenRequest.httpStatus") = httpStatus
     if httpStatus '= 200 {
         set errorMsg = "HTTP "_httpStatus
 
@@ -313,24 +282,19 @@ Method ExecuteTokenRequest(request As %Net.HttpRequest, Output sc As %Status) As
     // Parse response JSON
     try {
         set contentType = request.HttpResponse.GetHeader("CONTENT-TYPE")
-        set ^mtempdc($zh,"ExecuteTokenRequest.contentType") = contentType
 
         // Try JSON first (GitHub should return this with Accept: application/json)
         set obj = {}.%FromJSON(request.HttpResponse.Data)
-        set ^mtempdc($zh,"ExecuteTokenRequest.jsonSuccess") = 1
         return obj
     } catch ex {
         // If JSON parsing fails, try URL-encoded format
-        set ^mtempdc($zh,"ExecuteTokenRequest.jsonError") = ex.DisplayString()
 
         // Reset stream position
         do request.HttpResponse.Data.Rewind()
         set responseText = request.HttpResponse.Data.Read()
-        set ^mtempdc($zh,"ExecuteTokenRequest.rawResponse") = responseText
 
         // Try parsing as URL-encoded (access_token=xxx&token_type=bearer)
         if responseText [ "access_token=" {
-            set ^mtempdc($zh,"ExecuteTokenRequest.tryingUrlEncoded") = 1
             set obj = {}
             // Parse URL-encoded response
             for i=1:1:$LENGTH(responseText,"&") {
@@ -341,7 +305,6 @@ Method ExecuteTokenRequest(request As %Net.HttpRequest, Output sc As %Status) As
                     do obj.%Set(key, value)
                 }
             }
-            set ^mtempdc($zh,"ExecuteTokenRequest.urlEncodedSuccess") = 1
             return obj
         }
 

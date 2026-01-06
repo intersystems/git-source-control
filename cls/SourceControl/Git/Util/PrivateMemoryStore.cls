@@ -112,7 +112,6 @@ Method KeyExists(key As %String) As %Boolean
 /// Writes to Buffer and returns new offset
 Method insertIntoMemoryStore(value, buffer, offset As %Integer) As %Integer [ Private ]
 {
-    set ^mtempdc($zh,"value, buffer, offset") = $lb(value, buffer, offset)
     set length = $length(value)
     // mode of -3 means the process's address space
     view buffer+offset:-3:-length:value

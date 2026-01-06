@@ -507,11 +507,6 @@ Method OnAfterConfigure() As %Boolean
                 set TIMEOUT = 300
                 While try*SLEEPTIME < TIMEOUT {
                     do ##class(SourceControl.Git.Util.CredentialManager).GetAccessToken($username, .err, .code)
-                    #; if code '= 1 {
-                    #;     set ^mtempdc($zh,"err") = err
-                    #;     set ^mtempdc($zh,"code") = code
-                    #;     $$$ThrowStatus($$$ERROR($$$GeneralError, "Unable to authenticate with OAuth"))
-                    #; }
                     
                     if err = "" {
                         // token was saved successfully, exit loop

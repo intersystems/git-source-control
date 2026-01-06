@@ -55,31 +55,33 @@ body {
 .custom-switch-no-border {
     border: 0px;
 }
+
+#webuiURL {
+    display: none;
+}
+#homeURL {
+    display: none;
+}
 </style>
 </head>
 <body>
 <server>
 	set failed = 0
 	set authenticated = 0
-	merge ^mtempdc($zh,"request.data") = %request.Data
 	// Check if this is an OAuth callback from GitHub (has state parameter)
 	set state = $Get(%request.Data("state",1))
 	if state '= "" {
 		// Redirected here from github
-		set ^mtempdc($zh,"received state") = state
 		// switch to the namespace that the extension is installed to
-		set ^mtempdc($zh,"namespace") = $get(%request.Data("Namespace",1), $namespace)
 		new $namespace
 		set $namespace = $get(%request.Data("Namespace",1), $namespace)
 
-		set ^mtempdc($zh,"username") = $username
 		set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig($username)
 		set configStage = ##class(SourceControl.Git.Util.CredentialManager).GetKeyPair($username,"state", .error, .statusCode)
 		if (statusCode '= 1) || (error '= "") {
 			set failed = 1
 			set failuremessage = "Failed to get State with error: " _ error
 		}
-		set ^mtempdc($zh,"configStage") = configStage
 		if (configStage '= state){
 			set failed =1
 			set failuremessage = "Invalid state"
@@ -88,7 +90,6 @@ body {
 
 		// Get the authorization code from GitHub's callback
 		set authCode = $Get(%request.Data("code",1))
-		set ^mtempdc($zh,"received authCode") = authCode
 		if authCode = "" {
 			set failed =1
 			set failuremessage = "Invalid request parameters - missing authorization code"
@@ -101,12 +102,8 @@ body {
 			set failed = 1
 			set failuremessage = "Failed to get Verifier with error: " _ error
 		}
-		set ^mtempdc($zh,"verifier") = verifier
 
 		set result = config.Exchange(authCode, verifier, .sc)
-		set ^mtempdc($zh,"exchange authCode") = authCode
-		set ^mtempdc($zh,"exchange verifier") = verifier
-		set ^mtempdc($zh,"exchange result") = result
 		if sc '= $$$OK {
 			do $SYSTEM.Status.DisplayError(sc) 
 			set failed = 1
@@ -128,6 +125,11 @@ body {
 	}
 	set namespace = $NAMESPACE
 	set username = $USERNAME
+
+	// Generate URLs for navigation buttons
+	set webuiURL = "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_namespace_"/?CSPSHARE=1"
+	set webuiURL = ##class(SourceControl.Git.WebUIDriver).GetURLPrefix(%request, webuiURL)
+	set homeURL = ##class(SourceControl.Git.WebUIDriver).GetHomeURL()
 
 	set config = ##class(SourceControl.Git.OAuth2.Config).GetConfig(username)
 	if (config = "") {
@@ -151,9 +153,6 @@ body {
 
 		/// This make sure private memory store works
 		do ##class(SourceControl.Git.Util.CredentialManager).StopMemoryStore()
-		set ^mtempdc($zh,"username")=username
-		set ^mtempdc($zh,"usingDirectToken")=usingDirectToken
-		set ^mtempdc($zh,"directToken")=directToken
 
 		if config = "" {
 			set config = ##class(SourceControl.Git.OAuth2.Config).%New(username, clientID, clientSecret,authURL,tokenURL,redirect)
@@ -178,15 +177,9 @@ body {
 			if (code '= 1) || (error '= "") {
 				set failed = 1
 				set failuremessage = "Set failed with following error: "_error
-			} 
-			set ^mtempdc($zh,"authCodeURL")=authCodeURL
-			set ^mtempdc($zh,"state")=state
-			set ^mtempdc($zh,"verifier")=verifier
+			}
 		} else {
 			do ##class(SourceControl.Git.Util.CredentialManager).SetAccessToken($username, directToken, .error, .code)
-			set ^mtempdc($zh,"directToken")=directToken
-			set ^mtempdc($zh,"error")=error
-			set ^mtempdc($zh,"code")=code
 			set ready = ""
 			set authenticated = 1
 		}
@@ -197,7 +190,7 @@ body {
 	<csp:if condition='(authenticated = 1)'>
         <div class = "alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
-        <strong>Success!</strong> You have been authenticated. You may now close this page.
+        <strong>Success!</strong> You have been authenticated.
     </div>
     </csp:if>
 	<csp:if condition='(failed = 1)'>
@@ -206,6 +199,19 @@ body {
 			<strong>Error!</strong> #(failuremessage)#
     	</div>
 	</csp:if>
+
+	<div class="mb-3 text-center">
+		<button class="btn btn-lg btn-outline-dark" id="goToHome">Home
+		</button>
+		<div id="homeURL">
+			#(homeURL)#
+		</div>
+		<button class="btn btn-lg btn-outline-dark" id="goToWebUI">Go to WebUI
+		</button>
+		<div id="webuiURL">
+			#(webuiURL)#
+		</div>
+	</div>
 
 	<form id="oauthForm" method="post">
 		<div>
@@ -370,6 +376,17 @@ body {
 		warning.innerHTML = "<strong>Warning:</strong> Using HTTP is not secure. For production use, configure SSL/TLS and use HTTPS.";
 		callbackContainer.appendChild(warning);
 	}
+
+	// Navigation button handlers
+	$(document).on('click', "#goToWebUI", function(e){
+		e.preventDefault();
+		window.location.href = $("#webuiURL")[0].innerText;
+	});
+
+	$(document).on('click', "#goToHome", function(e){
+		e.preventDefault();
+		window.location.href = $("#homeURL")[0].innerText;
+	});
 </script>
 </body>
 </html>

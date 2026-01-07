@@ -19,10 +19,13 @@ Method TestGeneratedFilesReadOnlyOption()
         $$$ThrowOnError(settings.%Save())
         set extension = ##class(SourceControl.Git.Extension).%New("")
         do $$$AssertNotTrue(extension.IsReadOnly("UnitTest.SourceControl.Git.GeneratedReadOnly.cls"))
-
+        do extension.GetStatus("UnitTest.SourceControl.Git.GeneratedReadOnly.cls",,.editable)
+        do $$$AssertTrue(editable)
         set settings.generatedFilesReadOnly = 1
         $$$ThrowOnError(settings.%Save())
         do $$$AssertTrue(extension.IsReadOnly("UnitTest.SourceControl.Git.GeneratedReadOnly.cls"))
+        do extension.GetStatus("UnitTest.SourceControl.Git.GeneratedReadOnly.cls",,.editable)
+        do $$$AssertNotTrue(editable)
     } catch err {
         set sc = err.AsStatus()
     }

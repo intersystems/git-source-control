@@ -546,7 +546,7 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
         }
     } else {
         // If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
-        set Editable=1, IsCheckedOut=0, UserCheckedOut=""
+        set IsCheckedOut=0, UserCheckedOut=""
         if ##class(SourceControl.Git.Change).IsUncommitted(filename)
            && '##class(SourceControl.Git.Change).IsDeleted(InternalName, .files) {
             #; Remove the item from the list of uncommitted changes;
@@ -590,4 +590,3 @@ Method CheckBusinessProcessesAndRules(InternalName As %String) As %Status
 }
 
 }
-

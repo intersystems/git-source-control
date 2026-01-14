@@ -15,7 +15,7 @@ Method TestAccessToken()
 	w !,"Getting token for user """_username_""", expect error", !
 	set token = ##class(SourceControl.Git.Util.CredentialManager).GetAccessToken(username, .err, .code)
 	do $$$AssertEquals(token, "")
-    do $$$AssertEquals(err, "key does not exist")
+    do $$$AssertEquals(err, "")
     do $$$AssertEquals(code, 1)
 
 	set token = "testToken"

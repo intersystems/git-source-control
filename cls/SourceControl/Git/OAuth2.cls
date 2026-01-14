@@ -98,4 +98,54 @@ ClassMethod Base64URLEncode(data As %String) As %String
     return base64url
 }
 
+ClassMethod DeleteOAuthConfig(username As %String) As %Status
+{
+    set sc = $$$OK
+    set error = ""
+    set code = ""
+
+    // Delete access token
+    // Check if token exists first
+    set token = ##class(SourceControl.Git.Util.CredentialManager).GetAccessToken(username, .error, .code)
+    if error '= "" {
+        return $$$ERROR($$$GeneralError,$$$FormatText("Failed to get access token with error: %1; code: %2'",error,code))
+    }
+    if token '= "" {
+        do ##class(SourceControl.Git.Util.CredentialManager).DeleteAccessToken(username, .error, .code)
+        if error '= "" {
+            return $$$ERROR($$$GeneralError,$$$FormatText("Failed to delete access token with error: %1; code: %2'",error,code))
+        }
+    }
+
+    // Clear refresh token
+    do ##class(SourceControl.Git.Util.CredentialManager).SetRefreshToken(username, "", .error, .code)
+    if error '= "" {
+       return $$$ERROR($$$GeneralError,$$$FormatText("Failed to clear refresh token with error: %1; code: %2'",error,code))
+    }
+
+    // Clear client ID; secret
+    do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "clientid", "", .error, .code)
+    if error '= "" {
+       return $$$ERROR($$$GeneralError,$$$FormatText("Failed to clear clientid with error: %1; code: %2'",error,code))
+    }
+    do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "clientsecret", "", .error, .code)
+    if error '= "" {
+       return $$$ERROR($$$GeneralError,$$$FormatText("Failed to clear clientsecret with error: %1; code: %2'",error,code))
+    }
+    do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "state", "", .error, .code)
+    if error '= "" {
+       return $$$ERROR($$$GeneralError,$$$FormatText("Failed to clear state with error: %1; code: %2'",error,code))
+    }
+    do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "verifier", "", .error, .code)
+    if error '= "" {
+       return $$$ERROR($$$GeneralError,$$$FormatText("Failed to clear verifier with error: %1; code: %2'",error,code))
+    }
+
+    // Delete persistent config object
+    if ##class(SourceControl.Git.OAuth2.Config).%ExistsId(username) {
+        set sc = ##class(SourceControl.Git.OAuth2.Config).%DeleteId(username)
+    }
+    return sc
+}
+
 }

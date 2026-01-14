@@ -130,7 +130,7 @@ Method HandleMessage(msgType As %String, msgContent As %String) [ Private ]
 		if i%pvtStore.KeyExists(key) {
 			do ..SendResponse(senderPID, i%pvtStore.Retrieve(key), "")
 		} else {
-			do ..SendResponse(senderPID, "", "key does not exist")
+			do ..SendResponse(senderPID, "", "")
 		}
 	} elseif msgType = "SET"  {
 		if '$data(gitToken) {

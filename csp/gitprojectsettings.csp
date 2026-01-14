@@ -234,22 +234,9 @@ body {
 
         /// Handle OAuth deletion request
         if (%request.Method="POST") && $Data(%request.Data("deleteOAuth",1)) {
-            set username = $USERNAME
 
-            // Delete access token
-            do ##class(SourceControl.Git.Util.CredentialManager).DeleteAccessToken(username)
-
-            // Clear refresh token
-            do ##class(SourceControl.Git.Util.CredentialManager).SetRefreshToken(username, "", .error, .code)
-
-            // Clear client ID and secret
-            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "clientid", "", .error, .code)
-            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "clientsecret", "", .error, .code)
-            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "state", "", .error, .code)
-            do ##class(SourceControl.Git.Util.CredentialManager).SetKeyPair(username, "verifier", "", .error, .code)
-
-            // Delete persistent config object
-            do ##class(SourceControl.Git.OAuth2.Config).%DeleteId(username)
+            set status = ##class(SourceControl.Git.OAuth2).DeleteOAuthConfig($USERNAME)
+            // todo error handling
 
             // Disable OAuth in settings
             set settings.OAuth = 0
@@ -388,13 +375,6 @@ body {
                 &html<
                 <div class="form-group row mb-3">
                     <div class="offset-sm-4 col-sm-8 neutral-feedback">
-                        <strong>Note:</strong> You can either:
-                        <ul>
-                            <li><strong>Option 1:</strong> Enter the remote URL above, enable OAuth if needed, click <strong>Save</strong>, then click <strong>Clone</strong></li>
-                            <li><strong>Option 2:</strong> Click <strong>Clone</strong> directly and enter the remote URL when prompted</li>
-                        </ul>
-                        Both approaches work. Option 1 is recommended for HTTPS repositories with OAuth.
-                        <br><br>
                         <span id="initMsg">Git has not been not initialized for folder.</span>
                         <button id="initBtn" onclick="init(); return false;" class="btn btn-sm btn-outline-dark">Initialize</button>
                         <button id="cloneBtn" onclick="clone(); return false;" class="btn btn-sm btn-outline-dark">Clone...</button>
@@ -541,7 +521,7 @@ body {
 
         </div>
 
-        <div class="form-group row mb-3" id="oauthStatus" style="display: none;">
+        <div class="form-group row mb-3" id="oauthStatus">
             <label class="offset-sm-1 col-sm-3 col-form-label">OAuth2 Status</label>
             <div class="col-sm-7">
                 <server>
@@ -568,7 +548,7 @@ body {
             </div>
         </div>
 
-        <div class="form-group row mb-3" id="remoteOAuth" style="display: none;">
+        <div class="form-group row mb-3" id="remoteOAuth">
             <label for="OAuth" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="Whether to use OAuth authentication flow for the https remote">Use OAuth for HTTPS Operations</label>
             <div class="col-sm-7">
                 <div class="custom-control custom-switch custom-switch-no-border">
@@ -592,7 +572,7 @@ body {
             </div>
         </div>
 
-        <div class="form-group row mb-3" id="deleteOAuthSection" style="display: none;">
+        <div class="form-group row mb-3" id="deleteOAuthSection">
             <div class="offset-sm-4 col-sm-7">
                 <server>
                     set hasOAuthConfig = (##class(SourceControl.Git.OAuth2.Config).GetConfig($username) '= "")
@@ -920,7 +900,7 @@ var submitForm = function(e) {
     form.submit();
 }
 
-const remoteURL = document.getElementById('remoteRepo');
+/*const remoteURL = document.getElementById('remoteRepo');
 if ((remoteURL.value.toLowerCase().includes('https'))) {
         document.getElementById('oauthStatus').style.display = 'flex';
         document.getElementById('remoteOAuth').style.display = 'flex';
@@ -937,7 +917,7 @@ remoteURL.addEventListener('change', function () {
         document.getElementById('remoteOAuth').style.display = 'none';
         document.getElementById('deleteOAuthSection').style.display = 'none';
     }
-});
+});*/
 
 document.getElementById('saveDefaults').addEventListener('click',submitForm,false);
 

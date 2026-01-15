@@ -167,11 +167,7 @@ body {
                 }
 
                 // Set OAuth based on remote URL protocol and toggle state
-                if ((remoteToCheck [ "https") && ($Get(%request.Data("OAuth"), 1) = 1) ) {
-                    set settings.OAuth = 1
-                } else {
-                    set settings.OAuth = 0
-                }
+                set settings.OAuth = $Get(%request.Data("OAuth", 1), 0)
 
                 set settings.compileOnImport = ($Get(%request.Data("compileOnImport", 1)) = 1)
                 set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
@@ -212,7 +208,8 @@ body {
                 if ($get(%request.Data("proxySubmitButton",1)) = "saveDefaults") {
                     do settings.SaveDefaults()
                 }
-                do settings.%Save()
+                $$$ThrowOnError(settings.%Save())
+
             }
             set err = ""
             try {

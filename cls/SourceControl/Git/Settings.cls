@@ -172,11 +172,7 @@ Method %Save() As %Status
     set @storage@("settings","gitRemoteURL") = ..gitRemoteURL
     set @storage@("settings", "lockBranch") = ..lockBranch
 
-    if (..gitRemoteType = "HTTPS") {
-        set @storage@("settings","OAuth") = ..OAuth
-    } else {
-        set @storage@("settings","OAuth") = 0
-    }
+    set @storage@("settings","OAuth") = ..OAuth
 
     set @storage@("settings", "mappingsToken") = ..mappingsToken
 

@@ -690,7 +690,10 @@ ClassMethod Clone(remote As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
     // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
-    set sc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
+    set rc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
+    if rc '= 0 {
+        quit $$$ERROR($$$GeneralError, "Git clone failed: "_errStream.Read())
+    }
     // can I substitute this with the new print method?
     $$$NewLineIfNonEmptyStream(errStream)
     while 'errStream.AtEnd {
@@ -1867,7 +1870,13 @@ ClassMethod RunGitWithArgs(Output errStream, Output outStream, args...) As %Inte
 
 ClassMethod RunGitCommand(command As %String, Output errStream, Output outStream, args...) As %Integer
 {
-    quit ..RunGitCommandWithInput(command,,.errStream,.outStream,args...)
+    try {
+        set rc = ..RunGitCommandWithInput(command, "", .errStream, .outStream, args...)
+    } catch ex {
+        set errStream = ex.DisplayString()
+        do ex.Log()
+    }
+    quit rc
 }
 
 ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", Output errStream, Output outStream, args...) As %Integer
@@ -2091,6 +2100,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set env("GIT_TERMINAL_PROMPT") = 0
         }
     }
+
     try {
         // Inject instance manager directory as global git config home directory
         // On Linux, this avoids trying to use /root/.config/git/attributes for global git config

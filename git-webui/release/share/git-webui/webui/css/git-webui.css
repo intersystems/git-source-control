@@ -997,6 +997,12 @@ body {
   position: absolute;
   right: 5px;
 }
+#changedFilesContainer .file-area .U::after {
+  content: "Merge Conflict";
+  position: absolute;
+  right: 5px;
+  color: red;
+}
 #changedFilesContainer .file-area .other-user-label svg {
   margin-right: 5px;
 }

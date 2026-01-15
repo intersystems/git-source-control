@@ -170,6 +170,11 @@ ClassMethod MappedItemsReadOnly() As %Boolean
     quit $get(@..#Storage@("settings", "mappedItemsReadOnly"), 1)
 }
 
+ClassMethod GeneratedFilesReadOnly() As %Boolean
+{
+    quit $get(@..#Storage@("settings", "generatedFilesReadOnly"), 0)
+}
+
 ClassMethod GitUserName() As %String
 {
     quit $get(@..#Storage@("settings","user",$username,"gitUserName"),$username)
@@ -208,6 +213,11 @@ ClassMethod LockBranch() As %Boolean
 ClassMethod MappingsToken() As %String
 {
     quit $get(@..#Storage@("settings","mappingsToken"),"")
+}
+
+ClassMethod SSHConfigFile() As %String
+{
+    quit $get(@..#Storage@("settings","sshConfigFile"),"")
 }
 
 ClassMethod IsLIVE() As %Boolean
@@ -432,6 +442,10 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     quit $$$OK
 }
 
+/// <p>This function performs <code>git checkout -b [newBranchName]</code> from the current commit.</p>
+/// <p>If the user is in "Basic Mode" AND there is a Default Merge Branch defined,
+/// then this method first checks out and pulls that default merge branch before creating the new branch. This is
+/// equivalent to <code>git checkout [defaultMergeBranch] && git pull</code>.</p>
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -461,13 +475,14 @@ ClassMethod NewBranch(newBranchName As %String) As %Status
 
 ClassMethod SwitchBranch(targetBranchName As %String) As %Status
 {
-    // Make sure that branch exists first (-a lists both local and remote)
-    do ..RunGitWithArgs(.errStream,.outStream,"branch", "-a")
+    // First, make sure that branch exists
+    do ..RunGitCommand("fetch", .errStream, .outStream, "--prune")    // refresh list of remote branches
+    do ..RunGitWithArgs(.errStream, .outStream, "branch", "-a")       // -a lists both local and remote
     set branches = outStream.Read()
-    if ('$find(branches,targetBranchName)) {
+    if ('$FIND(branches, targetBranchName)) {
         quit $$$ERROR($$$GeneralError, "Selected branch does not exist"_$C(10))
     }
-    k outStream, errStream
+    kill outStream, errStream
     do ..RunGitWithArgs(.errStream, .outStream, "checkout", targetBranchName)
     do ..PrintStreams(errStream, outStream)
     // Checkout can fail due to unstaged changes
@@ -528,8 +543,12 @@ ClassMethod StageAddedFiles()
     }
 }
 
-/// Merges the files from the configured branch as part of the Sync operation
-/// Returns true if this resulted in durable changes to the local git repo
+/// <p>If there is a configured "Default Merge Branch", then
+/// <ol>
+///  <li>fetch the current version of the default merge branch.</li>
+///  <li>attempt to rebase the current branch onto the default merge branch.</li>
+/// </ol>
+/// Returns true if this resulted in durable changes to the local git repo, false otherwise.</p>
 ClassMethod MergeDefaultRemoteBranch(Output alert As %String = "") As %Boolean
 {
     set rebased = 0
@@ -625,6 +644,7 @@ ClassMethod Push(remote As %String = "origin", force As %Boolean = 0) As %Status
     if (force) {
         set args($i(args)) = "--force"
     }
+    set args($i(args)) = "--set-upstream"
     set args($i(args)) = remote
     set args($i(args)) = branchName
     do ..RunGitWithArgs(.errStream, .outStream, "push", args...)
@@ -1003,6 +1023,7 @@ ClassMethod RemoveFromServerSideSourceControl(InternalName As %String) As %Statu
 
         if $data(@..#Storage@("items", item)) {
             kill @..#Storage@("items", item)
+            do ..RemoveRoutineTSH(item)
             do ..RemoveFolderIfEmpty(..TempFolder())
         } elseif (type = "cls") {
             set tsc = ..MakeError(item _ " is not in SourceControl")
@@ -1106,6 +1127,11 @@ ClassMethod Type(InternalName As %String) As %String
 	}
 
     quit type
+}
+
+ClassMethod ItemIsGenerated(InternalName As %String) As %Boolean
+{
+    return ##class(%RoutineMgr).IsGenerated(..NormalizeInternalName(InternalName))
 }
 
 ClassMethod NameWithoutExtension(InternalName As %String) As %String [ CodeMode = expression ]
@@ -1348,8 +1374,14 @@ ClassMethod UpdateRoutineTSH(InternalName As %String, tsh As %String) As %Status
 
 ClassMethod RemoveRoutineTSH(InternalName As %String) As %Status
 {
-    kill @..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))
-    quit $$$OK
+    Quit:(InternalName = "") $$$OK
+    Set tInternalName = ##class(%Studio.SourceControl.Interface).normalizeName(InternalName)
+
+    // Prevent a possible null subscript error
+    Quit:(tInternalName = "") $$$OK
+    Kill @..#Storage@("TSH", tInternalName)
+
+    Quit $$$OK
 }
 
 ClassMethod DeleteExternalFile(InternalName As %String) As %Status
@@ -1468,7 +1500,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                 write !, InternalName," has been imported from ", filename
             }
         } else {
-            write !, "ERROR importing" ,InternalName, !
+            write !, "ERROR importing " ,InternalName, !
             do $system.Status.DisplayError(sc)
         }
     } elseif verbose {
@@ -1487,8 +1519,8 @@ ClassMethod ImportCSPFile(InternalName As %String) As %Status
         Quit $$$OK
     }
     // Delete original if exists, otherwise create new file
-    if '(##class(%File).CopyFile(srcFile, cspFile, 1)) {
-        set sc = $$$ERROR($$$GeneralError, "Unable to import '"_srcFile_"'")
+    if '(##class(%File).CopyFile(srcFile, cspFile, 1, .ret)) {
+        set sc = $$$ERROR($$$GeneralError,"Unable to copy web application file from "_srcFile_" to "_cspFile_": return code "_ret)
     }
 
     Quit sc
@@ -1505,8 +1537,12 @@ ClassMethod ListItemsRecursively(type, fileSpec, directory, ByRef itemList) [ Pr
             set internalName = files.ItemName
             if ($zconvert(type,"l") = "ptd") {
                 do ##class(SourceControl.Git.Production).ParseExternalName($translate(files.Name,"\","/"), .internalName)
+            } else {
+                set internalName = ..NameToInternalName(files.Name,,0)
             }
-            set itemList(internalName) = ""
+            if (internalName '= "") {
+                set itemList(internalName) = ""
+            }
         }
     }
 }
@@ -1534,7 +1570,9 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
             set mappedFilePath = ##class(%File).NormalizeFilename(mappedRelativePath, ..TempFolder())
 
             if (##class(%File).DirectoryExists(mappedFilePath)){
-                if ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
+                if (mappingFileType = "/CSP/") {
+                    do ..ListItemsRecursively(mappingFileType,"*",mappedFilePath,.itemList)
+                } elseif ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
                     set fileSpec = $select(
                         userTypeClass="Ens.Util.ProjectTextDocument": "*.xml;*.XML",
                         1: "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U"))
@@ -1556,7 +1594,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
     }
 
     if $get(err) > 0 {
-        write !, "There were some errors while importing files"
+        write !, "Warning: unrecognized files found in the sources directory:"
         for i=1:1:err {
             write !, err(i)
         }
@@ -1588,7 +1626,7 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
 
     #dim ec as %Status = ..ListItemsInFiles(.itemList, .err)
     quit:'ec ec
-    
+
     // If there is a config file it must be imported before everything else.
     if $Data(itemList(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
         set sc = ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME, force)
@@ -1612,13 +1650,13 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     for  {
         set internalName = $order(itemList(internalName))
         quit:internalName=""
-        
+
         // Don't import the config file a second time
         continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
-        
+
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
         continue:context.Package'=refPackage
-        set doImport = ..IsRoutineOutdated(internalName) || force
+        set doImport = force || ..IsRoutineOutdated(internalName)
         if '..IsInSourceControl(internalName) {
             set sc = ..AddToServerSideSourceControl(internalName)
             if $$$ISERR(sc) {
@@ -1741,7 +1779,13 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 write !, "Production decomposition enabled, skipping export of production class"
                 set filename = ""
             } else {
-                $$$QuitOnError($system.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+	            if '##class(%RoutineMgr).Exists(InternalName) {
+                    write !?5, InternalName, " not found.  Cleaning up source control."
+                    do ..RemoveFromServerSideSourceControl(InternalName)
+	            }
+	            else {
+	                $$$QuitOnError($SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+                }
             }
             if (filename '= "") && ##class(%File).Exists(filename) {
                 set filenames($I(filenames)) = filename
@@ -1894,8 +1938,14 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 set privateKeyFile = $replace(privateKeyFile,"\","\\")
             }
             set newArgs($increment(newArgs)) = "-c"
+            set sshConfigFile = ..SSHConfigFile()
+            if sshConfigFile="" {
+                set sshConfigFile = "/dev/null"
+            } elseif $$$isWINDOWS {
+                set sshConfigFile = $replace(sshConfigFile,"\","\\")
+            }
             // StrictHostKeyChecking=accept-new for good behavior on first connection
-            set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F /dev/null -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
+            set newArgs($increment(newArgs)) = "core.sshCommand=ssh -F "_sshConfigFile_" -o StrictHostKeyChecking=accept-new -i "_privateKeyFile
         }
 
         set username = ""
@@ -1910,6 +1960,8 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set newArgs($increment(newArgs)) = "user.name="_username
         set newArgs($increment(newArgs)) = "-c"
         set newArgs($increment(newArgs)) = "user.email="_email
+        set newArgs($increment(newArgs)) = "-c"
+        set newArgs($increment(newArgs)) = "credential.interactive=false"
     }
 
     set newArgs($increment(newArgs)) = command
@@ -2820,8 +2872,18 @@ ClassMethod ConfigureWeb()
     write !,"Adding Git Pull favorite... "
     do ##class(%SQL.Statement).%ExecDirect(statement,sql,caption,link).%Display()
     write !,"Setting GroupById to %ISCMgtPortal for /isc/studio/usertemplates... "
-    set sql = "update Security.Applications set GroupById='%ISCMgtPortal' where ID = '/isc/studio/usertemplates'"
-    do ##class(%SQL.Statement).%ExecDirect(statement,sql).%Display()
+    kill props
+    set props("GroupById") = "%ISCMgtPortal"
+    set st = ##class(Security.Applications).Modify("/isc/studio/usertemplates",.props)
+    if $$$ISERR(st) do $System.Status.DisplayError(st)
+}
+
+ClassMethod CompileGitUIs()
+{
+    new $namespace
+    set $namespace = "%SYS"
+    set st = ##class(%SYSTEM.CSP).LoadPageDir("/isc/studio/usertemplates/gitsourcecontrol/")
+    if $$$ISERR(st) do $System.Status.DisplayError(st)
 }
 
 ClassMethod CheckInitialization()
@@ -2870,7 +2932,7 @@ ClassMethod GetSourceControlInclude(prefix As %String = {%request.URLPrefix}) As
 
 XData ProductionConfigScript [ MimeType = text/javascript ]
 {
-    function checkProductionConfigLoad() {
+function checkProductionConfigLoad() {
         timerState(false);
     }
 
@@ -3081,6 +3143,14 @@ ClassMethod SetDefaultMappings(mappingsNode As %String)
     set @mappingsNode@("MAC","*")="rtn/"
     set @mappingsNode@("DFI","*")="dfi/"
     set @mappingsNode@("PTD","*")="ptd/"
+    set @mappingsNode@("ESD","*")="config/<env>/"
+    // for HealthShare, HealthConnect, or IRIS for Health
+    if ($System.Version.GetISCProduct() = 3) || $listfind($System.Version.GetISCComponents(4),"Health") {
+        set @mappingsNode@("HL7","*") = "data/hl7/"
+        set @mappingsNode@("HL7","*","NoFolders") = 1
+        set @mappingsNode@("LUT","*") = "data/lut/"
+        set @mappingsNode@("LUT","*","NoFolders") = 1
+    }
 }
 
 ClassMethod PrintStreams(streams... As %Stream.FileCharacter)

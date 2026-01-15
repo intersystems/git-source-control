@@ -2,6 +2,19 @@ Include %syPrompt
 
 IncludeGenerator %syPrompt
 
+/// Public API for configuring Embedded Git settings. Settings may be configured:
+/// <ul>
+/// <li>Interactively in terminal by running do ##class(SourceControl.Git.API).Configure()</li>
+/// <li>In the Settings page accessed through the source control menu</li>
+/// <li>Through a configuration file embedded-git-config.json</li>
+/// <li>Programmatically by creating an instance of this object.</li>
+/// </ul>
+/// For an example of the last, see below:
+/// <pre>
+/// set settings = ##class(SourceControl.Git.Settings).%New()
+/// set settings.mappedItemsReadOnly = 1
+/// $$$ThrowOnError(settings.%Save())
+/// </pre>
 Class SourceControl.Git.Settings Extends %RegisteredObject
 {
 
@@ -44,6 +57,9 @@ Property gitRemoteType As %String(VALUELIST = ",HTTPS,SSH") [ InitialExpression 
 /// Whether mapped items should be read-only, preventing them from being added to source control
 Property mappedItemsReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).MappedItemsReadOnly()} ];
 
+/// Whether generated files should be read-only within Studio/VS Code
+Property generatedFilesReadOnly As %Boolean [ InitialExpression = {##class(SourceControl.Git.Utils).GeneratedFilesReadOnly()} ];
+
 /// Whether basic mode should be enabled for user ${username}, greatly simplifying the functionality of the package, requiring no knowledge of git
 Property basicMode As %String [ InitialExpression = {##class(SourceControl.Git.Utils).BasicMode()} ];
 
@@ -77,9 +93,20 @@ Property OAuth As %Boolean [ InitialExpression = {##class(SourceControl.Git.Util
 /// (Optional) A namespace-specific string that may be included in mapping configurations as <token> to support multi-namespace repositories
 Property mappingsToken As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).MappingsToken()} ];
 
+/// A multi-dimensional array that maps item types to directories in the source repository, structured as follows:
+/// settings.Mappings("<item type>","<filter>") = "<folder>"
+/// settings.Mappings("<item type>","<filter>","NoFolders") = 1
+/// - item type: file extension to use, e.g., CLS, MAC. As a special case for web application files, use "/CSP/".
+/// - filter: a filter on files of that type, e.g. * for all, or a package name or web application folder
+/// - folder: folder relative to the repo root that contains the item
+/// - NoFolders: if the value of this node is false, dots in the item name will be expanded to subdirectories. e.g. /cls/PackageName/ClassName.cls
 Property Mappings [ MultiDimensional ];
 
+/// (user-level) List of namespaces on this instance to include Embedded Git links in the SMP favorites
 Property favoriteNamespaces As %DynamicArray;
+
+/// (Optional) Path to an SSH client configuration file for use with SSH connections to a Git remote
+Property sshConfigFile As %String(MAXLEN = "") [ InitialExpression = {##class(SourceControl.Git.Utils).SSHConfigFile()} ];
 
 Method %OnNew() As %Status
 {
@@ -96,6 +123,7 @@ Method %OnNew() As %Status
     quit $$$OK
 }
 
+/// Saves namespace settings to a configuration file and adds it to the source control repository.
 Method SaveWithSourceControl() As %Status
 {
     set sc = $$$OK
@@ -163,6 +191,7 @@ Method %Save() As %Status
     set @storage@("settings","percentClassReplace") = ..percentClassReplace
     set @storage@("settings","settingsUIReadOnly") = ..settingsUIReadOnly
     set @storage@("settings", "mappedItemsReadOnly") = ..mappedItemsReadOnly
+    set @storage@("settings", "generatedFilesReadOnly") = ..generatedFilesReadOnly
     set @storage@("settings", "defaultMergeBranch") = ..defaultMergeBranch
     set @storage@("settings", "compileOnImport") = ..compileOnImport
     set @storage@("settings", "warnInstanceWideUncommitted") = ..warnInstanceWideUncommitted
@@ -175,6 +204,7 @@ Method %Save() As %Status
     set @storage@("settings","OAuth") = ..OAuth
 
     set @storage@("settings", "mappingsToken") = ..mappingsToken
+    set @storage@("settings", "sshConfigFile") = ..sshConfigFile
 
     if ..basicMode = "system" {
         kill @storage@("settings", "user", $username, "basicMode")
@@ -206,13 +236,14 @@ Method %Save() As %Status
     quit $$$OK
 }
 
-Method ToDynamicObject() As %DynamicObject
+Method ToDynamicObject() As %DynamicObject [ Internal ]
 {
     // uses custom methods rather than %JSON.Adaptor because Mappings multidimensional
     // array is not supported
     set settingsJSON = {
         "pullEventClass": (..pullEventClass),
         "percentClassReplace": (..percentClassReplace),
+        "generatedFilesReadOnly": (..generatedFilesReadOnly),
         "Mappings": {}
     }
     do settingsJSON.%Set("decomposeProductions",..decomposeProductions,"boolean")
@@ -232,11 +263,12 @@ Method ToDynamicObject() As %DynamicObject
     return settingsJSON
 }
 
-Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
+Method ImportDynamicObject(pSettingsDyn As %DynamicObject) [ Internal ]
 {
     set ..pullEventClass = pSettingsDyn.%Get("pullEventClass")
     set ..percentClassReplace = pSettingsDyn.%Get("percentClassReplace")
     set ..decomposeProductions = pSettingsDyn.%Get("decomposeProductions")
+    set ..generatedFilesReadOnly = pSettingsDyn.%Get("generatedFilesReadOnly")
     kill ..Mappings
     set mappingsDyn = pSettingsDyn.%Get("Mappings", {})
     set i1 = mappingsDyn.%GetIterator()
@@ -253,7 +285,7 @@ Method ImportDynamicObject(pSettingsDyn As %DynamicObject)
     }
 }
 
-ClassMethod CreateNamespaceTempFolder() As %Status
+ClassMethod CreateNamespaceTempFolder() As %Status [ Internal ]
 {
     set storage = ##class(SourceControl.Git.Utils).#Storage
     if ('##class(%File).DirectoryExists(@storage@("settings","namespaceTemp"))){ 
@@ -263,7 +295,7 @@ ClassMethod CreateNamespaceTempFolder() As %Status
     return $$$OK
 }
 
-ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
+ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator, Internal ]
 {
     do %code.WriteLine(" set inst = ..%New()")
     do %code.WriteLine(" do inst.RetrieveDefaults()")
@@ -343,7 +375,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator ]
     do %code.WriteLine(" quit 1")
 }
 
-Method ConfigureNamespaceWebApplication()
+Method ConfigureNamespaceWebApplication() [ Internal ]
 {
     Set root = ##class(%Library.File).NormalizeDirectory(##class(SourceControl.Git.Utils).TempFolder())
     Set deleteWebApp = ..HasNamespaceWebApp(.appDirectory) && '..namespaceLevelGitWebApp
@@ -403,7 +435,7 @@ Method WebAppOperation(name, create As %Boolean, delete As %Boolean, root As %St
     }
 }
 
-ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean
+ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean [ Internal ]
 {
     Set webAppDirectory = $System.CSP.GetFileName("/git/"_$Namespace_"/")
     If (webAppDirectory '= "") {
@@ -412,7 +444,7 @@ ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean
     Quit (webAppDirectory '= "")
 }
 
-Method OnAfterConfigure() As %Boolean
+Method OnAfterConfigure() As %Boolean [ Internal ]
 {
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
     if (..privateKeyFile '= "") && '##class(%File).Exists(..privateKeyFile) {
@@ -515,8 +547,13 @@ Method OnAfterConfigure() As %Boolean
             set workMgr = $System.WorkMgr.%New("")
             $$$ThrowOnError(workMgr.Queue("##class(SourceControl.Git.Utils).Clone",remote))
             $$$ThrowOnError(workMgr.WaitForComplete())
-            // export settings file without committing
-            $$$ThrowOnError(..SaveWithSourceControl())
+            if ##class(%File).Exists(##class(SourceControl.Git.Utils).FullExternalName(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)) {
+                write !, "Importing Embedded Git settings from cloned repository:"
+                do ##class(SourceControl.Git.Utils).ImportItem(##class(SourceControl.Git.Settings.Document).#INTERNALNAME)
+            } else {
+                // export settings file without committing
+                $$$ThrowOnError(..SaveWithSourceControl())
+            }
 
             // Empty repo breaks Embedded Git, commit the settings file
             do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("log",,.errStream,.outStream)
@@ -530,7 +567,7 @@ Method OnAfterConfigure() As %Boolean
     }
 }
 
-Method ConfigureBinPath(ByRef path As %String) As %Boolean
+Method ConfigureBinPath(ByRef path As %String) As %Boolean [ Internal ]
 {
     if (path = "") { return 1 }
     // Sometimes path is quoted 
@@ -562,7 +599,7 @@ Method ConfigureBinPath(ByRef path As %String) As %Boolean
     return 1
 }
 
-Method RetrieveDefaults() As %Boolean
+Method RetrieveDefaults() As %Boolean [ Internal ]
 {
     do ##class(%zpkg.isc.sc.git.Defaults).GetDefaultSettings(.settings)
     set iterator = settings.%GetIterator()
@@ -572,10 +609,11 @@ Method RetrieveDefaults() As %Boolean
     return $$$OK
 }
 
+/// Saves certain settings as default settings for the instance. Instance defaults are overwritten by namespace-level settings.
 Method SaveDefaults() As %Boolean
 {
     set defaults = {}
-    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "compileOnImport")
+    set items = $lb("gitBinPath", "pullEventClass", "percentClassReplace", "environmentName", "systemBasicMode", "defaultMergeBranch", "mappedItemsReadOnly", "generatedFilesReadOnly", "compileOnImport")
     for i=1:1:$LISTLENGTH(items) {
         set property = $listget(items,i)
         do defaults.%Set(property, $property($this, property))
@@ -587,5 +625,4 @@ ClassMethod GetRemoteType(remoteURL As %String) As %String
 {
     return $select(remoteURL [ "https": "HTTPS",1:"SSH")
 }
-
 }

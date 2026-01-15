@@ -49,7 +49,7 @@ Method TestEditProduction()
     do $System.OBJ.Delete(..#ProductionName)
     $$$ThrowOnError(##class(SourceControl.Git.Utils).NewBranch("branch1"))
     $$$ThrowOnError(##class(SourceControl.Git.Production).CreateProduction(..#ProductionName))
-	do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
     $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl(..#ProductionName_".cls"))
 
     do $$$LogMessage("with production decomposition enabled, the production class should not be in source control.")
@@ -97,6 +97,29 @@ Method TestEditProduction()
     do $$$AssertEquals(production.Items.Count(), 1)
     do $$$AssertEquals(production.Items.GetAt(1).Settings.GetAt(1).Name, "RecordStatsInterval")
     do $$$AssertEquals(production.Items.GetAt(1).Settings.GetAt(1).Value, 61)
+}
+
+Method TestImportItemsWithError()
+{
+    new %SourceControl
+    do $System.OBJ.Delete(..#ProductionName)
+    $$$ThrowOnError(##class(SourceControl.Git.Production).CreateProduction(..#ProductionName))
+    do ##class(Ens.Director).UpdateProduction()
+    do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+    $$$ThrowOnError(%SourceControl.OnBeforeSave(..#ProductionName_".cls"))
+    do ..ReplaceProductionDefinition("ProductionDefinition3")
+    do %SourceControl.OnAfterSave(..#ProductionName_".cls")
+    do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("UnitTest.SampleProduction||ProductionSettings-UnitTest.SampleProduction.PTD"))
+    $$$ThrowOnError(##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag())
+    // make one of the items fail
+    set filePath = ##class(SourceControl.Git.Utils).FullExternalName("UnitTest.SampleProduction||Settings-b|EnsLib.SOAP.GenericOperation.PTD")
+    set filestream = ##class(%Stream.FileCharacter).%OpenId(filePath,,.sc)
+    $$$ThrowOnError(filestream)
+    do filestream.Write("this will break the xml")
+    $$$ThrowOnError(filestream.%Save())
+    do $$$AssertStatusNotOK(##class(SourceControl.Git.Utils).ImportItem("UnitTest.SampleProduction||Settings-b|EnsLib.SOAP.GenericOperation.PTD"))
+    /// and this one should succeed, even though the previous one failed
+    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).ImportItem("UnitTest.SampleProduction||Settings-a|Ens.Activity.Operation.Local.PTD"))
 }
 
 ClassMethod ReplaceProductionDefinition(pXDataName)

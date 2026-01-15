@@ -118,34 +118,9 @@ body {
                 set settings.basicMode = 0
             }
 
-            // Track if we need to set OAuth later
-            set remoteToCheck = ""
-
-            // Do not attempt to set a new remote repo if 'remoteRepo' is not actually present in the request
-            // This may occur for example when settingsUIReadOnly is true where 'remoteRepo' is not user editable
-            if ($data(%request.Data("remoteRepo",1)) '= 0) {
-                set newRemote = $Get(%request.Data("remoteRepo",1))
-                set remoteToCheck = newRemote
-
-                // CRITICAL: Set the gitRemoteURL property so it persists
-                set settings.gitRemoteURL = newRemote
-
-                // CRITICAL: Also set gitRemoteType so OAuth saves correctly
-                if (newRemote '= "") {
-                    set settings.gitRemoteType = ##class(SourceControl.Git.Settings).GetRemoteType(newRemote)
-                }
-
-                // If entry was modified and git repo is initialized, set new remote repo
-                set dir = ##class(%File).NormalizeDirectory(settings.namespaceTemp)
-                if (settings.namespaceTemp '= "") && ##class(%File).DirectoryExists(dir_".git") {
-                    if (newRemote '= ##class(SourceControl.Git.Utils).GetRedactedRemote()) {
-                        do ##class(SourceControl.Git.Utils).SetConfiguredRemote(newRemote)
-                    }
-                }
-            }
-
             if ('settings.settingsUIReadOnly) {
-                for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken" {
+                do ##class(SourceControl.Git.Utils).Locked($get(%request.Data("lockNamespace",1)))
+                for param="gitBinPath","namespaceTemp","privateKeyFile","pullEventClass","percentClassReplace", "defaultMergeBranch","environmentName","mappingsToken","sshConfigFile" {
                     set $Property(settings,param) = $Get(%request.Data(param,1))
                 }
 
@@ -153,6 +128,12 @@ body {
                     set settings.mappedItemsReadOnly = 1
                 } else {
                     set settings.mappedItemsReadOnly = 0
+                }
+
+                if ($Get(%request.Data("generatedFilesReadOnly", 1)) = 1) {
+                    set settings.generatedFilesReadOnly = 1
+                } else {
+                    set settings.generatedFilesReadOnly = 0
                 }
 
                 // Determine remote URL to check (from request or current settings)
@@ -271,6 +252,14 @@ body {
     }
 </server>
 <div class = 'container'>
+    <csp:if condition='$case(##class(%Studio.SourceControl.Interface).SourceControlClassGet(),"SourceControl.Git.Extension":0,:1)'>
+        <div class="error alert-danger">
+        <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
+        Embedded Git is not the configured source control extension for this namespace. To change, modify the 
+            <a href="#($Piece(%request.Application,%request.AppMatch)_"/csp/sys/mgr/%25CSP.UI.Portal.SourceControl.zen?$NAMESPACE="_$namespace)#">
+            Source Control Settings</a>.
+        </div>
+    </csp:if>
     <csp:if condition='$get(successfullySavedSettings) && (##class(SourceControl.Git.Utils).NeedSettings() = 0)'>
         <div class = "alert">
         <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span>  
@@ -283,17 +272,35 @@ body {
         <strong>Success!</strong> OAuth configuration has been deleted.
     </div>
     </csp:if>
-    <form id="settingsForm" method='post'>
+    <form id="settingsForm" method='post' onsubmit="return validateForm();">
         <input type="hidden" name="Namespace" value="#(..EscapeHTML(namespace))#" />
         <input type="hidden" name="gitsettings" value="1" />
         <div class="col-sm-12"><br></div>
         <div class="row">
-            <div class="offset-sm-1 col-sm-7" id="settingsTitle">
+            <div class="offset-sm-1 col-sm-6" id="settingsTitle">
                 <h1>Git Project Settings</h1>
                 <h3> Package version: #(version)# </h3>
             </div>
 
-            <div class="col-sm-4" id="settingsNavBtn">
+            <div class="col-sm-5" id="settingsNavBtn">
+                <button class="btn btn-lg btn-secondary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" title="Switch Namespace">
+                    #(..EscapeHTML($namespace))#
+                </button>
+                <div class="dropdown-menu">
+                    <script language="cache" runat=server>
+                    try {
+                        kill allNamespaces
+                        $$$ThrowOnError(##class(%SYS.Namespace).ListAll(.allNamespaces))
+                        set key = $order(allNamespaces(""))
+                        while key'="" {
+                            &html<<a class="dropdown-item" href="?Namespace=#(..EscapeHTML(key))#">#(..EscapeHTML(key))#</a>>
+                            set key = $order(allNamespaces(key))
+                        }
+                    } catch err {
+                        do err.Log()
+                    }
+                    </script>
+                </div>
                 <button class="btn btn-lg btn-outline-dark" id="goToHome">Home
                 </button>
                 <div id="homeURL">
@@ -437,6 +444,13 @@ body {
         </server>
 
         <div class="form-group row mb-3">
+            <label for="sshConfigFile" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="(Optional) Path to an SSH client configuration file for use with SSH connections to a Git remote">Path to SSH Config File</label>
+            <div class="col-sm-7">
+                <input type="text" class="form-control" id="sshConfigFile" name="sshConfigFile" value='#(..EscapeHTML(settings.sshConfigFile))#' placeholder=""/>
+            </div>
+        </div>
+
+        <div class="form-group row mb-3">
             <label for="pullEventClass" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Handler class for git pull"><b>Pull Event Class</b></label>
             <div class="col-sm-7">
                 <select class="form-control" id="pullEventClass" name="pullEventClass">
@@ -501,7 +515,7 @@ body {
             </div>
         </div>
 
-        <div class="form-group row mb-3">
+        <div id="formGroupRemoteRepo" class="form-group row mb-3">
             <label for="remoteRepo" class="offset-sm-1 col-sm-3 col-form-label"  data-toggle="tooltip" data-placement="top" title="Url to Remote repository (origin)"><b>Remote Repository</b></label>
             <div class="col-sm-7">
                 <input type="text" class='form-control #($select($get(remote)="":"",$get(remoteConnectionError)="":"is-valid",1:"is-invalid"))#' id="remoteRepo" name="remoteRepo" value='#(..EscapeHTML($get(remote)))#' placeholder="e.g. git@github.com:User/UserRepo.git"/>
@@ -604,6 +618,18 @@ body {
 
         </div>
         <div class="form-group row mb-3">
+            <label for="generatedFilesReadOnly" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="When enabled, classes marked as generated (for example, by the IRIS compiler) are treated as read-only and cannot be edited from Studio/VS Code."><b> Treat Generated Files as Read-only</b></label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="generatedFilesReadOnly" type="checkbox" id="generatedFilesReadOnly" 
+                        #($select(settings.generatedFilesReadOnly:"checked", 1: ""))# value="1">
+                    <label class="custom-control-label" for="generatedFilesReadOnly"></label>
+                </div>
+            </div>
+            
+
+        </div>
+        <div class="form-group row mb-3">
             <label for="compileOnImport" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" title="If true, the Import All options will compile imported options using the configured pull event handler"><b>Compile Items on Import</b></label>
             <div class="col-sm-7">
                 <div class="custom-control custom-switch custom-switch-no-border">
@@ -646,6 +672,18 @@ body {
                     <input class="custom-control-input" name="lockBranch" type="checkbox" 
                         id="lockBranch" #($select(settings.lockBranch:"checked",1:""))# value="1">
                     <label class="custom-control-label" for="lockBranch"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="lockNamespace" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top" 
+                title="If true, any source-controlled code or configuration may not be directly edited in this namespace">
+                Lock Edits in Namespace</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="lockNamespace" type="checkbox" 
+                        id="lockNamespace" #($select(##class(SourceControl.Git.Utils).Locked():"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="lockNamespace"></label>
                 </div>
             </div>
         </div>
@@ -955,6 +993,11 @@ function clone() {
     initOutput.innerHTML = '<div class="alert alert-info">Clone in progress... This may take a few minutes.</div>';
 
     disableActionButtons();
+    var formGroupRemoteRepo = document.getElementById("formGroupRemoteRepo");
+    var namespaceSettings = document.getElementById("namespaceSettings");
+    if (formGroupRemoteRepo && settingsForm) {
+        namespaceSettings.removeChild(formGroupRemoteRepo);
+    }
 	var ws = getSocket("method=clone&remote=" + encodeURIComponent(remote));
 	ws.onmessage = showOutput('initOutput');
 }
@@ -981,6 +1024,27 @@ function showOutput(target) {
         var msg = JSON.parse(atob(event.data.split('\r\n').join('')));
         document.getElementById(target).innerHTML += msg.content;
     }
+}
+
+function validateForm() {
+    var confirmText = "";
+    var lockNamespaceInitValue = #(''##class(SourceControl.Git.Utils).Locked())#;
+    var cbLockNamespace = document.getElementById("lockNamespace");
+    if (cbLockNamespace) {
+        if (cbLockNamespace.checked && (lockNamespaceInitValue !== 1)) {
+            confirmText = "\nThis will lock any source-controlled items from being edited in this namespace.";
+        } else if (!cbLockNamespace.checked && (lockNamespaceInitValue == 1)) {
+            confirmText = "\nThis will allow edits of source-controlled items in this namespace.";
+        }
+    }
+    var remoteInitValue = "#(##class(SourceControl.Git.Utils).GetRedactedRemote())#";
+    var inputRemote = document.getElementById("remoteRepo");
+    if (inputRemote) {
+        if ((inputRemote.value == "") && (remoteInitValue !== "")) {
+            confirmText += "\nThis will remove the origin remote from the repository."
+        }
+    }
+    return confirmText ? confirm("Are you sure?" + confirmText) : true;
 }
 
 $(function () {

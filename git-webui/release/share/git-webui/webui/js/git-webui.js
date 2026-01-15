@@ -37,6 +37,9 @@ webui.COLORS = ["#ffab1d", "#fd8c25", "#f36e4a", "#fc6148", "#d75ab6", "#b25ade"
                 "#e47b07", "#e36920", "#d34e2a", "#ec3b24", "#ba3d99", "#9d45c9", "#4f5aec", "#615dcf", "#3286cf", "#00abca", "#279227", "#3a980c", "#6c7f00", "#ab8b0a", "#b56427", "#757575",
                 "#ff911a", "#fc8120", "#e7623e", "#fa5236", "#ca4da9", "#a74fd3", "#5a68ff", "#6d69db", "#489bd9", "#00bcde", "#36a436", "#47a519", "#798d0a", "#c1a120", "#bf7730", "#8e8e8e"]
 
+webui.UNMERGED_STATUSES = ["DD","AU","UD","UA","DU","AA","UU"];
+webui.STAGED_STATUSES = ["M","A","D","R","C"];
+
 webui.peopleIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">'+
                         '<path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>'+
                         '<path fill-rule="evenodd" d="M5.216 14A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/>'+
@@ -2698,7 +2701,10 @@ webui.NewChangedFilesView = function(workspaceView) {
                     formCheck.attr("data-index-status", indexStatus);
                     formCheck.attr("data-working-tree-status", workingTreeStatus);
 
-                    var displayStatus = (indexStatus == " ") ? workingTreeStatus : indexStatus;
+                    var statusPair = (indexStatus || "") + (workingTreeStatus || "");
+                    var displayStatus = (webui.UNMERGED_STATUSES.indexOf(statusPair) > -1) ? "U"
+                        : (indexStatus == " ") ? workingTreeStatus 
+                        : indexStatus;
 
                     var checkboxInput;
                     
@@ -2816,8 +2822,21 @@ webui.NewChangedFilesView = function(workspaceView) {
                     }
                     
                 });
+
+                $("#abortMergeBtn").off("click");
+                $("#abortMergeBtn").on("click", function() {
+                    self.confirmAbortMerge();
+                })
             });
         });
+
+        webui.git_command(["rev-parse", "--quiet", "--verify", "MERGE_HEAD"], function () {
+            // success code with --verify means MERGE_HEAD exists
+            $("#abortMergeBtn").show().prop("disabled",false);
+        }, null, function() {
+            // error code with --verify means MERGE_HEAD does not exist
+            $("#abortMergeBtn").hide().prop("disabled",true);
+        })
     }
 
     self.confirmDiscard = function() {
@@ -2927,6 +2946,63 @@ webui.NewChangedFilesView = function(workspaceView) {
         });
     
         $('#confirmAmend').find('#cancelAmendBtn, .close').click(function() {
+            removePopup(popup);
+        });
+    }
+
+    self.confirmAbortMerge = function() {
+        function removePopup(popup) {
+            $(popup).children(".modal-fade").modal("hide");
+            $(".modal-backdrop").remove();
+            $("#confirmAbortMerge").remove();
+        }
+    
+        var popup = $(
+            '<div class="modal fade" tabindex="-1" id="confirmAbortMerge" role="dialog" data-backdrop="static">' +
+                '<div class="modal-dialog modal-md" role="document">' +
+                    '<div class="modal-content">' + 
+                        '<div class="modal-header">' +
+                            '<h5 class="modal-title">Confirm Abort Merge</h5>' +
+                            '<button type="button" class="btn btn-default close" data-dismiss="modal">' + webui.largeXIcon + '</button>' +
+                        '</div>' +
+                        '<div class="modal-body"></div>' +
+                        '<div class="modal-footer"></div>' +
+                    '</div>' + 
+                '</div>' +
+            '</div>'
+        )[0];
+    
+        $("body").append(popup);
+        var popupContent = $(".modal-body", popup)[0];
+        webui.detachChildren(popupContent);
+    
+        $(
+            '<div class="row">' +
+                '<div class="col-sm-1">' +
+                    webui.warningIcon +
+                '</div>' +
+                '<div class="col-sm-11">' +
+                    '<p>A merge is in progress. Are you sure you want to abort it?</p>' + 
+                '</div>' +
+            '</div>'
+        ).appendTo(popupContent);
+    
+        var popupFooter = $(".modal-footer", popup)[0];
+        webui.detachChildren(popupFooter);
+    
+        $(
+            '<button class="btn btn-sm btn-warning action-btn" id="confirmAbortMergeBtn">Confirm</button>' +
+            '<button class="btn btn-sm btn-secondary action-btn" id="cancelAbortMergeBtn">Cancel</button>'
+        ).appendTo(popupFooter);
+    
+        $(popup).modal('show');
+    
+        $('#confirmAbortMergeBtn').on('click', function() {
+            removePopup(popup); 
+            self.abortMerge();
+        });
+    
+        $('#confirmAbortMerge').find('#cancelAbortMergeBtn, .close').click(function() {
             removePopup(popup);
         });
     }
@@ -3150,8 +3226,10 @@ webui.NewChangedFilesView = function(workspaceView) {
     self.refreshDiff = function(element) {
         self.fileToDiff = $(element).attr("data-filename");
         var indexStatus = $(element).attr("data-index-status");
+        var workingTreeStatus = $(element).attr("data-working-tree-status");
+        var statusPair = (indexStatus || "") + (workingTreeStatus || "");
         var gitOpts = [];
-        if (indexStatus != " ") {
+        if ((webui.STAGED_STATUSES.indexOf(indexStatus) > -1) && (webui.UNMERGED_STATUSES.indexOf(statusPair) == -1)) {
             gitOpts.push("--cached");
         }
         workspaceView.diffView.update("diff", gitOpts, self.fileToDiff, "stage");
@@ -3181,6 +3259,13 @@ webui.NewChangedFilesView = function(workspaceView) {
         }
         // We want to try to run restore even if add fails (since the file might have already been added)
         webui.git_command(["add", "--"].concat(selectedItems), restoreCommand,undefined,restoreCommand);
+    }
+
+    self.abortMerge = function() {
+        webui.git_command(["merge", "--abort"], function() {
+            workspaceView.update();
+        });
+        $("#abortMergeBtn").hide().prop("disabled",true);
     }
 
     self.amend = function(message, details) {
@@ -3285,6 +3370,7 @@ webui.NewChangedFilesView = function(workspaceView) {
                         '<button type="button" class="btn btn-outline-primary file-action-button" id="amendBtn" disabled> Amend </button>' +
                         '<button type="button" class="btn btn-secondary file-action-button" id="stashBtn" disabled> Stash </button>' +
                         '<button type="button" class="btn btn-danger file-action-button" id="discardBtn" disabled> Discard </button>' +
+                        '<button type="button" class="btn btn-warning file-action-button" style="display: none" id="abortMergeBtn" disabled> Abort Merge </button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +

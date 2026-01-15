@@ -444,6 +444,22 @@ Method OnAfterDelete(InternalName As %String) As %Status
     quit $$$OK
 }
 
+/// This is called if you compile a class and the compilation updates the class storage.
+/// It is called after the storage has been updated so you can determine how to deal with this
+/// change in the class. The <var>Location</var> is the global reference to the class definition that was changed.
+Method OnAfterStorage(InternalName As %String, Location As %String = "") As %Status
+{
+    if (InternalName '= "") {
+        write !,"Item '"_InternalName_"' changed during compile so exporting new version."
+        set ..Modified(InternalName) = 1
+        set sc = ..OnAfterSave(InternalName)
+        if $$$ISERR(sc) {
+            do $System.OBJ.DisplayError(sc)
+        }
+    }
+    return $$$OK
+}
+
 /// Convert the internal name, e.g. TEST.MAC, to an external name that is used to export
 /// the routine/class/csp item. This is often a filename to write the file out to.
 Method ExternalName(InternalName As %String) As %String
@@ -461,6 +477,8 @@ Method IsReadOnly(InternalName As %String) As %Boolean
     set settings = ##class(SourceControl.Git.Settings).%New()
     quit (##class(SourceControl.Git.Utils).Locked() 
             && '$get(^IRIS.Temp("sscProd",$job,"bypassLock")))
+        || (settings.generatedFilesReadOnly
+            && ##class(SourceControl.Git.Utils).ItemIsGenerated(InternalName))
         || (##class(SourceControl.Git.Utils).ItemIsProductionToDecompose($get(InternalName))
             && 'settings.decomposeProdAllowIDE
             && '##class(SourceControl.Git.Production).IsEnsPortal())
@@ -531,7 +549,7 @@ Method GetStatus(ByRef InternalName As %String, ByRef IsInSourceControl As %Bool
         }
     } else {
         // If it doesn't show up in git status, there are no uncommitted changes so it should not be locked or checked out by any user
-        set Editable=1, IsCheckedOut=0, UserCheckedOut=""
+        set IsCheckedOut=0, UserCheckedOut=""
         if ##class(SourceControl.Git.Change).IsUncommitted(filename)
            && '##class(SourceControl.Git.Change).IsDeleted(InternalName, .files) {
             #; Remove the item from the list of uncommitted changes;

@@ -5,10 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.13.0] - Unreleased
+## [2.15.1] - Unreleased
+
+## Fixed
+- Fixed issue where Generated Files Read-only option didn't entirely work for files not in source control (#712)
+
+## [2.15.0] - 2026-01-06
+
+### Added
+- Import All has been added to public-facing API (#891)
+- Web UI workspace view now has an option to abort merge in progress (#895)
+- New setting lets you treat generated classes as read-only in Studio/VS Code (#712)
+
+## Fixed
+- Web UI workspace view labels changes as Merge Conflict if there are unmerged changes (#890)
+- Web UI workspace view displays diff correctly for files with merge conflicts (#898)
+- Storage definition changes in persistent classes are now correctly exported to the Git repository (#906)
+- Catch and log exceptions thrown by pull handlers (#909)
+- Fix Incremental Load to first remove production items before removing classes (#907)
+
+## [2.14.0] - 2025-11-07
+
+### Added
+- Option to lock/unlock namespace is now available on the settings page (#650)
+- Settings page now warns if Embedded Git is not the configured source control extension (#857)
+- Settings page now has option to switch namespace (#856)
+- SourceControl.Git.Settings is now documented as part of the public API to allow programmatic configuration of settings (#262)
+- Newly configured instances start with default mappings for ESD, LUT and HL7 when relevant (#724)
+- New setting to define an SSH client configuration file for connections to SSH remotes (#293)
+- Changed default compilation flags from "ck" to "ckbryu" to include related items (#882)
+
+### Fixed
+- When cloning a repo with Configure, that repo's embedded-git-config file will overwrite previous settings (#819)
+- Settings page no longer removes remote when saving after cloning (#858)
+- Always set the remote as the upstream branch when pushing (#871)
+- Fixed import of HL7 and LUT files added at the same time as their mappings (#864)
+- Fixed issue where Git's interactive credential manager causes Git push/pull/fetch to hang (#235)
+- Failed deployment of one interoperability production item no longer causes all other production items to fail (#886)
+
+## [2.13.1] - 2025-09-16
+
+### Fixed
+- Fixed Import All deploying changes to files in a CSP application (#828)
+- Fixed pull failure when deleted items have no internal or external name (#848)
+- Fixed an error where source control pages do not display after installing on IRIS 2025.1 (#852)
+
+## [2.13.0] - 2025-08-20
 
 ### Added
 - Expanded Baseline Export to include XSL Transforms (#815)
+- Enhanced "Check out branch" to first refresh list of remote branches to eliminate failure due to stale information (#823)
 
 ### Fixed
 - Fix Import All not importing items that do not already exist when compileOnImport is not set (#798)
@@ -16,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import All now imports configuration file before everything else (#806)
 - Fixed another instance of deletes showing as owned by undefined user (#812)
 - Fix Revert not syncing files with IRIS (#789)
+- Fix "Export All" stopping prematurely because a tracked item no longer exist in the namespace (#821)
+- Import All now outputs a warning instead of an error when an item is in the wrong path (#291)
+- Fixed an error where classes with compilation errors would revert to broken versions on export (#830)
+- Fixed installation of the package on IRIS versions with the IRISSECURITY database (#770)
 
 ## [2.12.2] - 2025-07-08
 

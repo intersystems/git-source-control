@@ -11,6 +11,7 @@ Method SampleSettingsJSON()
         "pullEventClass": "pull event class",
         "percentClassReplace": "x",
         "decomposeProductions": true,
+        "generatedFilesReadOnly": true,
         "Mappings": {
             "TUV": { 
                 "*": {
@@ -37,10 +38,12 @@ Method TestJSONImportExport()
     set settings.decomposeProductions = ""
     set settings.percentClassReplace = ""
     set settings.pullEventClass = ""
+    set settings.generatedFilesReadOnly = 0
     do settings.ImportDynamicObject(settingsDynObj)
     do $$$AssertEquals(settings.decomposeProductions, 1)
     do $$$AssertEquals(settings.percentClassReplace, "x")
     do $$$AssertEquals(settings.pullEventClass, "pull event class")
+    do $$$AssertEquals(settings.generatedFilesReadOnly, 1)
     do $$$AssertEquals($get(settings.Mappings("TUV","*")),"tuv/")
     do $$$AssertEquals($get(settings.Mappings("TUV","UnitTest")),"tuv2/")
     do $$$AssertTrue($get(settings.Mappings("TUV","UnitTest","NoFolders")))
@@ -52,6 +55,7 @@ Method TestJSONImportExport()
     do $$$AssertEquals(settingsDynObj.decomposeProductions, 1)
     do $$$AssertEquals(settingsDynObj.percentClassReplace, "x")
     do $$$AssertEquals(settingsDynObj.pullEventClass, "pull event class")
+    do $$$AssertEquals(settingsDynObj.generatedFilesReadOnly, 1)
     do $$$AssertEquals(settingsDynObj.Mappings."TUV"."*".directory,"tuv/")
     do $$$AssertEquals(settingsDynObj.Mappings."TUV"."UnitTest".directory,"tuv2/")
     do $$$AssertTrue(settingsDynObj.Mappings."TUV"."UnitTest".noFolders)
@@ -66,6 +70,7 @@ Method TestSaveAndImportSettings()
     set settings.pullEventClass = "SourceControl.Git.PullEventHandler.Default"
     set settings.percentClassReplace = "_"
     set settings.decomposeProductions = 1
+    set settings.generatedFilesReadOnly = 1
     $$$ThrowOnError(settings.SaveWithSourceControl())
     do $$$AssertStatusOK(##class(SourceControl.Git.Utils).AddToSourceControl("embedded-git-config.GSC"))
     // settings file should be in source control
@@ -78,17 +83,20 @@ Method TestSaveAndImportSettings()
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","pullEventClass"),"SourceControl.Git.PullEventHandler.Default")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","percentClassReplace"),"_")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","decomposeProductions"),"1")
+    do $$$AssertEquals(^SYS("SourceControl","Git","settings","generatedFilesReadOnly"),"1")
     // change and save settings
     set settings.Mappings("CLS","Foo") = "foo2/"
     set settings.pullEventClass = "SourceControl.Git.PullEventHandler.IncrementalLoad"
     set settings.percentClassReplace = "x"
     set settings.decomposeProductions = 0
+    set settings.generatedFilesReadOnly = 0
     $$$ThrowOnError(settings.SaveWithSourceControl())
     // new setting should be in the global
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","mappings","CLS","Foo"),"foo2/")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","pullEventClass"),"SourceControl.Git.PullEventHandler.IncrementalLoad")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","percentClassReplace"),"x")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","decomposeProductions"),"0")
+    do $$$AssertEquals(^SYS("SourceControl","Git","settings","generatedFilesReadOnly"),"0")
     // revert change to settings 
     do $$$AssertStatusOK(##class(SourceControl.Git.Utils).Revert("embedded-git-config.GSC"))
     // old setting should be in the global
@@ -96,6 +104,7 @@ Method TestSaveAndImportSettings()
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","pullEventClass"),"SourceControl.Git.PullEventHandler.Default")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","percentClassReplace"),"_")
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","decomposeProductions"),"1")
+    do $$$AssertEquals(^SYS("SourceControl","Git","settings","generatedFilesReadOnly"),"1")
 }
 
 Method OnBeforeAllTests() As %Status

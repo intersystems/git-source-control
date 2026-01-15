@@ -3,7 +3,7 @@
   <Document name="git-source-control.ZPM">
     <Module>
       <Name>git-source-control</Name>
-      <Version>2.12.2</Version>
+      <Version>2.15.1</Version>
       <Description>Server-side source control extension for use of Git on InterSystems platforms</Description>
       <Keywords>git source control studio vscode</Keywords>
       <GlobalScope>1</GlobalScope>
@@ -32,6 +32,7 @@
       <FileCopy Name="csp/sync.csp" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/sync.csp" />
       <FileCopy Name="git-webui/release/share/git-webui/webui/" Target="${mgrDir}../devuser/studio/templates/gitsourcecontrol/" Overlay="1" />
 
+      <Invoke Class="SourceControl.Git.Utils" Method="CompileGitUIs" />
       <Invoke Class="SourceControl.Git.Utils" Method="OutputConfigureMessage" />
       <Invoke Class="SourceControl.Git.Utils" Method="Localize" />
       <Invoke Class="SourceControl.Git.Utils" Method="ConfigureWeb" />

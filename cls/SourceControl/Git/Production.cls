@@ -154,13 +154,17 @@ ClassMethod ExportPTD(internalName As %String, nameMethod As %String) As %Status
     Return sc
 }
 
-/// Imports a PTD into a produciton given an external name and produciton name
+/// Imports a PTD into a production given an external name and produciton name
 ClassMethod ImportPTD(externalName As %String, productionName As %String) As %Status
 {
 	try {
 		set ^IRIS.Temp("sscProd",$job,"bypassLock") = 1
 		set rollbackFile = ##class(%File).TempFilename()
 		set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
+        if $$$ISERR(sc) {
+            set sc2 = ##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag()
+            if $$$ISERR(sc2) set sc = $$$ADDSC(sc, sc2)
+        }
 		do ##class(%File).Delete(rollbackFile)
 		kill ^IRIS.Temp("sscProd",$job,"bypassLock")
 	} catch err {
@@ -386,16 +390,16 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
 		if ##class(%File).Exists(filename) && '##class(%File).DirectoryExists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
 			try {
-				set ^||%oddDEF=1
+				set ^||%oddDEF(className) = ""
 				$$$ThrowOnError($system.OBJ.Load(filename, "-d"))
 				// class XDatas are stored in ^||%oddDEF("<class name>","x","<XData name>") after temp load
 				set hasProdDef = $data(^||%oddDEF(className,$$$cCLASSxdata,"ProductionDefinition"))
-				kill ^||%oddDEF
+				kill ^||%oddDEF(className)
 				if hasProdDef {
 					return 1
 				}
 			} catch err {
-				kill ^||%oddDEF
+				kill ^||%oddDEF(className)
 				throw err
 			}
 		}

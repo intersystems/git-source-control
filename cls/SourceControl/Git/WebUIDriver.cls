@@ -445,7 +445,6 @@ ClassMethod GetOAuthURL(%request As %CSP.Request) As %SystemBase
         set oauthURL = "/isc/studio/usertemplates/gitsourcecontrol/oauth2.csp?CSPSHARE=1&Namespace="_$namespace_"&Username="_$username
         set oauthURL = ..GetURLPrefix(%request, oauthURL)
     #; }
-    set ^mtempdc = oauthURL
     quit {"url": (oauthURL)}
 }
 

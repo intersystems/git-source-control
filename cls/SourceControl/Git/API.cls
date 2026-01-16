@@ -39,18 +39,18 @@ ClassMethod Configure()
 
 /// API for git pull - just wraps Utils
 /// - pTerminateOnError: if set to 1, this will terminate on error if there are any errors in the pull, otherwise will return status
-ClassMethod Pull(pTerminateOnError As %Boolean = 0)
+ClassMethod Pull(pTerminateOnError As %Boolean = 0) As %Status
 {
-    set st = ##class(SourceControl.Git.Utils).Pull(,pTerminateOnError)
-    if pTerminateOnError && $$$ISERR(st) {
+    set sc = ##class(SourceControl.Git.Utils).Pull(,pTerminateOnError)
+    if pTerminateOnError && $$$ISERR(sc) {
         Do $System.Process.Terminate($Job,1)
     }
-    quit st
+    quit sc
 }
 
 /// Imports all items from the Git repository into IRIS.
 /// - pForce: if true, will import an item even if the last updated timestamp in IRIS is later than that of the file on disk.
-ClassMethod ImportAll(pForce As %Boolean = 0) as %Status
+ClassMethod ImportAll(pForce As %Boolean = 0) As %Status
 {
     return ##class(SourceControl.Git.Utils).ImportAll(pForce)
 }

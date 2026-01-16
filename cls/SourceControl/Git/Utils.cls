@@ -712,7 +712,8 @@ ClassMethod Clone(remote As %String) As %Status
     // TODO: eventually use /ENV flag with GIT_TERMINAL_PROMPT=0. (This isn't doc'd yet and is only in really new versions.)
     set rc = ..RunGitWithArgs(.errStream, .outStream, "clone", remote, settings.namespaceTemp)
     if rc '= 0 {
-        quit $$$ERROR($$$GeneralError, "Git clone failed: "_errStream.Read())
+        set errMsg = errStream.Read()
+        quit $$$ERROR($$$GeneralError, "Git clone failed: "_errMsg)
     }
     // can I substitute this with the new print method?
     $$$NewLineIfNonEmptyStream(errStream)
@@ -1956,12 +1957,18 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
             set email = ..GitUserEmail()
         }
 
-        set newArgs($increment(newArgs)) = "-c"
-        set newArgs($increment(newArgs)) = "user.name="_username
-        set newArgs($increment(newArgs)) = "-c"
-        set newArgs($increment(newArgs)) = "user.email="_email
-        set newArgs($increment(newArgs)) = "-c"
-        set newArgs($increment(newArgs)) = "credential.interactive=false"
+        if username '= "" {
+            set newArgs($increment(newArgs)) = "-c"
+            set newArgs($increment(newArgs)) = "user.name="_username
+        }
+        if email '= "" {
+            set newArgs($increment(newArgs)) = "-c"
+            set newArgs($increment(newArgs)) = "user.email="_email
+        }
+        if ('..UsingOAuth()) {
+            set newArgs($increment(newArgs)) = "-c"
+            set newArgs($increment(newArgs)) = "credential.interactive=false"
+        }
     }
 
     set newArgs($increment(newArgs)) = command
@@ -2127,7 +2134,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 
     set baseArgs = "/STDOUT="_$$$QUOTE(outLog)_" /STDERR="_$$$QUOTE(errLog)_$case(inFile, "":"", :" /STDIN="_$$$QUOTE(inFile))
     // Use OAuth Authentication if needed (TODO: Should this be done always, or only for certain commands?)
-    if ((..UsingOAuth())) {
+    if (..UsingOAuth()) {
         set token = ##class(SourceControl.Git.OAuth2).GetToken()
         if (token '= "") {
             if ($$$isWINDOWS) {

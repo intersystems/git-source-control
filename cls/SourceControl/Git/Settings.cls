@@ -625,4 +625,5 @@ ClassMethod GetRemoteType(remoteURL As %String) As %String
 {
     return $select(remoteURL [ "https": "HTTPS",1:"SSH")
 }
+
 }

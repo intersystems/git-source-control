@@ -39,14 +39,14 @@ ClassMethod Run()
 			do ##class(SourceControl.Git.Utils).RunGitCommandWithInput("config",,,,"--global", "--add", "safe.directory", root)
 		}
 
-		Do ##class(SourceControl.Git.Utils).Init()
+		$$$ThrowOnError(##class(SourceControl.Git.Utils).Init())
 		Write !,"Done."
 	} ElseIf %request.Get("method") = "clone" {
 		Set remote = %request.Get("remote")
-		Do ##class(SourceControl.Git.Utils).Clone(remote)
+		$$$ThrowOnError(##class(SourceControl.Git.Utils).Clone(remote))
 		Write !,"Done."
 	} ElseIf %request.Get("method") = "sshkeygen" {
-		Do ##class(SourceControl.Git.Utils).GenerateSSHKeyPair()
+		$$$ThrowOnError(##class(SourceControl.Git.Utils).GenerateSSHKeyPair())
 		Write !,"Done."
 	} Else {
 		Write !!,"Invalid method selected.",!!

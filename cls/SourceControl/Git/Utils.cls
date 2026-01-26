@@ -3115,6 +3115,7 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
 {
     set sc = $$$OK
     try {
+        set settings = ##class(SourceControl.Git.Settings).%New()
         write !, "Exporting items..."
         set rs = ##class(%Library.RoutineMgr).StudioOpenDialogFunc(
             "*.mac,*.int,*.inc,*.cls,*.csp,*.xsl,*.HL7,*.LUT,*.AST,*.X12"
@@ -3133,6 +3134,9 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
             set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
             continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
             $$$ThrowOnError(..AddToSourceControl(internalName))
+        }
+        if settings.decomposeProductions && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+            do ##class(SourceControl.Git.Util.Production).BaselineProductions()
         }
         if pCommitMessage '= "" {
             // switch to default context

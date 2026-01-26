@@ -73,14 +73,31 @@ ClassMethod DeleteProductionDefinitionShards(productionClass As %String, deleteM
 }
 
 /// Exports a Studio project including both the provided PTD and export notes for the PTD
-ClassMethod ExportProjectForPTD(productionClass As %String, ptdName As %String, exportPath As %String) As %Status
+/// - productionClass: class name of the production
+/// - ptdName: either string with the name of a single PTD, or array of PTD names to include in the project.
+/// - exportPath: full path to export the project to
+ClassMethod ExportProjectForPTD(productionClass As %String, ByRef ptdNames, exportPath As %String) As %Status
 {
     set st = $$$OK
     try {
         set project = ##class(%Studio.Project).%New()
-        set project.Name = $replace($replace(ptdName,".","_"),":","-")
+        if $data(ptdNames) = 1 { // single PTD passed as string
+            set ptdsToExport(ptdNames_".PTD") = ""
+            set projectName = $replace($replace(ptdNames,".","_"),":","-")
+        } else {
+            set key = $order(ptdNames(""))
+            while (key '= "") {
+                set ptdsToExport(key_".PTD") = ""
+                set key = $order(ptdNames(key))
+            }
+            set projectName = $replace(productionClass,".","_")_"-multiple-items"
+        }
+        if ##class(%Studio.Project).%ExistsId(projectName) {
+            $$$ThrowOnError(##class(%Studio.Project).%DeleteId(projectName))
+        }
+        set project.Name = projectName
         kill projContentsList
-        set projContentsList(ptdName _ ".PTD") = ""
+        merge projContentsList = ptdsToExport
         $$$ThrowOnError(##class(Ens.Deployment.Utils).CreateExportNotesPTD(project.Name,productionClass,,.projContentsList,0,.exportNotesPTDName))
         // strip items from export notes that break our diff
         set st = ##class(Ens.Util.ProjectTextDocument).GetStream(.notesStream, exportNotesPTDName)
@@ -104,7 +121,11 @@ ClassMethod ExportProjectForPTD(productionClass As %String, ptdName As %String, 
         quit:$$$ISERR(st)
         // Internal/External naming logic relies on Export Notes being added to project first. If this is changed check for dependencies
         do project.AddItem(exportNotesPTDName_".PTD")
-        do project.AddItem(ptdName_".PTD")
+        set key = $order(ptdsToExport(""))
+        while (key '= "") {
+            do project.AddItem(key)
+            set key = $order(ptdsToExport(key))
+        }
         $$$ThrowOnError(project.%Save())
         set projContentsList(exportNotesPTDName_".PTD") = ""
         set projContentsList(project.Name_".PRJ") = ""
@@ -174,6 +195,62 @@ ClassMethod ImportPTD(externalName As %String, productionName As %String) As %St
 	return sc
 }
 
+/// Given a PTD's internal name as used by source control, returns the PTD's name
+/// as used by the Deployment Manager.
+ClassMethod PTDInternalNameToPTDName(ptdInternalName) As %String [ Private ]
+{
+    // format is defined in Ens.Deployment.Utils
+    do ..ParseInternalName(ptdInternalName,,,.itemName,,.productionName,.isProdSettings)
+    return $select(
+        isProdSettings: "ProductionSettings:"_productionName,
+        1: "Settings:"_itemName
+    )
+}
+
+/// Imports multiple PTDs from a single production into the given production
+/// - ptdList: array of external names of PTDs to import
+/// - productionName: name of the production to import into
+ClassMethod ImportPTDs(ByRef ptdList) As %Status
+{
+    set st = $$$OK
+    try {
+        // TODO aaaaaugh this doesn't work if there are multiple ptds with da same name
+        // load each of the PTD documents without deploying, and sort by production.
+        kill ptdListByProduction // format: ptdListByProduction(production name, external name) = internal name
+        set externalName = $order(ptdList(""))
+        while (externalName '= "") {
+            set internalName = "", prodName = ""
+            $$$ThrowOnError(..ParseExternalName(externalName, .internalName, .prodName))
+            if internalName="" $$$ThrowStatus($$$ERROR($$$GeneralError,"Unable to determine internal name for "_externalName))
+            if prodName="" $$$ThrowStatus($$$ERROR($$$GeneralError,"Unable to determine production name for "_externalName))
+            set ptdListByProduction(prodName, externalName) = internalName
+            $$$ThrowOnError($System.OBJ.Load(externalName))
+            set externalName = $order(ptdList(externalName))
+        }
+        // for each production, export a new Studio Project including all of its PTD items and deploy it
+        set prodName = $order(ptdListByProduction(""))
+        while (prodName '= "") {
+            set tempFileName = ##class(%File).TempFilename()
+            kill ptdNames // format: ptdNames(ptd name) = ""
+            set externalName = $order(ptdListByProduction(prodName,""))
+            while (externalName '= "") {
+                set ptdName = ..PTDInternalNameToPTDName(ptdListByProduction(prodName,externalName))
+                // set ptdName = $piece(ptdListByProduction(prodName,externalName),".PTD",1,*-1)
+                set ptdNames(ptdName) = ""
+                set externalName = $order(ptdListByProduction(prodName,externalName))
+            }
+            break
+            $$$ThrowOnError(..ExportProjectForPTD(prodName, .ptdNames, tempFileName))
+            $$$ThrowOnError(..ImportPTD(tempFileName, prodName))
+            do ##class(%File).Delete(tempFileName)
+            set prodName = $order(ptdListByProduction(prodName))
+        }
+    } catch err {
+        set st = err.AsStatus()
+    }
+    return st
+}
+
 /// Imports all PTDs within a given directory. Also recursively imports from all subdirectories
 ClassMethod ImportPTDsDir(directory As %String, isDecompMethod As %String = "") As %Status
 {
@@ -181,6 +258,7 @@ ClassMethod ImportPTDsDir(directory As %String, isDecompMethod As %String = "") 
 	set rs = ##class(%ResultSet).%New("%File:FileSet")
 	$$$ThrowOnError(rs.Execute(directory, "*.xml", "", 1))
 	throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE, rs.%Message)
+    kill ptdList
 	while rs.Next() {
 		set path = rs.Data("Name")
 		set type = rs.Data("Type")
@@ -195,11 +273,12 @@ ClassMethod ImportPTDsDir(directory As %String, isDecompMethod As %String = "") 
 				if ($extract(filename) = "P") && '$$$comClassDefined(prodName) {
 					$$$ThrowOnError(..CreateProduction(prodName))
 				}
-				set sc = ..ImportPTD(path, prodName)
+				// set sc = ..ImportPTD(path, prodName)
+                set ptdList(path) = ""
 			}
 		}
 	}
-	return sc
+	return ..ImportPTDs(.ptdList)
 }
 
 /// Export a single Production Config Item. For a given Ens.Config.Item, the 

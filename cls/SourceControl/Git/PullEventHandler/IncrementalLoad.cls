@@ -20,6 +20,7 @@ Method OnPull() As %Status
         }
     }
 
+    kill ptdExternalNames
     set nFiles = 0
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
@@ -38,7 +39,8 @@ Method OnPull() As %Status
         } else {
             set nFiles = nFiles + 1
             if (##class(SourceControl.Git.Utils).Type(internalName) = "ptd") {
-                set ptdList(internalName) = ""
+                // set ptdList(internalName) = ""
+                set ptdExternalNames(##class(SourceControl.Git.Utils).TempFolder()_tExternalName) = ""
             } else {
                 set compilelist(internalName) = ""
                 set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
@@ -69,14 +71,11 @@ Method OnPull() As %Status
     }
 
     #; Deploy any PTD items
-    if $data(ptdList) {
+    if $data(ptdExternalNames) {
         write !,"Loading production items..."
         set start = $zhorolog
-        set key = $order(ptdList(""))
-        while (key '= "") {
-            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
-            set key = $order(ptdList(key))
-        }
+        // TODO fix: need to do separately for each production
+        set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Production).ImportPTDs(.ptdExternalNames))
         write !,"Production items imported in ",($zhorolog-start),"s"
     }
 

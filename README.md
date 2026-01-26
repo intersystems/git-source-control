@@ -33,7 +33,7 @@ Embedded Git support for InterSystems platforms, supporting unified source contr
 
 ### Making available instance-wide via %ALL namespace
 
-To make git-source-control available to all namespaces on an instance without manually installing it in each, you can run:
+To make Embedded Git available to all namespaces on an instance without manually installing it in each, you can run:
 
 `do ##class(SourceControl.Git.API).MapEverywhere()`
 
@@ -49,7 +49,7 @@ For those with less experience using source control, we recommend this [page](/d
 
 ### Health Connect Cloud
 
-git-source control is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of git-source-control, including the recommended development workflow, initial setup, and CI/CD pipelining.
+Embedded Git is the recommended source control for Health Connect Cloud. [This page](/docs/hcc.md) covers HCC specific usage of Embedded Git, including the recommended development workflow, initial setup, and CI/CD pipelining.
 
 ### VSCode
 
@@ -74,7 +74,7 @@ That said, the same menu items and editor behavior will also work in Studio. The
 ## Notes
 
 ### Menu Options
-Documentation for the various git-source-control menu options can be found [here](/docs/menu-items.md).
+Documentation for the various Embedded Git menu options can be found [here](/docs/menu-items.md).
 
 ### Mapping Configuration
 To specify where files should go relative to your repository root, add mappings via the "Settings" menu item. A mapping has three parts:
@@ -101,7 +101,7 @@ A recommended way to implement CI/CD would be to use one of the pre-defined subc
 
 To manually pull the latest code from the current configured branch into an IRIS instance, use the "Git Pull" favorite link that is added to the management portal automatically on installation or via the Settings page "Favorite Namespaces" option.
 
-To use git-source-control as part of automated deployment to a test/production environment with a running IRIS instance, the best approach is to call into the appropriate IRIS namespace to run:
+To use Embedded Git as part of automated deployment to a test/production environment with a running IRIS instance, the best approach is to call into the appropriate IRIS namespace to run:
 
 `do ##class(SourceControl.Git.API).Pull(1)`
 
@@ -134,30 +134,36 @@ If you want to interact with remotes from VSCode/Studio directly (e.g., to push/
 For developers to be able to run this extension, they'll need the following privileges:
 - the USE privilege on %System_Callout
 
-### Setting up multiple GitHub deploy keys on one machine
+#### Setting up multiple GitHub deploy keys on one machine
 
 Assuming you have the local and remote repositories created,
 
 1. Create your key pair using `ssh-keygen`.
 2. Add the public key to GitHub.
-3. You can try setting remotes with the URL your remote repository provides, but sometimes your firewall might cause issues and refuse the SSH connection. In that case, I've found that changing the remote URL to the following is helpful:
+3. You can try setting remotes with the URL your remote repository provides, but sometimes your firewall might cause issues and refuse the SSH connection. In that case, changing the remote URL to the following is helpful:
    `ssh://git@ssh.github.com:443/<repo_owner>/<repo_name>.git`
 4. Copy the private key into 2 locations
    1. `<path to IRIS Instance storage>\mgr\<private key>`
    2. `~/.ssh/<private key>`
 5. Make sure to set the owner and permissions for the private key correctly. For Windows, go to where the private key is stored in IRIS and edit the owner to be the admin, disable inheritance and remove all access to the key to every user except the admin.
-6. In git source control settings, set the path to the private key as the one in IRIS.
+6. In the Embedded Git settings, set the path to the private key as the one in IRIS.
 7. Change the default `ssh` command in the git config for **your repository** as:
    `git config core.sshCommand 'ssh -i ~/.ssh/<private key name>'`
 8. Test the refresh button for the remote branches on the WebUI, fetch from the source control menu in Studio or VS Code, and `git fetch` in Git Bash. All 3 should work without any issues.
 
-## Editing files in the Git repository server-side
+### Editing files in the Git repository server-side
 
 There are some circumstances where you'll want to edit files in the Git repository on the IRIS server. For example,
 - To edit interoperability system default settings for a different environment
 - To edit custom configuration files
 
 Embedded Git allows you to edit files in the Git repository server-side through VS Code. Enable the "Define a namespace-level web application " option by running `do ##class(SourceControl.Git.API).Configure()`. This will automatically create a new IRIS web application for editing files with the VS Code ObjectScript extension. Then go to the Embedded Git Web UI and use the "Code Workspace" option to download a VS Code workspace. The workspace will allow you to edit files in the Git repository on the server.
+
+### IRIS Upgrades
+If Embedded Git stops working after an upgrade of the InterSystems data platform, one of the following steps may be necessary:
+- Recompile custom %SYS classes and routines
+- Reinstall the package from the InterSystems Package Manager
+These steps are documented under [Major Version Post-Installation Tasks](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GCI_post#GCI_post_mv).
 
 ## Support
 

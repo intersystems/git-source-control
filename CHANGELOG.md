@@ -5,7 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.15.1] - Unreleased
+## [2.16.0] - Unreleased
+
+### Added
+- Baseline Export now includes decomposed production items when production decomposition is enabled (#680)
 
 ## Fixed
 - Fixed issue where Generated Files Read-only option didn't entirely work for files not in source control (#712)

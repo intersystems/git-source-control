@@ -44,7 +44,6 @@ ClassMethod BaselineProduction(productionName, settings As SourceControl.Git.Set
 /// Baselines all productions in this namespace from single-file to decomposed or vice versa.
 ClassMethod BaselineProductions()
 {
-    set st = $$$OK
     set settings = ##class(SourceControl.Git.Settings).%New()
     set rs = ##class(%Dictionary.ClassDefinition).SubclassOfFunc("Ens.Production")
     throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)

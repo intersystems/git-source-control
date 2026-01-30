@@ -161,8 +161,13 @@ Embedded Git allows you to edit files in the Git repository server-side through 
 
 ### IRIS Upgrades
 If Embedded Git stops working after an upgrade of the InterSystems data platform, one of the following steps may be necessary:
-- Recompile custom %SYS classes and routines
+- Recompile custom %SYS classes and routines:
+```
+set $namespace = "%SYS"
+do $system.OBJ.CompileList("%Z*,%z*,Z*,z*,'%ZEN.*,'%ZHS*","up")
+```
 - Reinstall the package from the InterSystems Package Manager
+
 These steps are documented under [Major Version Post-Installation Tasks](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GCI_post#GCI_post_mv).
 
 ## Support

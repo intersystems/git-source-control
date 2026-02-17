@@ -339,6 +339,14 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
         set ec = ..AddToSourceControl(InternalName)
     } elseif (menuItemName = "RemoveFromSC") {
         set ec = ..RemoveFromSourceControl(InternalName)
+    } elseif (menuItemName = "TakeOwnership") {
+        set filename = ..FullExternalName(InternalName)
+        set sc = ##class(SourceControl.Git.Change).GetUncommitted(filename, .tAction, .tInternalName, .UncommittedUser, .tSource, .UncommittedLastUpdated)
+        $$$QuitOnError(sc)
+        if $get(UncommittedUser) = "" set UncomittedUser = "unknown user"
+        set Target = "File '"_InternalName_"' has uncommitted changes by '"_UncommittedUser_"'. Do you want to take ownership of these changes?"
+        set Action = 1  // Show Yes/No confirmation dialog
+        quit $$$OK
     } elseif (menuItemName = "Status") {
         do ..RunGitCommand("status", .errStream, .outStream)
         write !, !, "Git Status: "
@@ -382,6 +390,11 @@ ClassMethod AfterUserAction(Type As %Integer, Name As %String, InternalName As %
             do ..Push(,1)
             set Reload = 1
         }
+    } elseif (menuItemName = "TakeOwnership") {
+        if (Answer = 1) {
+            set status = ..TakeOwnership(InternalName)
+            set Reload = 1
+        }
     } elseif (menuItemName = "GitWebUI") {
         // Always force reload as many things could have possibly changed.
         set Reload = 1
@@ -422,6 +435,20 @@ ClassMethod Commit(InternalName As %String, Message As %String = "example commit
     $$$QuitOnError(##class(SourceControl.Git.Change).RemoveUncommitted(filename))
     $$$QuitOnError(##class(SourceControl.Git.Change).RefreshUncommitted(,,,1))
     quit $$$OK
+}
+
+ClassMethod TakeOwnership(InternalName As %String) As %Status
+{
+    set sc = $$$OK
+    try {
+        &sql(update SourceControl_Git.Change set ChangedBy = $username where InternalName = :InternalName)
+        $$$ThrowSQLIfError(SQLCODE,.%msg)
+        write !, "Ownership of '"_InternalName_"' transferred to '"_$username_"'"
+    } catch ex {
+        set sc = ex.AsStatus()
+        do $System.OBJ.DisplayError(sc)
+    }
+    quit sc
 }
 
 /// <p>This function performs <code>git checkout -b [newBranchName]</code> from the current commit.</p>

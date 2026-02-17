@@ -33,6 +33,10 @@ Method OnPull() As %Status
         } elseif (..ModifiedFiles(i).changeType = "D") {
             #; Deleted production items will not have an internal name
             set delIndex = $select(##class(SourceControl.Git.Util.Production).ItemIsPTD(tExternalName): 1, 1: 2)
+            if ((delIndex = 2) && (internalName = "")) {
+                write !, tExternalName, "was not in the database.  Nothing to delete."
+                continue
+            }
             set:(delIndex=1) internalName = "-"_i   ;; This is a total hack because deleted production items will not have an internal name
             set delList(delIndex, internalName) = tExternalName
         } else {

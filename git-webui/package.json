@@ -27,6 +27,6 @@
   "dependencies": {
     "jquery": "^3.5.1",
     "popper.js": "^1.16.1-lts",
-    "bootstrap": "^4.6.0"
+    "bootstrap": "^5.0.0"
   }
 }

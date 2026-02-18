@@ -8,21 +8,22 @@ This guide covers how to configure and interact with remote repositories in Embe
 - A remote repository (e.g., GitHub, GitLab, Bitbucket)
 - Access to the Embedded Git settings page on the instance: https://hostname:port/prefix/isc/studio/usertemplates/gitsourcecontrol/gitprojectsettings.csp
 
-## Option 1: Configuring SSH authentication with a GitHub deploy key
-
-This option is best for shared development environments using GitHub.
-1. Enter a filename in the SSH Private Key File input of the settings form. Save the form.
-2. Click the "File not found - generate a new key pair?" button. Save the form.
-3. Copy the value of the "Public key" input on the settings page.
-4. In GitHub, go to repository settings > Deploy keys > Add deploy key. Paste the value from the previous step into the key. Check "Allow write access". Save the new key.
-5. In GitHub, copy the link to clone the repository via SSH.
-6. In Embedded Git settings, click the "Clone" button and paste the SSH repository URL into the confirmation dialog.
-
-## Option 2: Configuring SSH authentication with a personal SSH key
+## Option 1: Configuring SSH authentication with a personal SSH key
 
 This option is best for individual development environments using any remote that supports SSH authentication.
 
-Follow the steps for Option 1, but instead of adding the public key as a deploy key to the repository, add it to the SSH keys for your individual user on the Git remote. For example in GitHub here: https://github.com/settings/ssh/new
+1. Enter a filename in the SSH Private Key File input of the Embedded Git settings form. Save the form.
+2. Click the "File not found - generate a new key pair?" button. Save the form.
+3. Copy the value of the "Public key" input on the settings page.
+4. Add the public key to the SSH keys for your individual user on the Git remote. For example in GitHub: https://github.com/settings/ssh/new
+5. In your Git remote, copy the link to clone the repository via SSH.
+6. In Embedded Git settings, click the "Clone" button and paste the SSH repository URL into the confirmation dialog.
+
+## Option 2: Configuring SSH authentication with a GitHub deploy key
+
+This option is best for shared development environments using GitHub.
+
+Follow the steps for Option 1, but in step 4, instead of adding the public key to your individual user's SSH keys, add it as a deploy key to the repository (repository settings > Deploy keys > Add deploy key). Check "Allow write access".
 
 ## Option 3: Configuring HTTPS authentication with a personal access token
 

@@ -34,7 +34,7 @@ Method OnPull() As %Status
             #; Deleted production items will not have an internal name
             set delIndex = $select(##class(SourceControl.Git.Util.Production).ItemIsPTD(tExternalName): 1, 1: 2)
             if ((delIndex = 2) && (internalName = "")) {
-                write !, tExternalName, "was not in the database.  Nothing to delete."
+                write !, tExternalName, " was not in the database.  Nothing to delete."
                 continue
             }
             set:(delIndex=1) internalName = "-"_i   ;; This is a total hack because deleted production items will not have an internal name

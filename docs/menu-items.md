@@ -84,3 +84,6 @@ This option imports the versions of the files that are found in the configured d
 
 ## Import All (Force)
 This menu option behaves similarly to the regular import but forces the files to be imported regardless of whether the on-disk version is the same or older.
+
+## Take Ownership of Changes to File
+This option is enabled if the current item has uncommitted changes owned by a different user. Take Ownership will transfer ownership of those uncommitted changes to the current user, allowing the current user to make their own edits.

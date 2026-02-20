@@ -35,12 +35,14 @@ XData Menu
 <MenuItem Name="ExportForce" Save="101" />
 <MenuItem Name="Import" />
 <MenuItem Name="ImportForce" />
+<MenuItem Name="TakeOwnership" />
 </Menu>
 <Menu Name="%SourceContext" Type="1">
 <MenuItem Name="AddToSC" Save="100" />
 <MenuItem Name="RemoveFromSC"/>
 <MenuItem Name="Revert" Save="100" />
 <MenuItem Name="Commit" Save="100" />
+<MenuItem Name="TakeOwnership" />
 </Menu>
 </MenuBase>
 }
@@ -150,6 +152,7 @@ Method LocalizeName(name As %String) As %String
         "SwitchBranch":$$$Text("@SwitchBranch@Check out an existing branch"),
         "Revert":$$$Text("@Revert@Discard changes to file"),
         "Commit":$$$Text("@Commit@Commit changes to file"),
+        "TakeOwnership":$$$Text("@TakeOwnership@Take ownership of changes to file"),
         "Sync":$$$Text("@Sync@Sync"),
         "Push":$$$Text("@Push@Push to remote branch"),
         "PushForce":$$$Text("@PushForce@Push to remote branch (Force)"),
@@ -172,7 +175,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
     }
     if ##class(SourceControl.Git.Utils).IsNamespaceInGit() {
 
-        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit", "ExportProduction"), name) {
+        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit", "ExportProduction", "TakeOwnership"), name) {
             quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
         }
 
@@ -259,6 +262,13 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
         do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
         if '(##class(SourceControl.Git.Change).IsUncommitted(##class(SourceControl.Git.Utils).FullExternalName(itemName))) || ($username '= userCheckedOut) {
             set Enabled = 0
+        }
+    } elseif menuItemName = "TakeOwnership" {
+        set Enabled = -1  // Hide by default
+        do ..GetStatus(.itemName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
+        // Show only if file is checked out by a different user
+        if isCheckedOut && (userCheckedOut '= $username) {
+            set Enabled = 1
         }
     } elseif menuItemName = "ExportProduction" {
         set itemNameNoExt = $piece(itemName,".",1,*-1)

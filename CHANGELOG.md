@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Baseline Export now includes decomposed production items when production decomposition is enabled (#680)
+- Take Ownership option in source control menu allows you to take ownership of an item edited by another user (#926)
 
 ## Fixed
 - Fixed issue where Generated Files Read-only option didn't entirely work for files not in source control (#712)

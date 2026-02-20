@@ -1,4 +1,4 @@
-# git-source-control
+# Embedded Git for InterSystems
 Embedded Git support for InterSystems platforms, supporting unified source control for changes made via IDEs (e.g., VSCode over isfs) and the Management Portal (Interoperability and Business Intelligence).
 
 ## Prerequisites/Dependencies
@@ -128,7 +128,9 @@ again for more information.
 It is important for the namespace temp folder to be owned by the user IRIS runs as. (On Unix, commonly irisusr; on Windows, generally a designated service account or SYSTEM.) Setting this config flag is unlikely to actually help; just make sure the ownership is correct.
 
 #### Interacting with Remotes
-If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you must use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
+For detailed instructions on configuring remotes, see [this guide](/docs/configuring-remotes.md).
+
+If you want to interact with remotes from VSCode/Studio directly (e.g., to push/pull), you should use ssh (rather than https), create a public/private key pair to identify the instance (not yourself), configure the private key file for use in Settings, and configure the public key as a deploy key in the remote(s).
 
 #### IRIS Privileges
 For developers to be able to run this extension, they'll need the following privileges:

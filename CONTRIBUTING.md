@@ -4,7 +4,51 @@ Thank you for your interest in contributing! While this project originated at In
 
 ## Getting Started
 
-We recommend setting up a local development instance by following these steps:
+### Developing in Docker Containers
+
+The easiest way to get a working development environment is with Docker. This gives you an IRIS instance with git-source-control pre-installed in development mode.
+
+#### Prerequisites
+
+- [Docker](https://www.docker.com/get-started/) installed and running
+- [VS Code](https://code.visualstudio.com/) with the [InterSystems ObjectScript Extension Pack](https://marketplace.visualstudio.com/items?itemName=intersystems-community.objectscript-pack)
+
+#### Setup
+
+```bash
+git clone https://github.com/intersystems/git-source-control
+cd git-source-control
+git checkout -b <new-branch-name>
+docker compose up -d --build
+```
+
+This spins up a single container:
+- **git-source-control-iris-1**: an IRIS instance with git-source-control loaded in dev mode in the USER namespace. The management portal is published to the host at port 52774.
+
+#### Important Notes
+
+- The repository is mounted at `/home/irisowner/dev/git-source-control/` inside the container.
+- If port 52774 is already in use, edit the port mapping in `docker-compose.yml`.
+- If you have an InterSystems license key at `~/iris.key`, it will be mounted into the container automatically.
+
+#### Development
+
+Make changes locally and compile them via VS Code. To access the IRIS terminal in the container:
+
+```bash
+docker compose exec -it iris iris session iris
+```
+
+To run the unit tests from the IRIS terminal:
+
+```
+zpm "git-source-control test -only -verbose"
+```
+
+### Developing on an Existing IRIS Instance
+
+If you prefer to use an existing IRIS installation:
+
 1. Install an instance of IRIS (go to https://evaluation.intersystems.com/ for an evaluation kit).
 2. Install IPM (InterSystems Package Manager) (https://github.com/intersystems/ipm).
 3. Clone a copy of the Embedded Git repository to disk using `git clone`.

@@ -1357,7 +1357,7 @@ ClassMethod RoutineTSH(InternalName As %String) As %String
     #dim tsh = $case(type,"csp":"",:$get(@..#Storage@("TSH", ##class(%Studio.SourceControl.Interface).normalizeName(InternalName))))
 
     // in case an OS level error is returned
-    set:(($$$isUNIX & (tsh = -2)) || ($$$isWINDOWS & (tsh = -3))) tsh = 0
+    set:(tsh < 0) tsh = 0
 
     if tsh = "" {
         #dim ts as %String = ##class(%RoutineMgr).TS(InternalName)
@@ -1499,7 +1499,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
         }
         if $$$ISOK(sc) {
             if imported {
-                set sc = ..UpdateRoutineTSH(InternalName, fileTSH)
+                set:fileTSH'<0 sc = ..UpdateRoutineTSH(InternalName, fileTSH)
                 if type = "prj" {
                     set sc = $$$ADDSC(sc, ..FixProjectCspReferences(InternalName))
                 }

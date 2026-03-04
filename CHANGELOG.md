@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Take Ownership option in source control menu allows you to take ownership of an item edited by another user (#926)
 
 ## Fixed
+- Fixed `<VALUE OUT OF RANGE>` error in GetTempFileAndRoutineTS when an OS-level error code was stored as a routine timestamp (#832)
 - Fixed issue where Generated Files Read-only option didn't entirely work for files not in source control (#712)
 - Fixed issue where a deleted file not within Embedded Git's management was causing the pull handler to crash and not fully update the Iris instance (#928)
 

@@ -120,7 +120,9 @@ Method OnBeforeAllTests() As %Status
 	set settings.namespaceTemp = folder
 	set settings.percentClassReplace = "_"
 	$$$ThrowOnError(settings.%Save())
-	do ##class(%Library.File).CopyDir($Piece(..Manager.CurrentDir,"test"),folder,1)
+	// copy just the test directory in this repo into the temp repo directory
+	set srcDir = ##class(%File).NormalizeDirectory("test", $Piece(..Manager.CurrentDir,"test"))
+	do ##class(%Library.File).CopyDir(srcDir, ##class(%File).NormalizeDirectory("test", folder), 1)
 	kill @##class(SourceControl.Git.Utils).MappingsNode()
 	Set app = $System.CSP.GetDefaultApp($Namespace)
 	If (app '= "") {

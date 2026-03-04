@@ -50,7 +50,7 @@ ClassMethod Pull(pTerminateOnError As %Boolean = 0)
 
 /// Imports all items from the Git repository into IRIS.
 /// - pForce: if true, will import an item even if the last updated timestamp in IRIS is later than that of the file on disk.
-ClassMethod ImportAll(pForce As %Boolean = 0) as %Status
+ClassMethod ImportAll(pForce As %Boolean = 0) As %Status
 {
     return ##class(SourceControl.Git.Utils).ImportAll(pForce)
 }
@@ -72,9 +72,10 @@ ClassMethod Unlock()
 /// Run in terminal to baseline a namespace by adding all items to source control.
 /// - pCommitMessage: if defined, all changes in namespace context will be committed.
 /// - pPushToRemote: if defined, will run a git push to the specified remote
-ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+/// - pVerbose: verbose output
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "", pVerbose = 0) As %Status
 {
-    quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote)
+    quit ##class(SourceControl.Git.Utils).BaselineExport(pCommitMessage, pPushToRemote, pVerbose)
 }
 
 ClassMethod MapEverywhere() As %Status

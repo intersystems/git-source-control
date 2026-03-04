@@ -3138,7 +3138,7 @@ ClassMethod ResetSourceControlClass()
     do ##class(%Studio.SourceControl.Interface).SourceControlClassSet("")
 }
 
-ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
+ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "", pVerbose = 0) As %Status
 {
     set sc = $$$OK
     try {
@@ -3156,13 +3156,21 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         while rs.%Next(.sc) {
             $$$ThrowOnError(sc)
             set internalName = rs.Name
-            continue:..IsSchemaStandard(internalName)
+            write:pVerbose !, "baselining item: ", internalName
+            if ..IsSchemaStandard(internalName) {
+                write:pVerbose !?5, "skipping standard schema"
+                continue
+            }
             // exclude items in a non-default IPM package
             set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
-            continue:($isobject(context.Package) && 'context.IsInDefaultPackage)
+            if ($isobject(context.Package) && 'context.IsInDefaultPackage) {
+                write:pVerbose !?5, "skipping item in non-default IPM package"
+                continue
+            }
             $$$ThrowOnError(..AddToSourceControl(internalName))
         }
         if settings.decomposeProductions && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+            write:pVerbose !, "baselining decomposed productions"
             do ##class(SourceControl.Git.Util.Production).BaselineProductions()
         }
         if pCommitMessage '= "" {
@@ -3182,6 +3190,7 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "") As %Status
         }
     } catch err {
         set sc = err.AsStatus()
+        write:pVerbose !, "Error baselining items: ", err.DisplayString()
     }
     return sc
 }

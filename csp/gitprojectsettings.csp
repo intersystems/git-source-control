@@ -141,6 +141,7 @@ body {
             set settings.decomposeProductions = ($Get(%request.Data("decomposeProductions", 1)) = 1)
             set settings.decomposeProdAllowIDE = ($Get(%request.Data("decomposeProdAllowIDE", 1)) = 1)
             set settings.lockBranch = ($Get(%request.Data("lockBranch", 1)) = 1)
+            set settings.warnInstanceWideUncommitted = ($Get(%request.Data("warnInstanceWideUncommitted", 1)) = 1)
 
             if ($Get(%request.Data("systemBasicMode", 1)) = 1) {
                 set settings.systemBasicMode = 1
@@ -576,6 +577,18 @@ body {
                     <input class="custom-control-input" name="lockNamespace" type="checkbox" 
                         id="lockNamespace" #($select(##class(SourceControl.Git.Utils).Locked():"checked",1:""))# value="1">
                     <label class="custom-control-label" for="lockNamespace"></label>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mb-3">
+            <label for="warnInstanceWideUncommitted" class="offset-sm-1 col-sm-3 col-form-label" data-toggle="tooltip" data-placement="top"
+                title="Show a warning when opening an item that has uncommitted changes in a different namespace in this instance">
+                Warn Instance-Wide Uncommitted</label>
+            <div class="col-sm-7">
+                <div class="custom-control custom-switch custom-switch-no-border">
+                    <input class="custom-control-input" name="warnInstanceWideUncommitted" type="checkbox"
+                        id="warnInstanceWideUncommitted" #($select(settings.warnInstanceWideUncommitted:"checked",1:""))# value="1">
+                    <label class="custom-control-label" for="warnInstanceWideUncommitted"></label>
                 </div>
             </div>
         </div>

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Baseline Export now includes decomposed production items when production decomposition is enabled (#680)
 - Take Ownership option in source control menu allows you to take ownership of an item edited by another user (#926)
+- The "warnInstanceWideUncommitted" option can now be changed through the settings page (#936)
 
 ## Fixed
 - Fixed `<VALUE OUT OF RANGE>` error in GetTempFileAndRoutineTS when an OS-level error code was stored as a routine timestamp (#832)

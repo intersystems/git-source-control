@@ -7,7 +7,6 @@ Class UnitTest.SourceControl.Git.Utils.ImportItem Extends UnitTest.SourceControl
 Method TestNegativeTSHNotStored()
 {
     set internalName = "TestGitImport.NegTSH.CLS"
-    // set normalizedName = ##class(%Studio.SourceControl.Interface).normalizeName(internalName)
 
     // Write a valid class file to disk so ImportItem can load it
     set filename = ##class(SourceControl.Git.Utils).FullExternalName(internalName)

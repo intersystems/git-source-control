@@ -1790,7 +1790,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                     do ..RemoveFromServerSideSourceControl(InternalName)
 	            }
 	            else {
-	                $$$QuitOnError($SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff"))
+	                $$$QuitOnError($SYSTEM.OBJ.ExportUDL(InternalName, filename,"-d/diff/createdirs=1"))
                 }
             }
             if (filename '= "") && ##class(%File).Exists(filename) {

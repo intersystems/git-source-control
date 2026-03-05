@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `<VALUE OUT OF RANGE>` error in GetTempFileAndRoutineTS when an OS-level error code was stored as a routine timestamp (#832)
 - Fixed issue where Generated Files Read-only option didn't entirely work for files not in source control (#712)
 - Fixed issue where a deleted file not within Embedded Git's management was causing the pull handler to crash and not fully update the Iris instance (#928)
+- Fixed exporting items in nested subdirectories in IRIS versions >= 2025.3 (#786)
 
 ## [2.15.0] - 2026-01-06
 

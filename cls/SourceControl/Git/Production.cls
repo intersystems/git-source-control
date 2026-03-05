@@ -108,7 +108,7 @@ ClassMethod ExportProjectForPTD(productionClass As %String, ptdName As %String, 
         $$$ThrowOnError(project.%Save())
         set projContentsList(exportNotesPTDName_".PTD") = ""
         set projContentsList(project.Name_".PRJ") = ""
-        $$$ThrowOnError($System.OBJ.Export(.projContentsList, exportPath, "/diffexport=1"))
+        $$$ThrowOnError($System.OBJ.Export(.projContentsList, exportPath, "/diffexport=1/createdirs=1"))
         // remove the LastModified timestamp from the exported file
         set fileStream = ##class(%Stream.FileCharacter).%OpenId(exportPath,,.st)
         $$$ThrowOnError(st)

@@ -5,13 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.16.0] - Unreleased
+## [2.16.0] - 2026-03-06
 
 ### Added
 - Baseline Export now includes decomposed production items when production decomposition is enabled (#680)
 - Take Ownership option in source control menu allows you to take ownership of an item edited by another user (#926)
 - The "warnInstanceWideUncommitted" option can now be changed through the settings page (#936)
-- Added verbose option for BaselineExport
+- Added verbose option for BaselineExport (#941)
 
 ## Fixed
 - Fixed `<VALUE OUT OF RANGE>` error in GetTempFileAndRoutineTS when an OS-level error code was stored as a routine timestamp (#832)

@@ -2464,7 +2464,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         set usertype = 0
     }
 
-    if 'usertype && $$CheckProtect^%qccServer(InternalName) {
+    if 'usertype && ##class(%Routine).CheckProtect(InternalName) {
         quit ""
     }
 

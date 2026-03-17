@@ -172,6 +172,14 @@ do $system.OBJ.CompileList("%Z*,%z*,Z*,z*,'%ZEN.*,'%ZHS*","up")
 
 These steps are documented under [Major Version Post-Installation Tasks](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GCI_post#GCI_post_mv).
 
+### Mirrored Configurations
+In an environment using [InterSystems IRIS database mirroring](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GHA_mirror), Embedded Git should be configured to keep the Git repository in sync between primary and secondary nodes. The recommended way to do this is with a shared folder.
+- Create a network drive accessible from all mirror members
+- Copy the Git repository onto that network drive
+- Update the Embedded Git configuration on all mirror members so the local Git repo root directory points to the shared drive
+
+In cases where a shared folder cannot be used, an alternative is a task that keeps the Git repository in sync between primary and secondary nodes using rsync or robocopy.
+
 ## Support
 
 If you find a bug or would like to request an enhancement, [report an issue](https://github.com/intersystems/git-source-control/issues/new). If you have a question, post it on the [InterSystems Developer Community](https://community.intersystems.com/) - consider using the "Git" and "Source Control" tags as appropriate.

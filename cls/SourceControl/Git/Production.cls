@@ -154,7 +154,7 @@ ClassMethod ExportPTD(internalName As %String, nameMethod As %String) As %Status
     Return sc
 }
 
-/// Imports a PTD into a produciton given an external name and production name
+/// Imports a PTD into a production given an external name and production name
 /// timeout specifies in seconds how long to wait for the Deployment Token lock to free if
 /// owned by another process. This defaults to 2 minutes.
 ClassMethod ImportPTD(externalName As %String, productionName As %String, timeout As %Integer = 120) As %Status

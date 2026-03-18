@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# iriscli: convenience wrapper to run ObjectScript commands or script files in an IRIS session
+# Usage examples:
+#   iriscli -U USER              (interactive-like session)
+#   iriscli -U USER script.txt   (run a script file)
+#   iriscli script.txt arg1 arg2 (run script with parameters)
+
+CONTAINER=${IRIS_CONTAINER:-git-source-control-iris-1}
+ARGS=()
+PARAMS=()
+file=
+
+if [ -n "$IRIS_NAMESPACE" ]; then
+    ARGS+=( -U $IRIS_NAMESPACE )
+elif [ -n "$IRISNAMESPACE" ]; then
+    ARGS+=( -U $IRISNAMESPACE )
+fi
+
+while [[ $# -gt 0 ]]; do
+    if [ -x $1 ]; then
+        file=$1
+    elif [ -z "$file" ]; then
+        ARGS+=("$1")
+    else
+        PARAMS+=("$1")
+    fi
+    shift
+done
+
+if [ -n "$file" ]; then
+    (
+        for param in ${PARAMS[@]}; do
+            echo "Set params(\$i(params)) = \"${param//\"/\"\"}\""
+        done
+        egrep -v '^(;|#|//)|^$' $file;
+        echo halt
+    ) | docker exec -i "$CONTAINER" iris session iris "${ARGS[@]}"
+else
+    docker exec -i "$CONTAINER" iris session iris "${ARGS[@]}"
+fi

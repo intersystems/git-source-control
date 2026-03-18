@@ -21,7 +21,15 @@ Method TestLoadProductionsFromDirectory()
 	set packageRoot = ##class(SourceControl.Git.PackageManagerContext).ForInternalName("git-source-control.zpm").Package.Root
 	$$$ThrowOnError($System.OBJ.Load(packageRoot_"test/_resources/cls/UnitTest/SampleProduction.cls","ck"))
 	// call LoadProductionsFromDirectory on a directory under resources/ptd
-	do $$$AssertStatusOK(##class(SourceControl.Git.Util.Production).LoadProductionsFromDirectory(packageRoot_"test/_resources/ptd"))
+	set st = ##class(SourceControl.Git.Util.Production).LoadProductionsFromDirectory(packageRoot_"test/_resources/ptd",.failedItems)
+	if '$$$AssertStatusOK(st) {
+		set key = $order(failedItems(""))
+		while (key '= "") {
+			do $$$LogMessage(key _ " failed to import")	
+			do $$$AssertStatusOK(failedItems(key))
+			set key = $order(failedItems(key))
+		}
+	}
 	// confirm items were deleted and added
 	set itemA = ##class(Ens.Config.Production).OpenItemByConfigName("UnitTest.SampleProduction||a")
 	do $$$AssertNotTrue($isobject(itemA),"item a was deleted")

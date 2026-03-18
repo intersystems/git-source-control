@@ -99,7 +99,7 @@ ClassMethod LoadProductionsFromDirectory(pDirectoryName, Output pFailedItems) As
                 if '$isobject(##class(Ens.Config.Production).%OpenId(productionName)) {
                     $$$ThrowOnError(##class(SourceControl.Git.Production).CreateProduction(productionName))
                 }
-                set st = ##class(SourceControl.Git.Production).ImportPTD(filePath, productionName)
+                set st = ##class(SourceControl.Git.Production).ImportPTD(filePath, productionName, 2)
                 if $$$ISERR(st) {
                     set pFailedItems(filePath) = st
                 }

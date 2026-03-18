@@ -154,23 +154,40 @@ ClassMethod ExportPTD(internalName As %String, nameMethod As %String) As %Status
     Return sc
 }
 
-/// Imports a PTD into a production given an external name and produciton name
-ClassMethod ImportPTD(externalName As %String, productionName As %String) As %Status
+/// Imports a PTD into a production given an external name and production name
+/// timeout specifies in seconds how long to wait for the Deployment Token lock to free if
+/// owned by another process. This defaults to 2 minutes.
+ClassMethod ImportPTD(externalName As %String, productionName As %String, timeout As %Integer = 120) As %Status
 {
 	try {
 		set ^IRIS.Temp("sscProd",$job,"bypassLock") = 1
 		set rollbackFile = ##class(%File).TempFilename()
-		set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
-        if $$$ISERR(sc) {
-            set sc2 = ##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag()
-            if $$$ISERR(sc2) set sc = $$$ADDSC(sc, sc2)
-        }
+		set locked = 1
+		lock +^Ens.DeploymentToken("SourceControl",$namespace):timeout
+		if $test {
+			set deploymentToken = ##class(Ens.Deployment.Token).%OpenId("DeployToken")
+			if $isobject(deploymentToken) && deploymentToken.InProgress {
+				$$$ThrowOnError(##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag())
+			}
+			set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)
+			lock -^Ens.DeploymentToken("SourceControl",$namespace)#"I"
+			set locked = 0
+			if $$$ISERR(sc) {
+				set sc2 = ##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag()
+				if $$$ISERR(sc2) set sc = $$$ADDSC(sc, sc2)
+			}
+		} Else {
+			set locked = 0
+			set sc = $$$ERROR($$$GeneralError, "Timed out waiting for Deployment Token. Check Deployment History table.")
+		}
 		do ##class(%File).Delete(rollbackFile)
-		kill ^IRIS.Temp("sscProd",$job,"bypassLock")
 	} catch err {
-		kill ^IRIS.Temp("sscProd",$job,"bypassLock")
 		set sc = err.AsStatus()
+		if locked {
+			lock -^Ens.DeploymentToken("SourceControl",$namespace)#"I"
+		}
 	}
+	kill ^IRIS.Temp("sscProd",$job,"bypassLock")
 	return sc
 }
 
@@ -355,9 +372,9 @@ ClassMethod GetAddOrDeletedItems(productionName As %String, ByRef modifiedItems)
 ClassMethod IsEnsPortal(Output source As %String = "") As %Boolean
 {
 	if $Data(%request) && $isobject(%request) {
-		if (%request.Application [ "/api/atelier") {
+		if ($Extract(%request.AppMatch,1,12) = "/api/atelier") {
 			set source = "IDE"
-		} elseif (%request.Application [ "/api/interop-editors") {
+		} elseif ($Extract(%request.AppMatch,1,20) = "/api/interop-editors") {
 			set source = "Interop Editor"
 		} else {
 			return 1
@@ -371,7 +388,7 @@ ClassMethod IsEnsPortal(Output source As %String = "") As %Boolean
 /// Perform check if Production Decomposition logic should be used for given item
 ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %Boolean
 {
-	if (className '= "") && $$$comClassDefined(className) {
+	if $system.CLS.IsMthd(className, "%Extends") {
 		try {
 			return $classmethod(className, "%Extends", "Ens.Production")
 		} catch err {
@@ -384,23 +401,26 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		if ##class(%File).Exists(settingsPTDFilename) {
 			return 1
 		}
-		// uses temporary flag to load item without loading into database (since the item may not be 
+		// uses temporary flag to load item without loading into database (since the item may not be
 		// compilable or not have been intended for import yet). Then check for Production Definition
 		// XData. Approach taken from CvtXmlToClientDoc method in %Api.Atelier.v1
-		set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
-		if ##class(%File).Exists(filename) && '##class(%File).DirectoryExists(filename) && (##class(%File).GetFileSize(filename) '= 0) {
-			try {
-				set ^||%oddDEF(className) = ""
-				$$$ThrowOnError($system.OBJ.Load(filename, "-d"))
-				// class XDatas are stored in ^||%oddDEF("<class name>","x","<XData name>") after temp load
-				set hasProdDef = $data(^||%oddDEF(className,$$$cCLASSxdata,"ProductionDefinition"))
-				kill ^||%oddDEF(className)
-				if hasProdDef {
-					return 1
+		set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
+		if sourceControlClass '= "" {
+			set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
+			if ##class(%File).GetFileSize(filename) > 0 {
+				try {
+					set ^||%oddDEF(className)=1
+					$$$ThrowOnError($system.OBJ.Load(filename, "-d"))
+					// class XDatas are stored in ^||%oddDEF("<class name>","x","<XData name>") after temp load
+					set hasProdDef = $data(^||%oddDEF(className,$$$cCLASSxdata,"ProductionDefinition"))
+					kill ^||%oddDEF(className)
+					if hasProdDef {
+						return 1
+					}
+				} catch err {
+					kill ^||%oddDEF(className)
+					throw err
 				}
-			} catch err {
-				kill ^||%oddDEF(className)
-				throw err
 			}
 		}
 		// if Production exists as a class definition on the server, check if extending Ens.Production
@@ -413,6 +433,222 @@ ClassMethod IsProductionClass(className As %String, nameMethod As %String) As %B
 		}
 	}
 	return 0
+}
+
+/// Given an internal name, determines if this item is a config item class.
+ClassMethod IsBusinessHostClass(className As %String, nameMethod As %String) As %Boolean
+{
+	if $system.CLS.IsMthd(className, "%Extends") {
+		try {
+			return $classmethod(className, "%Extends", "Ens.Host")
+		} catch err {
+			if '(err.AsStatus() [ "CLASS DOES NOT EXIST") throw err
+		}
+	} else {
+		// uses temporary flag to load item without loading into database (since the item may not be
+		// compilable or not have been intended for import yet). Then check for Super class.
+		// Approach taken from CvtXmlToClientDoc method in %Api.Atelier.v1
+		set sourceControlClass = ##class(%Studio.SourceControl.Interface).SourceControlClassGet()
+		if sourceControlClass '= "" {
+			set filename = $classmethod(##class(%Studio.SourceControl.Interface).SourceControlClassGet(), nameMethod, className_".CLS")
+			if (##class(%File).GetFileSize(filename) > 0) {
+				try {
+					set ^||%oddDEF(className)=1
+					$$$ThrowOnError($system.OBJ.Load(filename, "-d"))
+					// class Super classes are stored in ^||%oddDEF("<class name>",60) after temp load
+					set superClasses = $listFromString($get(^||%oddDEF(className,$$$cCLASSsuper)),",")
+					kill ^||%oddDEF(className)
+					set ptr=0
+					while $listnext(superClasses,ptr,superClass) {
+						set isSuperBusinessHost = ..IsBusinessHostClass(superClass, nameMethod)
+						if isSuperBusinessHost return 1
+					}
+				} catch err {
+					kill ^||%oddDEF(className)
+					throw err
+				}
+			}
+		}
+		// if Business Host class exists as a class definition on the server, check if extending Ens.Host
+		set classDef = ##class(%Dictionary.ClassDefinition).%OpenId(className)
+		if $isobject(classDef) {
+			set superList = $listfromstring(classDef.Super,",")
+			set ptr = 0
+			// loop over super classes recursively calling IsBusinessHostClass. Recursion
+			// continues until true or until able to successfully call %Extends because super
+			// classes are compiled. This is needed when loading class and its super class.
+			while $listnext(superList,ptr,superClass) {
+				set isSuperBusinessHost = ..IsBusinessHostClass(superClass, nameMethod)
+				if isSuperBusinessHost return isSuperBusinessHost
+			}
+		}
+	}
+	return 0
+}
+
+/// Check if Production class has custom code by searching for any class members
+/// defined in the class that are not inherited (other than XData block).
+ClassMethod ProductionHasCustomCode(prodClass As %String) As %Boolean
+{
+	set prodClassDef = ##class(%Dictionary.ClassDefinition).%OpenId(prodClass)
+	if $isobject(prodClassDef) {
+		set memberTypes = $listfromstring("ForeignKeys,Indices,"_
+						"Methods,Parameters,"_
+						"Projections,Properties,"_
+						"Queries,Storages,Triggers,"_
+						"UDLTexts",",")
+		set ptr = 0
+		while $listnext(memberTypes,ptr,memberType) {
+			set members = $property(prodClassDef, memberType)
+			if members.Count() '= 0 {
+				return 1
+			}
+		}
+	}
+	return 0
+}
+
+/// Check if active Production(s) need update and run UpdateProduction if so.
+/// If productionName is provided then only UpdateProduction for the given Production name.
+ClassMethod CheckAndUpdateProduction(instanceWide As %Boolean = 0, jointNamespace As %Boolean = 0, productionName As %String = "") As %Status
+{
+	set sc = $$$OK
+	// if using Instance-Wide source control Configuration, check all running Productions
+	if instanceWide {
+		new $namespace
+		set prodNS = ""
+		for {
+			set prodNS = $order(^%SYS("Ensemble","RunningNamespace",prodNS))
+			quit:prodNS=""
+			set $namespace = prodNS
+			if ('##class(%EnsembleMgr).IsEnsembleNamespace()) || ((productionName '= "") && (##class(Ens.Director).RunningProduction() '= productionName)) {
+				continue
+			} elseif ##class(Ens.Director).ProductionNeedsUpdate() {
+				set timeout = ##class(Ens.Director).GetRunningProductionUpdateTimeout()
+				set tSc = ##class(Ens.Director).UpdateProduction(timeout)
+				if $$$ISERR(tSc) {
+					set sc = $System.Status.AppendStatus(sc, tSc)
+				}
+			}
+		}
+	} elseif jointNamespace {
+		do ##class(%Studio.SourceControl.ItemSet).HasJointPrimaryNamespace(.priNS)
+		new $namespace
+		set prodNS = ""
+		for {
+			set prodNS=$order(^%SYS("Ensemble","RunningNamespace",prodNS))
+			quit:prodNS=""
+			set $namespace = prodNS
+			if (##class(%Studio.SourceControl.ItemSet).HasJointPrimaryNamespace(.priNS2)) && (priNS2 = priNS) {
+				if ('##class(%EnsembleMgr).IsEnsembleNamespace()) || ((productionName '= "") && (##class(Ens.Director).RunningProduction() '= productionName)) {
+					continue
+				} elseif ##class(Ens.Director).ProductionNeedsUpdate() {
+					set timeout = ##class(Ens.Director).GetRunningProductionUpdateTimeout()
+					set tSc = ##class(Ens.Director).UpdateProduction(timeout)
+					if $$$ISERR(tSc) {
+						set sc = $System.Status.AppendStatus(sc, tSc)
+					}
+				}
+			}
+		}
+	} else {
+		if ##class(%EnsembleMgr).IsEnsembleNamespace() && ##class(Ens.Director).ProductionNeedsUpdate() {
+			set timeout = ##class(Ens.Director).GetRunningProductionUpdateTimeout()
+			set sc = ##class(Ens.Director).UpdateProduction(timeout)
+		}
+	}
+	return sc
+}
+
+/// Stop all config items in running Productions that are instances of the given Business Host class(es). Then
+/// restart the items. This is intended to apply changes resulting from editing the code for a Business Host.
+/// If in instance-wide configuration or with multiple business host classes, calls recursively until base case
+/// of a single Namespace and a single business host class.
+/// 
+/// <var>instanceWide</var> indicates whether this call needs to potentially apply to all Namespaces with running
+/// Productions. This will result in multiple calls with instanceWide set to 0 to run on individual Productions.
+/// <var>jointNamespace</var> indicates if this needs to apply to multiple Namespaces that are part of a Joint-
+///  Namespace CCR Configuration.
+/// <var>hostClasses</var> indicates the Business host class names and is either a string or an array of format:
+///  hostClasses("Custom.MyBusinessHost1") = ""
+///  hostClasses("Custom.MyBusinessHost2") = ""
+/// <var>doUpdate</var> is set to 1 to update the Production once per Namespace. Recursive calls for multiple business
+/// hosts set this flag to 0.
+ClassMethod RestartConfigItems(instanceWide As %Boolean = 0, jointNamespace As %Boolean = 0, ByRef hostClasses As %String, ByRef failedItems As %String) As %Status
+{
+	set sc = $$$OK
+	if $System.Version.GetMajor()_$System.Version.GetMinor() < 2019.4 {
+		return sc
+	}
+	if instanceWide {
+		new $namespace
+		// iterate through all Namespaces with running Productions and call with instanceWide = 0
+		set prodNS = ""
+		for {
+			set prodNS = $order(^%SYS("Ensemble","RunningNamespace",prodNS))
+			quit:prodNS=""
+			set $namespace = prodNS
+			set tSc = ..RestartConfigItems(,, .hostClasses, .failedItems)
+			if $$$ISERR(tSc) {
+				set sc = $system.Status.AppendStatus(sc, tSc)
+			}
+		}
+	} elseif jointNamespace {
+		do ##class(%Studio.SourceControl.ItemSet).HasJointPrimaryNamespace(.priNS)
+		new $namespace
+		// iterate through all Namespaces with running Productions and call with instanceWide = 0
+		set prodNS = ""
+		for {
+			set prodNS = $order(^%SYS("Ensemble","RunningNamespace",prodNS))
+			quit:prodNS=""
+			if (##class(%Studio.SourceControl.ItemSet).HasJointPrimaryNamespace(.priNS2)) && (priNS2 = priNS) {
+				set $namespace = prodNS
+				set tSc = ..RestartConfigItems(,, .hostClasses, .failedItems)
+				if $$$ISERR(tSc) {
+					set sc = $system.Status.AppendStatus(sc, tSc)
+				}
+			}
+		}
+	} else {
+		// temporarily stop all config items belonging to the class, update the Production, start them, and update Production again
+		// if hostClass is a single class name, convert to array
+		if $data(hostClasses) = 1 {
+			set hostClasses(hostClasses) = ""
+		}
+		if ##class(%EnsembleMgr).IsEnsembleNamespace() {
+			set prodName = ##class(Ens.Director).GetActiveProductionName()
+			set sql = "SELECT Name, Comment FROM Ens_Config.Item WHERE Production = ? AND ClassName = ?"
+			for stop = 1,0 {
+				set hostClass = ""
+				for {
+					set hostClass = $order(hostClasses(hostClass))
+					quit:hostClass=""
+					// stop all business hosts belonging to a single business host class - this is the base case
+					set rs = ##class(%SQL.Statement).%ExecDirect(,sql,prodName,hostClass)
+					if rs.%SQLCODE < 0 {
+						set sc = ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message).AsStatus()
+						return sc
+					}
+					while rs.%Next() {
+						set itemName = prodName_"||"_rs.Name_"|"_$select(rs.Comment'= "":rs.Comment,1:hostClass) // see Ens.Director ParseConfigItemName method for name format reference
+						set tSc = ##class(Ens.Director).TempStopConfigItem(itemName,stop,0)
+						// items that have pool size 0, are disabled, or are not in running Production will fail to stop.
+						if $$$ISERR(tSc) {
+							set sc = $system.Status.AppendStatus(sc, tSc)
+							set failedItems(itemName) = ""
+						}
+					}
+				}
+				// after temporarily stopping or restarting config items, update the Production
+				set timeout = ##class(Ens.Director).GetRunningProductionUpdateTimeout()
+				set tSc = ##class(Ens.Director).UpdateProduction(timeout)
+				if $$$ISERR(tSc) {
+					set sc = $system.Status.AppendStatus(sc, tSc)
+				}
+			}
+		}
+	}
+	return sc
 }
 
 /// Given a file name for a PTD item, returns a suggested internal name. This method assumes that the file exists on disk.
@@ -463,7 +699,8 @@ ClassMethod ParseInternalName(internalName As %String, noFolders As %Boolean = 0
     set name = $piece(internalName,".",1,*-1)
     if 'noFolders {
         set name = $replace(name,"||","/")
-        set $ListBuild(productionName, name) = $ListFromString(name, "/")
+        set productionName = $Piece(name,"/")
+        set name = $Piece(name,"/",2,*)
     }
     // Abbreviate "ProductionSettings" to "ProdStgs", "Settings" to "Stgs".
     Set prefix = $Case($Extract(name), "P":"ProdStgs-", "S":"Stgs-", :"")

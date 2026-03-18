@@ -166,7 +166,7 @@ ClassMethod ImportPTD(externalName As %String, productionName As %String, timeou
 		lock +^Ens.DeploymentToken("SourceControl",$namespace):timeout
 		if $test {
 			set deploymentToken = ##class(Ens.Deployment.Token).%OpenId("DeployToken")
-			if deploymentToken.InProgress {
+			if $isobject(deploymentToken) && deploymentToken.InProgress {
 				$$$ThrowOnError(##class(Ens.Deployment.Deploy).ClearDeploymentInProgressFlag())
 			}
 			set sc = ##class(Ens.Deployment.Deploy).DeployCode(externalName,productionName,0,rollbackFile)

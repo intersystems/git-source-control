@@ -1476,7 +1476,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
                     set sc = ##class(SourceControl.Git.Production).CreateProduction(targetProduction)
                 }
                 if $$$ISOK(sc) {
-                    set sc = ##class(SourceControl.Git.Production).ImportPTD(filename, targetProduction)
+                    set sc = ##class(SourceControl.Git.Production).ImportPTD(filename, targetProduction, 5)
                 }
             }
         } elseif ..ItemIsProductionToDecompose(InternalName) {

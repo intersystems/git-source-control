@@ -2807,18 +2807,28 @@ ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 
     set name = ""
 
-    // Using embedded for backwards compatability
+    // Using embedded instead of ExecDirectNoPriv() for backwards compatability
     if '(onlyNamespaces) {
         &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-        &sql(OPEN C1)
-            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-        &sql(FETCH C1)
-        while(SQLCODE = 0) {
-            set package = name
-            do contexts.%Push(package)
-            &sql(FETCH C1)
+        new $namespace
+        set ptr = 0
+        while $listnext(namespaces,ptr,ns) {
+            if '($FIND(ns,"^^")) {
+                try {
+                    set $NAMESPACE = ns
+                    &sql(OPEN C1)
+                    throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+                    &sql(FETCH C1)
+                    while (SQLCODE = 0) {
+                        do contexts.%Push(ns_":"_name)
+                        &sql(FETCH C1)
+                    }
+                    &sql(CLOSE C1)
+                } catch e {
+                    // skip inaccessible namespaces
+                }
+            }
         }
-        &sql(CLOSE C1)
     }
 
     return contexts
@@ -3391,3 +3401,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

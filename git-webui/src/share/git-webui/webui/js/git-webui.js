@@ -701,7 +701,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var args = window.location.href.split("webuidriver.csp/")[1].split("/");
         var context = args[0];
         if (args[1] && (args[1].indexOf(".ZPM") != -1)) {
-            context = args[1];
+            context = args[0] + ":" + args[1];
         }
         return context;
     }
@@ -710,7 +710,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var urlParts = window.location.href.split("webuidriver.csp/");
         var args = urlParts[1].split("/");
         if (context.indexOf(".ZPM") != -1) {
-            args[1] = context;
+            var parts = context.split(":");
+            args[0] = parts[0];
+            args[1] = parts[1];
         } else {
             args[0] = context;
             args[1] = "";

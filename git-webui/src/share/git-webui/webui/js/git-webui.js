@@ -439,7 +439,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             searchBar.onkeyup = function(){ 
                 let branchCards = accordionDiv.getElementsByClassName("branch-card");
 
-                var filter = searchBar.value.toUpperCase().replaceAll('/', '-');
+                var filter = searchBar.value.toUpperCase().replaceAll('/', '-').replaceAll('#', '_');
 
                 for (let i = 0; i < branchCards.length; i++) {
                     let card = branchCards[i]
@@ -469,7 +469,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                var matches = /^\*?\s*([\w-.@&_\/\#]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
                 if (!matches) {
                     continue;
                 }
@@ -480,7 +480,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
                 var refname = branchInfo.branch_name;
                 var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.indexOf("ahead") > -1) // either no upstream or ahead of upstream
-                var itemId = refname.replaceAll('/', '-') + idPostfix;
+                var itemId = refname.replaceAll('/', '-').replaceAll('#', '_') + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + refname
@@ -508,7 +508,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
             } else {
                 var refname = ref.replaceAll('/', '-');
-                var itemId = refname + idPostfix;
+                var itemId = refname.replaceAll('#', '_') + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId +'">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                             + ref //IMPORTANT: This has to be the original ref for selectRef to work 

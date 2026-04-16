@@ -11,6 +11,8 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
     volumes:
       - ../:/workspace
     command: sleep infinity
@@ -22,6 +24,8 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
     volumes:
       - ../:/home/irisowner/dev/git-source-control/
       - ~/iris.key:/usr/irissys/mgr/iris.key

@@ -439,7 +439,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             searchBar.onkeyup = function(){ 
                 let branchCards = accordionDiv.getElementsByClassName("branch-card");
 
-                var filter = searchBar.value.toUpperCase().replaceAll('/', '-').replaceAll('#', '_');
+                var filter = searchBar.value.toUpperCase().replaceAll('/', '-');
 
                 for (let i = 0; i < branchCards.length; i++) {
                     let card = branchCards[i]
@@ -455,6 +455,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             };
         }
 
+        var skippedCount = 0;
         for (var i = 0; i < refs.length && i < maxRefsCount; ++i) {
             var ref = refs[i] + ""; // Get a copy of it
             if (ref[2] == '(' && ref[ref.length - 1] == ')') {
@@ -469,8 +470,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-.@&_\/\#]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                // only match branch names with supported characters (letters, numbers, . - _ /)
+                var matches = /^\*?\s*([a-zA-Z0-9._\/-]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
                 if (!matches) {
+                    $(cardDiv).remove();
+                    skippedCount++;
                     continue;
                 }
                 var branchInfo = {
@@ -480,7 +484,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
                 var refname = branchInfo.branch_name;
                 var canPush = (branchInfo.remote === undefined) || (branchInfo.remote.indexOf("ahead") > -1) // either no upstream or ahead of upstream
-                var itemId = refname.replaceAll('/', '-').replaceAll('#', '_') + idPostfix;
+                var itemId = refname.replaceAll('/', '-') + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId + '">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                                 + refname
@@ -507,8 +511,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     }
                 }
             } else {
+                // filter remote branches with unsupported characters
+                if (!/^[a-zA-Z0-9._\/-]+$/.test(ref)) {
+                    $(cardDiv).remove();
+                    skippedCount++;
+                    continue;
+                }
                 var refname = ref.replaceAll('/', '-');
-                var itemId = refname.replaceAll('#', '_') + idPostfix;
+                var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId +'">').appendTo(cardDiv);
                 var button = $('<button class="btn btn-sm btn-default btn-branch text-left" type="button" data-toggle="collapse" data-target="#collapse-' + itemId + '" aria-expanded="true" aria-controls="collapse-' + itemId + '">'
                             + ref //IMPORTANT: This has to be the original ref for selectRef to work 
@@ -525,6 +535,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             $(button).click(function (event) {
                 self.selectRef(event.target.innerHTML);
             });
+        }
+
+        if (skippedCount > 0) {
+            var warningMsg = skippedCount + " branch" + (skippedCount > 1 ? "es" : "") +
+                " with unsupported characters hidden. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.";
+            $('<div class="alert alert-warning mt-2 p-2" style="font-size: 0.8em;" role="alert">' +
+                warningMsg +
+            '</div>').appendTo(accordionDiv);
         }
 
         if (id === "remote-branches" && idPostfix === "popup") {
@@ -562,9 +580,17 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         }
     
         $("#btn_createList").click(function(e)
-        {   
+        {
             var refName = $('#newBranchName').val()
-    
+
+            // Validate branch name: only allow characters matching GitHub defaults
+            // Allowed: a-z, A-Z, 0-9, period, hyphen, underscore, forward slash
+            var branchNamePattern = /^[a-zA-Z0-9._\/-]+$/;
+            if (!branchNamePattern.test(refName)) {
+                alert("Invalid branch name. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.");
+                return;
+            }
+
             var flag = 0;
             webui.git("status -u --porcelain", function(data) {
                 $.get("api/uncommitted", function (uncommitted) {

@@ -27,12 +27,14 @@ fi
 # Allow DNS (outbound UDP 53 + inbound responses)
 iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
 iptables -A INPUT  -p udp --sport 53 -j ACCEPT
-# Detect the Docker bridge subnet (used for SSH and host-network rules).
-HOST_IP=$(ip route | grep default | cut -d" " -f3)
-HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
-# Allow SSH only to the Docker bridge network (not the entire internet).
-iptables -A OUTPUT -p tcp --dport 22 -d "$HOST_NETWORK" -j ACCEPT
-iptables -A INPUT  -p tcp --sport 22 -s "$HOST_NETWORK" -m state --state ESTABLISHED -j ACCEPT
+# Allow inter-container traffic (SSH and IRIS web server) by resolving
+# peer container IPs.  Rules that don't match a local listener are no-ops.
+for peer in iris workspace; do
+    PEER_IP=$(getent hosts "$peer" | awk '{print $1}') || continue
+    iptables -A OUTPUT -p tcp -d "$PEER_IP" --dport 22    -j ACCEPT
+    iptables -A OUTPUT -p tcp -d "$PEER_IP" --dport 52773 -j ACCEPT
+    iptables -A INPUT  -p tcp -s "$PEER_IP" --dport 22    -j ACCEPT
+done
 # Allow localhost
 iptables -A INPUT  -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
@@ -62,10 +64,6 @@ for domain in "registry.npmjs.org" "api.anthropic.com" "sentry.io" \
         ipset add --exist allowed-domains "$ip"
     done < <(echo "$ips")
 done
-
-# Allow host network (using the bridge subnet detected above)
-iptables -A INPUT  -s "$HOST_NETWORK" -j ACCEPT
-iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
 
 # Default-deny policies
 iptables -P INPUT   DROP

@@ -10,11 +10,11 @@ Parameter InstallNamespace = "%SYS";
 Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 
 /// Name of the file with version controlled items
-Parameter GitMenuItems = ",Settings,Commit,Sync,Pull,Fetch,Push,Revert,";
+Parameter GitMenuItems = ",Settings,Commit,Sync,Pull,Fetch,Push,Revert,FileHistory,";
 
 Parameter ImportAfterGitMenuItems = ",Commit,Sync,Pull,Fetch,Push,";
 
-Parameter GitContextMenuItems = ",%Diff,%Blame,";
+Parameter GitContextMenuItems = ",%Diff,%Blame,FileHistory,";
 
 ClassMethod %SYSNamespaceStorage() As %String [ CodeMode = expression ]
 {
@@ -282,6 +282,12 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "GitWebUI") {
         set Action = 2 + externalBrowser
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
+    } elseif (menuItemName = "FileHistory") {
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?view=file-history"
+        if urlPostfix '= "" {
+            set Target = Target_"&"_urlPostfix
+        }
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))

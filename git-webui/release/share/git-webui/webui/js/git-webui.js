@@ -78,6 +78,32 @@ $.get("api/home", function(homeURL){
     webui.homeURL = url.url;
 });
 
+webui.pageInfo = {
+    internalName: "",
+    externalName: "",
+    view: "",
+    isFileHistory: false
+};
+
+webui.quotePath = function(path) {
+    return '"' + path.replace(/"/g, '\\"') + '"';
+}
+
+webui.isFileHistoryMode = function() {
+    return !!(webui.pageInfo && webui.pageInfo.isFileHistory && webui.pageInfo.externalName);
+}
+
+webui.getHistoryPath = function() {
+    return webui.isFileHistoryMode() ? webui.pageInfo.externalName : "";
+}
+
+webui.getHistoryDisplayName = function() {
+    if (!webui.pageInfo) {
+        return "";
+    }
+    return webui.pageInfo.internalName || webui.pageInfo.externalName || "";
+}
+
 webui.showSuccess = function(message) {
     var messageBox = $("#message-box");
     messageBox.empty();
@@ -698,7 +724,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     }
 
     self.getCurrentContext = function() {
-        var args = window.location.href.split("webuidriver.csp/")[1].split("/");
+        var args = window.location.href.split("webuidriver.csp/")[1].split("?")[0].split("/");
         var context = args[0];
         if (args[1] && (args[1].indexOf(".ZPM") != -1)) {
             context = args[1];
@@ -708,14 +734,15 @@ webui.SideBarView = function(mainView, noEventHandlers) {
 
     self.updateContext = function(context) {
         var urlParts = window.location.href.split("webuidriver.csp/");
-        var args = urlParts[1].split("/");
+        var args = urlParts[1].split("?")[0].split("/");
+        var querySuffix = window.location.search || "";
         if (context.indexOf(".ZPM") != -1) {
             args[1] = context;
         } else {
             args[0] = context;
             args[1] = "";
         }
-        window.location = urlParts[0] + "webuidriver.csp/" + args.join("/");
+        window.location = urlParts[0] + "webuidriver.csp/" + args.join("/") + querySuffix;
         self.currentContext = context;
     }
 
@@ -1119,6 +1146,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         $("#sidebar-home", self.element).remove();
     }
 
+    if (webui.isFileHistoryMode()) {
+        $("#sidebar-workspace", self.element).remove();
+        $("#sidebar-stash", self.element).remove();
+        $("#sidebarDiscarded", self.element).remove();
+    }
+
     
     self.getPackageVersion();
     self.getEnvironment()
@@ -1158,7 +1191,14 @@ webui.LogView = function(historyView) {
             content.removeChild(content.lastElementChild);
         }
         var startAt = content.childElementCount;
-        webui.git("log --date-order --pretty=raw --decorate=full --max-count=" + (maxCount + 1) + " " + self.nextRef + " --", function(data) {
+        var command = "log --date-order --pretty=raw --decorate=full --max-count=" + (maxCount + 1) + " " + self.nextRef;
+        var historyPath = webui.getHistoryPath();
+        if (historyPath) {
+            command += " --follow -- " + webui.quotePath(historyPath);
+        } else {
+            command += " --";
+        }
+        webui.git(command, function(data) {
             var start = 0;
             var count = 0;
             self.nextRef = undefined;
@@ -1684,7 +1724,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         if (cmd) {
             self.gitCmd = cmd;
             self.gitDiffOpts = diffOpts;
-            if (file != self.gitFile && self.gitFile != '"undefined"') {
+            if (sideBySide && file != self.gitFile && self.gitFile != '"undefined"') {
                 left.scrollTop = 0;
                 left.scrollLeft = 0;
                 right.scrollTop = 0;
@@ -2078,6 +2118,60 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
         });
     }
 
+    self.copyContent = function() {
+        function writeText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise(function(resolve, reject) {
+                var textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.top = '0';
+                textArea.style.left = '0';
+                textArea.style.width = '1px';
+                textArea.style.height = '1px';
+                textArea.style.padding = '0';
+                textArea.style.border = 'none';
+                textArea.style.outline = 'none';
+                textArea.style.boxShadow = 'none';
+                textArea.style.background = 'transparent';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    var successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    if (successful) {
+                        resolve();
+                    } else {
+                        reject(new Error('Copy command failed'));
+                    }
+                } catch (err) {
+                    document.body.removeChild(textArea);
+                    reject(err);
+                }
+            });
+        }
+
+        var historyPath = webui.getHistoryPath();
+        if (webui.isFileHistoryMode() && parent.currentCommit && historyPath) {
+            var fileSpecifier = parent.currentCommit + ":" + historyPath;
+            webui.git_command(["show", fileSpecifier], function(content) {
+                writeText(content).then(function() {
+                    webui.showSuccess("File content copied to clipboard");
+                }).catch(function(err) {
+                    console.error('Failed to copy: ', err);
+                    webui.showError("Unable to copy file content to clipboard.");
+                });
+            }, function(message) {
+                webui.showError(message);
+            });
+        } else {
+            webui.showWarning("Unable to copy file content: no file selected or history path unavailable.");
+        }
+    }
+
     var html = '<div class="diff-view-container panel panel-default">';
     if (! (parent instanceof webui.CommitExplorerView)) {
         html +=
@@ -2094,6 +2188,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
                     '<button type="button" class="btn btn-default diff-cancel" style="display:none">Cancel</button>' +
                     '<button type="button" class="btn btn-default diff-unstage" style="display:none">Unstage</button>' +
                 '</div>' +
+                (webui.isFileHistoryMode() ? '<button type="button" class="btn btn-sm btn-default diff-copy">Copy</button>' : '') +
                 ((sideBySide || stashedCommit) ? '' : '<button type="button"  class="btn btn-sm btn-default diff-explore">Explore</button>') +
                 (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default apply-stash">Apply</button>':'')+
                 (stashedCommit ? '<button type="button"  class="btn btn-sm btn-default pop-stash">Pop</button>':'')+
@@ -2139,6 +2234,7 @@ webui.DiffView = function(sideBySide, hunkSelectionAllowed, parent, stashedCommi
     $(".apply-stash", self.element).click(function() { self.applySelectedStash(); });
     $(".pop-stash", self.element).click(function() { self.popSelectedStash(); });
     $(".drop-stash", self.element).click(function() { self.dropSelectedStash(); });
+    $(".diff-copy", self.element).click(self.copyContent);
 
     self.context = 3;
     self.complete = false;
@@ -2567,12 +2663,17 @@ webui.CommitView = function(historyView) {
 
     var self = this;
 
+    self.currentCommit = null;
+
     self.update = function(entry) {
+        self.currentCommit = entry.commit;
         currentCommit = entry.commit;
         self.showDiff();
         buttonBox.select(0);
-        diffView.update("show -p --diff-merges=separate", [entry.commit]);
-        treeView.update(entry.tree);
+        diffView.update("show -p --diff-merges=separate", [entry.commit], webui.getHistoryPath() || undefined);
+        if (!webui.isFileHistoryMode()) {
+            treeView.update(entry.tree);
+        }
     };
 
     self.showDiff = function() {
@@ -2590,8 +2691,11 @@ webui.CommitView = function(historyView) {
     self.element = $('<div id="commit-view">')[0];
     var commitViewHeader = $('<div id="commit-view-header">')[0];
     self.element.appendChild(commitViewHeader);
-    var buttonBox = new webui.TabBox([["Commit", self.showDiff], ["Tree", self.showTree]]);
+    var buttonBox = new webui.TabBox(webui.isFileHistoryMode() ? [["File", self.showDiff]] : [["Commit", self.showDiff], ["Tree", self.showTree]]);
     commitViewHeader.appendChild(buttonBox.element);
+    if (webui.isFileHistoryMode()) {
+        $('<div class="text-muted file-history-label">').text(webui.getHistoryDisplayName()).appendTo(commitViewHeader);
+    }
     var commitViewContent = $('<div id="commit-view-content">')[0];
     self.element.appendChild(commitViewContent);
     var diffView = new webui.DiffView(false, false, self);
@@ -3387,30 +3491,35 @@ function MainUi() {
 
     $.get("dirname", function (data) {
         webui.repo = data;
-        var title = $("title")[0];
-        title.textContent = "Git - " + webui.repo;
-        $.get("viewonly", function (data) {
-            webui.viewonly = data == "1";
-            $.get("hostname", function (data) {
-                webui.hostname = data
+        $.get("api/page-info" + window.location.search, function (pageInfo) {
+            webui.pageInfo = JSON.parse(pageInfo);
+            var title = $("title")[0];
+            title.textContent = webui.isFileHistoryMode()
+                ? "Git File History - " + webui.getHistoryDisplayName() + " - " + webui.repo
+                : "Git - " + webui.repo;
+            $.get("viewonly", function (data) {
+                webui.viewonly = data == "1";
+                $.get("hostname", function (data) {
+                    webui.hostname = data
 
-                var body = $("body")[0];
-                $('<div id="message-box">').appendTo(body);
-                var globalContainer = $('<div id="global-container">').appendTo(body)[0];                
+                    var body = $("body")[0];
+                    $('<div id="message-box">').appendTo(body);
+                    var globalContainer = $('<div id="global-container">').appendTo(body)[0];                
 
-                self.sideBarView = new webui.SideBarView(self);
-                globalContainer.appendChild(self.sideBarView.element);
-                
-                self.mainView = $('<div id="main-view">')[0];
-                globalContainer.appendChild(self.mainView);
+                    self.sideBarView = new webui.SideBarView(self);
+                    globalContainer.appendChild(self.sideBarView.element);
+                    
+                    self.mainView = $('<div id="main-view">')[0];
+                    globalContainer.appendChild(self.mainView);
 
-                self.historyView = new webui.HistoryView(self);
-                if (!webui.viewonly) {
-                    self.workspaceView = new webui.WorkspaceView(self);
-                    self.stashView = new webui.StashView(self);
-                    self.discardedView = new webui.DiscardedView(self);
-                }
-                self.sideBarView.selectRef("HEAD");
+                    self.historyView = new webui.HistoryView(self);
+                    if (!webui.viewonly && !webui.isFileHistoryMode()) {
+                        self.workspaceView = new webui.WorkspaceView(self);
+                        self.stashView = new webui.StashView(self);
+                        self.discardedView = new webui.DiscardedView(self);
+                    }
+                    self.sideBarView.selectRef("HEAD");
+                });
             });
         });
     });

@@ -36,6 +36,7 @@ XData Menu
 <MenuItem Name="Import" />
 <MenuItem Name="ImportForce" />
 <MenuItem Name="TakeOwnership" />
+<MenuItem Name="FileHistory" Save="101" />
 </Menu>
 <Menu Name="%SourceContext" Type="1">
 <MenuItem Name="AddToSC" Save="100" />
@@ -43,6 +44,7 @@ XData Menu
 <MenuItem Name="Revert" Save="100" />
 <MenuItem Name="Commit" Save="100" />
 <MenuItem Name="TakeOwnership" />
+<MenuItem Name="FileHistory" Save="101" />
 </Menu>
 </MenuBase>
 }
@@ -153,6 +155,7 @@ Method LocalizeName(name As %String) As %String
         "Revert":$$$Text("@Revert@Discard changes to file"),
         "Commit":$$$Text("@Commit@Commit changes to file"),
         "TakeOwnership":$$$Text("@TakeOwnership@Take ownership of changes to file"),
+        "FileHistory":$$$Text("@FileHistory@View file history"),
         "Sync":$$$Text("@Sync@Sync"),
         "Push":$$$Text("@Push@Push to remote branch"),
         "PushForce":$$$Text("@PushForce@Push to remote branch (Force)"),
@@ -175,7 +178,7 @@ Method OnSourceMenuItem(name As %String, ByRef Enabled As %String, ByRef Display
     }
     if ##class(SourceControl.Git.Utils).IsNamespaceInGit() {
 
-        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit", "ExportProduction", "TakeOwnership"), name) {
+        if $listfind($listbuild("AddToSC", "RemoveFromSC", "Revert", "Commit", "ExportProduction", "TakeOwnership", "FileHistory"), name) {
             quit ..OnSourceMenuContextItem(InternalName,name,.Enabled,.DisplayName)
         }
 
@@ -270,6 +273,8 @@ Method OnSourceMenuContextItem(itemName As %String, menuItemName As %String, ByR
         if isCheckedOut && (userCheckedOut '= $username) {
             set Enabled = 1
         }
+    } elseif menuItemName = "FileHistory" {
+        set Enabled = ##class(SourceControl.Git.Utils).IsInSourceControl(itemName)
     } elseif menuItemName = "ExportProduction" {
         set itemNameNoExt = $piece(itemName,".",1,*-1)
         set Enabled = (##class(SourceControl.Git.Production).IsProductionClass(itemNameNoExt,"FullExternalName"))

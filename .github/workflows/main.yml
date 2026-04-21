@@ -19,7 +19,7 @@ jobs:
       
       # ** FOR GENERAL USE, LIKELY NEED TO CHANGE **
       package: git-source-control
-      container_image: intersystemsdc/iris-community:latest
+      container_image: containers.intersystems.com/intersystems/iris-community:latest-cd
       
       # ** FOR GENERAL USE, MAY NEED TO CHANGE **
       build_flags: -dev -verbose
@@ -59,6 +59,16 @@ jobs:
           # Wait for instance to be ready
           until docker exec --interactive $instance iris session $instance < wait; do sleep 1; done
       
+      - name: Install Git
+        run: docker exec --user root $instance bash -c "apt-get update && apt-get install -y git"
+
+      - name: Install IPM
+        run: |
+          echo 's version="latest" s r=##class(%Net.HttpRequest).%New(),r.Server="pm.community.intersystems.com",r.SSLConfiguration="ISC.FeatureTracker.SSL.Config" d r.Get("/packages/zpm/"_version_"/installer"),$system.OBJ.LoadStream(r.HttpResponse.Data,"c")' > install-ipm
+          docker exec --interactive $instance iris session $instance -B < install-ipm
+          echo "zpm \"enable -community\":1:1" > config-registry
+          docker exec --interactive $instance iris session $instance -B < config-registry
+
       - name: Install TestCoverage
         run: |
           echo "zpm \"install testcoverage\":1:1" > install-testcoverage

@@ -698,6 +698,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     }
 
     self.getCurrentContext = function() {
+        // URL pattern here is like webuidriver.csp/<namespace>/<InternalName of selected item>
         var args = window.location.href.split("webuidriver.csp/")[1].split("/");
         var context = args[0];
         if (args[1] && (args[1].indexOf(".ZPM") != -1)) {

@@ -2817,7 +2817,7 @@ ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
                 try {
                     set $NAMESPACE = ns
                     &sql(OPEN C1)
-                    throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+                    throw:(SQLCODE<0) ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
                     &sql(FETCH C1)
                     while (SQLCODE = 0) {
                         do contexts.%Push(ns_":"_name)

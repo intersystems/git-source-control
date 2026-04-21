@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Import of decomposed production items now has a brief timeout in case another deploy is in progress (#949)
+- Option to view an individual file's history in the source control menu (#960)
 
 ### Fixed
 - Changes to % routines mapped to the current namespace may now be added to source control and committed (#944)

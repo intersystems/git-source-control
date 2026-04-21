@@ -64,7 +64,7 @@ jobs:
 
       - name: Install IPM
         run: |
-          echo 's version="0.10.6" s r=##class(%Net.HttpRequest).%New(),r.Server="pm.community.intersystems.com",r.SSLConfiguration="ISC.FeatureTracker.SSL.Config" d r.Get("/packages/zpm/"_version_"/installer"),$system.OBJ.LoadStream(r.HttpResponse.Data,"c")' > install-ipm
+          echo 's version="latest" s r=##class(%Net.HttpRequest).%New(),r.Server="pm.community.intersystems.com",r.SSLConfiguration="ISC.FeatureTracker.SSL.Config" d r.Get("/packages/zpm/"_version_"/installer"),$system.OBJ.LoadStream(r.HttpResponse.Data,"c")' > install-ipm
           docker exec --interactive $instance iris session $instance -B < install-ipm
           echo "zpm \"enable -community\":1:1" > config-registry
           docker exec --interactive $instance iris session $instance -B < config-registry

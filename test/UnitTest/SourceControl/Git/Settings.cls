@@ -107,6 +107,32 @@ Method TestSaveAndImportSettings()
     do $$$AssertEquals(^SYS("SourceControl","Git","settings","generatedFilesReadOnly"),"1")
 }
 
+/// Configure routine should succeed when accepting all defaults.
+Method TestConfigureCHUI()
+{
+    set oldRedirectIO = ##class(%Device).ReDirectIO()
+    set oldIO = $io
+    set st = $$$OK
+    try {
+        use $io::"^"_##class(%Studio.SourceControl.ItemSet).LogTags()
+        do ##class(%Library.Device).ReDirectIO(1)
+        set configRet = ##class(SourceControl.Git.Settings).Configure(.configSC)
+        // test when a boolean setting is set with invalid value
+        set ^SYS("SourceControl","Git","settings","generatedFilesReadOnly")=""
+        set configWithInvalidRet = ##class(SourceControl.Git.Settings).Configure(.configWithInvalidSC)
+    } catch err {
+        set st = err.AsStatus()
+    }
+    use oldIO
+    do ##class(%Device).ReDirectIO(oldRedirectIO)
+    $$$ThrowOnError(st)
+    do $$$AssertTrue(configRet)
+    do $$$AssertStatusOK(configSC)
+    do $$$AssertTrue(configWithInvalidRet)
+    do $$$AssertStatusOK(configWithInvalidSC)
+    do $$$AssertEquals($get(^SYS("SourceControl","Git","settings","generatedFilesReadOnly"),""), 0)
+}
+
 Method OnBeforeAllTests() As %Status
 {
 	merge ..SourceControlGlobal = ^SYS("SourceControl")

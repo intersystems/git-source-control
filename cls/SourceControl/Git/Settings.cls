@@ -280,7 +280,7 @@ ClassMethod CreateNamespaceTempFolder() As %Status [ Internal ]
     return $$$OK
 }
 
-ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator, Internal ]
+ClassMethod Configure(Output sc As %Status = {$$$OK}) As %Boolean [ CodeMode = objectgenerator, Internal ]
 {
     do %code.WriteLine(" set inst = ..%New()")
     do %code.WriteLine(" do inst.RetrieveDefaults()")
@@ -305,6 +305,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator, Internal ]
         set promptQuoted = $replace(promptQuoted,"${username}","'""_$Username_""'")
         set propertyDef = ##class(%Dictionary.PropertyDefinition).%OpenId("SourceControl.Git.Settings||"_property_"")
         if ((propertyDef) && (propertyDef.Type = "%Boolean")) {
+            do %code.WriteLine(" set value = ''value")
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetYesNo("_promptQuoted_",.value,,"_defaultPromptFlag_")")
         } elseif ((propertyDef) && (propertyDef.Name = "gitBinPath")) {
             do %code.WriteLine(" set valid = 0")
@@ -342,6 +343,7 @@ ClassMethod Configure() As %Boolean [ CodeMode = objectgenerator, Internal ]
         } else {
             do %code.WriteLine(" set response = ##class(%Library.Prompt).GetString("_promptQuoted_",.value,,,,"_defaultPromptFlag_")")
         }
+        do %code.WriteLine(" if (response = $$$ErrorResponse) { set sc = $get(%objlasterror, 0) }")
         do %code.WriteLine(" if response '= $$$SuccessResponse { quit 0 }")
         do %code.WriteLine(" set value = $zstrip(value,""<>W"")")
         do %code.WriteLine(" set inst."_property_" = value")

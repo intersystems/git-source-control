@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Changes to % routines mapped to the current namespace may now be added to source control and committed (#944)
 - Edits to a decomposed production in VS Code fixed after changes to the VS Code ObjectScript extension (#949)
+- Configure prompt no longer quits out with an unhelpful error if existing boolean settings are null (#962)
 
 ## [2.16.0] - 2026-03-06
 

@@ -19,17 +19,18 @@ The easiest way to get a working development environment is with Docker. This gi
 git clone https://github.com/intersystems/git-source-control
 cd git-source-control
 git checkout -b <new-branch-name>
-docker compose up -d --build
+docker compose -f .devcontainer/docker-compose.yml up -d --build
 ```
 
-This spins up a single container:
-- **git-source-control-iris-1**: an IRIS instance with git-source-control loaded in dev mode in the USER namespace. The management portal is published to the host at port 52774.
+This spins up two containers:
+- **iris**: an IRIS instance with git-source-control loaded in dev mode in the USER namespace. The management portal is published to the host at port 52774.
+- **workspace**: a Claude Code development container with git-source-control repository mounted.
 
 #### Important Notes
 
-- The repository is mounted at `/home/irisowner/dev/git-source-control/` inside the container.
-- If port 52774 is already in use, edit the port mapping in `docker-compose.yml`.
-- If you have an InterSystems license key at `~/iris.key`, it will be mounted into the container automatically.
+- The repository is mounted at `/home/irisowner/dev/git-source-control/` inside the IRIS container.
+- If port 52774 is already in use, edit the port mapping in `.devcontainer/docker-compose.yml`.
+- If you have an InterSystems license key at `~/iris.key`, it will be mounted into the IRIS container automatically.
 
 #### Development
 

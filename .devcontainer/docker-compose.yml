@@ -1,0 +1,37 @@
+services:
+  workspace:
+    build:
+      context: .
+      dockerfile: workspace/Dockerfile
+      args:
+        TZ: ${TZ:-America/New_York}
+        CLAUDE_CODE_VERSION: latest
+        GIT_DELTA_VERSION: 0.18.2
+        ZSH_IN_DOCKER_VERSION: 1.2.0
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    volumes:
+      - ../:/workspace
+    command: sleep infinity
+
+  iris:
+    build:
+      context: ..
+      dockerfile: .devcontainer/iris/Dockerfile
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    volumes:
+      - ../:/home/irisowner/dev/git-source-control/
+      - ~/iris.key:/usr/irissys/mgr/iris.key
+    ports:
+      - 52774:52773
+    restart: always
+    command:
+      - -a
+      - iris session iris -U%SYS '##class(Security.Users).UnExpireUserPasswords("*")'

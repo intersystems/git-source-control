@@ -1,3 +1,6 @@
 .vscode/
 .gitattributes
 *.code-workspace
+.worktrees/
+.devcontainer/.ssh/
+.playwright-cli/

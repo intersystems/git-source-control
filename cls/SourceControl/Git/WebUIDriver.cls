@@ -16,6 +16,8 @@ ClassMethod HandleRequest(pagePath As %String, InternalName As %String = "", Out
             set responseJSON = ..UserInfo()
         } elseif $extract(pagePath,6,*) = "uncommitted" {
             set responseJSON = ..Uncommitted()
+        } elseif $extract(pagePath,6,*) = "page-info" {
+            set responseJSON = ..PageInfo(InternalName, $get(%request.Data("view",1)))
         } elseif $extract(pagePath,6,*) = "settings" {
             set responseJSON = ..GetSettingsURL(%request)
         } elseif $extract(pagePath, 6, *) = "get-package-version"{
@@ -377,6 +379,21 @@ ClassMethod UserInfo() As %SystemBase
     quit {
         "name": (##class(SourceControl.Git.Utils).GitUserName()),
         "email": (##class(SourceControl.Git.Utils).GitUserEmail())
+    }
+}
+
+ClassMethod PageInfo(InternalName As %String = "", View As %String = "") As %SystemBase
+{
+    set externalName = ""
+    if InternalName '= "" {
+        set externalName = ##class(SourceControl.Git.Utils).ExternalName(InternalName)
+        set externalName = $translate(externalName, "\", "/")
+    }
+    quit {
+        "internalName": (InternalName),
+        "externalName": (externalName),
+        "view": (View),
+        "isFileHistory": (View = "file-history")
     }
 }
 

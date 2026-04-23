@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Changes to % routines mapped to the current namespace may now be added to source control and committed (#944)
 - Edits to a decomposed production in VS Code fixed after changes to the VS Code ObjectScript extension (#949)
+- Branch names are now constrained to a reasonable set of allowed characters, fixing an issue where branch names with special characters were hidden without explanation (#914)
 
 ## [2.16.0] - 2026-03-06
 

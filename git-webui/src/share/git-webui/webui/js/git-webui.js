@@ -724,10 +724,11 @@ webui.SideBarView = function(mainView, noEventHandlers) {
     }
 
     self.getCurrentContext = function() {
+        // URL pattern here is like webuidriver.csp/<namespace>/<InternalName of selected item>
         var args = window.location.href.split("webuidriver.csp/")[1].split("?")[0].split("/");
         var context = args[0];
         if (args[1] && (args[1].indexOf(".ZPM") != -1)) {
-            context = args[1];
+            context = args[0] + ":" + args[1];
         }
         return context;
     }
@@ -737,7 +738,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         var args = urlParts[1].split("?")[0].split("/");
         var querySuffix = window.location.search || "";
         if (context.indexOf(".ZPM") != -1) {
-            args[1] = context;
+            var parts = context.split(":");
+            args[0] = parts[0];
+            args[1] = parts[1];
         } else {
             args[0] = context;
             args[1] = "";

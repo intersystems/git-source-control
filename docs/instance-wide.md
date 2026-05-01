@@ -99,7 +99,12 @@ Global_SYS("SourceControl")=CONFIG
 Global_SYS("SourceControlClass")=CONFIG 
 Global_Studio.SourceControl*=CONFIG 
 ```
-6. Run `##class(SourceControl.Git.API).Configure()` in one namespace to set source control configuration globals.
+6. Install Embedded Git instance-wide:
+```
+zpm "install git-source-control"
+do ##class(SourceControl.Git.API).MapEverywhere()
+``` 
+7. Run `##class(SourceControl.Git.API).Configure()` in one namespace to set source control configuration globals.
 
 Steps 1, 2, 4, and 5 will be automated in the future through a new `EnableInstanceWide` method in the Embedded Git API.
 

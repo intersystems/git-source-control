@@ -85,6 +85,9 @@ webui.pageInfo = {
     isFileHistory: false
 };
 
+/// Regex for supported branch names: letters, numbers, . - _ /
+webui.branchNamePattern = /^[a-zA-Z0-9._\/-]+$/;
+
 webui.quotePath = function(path) {
     return '"' + path.replace(/"/g, '\\"') + '"';
 }
@@ -470,8 +473,9 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                // only match branch names with supported characters (letters, numbers, . - _ /)
-                var matches = /^\*?\s*([a-zA-Z0-9._\/-]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                // only match branch names with supported characters (see webui.branchNamePattern)
+                var reMatchGitBranchOutput = new RegExp("^\*?\s*("+ webui.branchNamePattern.source +")\s+([^\s]+)\s+(\[.*\])?.*")
+                var matches = reMatchGitBranchOutput.exec(ref);
                 if (!matches) {
                     $(cardDiv).remove();
                     skippedCount++;
@@ -512,7 +516,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                 }
             } else {
                 // filter remote branches with unsupported characters
-                if (!/^[a-zA-Z0-9._\/-]+$/.test(ref)) {
+                if (!webui.branchNamePattern.test(ref)) {
                     $(cardDiv).remove();
                     skippedCount++;
                     continue;
@@ -583,10 +587,8 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         {
             var refName = $('#newBranchName').val()
 
-            // Validate branch name: only allow characters matching GitHub defaults
-            // Allowed: a-z, A-Z, 0-9, period, hyphen, underscore, forward slash
-            var branchNamePattern = /^[a-zA-Z0-9._\/-]+$/;
-            if (!branchNamePattern.test(refName)) {
+            // Validate branch name: only allow a subset of characters.
+            if (!webui.branchNamePattern.test(refName)) {
                 alert("Invalid branch name. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.");
                 return;
             }

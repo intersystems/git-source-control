@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Import of decomposed production items now has a brief timeout in case another deploy is in progress (#949)
 - Option to view an individual file's history in the source control menu (#960)
+- Change context menu now lists IPM packages from all Git-enabled namespaces, prefixed with the namespace name (#952)
 
 ### Fixed
 - Changes to % routines mapped to the current namespace may now be added to source control and committed (#944)
 - Edits to a decomposed production in VS Code fixed after changes to the VS Code ObjectScript extension (#949)
+- Configure prompt no longer quits out with an unhelpful error if existing boolean settings are null (#962)
 - Branch names are now constrained to a reasonable set of allowed characters, fixing an issue where branch names with special characters were hidden without explanation (#914)
 
 ## [2.16.0] - 2026-03-06

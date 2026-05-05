@@ -457,12 +457,22 @@ ClassMethod TakeOwnership(InternalName As %String) As %Status
     quit sc
 }
 
+/// Validates that a branch name contains only supported characters.
+/// Supported: letters (a-z, A-Z), digits (0-9), hyphens (-), underscores (_), periods (.), and forward slashes (/).
+ClassMethod IsValidBranchName(branchName As %String) As %Boolean
+{
+    quit $match(branchName, "[a-zA-Z0-9._/-]+")
+}
+
 /// <p>This function performs <code>git checkout -b [newBranchName]</code> from the current commit.</p>
 /// <p>If the user is in "Basic Mode" AND there is a Default Merge Branch defined,
 /// then this method first checks out and pulls that default merge branch before creating the new branch. This is
 /// equivalent to <code>git checkout [defaultMergeBranch] && git pull</code>.</p>
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
+    if '..IsValidBranchName(newBranchName) {
+        quit $$$ERROR($$$GeneralError, "Invalid branch name. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.")
+    }
     set settings = ##class(SourceControl.Git.Settings).%New()
     if (settings.basicMode) && (settings.defaultMergeBranch '= ""){
         set err = ..RunGitWithArgs(.errStream, .outStream, "checkout", settings.defaultMergeBranch)

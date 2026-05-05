@@ -85,6 +85,9 @@ webui.pageInfo = {
     isFileHistory: false
 };
 
+/// Regex for supported branch names: letters, numbers, . - _ /
+webui.branchNamePattern = /^[a-zA-Z0-9._\/-]+$/;
+
 webui.quotePath = function(path) {
     return '"' + path.replace(/"/g, '\\"') + '"';
 }
@@ -455,6 +458,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             };
         }
 
+        var skippedCount = 0;
         for (var i = 0; i < refs.length && i < maxRefsCount; ++i) {
             var ref = refs[i] + ""; // Get a copy of it
             if (ref[2] == '(' && ref[ref.length - 1] == ')') {
@@ -469,8 +473,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
-                var matches = /^\*?\s*([\w-.@&_\/]+)\s+([^\s]+)\s+(\[.*\])?.*/.exec(ref);
+                // only match branch names with supported characters (see webui.branchNamePattern)
+                var reMatchGitBranchOutput = new RegExp("^\*?\s*("+ webui.branchNamePattern.source +")\s+([^\s]+)\s+(\[.*\])?.*")
+                var matches = reMatchGitBranchOutput.exec(ref);
                 if (!matches) {
+                    $(cardDiv).remove();
+                    skippedCount++;
                     continue;
                 }
                 var branchInfo = {
@@ -507,6 +515,12 @@ webui.SideBarView = function(mainView, noEventHandlers) {
                     }
                 }
             } else {
+                // filter remote branches with unsupported characters
+                if (!webui.branchNamePattern.test(ref)) {
+                    $(cardDiv).remove();
+                    skippedCount++;
+                    continue;
+                }
                 var refname = ref.replaceAll('/', '-');
                 var itemId = refname + idPostfix;
                 var cardHeader = $('<div class="card-header" id="heading-' + itemId +'">').appendTo(cardDiv);
@@ -525,6 +539,14 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             $(button).click(function (event) {
                 self.selectRef(event.target.innerHTML);
             });
+        }
+
+        if (skippedCount > 0) {
+            var warningMsg = skippedCount + " branch" + (skippedCount > 1 ? "es" : "") +
+                " with unsupported characters hidden. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.";
+            $('<div class="alert alert-warning mt-2 p-2" style="font-size: 0.8em;" role="alert">' +
+                warningMsg +
+            '</div>').appendTo(accordionDiv);
         }
 
         if (id === "remote-branches" && idPostfix === "popup") {
@@ -562,9 +584,15 @@ webui.SideBarView = function(mainView, noEventHandlers) {
         }
     
         $("#btn_createList").click(function(e)
-        {   
+        {
             var refName = $('#newBranchName').val()
-    
+
+            // Validate branch name: only allow a subset of characters.
+            if (!webui.branchNamePattern.test(refName)) {
+                alert("Invalid branch name. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.");
+                return;
+            }
+
             var flag = 0;
             webui.git("status -u --porcelain", function(data) {
                 $.get("api/uncommitted", function (uncommitted) {

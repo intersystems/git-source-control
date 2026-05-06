@@ -31,6 +31,7 @@ This spins up two containers:
 - The repository is mounted at `/home/irisowner/dev/git-source-control/` inside the IRIS container.
 - If port 52774 is already in use, edit the port mapping in `.devcontainer/docker-compose.yml`.
 - If you have an InterSystems license key at `~/iris.key`, it will be mounted into the IRIS container automatically.
+- Claude Code may be used with the authentication options [documented here](https://code.claude.com/docs/en/devcontainer#add-claude-code-to-your-dev-container). If you have an AWS Bedrock key set in environment variables on the host machine it will be used by default.
 
 #### Development
 

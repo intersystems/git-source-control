@@ -61,6 +61,7 @@ for domain in "registry.npmjs.org" "api.anthropic.com" "sentry.io" \
     "sts.amazonaws.com" "sts.${AWS_REGION}.amazonaws.com"; do
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     while read -r ip; do
+        [ -n "$ip" ] || continue
         ipset add --exist allowed-domains "$ip"
     done < <(echo "$ips")
 done

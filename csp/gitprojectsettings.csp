@@ -417,8 +417,15 @@ body {
                         set rs = ##class(%Dictionary.ClassDefinition).SubclassOfFunc("SourceControl.Git.PullEventHandler")
                         while rs.%Next() {
                             set subclass = rs.%GetData(1)
+                            try {
+                                set name = $parameter(subclass,"NAME")
+                                set title = $PIECE(subclass, ".", *-0) _ ": " _ $parameter(subclass,"DESCRIPTION")
+                            } catch err {
+                                // in the unlikely case of an error, fall back to class name
+                                set name = subclass, title = ""
+                            }
                             // create option with subclass, set selected if subclass == current pullEventClass
-                            &html<<option value=#(subclass)# #($CASE(subclass, settings.pullEventClass: "selected", :""))#>#($PIECE(subclass, ".", *-0))# </option>>
+                            &html<<option title="#(..EscapeHTML(title))#" value=#(subclass)# #($CASE(subclass, settings.pullEventClass: "selected", :""))#>#(..EscapeHTML(name))# </option>>
                         }
                     </server>
                 </select>

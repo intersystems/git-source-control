@@ -160,4 +160,19 @@ Method %OnClose() As %Status
 	quit $$$OK
 }
 
+Method TestValidatePrivateKeyFilePath()
+{
+	// empty path is OK
+	do $$$AssertStatusOK(##class(SourceControl.Git.Settings).ValidatePrivateKeyFilePath(""))
+
+	// nonexistent file path is OK (will trigger key-generation prompt separately)
+	do $$$AssertStatusOK(##class(SourceControl.Git.Settings).ValidatePrivateKeyFilePath("/nonexistent/path/id_rsa"))
+
+	// a directory path is an error
+	set mgrDir = ##class(%File).NormalizeDirectory($System.Util.ManagerDirectory())
+	set sc = ##class(SourceControl.Git.Settings).ValidatePrivateKeyFilePath(mgrDir)
+    do $$$AssertStatusNotOK(sc)
+	do $$$AssertTrue($System.Status.GetErrorText(sc) [ "SSH key file path is a directory")
+}
+
 }

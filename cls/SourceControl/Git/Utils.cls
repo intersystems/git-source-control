@@ -10,11 +10,11 @@ Parameter InstallNamespace = "%SYS";
 Parameter Slash = {$case($system.Version.GetOS(),"Windows":"\",:"/")};
 
 /// Name of the file with version controlled items
-Parameter GitMenuItems = ",Settings,Commit,Sync,Pull,Fetch,Push,Revert,";
+Parameter GitMenuItems = ",Settings,Commit,Sync,Pull,Fetch,Push,Revert,FileHistory,";
 
 Parameter ImportAfterGitMenuItems = ",Commit,Sync,Pull,Fetch,Push,";
 
-Parameter GitContextMenuItems = ",%Diff,%Blame,";
+Parameter GitContextMenuItems = ",%Diff,%Blame,FileHistory,";
 
 ClassMethod %SYSNamespaceStorage() As %String [ CodeMode = expression ]
 {
@@ -282,6 +282,12 @@ ClassMethod UserAction(InternalName As %String, MenuName As %String, ByRef Targe
     } elseif (menuItemName = "GitWebUI") {
         set Action = 2 + externalBrowser
         set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?"_urlPostfix
+    } elseif (menuItemName = "FileHistory") {
+        set Action = 2 + externalBrowser
+        set Target = urlPrefix _ "/isc/studio/usertemplates/gitsourcecontrol/webuidriver.csp/"_$namespace_"/"_$zconvert(InternalName,"O","URL")_"?view=file-history"
+        if urlPostfix '= "" {
+            set Target = Target_"&"_urlPostfix
+        }
     } elseif (menuItemName = "Export") || (menuItemName = "ExportForce") {
         write !, "==export start==",!
         set ec = ..ExportAll($case(menuItemName="ExportForce",1:$$$Force,:0))
@@ -451,12 +457,22 @@ ClassMethod TakeOwnership(InternalName As %String) As %Status
     quit sc
 }
 
+/// Validates that a branch name contains only supported characters.
+/// Supported: letters (a-z, A-Z), digits (0-9), hyphens (-), underscores (_), periods (.), and forward slashes (/).
+ClassMethod IsValidBranchName(branchName As %String) As %Boolean
+{
+    quit $match(branchName, "[a-zA-Z0-9._/-]+")
+}
+
 /// <p>This function performs <code>git checkout -b [newBranchName]</code> from the current commit.</p>
 /// <p>If the user is in "Basic Mode" AND there is a Default Merge Branch defined,
 /// then this method first checks out and pulls that default merge branch before creating the new branch. This is
 /// equivalent to <code>git checkout [defaultMergeBranch] && git pull</code>.</p>
 ClassMethod NewBranch(newBranchName As %String) As %Status
 {
+    if '..IsValidBranchName(newBranchName) {
+        quit $$$ERROR($$$GeneralError, "Invalid branch name. Branch names may only contain letters, numbers, hyphens, underscores, periods, and forward slashes.")
+    }
     set settings = ##class(SourceControl.Git.Settings).%New()
     if (settings.basicMode) && (settings.defaultMergeBranch '= ""){
         set err = ..RunGitWithArgs(.errStream, .outStream, "checkout", settings.defaultMergeBranch)
@@ -2807,18 +2823,28 @@ ClassMethod GetContexts(onlyNamespaces As %Boolean) As %DynamicArray
 
     set name = ""
 
-    // Using embedded for backwards compatability
+    // Using embedded instead of ExecDirectNoPriv() for backwards compatability
     if '(onlyNamespaces) {
         &sql(DECLARE C1 CURSOR FOR SELECT name into :name from %Library.RoutineMgr_StudioOpenDialog('*.ZPM'))
-        &sql(OPEN C1)
-            throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
-        &sql(FETCH C1)
-        while(SQLCODE = 0) {
-            set package = name
-            do contexts.%Push(package)
-            &sql(FETCH C1)
+        new $namespace
+        set ptr = 0
+        while $listnext(namespaces,ptr,ns) {
+            if '($FIND(ns,"^^")) {
+                try {
+                    set $NAMESPACE = ns
+                    &sql(OPEN C1)
+                    throw:(SQLCODE<0) ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+                    &sql(FETCH C1)
+                    while (SQLCODE = 0) {
+                        do contexts.%Push(ns_":"_name)
+                        &sql(FETCH C1)
+                    }
+                    &sql(CLOSE C1)
+                } catch e {
+                    // skip inaccessible namespaces
+                }
+            }
         }
-        &sql(CLOSE C1)
     }
 
     return contexts
@@ -3391,3 +3417,4 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
+

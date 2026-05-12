@@ -1481,7 +1481,7 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
     set type = ..Type(InternalName)
     set imported = 1
     if ..IsRoutineOutdated(InternalName) || force || (type = "ptd"){
-        if (type = "ptd") && settings.decomposeProductions && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() {
+        if (type = "ptd") && settings.decomposeProductions && ##class(%Library.EnsembleMgr).IsEnsembleNamespace() && ##class(SourceControl.Git.Production).IsPTDDecomposedProductionItem(InternalName) {
             if ##class(%File).Exists(filename) {
                 // Deployment manager should not reexport because studio project file includes timestamp
                 // ideally we could just new %SourceControl, but Ens portal config pages do not use %SourceControl
@@ -1595,9 +1595,11 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
                 if (mappingFileType = "/CSP/") {
                     do ..ListItemsRecursively(mappingFileType,"*",mappedFilePath,.itemList)
                 } elseif ..UserTypeCached("foo."_mappingFileType, .userTypeClass) {
-                    set fileSpec = $select(
-                        userTypeClass="Ens.Util.ProjectTextDocument": "*.xml;*.XML",
-                        1: "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U"))
+                    set fileSpec = "*."_$zcvt(mappingFileType,"L")_";*."_$zconvert(mappingFileType,"U")
+                    // PTDs may be decomposed production items, which are represented as xml
+                    if (userTypeClass="Ens.Util.ProjectTextDocument") {
+                        set fileSpec = fileSpec _ ";*.xml;*.XML"
+                    }
                     do ..ListItemsRecursively(mappingFileType, fileSpec, mappedFilePath, .itemList)
                 } else {
                     set res = $system.OBJ.ImportDir(mappedFilePath,,"-d",.err,1, .tempItemList, $$$DoNotLoad)
@@ -1795,7 +1797,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 quit $$$OK
             }
             write !, "exporting new version of ", InternalName, " to ", filename
-            if (type = "ptd") {
+            if (type = "ptd") && (##class(SourceControl.Git.Production).IsPTDDecomposedProductionItem(InternalName)) {
                 $$$QuitOnError(##class(SourceControl.Git.Production).ExportPTD(InternalName,"FullExternalName"))
             } elseif (..ItemIsProductionToDecompose(InternalName, .productionName)) {
                 write !, "Production decomposition enabled, skipping export of production class"
@@ -2559,7 +2561,7 @@ ClassMethod Name(InternalName As %String, ByRef MappingExists As %Boolean) As %S
         // If no specific mapping was specified (p=""), then return the whole csp filename; otherwise return the name without the mapped piece
         set relativeInternalName=$extract(InternalName,$length(p)+2,*)
         quit $translate(found_$translate(relativeInternalName,"%","_"),"\","/")
-    } elseif (..Type(InternalName) = "ptd") {
+    } elseif (..Type(InternalName) = "ptd") && ##class(SourceControl.Git.Production).IsPTDDecomposedProductionItem(InternalName) {
         do ##class(SourceControl.Git.Production).ParseInternalName(InternalName,'default,.filename)
         return $translate(found_filename, "\","/")
     } elseif ext="CLS"||(ext="PRJ")||usertype {
@@ -3417,4 +3419,3 @@ ClassMethod IsSchemaStandard(pName As %String = "") As %Boolean [ Internal ]
 }
 
 }
-

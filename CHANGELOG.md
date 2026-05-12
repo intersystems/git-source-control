@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Edits to a decomposed production in VS Code fixed after changes to the VS Code ObjectScript extension (#949)
 - Configure prompt no longer quits out with an unhelpful error if existing boolean settings are null (#962)
 - Branch names are now constrained to a reasonable set of allowed characters, fixing an issue where branch names with special characters were hidden without explanation (#914)
+- PTD documents that are not decomposed production items may now be added to source control (#965)
 
 ## [2.16.0] - 2026-03-06
 

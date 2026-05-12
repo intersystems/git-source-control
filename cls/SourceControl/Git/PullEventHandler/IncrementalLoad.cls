@@ -41,7 +41,7 @@ Method OnPull() As %Status
             set delList(delIndex, internalName) = tExternalName
         } else {
             set nFiles = nFiles + 1
-            if (##class(SourceControl.Git.Utils).Type(internalName) = "ptd") {
+            if (##class(SourceControl.Git.Utils).Type(internalName) = "ptd") && ##class(SourceControl.Git.Production).IsPTDDecomposedProductionItem(internalName) {
                 set ptdList(internalName) = ""
             } else {
                 set compilelist(internalName) = ""
@@ -78,7 +78,9 @@ Method OnPull() As %Status
         set start = $zhorolog
         set key = $order(ptdList(""))
         while (key '= "") {
-            set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
+            if ##class(SourceControl.Git.Production).IsPTDDecomposedProductionItem(key) {
+                set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(key,1))
+            }
             set key = $order(ptdList(key))
         }
         write !,"Production items imported in ",($zhorolog-start),"s"

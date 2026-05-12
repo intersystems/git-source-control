@@ -122,6 +122,16 @@ Method TestImportItemsWithError()
     do $$$AssertStatusOK(##class(SourceControl.Git.Utils).ImportItem("UnitTest.SampleProduction||Settings-a|Ens.Activity.Operation.Local.PTD"))
 }
 
+/// PTD documents that do not represent decomposed production items may be added to source control as .PTD files
+Method TestNonHostPTD()
+{
+    do ##class(Ens.Util.ProjectTextDocument).Delete("UnitTest.SourceControl.Git.SamplePTD.PTD")
+    $$$ThrowOnError(##class(Ens.Util.ProjectTextDocument).Create("Some text","UnitTest.SourceControl.Git.SamplePTD","Descriptive text"))
+    do $$$AssertStatusOK(##class(SourceControl.Git.Utils).AddToSourceControl("UnitTest.SourceControl.Git.SamplePTD.PTD"))
+    do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl("UnitTest.SourceControl.Git.SamplePTD.PTD"))
+    do $$$AssertEquals(##class(SourceControl.Git.Utils).Name("UnitTest.SourceControl.Git.SamplePTD.PTD"),"ptd/UnitTest/SourceControl/Git/SamplePTD.ptd")
+}
+
 ClassMethod ReplaceProductionDefinition(pXDataName)
 {
     new %SourceControl

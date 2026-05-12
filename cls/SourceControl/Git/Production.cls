@@ -726,6 +726,12 @@ ClassMethod CreateInternalName(productionName As %String = "", itemName As %Stri
     )
 }
 
+/// Returns true if the PTD document with given internal name should be treated as a decomposed production item.
+ClassMethod IsPTDDecomposedProductionItem(internalName) As %Boolean
+{
+	return internalName [ "||"
+}
+
 /// Given an external name for a PTD item, removes that item from the production.
 ClassMethod RemoveItemByExternalName(externalName As %String, nameMethod As %String) As %Status
 {

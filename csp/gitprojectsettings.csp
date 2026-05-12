@@ -352,7 +352,12 @@ body {
             <div class="col-sm-7">
                 <server>
                     Set fileExists = ##class(%File).Exists(settings.privateKeyFile)
-                    if (settings.privateKeyFile = "") {
+                    set validateSC = ##class(SourceControl.Git.Settings).ValidatePrivateKeyFilePath(settings.privateKeyFile)
+                    if $$$ISERR(validateSC) {
+                        set class = "form-control is-invalid"
+                        set divClass = "invalid-feedback"
+                        set feedbackText = $System.Status.GetErrorText(validateSC)
+                    } elseif (settings.privateKeyFile = "") {
                         set class = "form-control"
                         set divClass = "neutral-feedback"
                         set feedbackText = "You must configure an SSH private key to be able to work with remotes. This should be set up as a deploy key / equivalent, authenticating the server, not a specific user."
@@ -379,7 +384,7 @@ body {
         </div>
 
         <server>
-        if (settings.privateKeyFile '= "") && fileExists {
+        if (settings.privateKeyFile '= "") && fileExists && $$$ISOK(validateSC) {
             set pubKeyName = settings.privateKeyFile_".pub"
             if ##class(%File).Exists(pubKeyName) {
                 set pubStream = ##class(%Stream.FileCharacter).%OpenId(pubKeyName)

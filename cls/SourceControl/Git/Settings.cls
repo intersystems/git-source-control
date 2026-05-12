@@ -427,6 +427,11 @@ ClassMethod HasNamespaceWebApp(Output webAppDirectory) As %Boolean [ Internal ]
 Method OnAfterConfigure() As %Boolean [ Internal ]
 {
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
+    set sc = ..ValidatePrivateKeyFilePath(..privateKeyFile)
+    if $$$ISERR(sc) {
+        write !, $System.Status.GetErrorText(sc), !
+        quit
+    }
     if (..privateKeyFile '= "") && '##class(%File).Exists(..privateKeyFile) {
         set value = 1
         set response = ##class(%Library.Prompt).GetYesNo("Do you wish to create a new SSH key pair?",.value,,defaultPromptFlag)
@@ -506,6 +511,14 @@ Method OnAfterConfigure() As %Boolean [ Internal ]
             }
         }
     }
+}
+
+ClassMethod ValidatePrivateKeyFilePath(path As %String) As %Status
+{
+    if (path '= "") && ##class(%File).DirectoryExists(path) {
+        quit $$$ERROR($$$GeneralError, "SSH key file path is a directory. Please specify the full path to the key file.")
+    }
+    quit $$$OK
 }
 
 Method ConfigureBinPath(ByRef path As %String) As %Boolean [ Internal ]

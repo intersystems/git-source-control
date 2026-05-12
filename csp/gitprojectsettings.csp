@@ -384,7 +384,7 @@ body {
         </div>
 
         <server>
-        if (settings.privateKeyFile '= "") && fileExists && '$$$ISERR(validateSC) {
+        if (settings.privateKeyFile '= "") && fileExists && $$$ISOK(validateSC) {
             set pubKeyName = settings.privateKeyFile_".pub"
             if ##class(%File).Exists(pubKeyName) {
                 set pubStream = ##class(%Stream.FileCharacter).%OpenId(pubKeyName)

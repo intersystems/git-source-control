@@ -429,7 +429,7 @@ Method OnAfterConfigure() As %Boolean [ Internal ]
     set defaultPromptFlag = $$$DisableBackupCharMask + $$$TrapCtrlCMask + $$$EnableQuitCharMask + $$$DisableHelpCharMask + $$$DisableHelpContextCharMask + $$$TrapErrorMask
     set sc = ..ValidatePrivateKeyFilePath(..privateKeyFile)
     if $$$ISERR(sc) {
-        write !,$System.Status.GetErrorText(sc),!
+        write !, $System.Status.GetErrorText(sc), !
         quit
     }
     if (..privateKeyFile '= "") && '##class(%File).Exists(..privateKeyFile) {

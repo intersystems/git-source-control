@@ -1,0 +1,58 @@
+{
+  "name": "git-source-control",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "node",
+  "postStartCommand": "git config --global --replace-all safe.directory /workspace",
+  "waitFor": "postStartCommand",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "intersystems-community.vscode-objectscript",
+        "intersystems.language-server",
+        "intersystems-community.servermanager"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": { "path": "bash", "icon": "terminal-bash" },
+          "zsh": { "path": "zsh" }
+        },
+        "intersystems.servers": {
+          "iris-dev": {
+            "webServer": {
+              "scheme": "http",
+              "host": "iris",
+              "port": 52773
+            },
+            "username": "superuser"
+          }
+        },
+        "objectscript.conn": {
+          "server": "iris-dev",
+          "ns": "USER",
+          "active": true
+        },
+        "debug.javascript.autoAttachFilter": "disabled"
+      }
+    }
+  },
+  "mounts": [
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "POWERLEVEL9K_DISABLE_GITSTATUS": "true",
+    "AWS_BEARER_TOKEN_BEDROCK": "${localEnv:AWS_BEARER_TOKEN_BEDROCK}",
+    "AWS_DEFAULT_REGION": "${localEnv:AWS_DEFAULT_REGION}"
+  },
+  "portsAttributes": {
+    "52774": {
+      "label": "IRIS Management Portal",
+      "onAutoForward": "ignore"
+    }
+  }
+}

@@ -1672,9 +1672,9 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     set settings = ##class(SourceControl.Git.Settings).%New()
 
     // Create a work queue manager to use for importing items to improve performance
-    // Currently only used when not compiling
+    // Currently only used when not compiling and not using decomposed productions
     #dim queue as %SYSTEM.WorkMgr = ""
-    if ('settings.compileOnImport) {
+    if ('settings.compileOnImport && 'settings.decomposeProductions) {
         set queue = ##class(%SYSTEM.WorkMgr).%New()
         if (queue = "") {
             set ec = $$$ADDSC(ec, %objlasterror)

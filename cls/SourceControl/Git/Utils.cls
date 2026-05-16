@@ -1670,6 +1670,18 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
     kill files
 
     set settings = ##class(SourceControl.Git.Settings).%New()
+
+    // Create a work queue manager to use for importing items to improve performance
+    // Currently only used when not compiling and not using decomposed productions
+    #dim queue as %SYSTEM.WorkMgr = ""
+    if ('settings.compileOnImport && 'settings.decomposeProductions) {
+        set queue = ##class(%SYSTEM.WorkMgr).%New()
+        if (queue = "") {
+            set ec = $$$ADDSC(ec, %objlasterror)
+            quit:'ec ec
+        }
+    }
+
     #dim internalName as %String = ""
     for  {
         set internalName = $order(itemList(internalName))
@@ -1697,7 +1709,13 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
                 set files($increment(files)) = modification
             } else {
                 // If not compiling then import now as otherwise it won't happen
-                set sc = ..ImportItem(internalName, force)
+                set sc = $$$OK
+                // If a work queue has been created then use it
+                if (queue '= "") {
+                    set sc = queue.Queue("..ImportItem", internalName, force)
+                } else {
+                    set sc = ..ImportItem(internalName, force)
+                }
                 if $$$ISERR(sc) {
                     set ec = $$$ADDSC(ec, sc)
                 }
@@ -1705,6 +1723,13 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
         }
     }
 
+    // If a work queue was created then wait for all work to finish
+    if (queue '= "") {
+        set sc = queue.Sync()
+        if $$$ISERR(sc) {
+            set ec = $$$ADDSC(ec, sc)
+        }
+    }
 
     //let's delete all items for which corresponding files had been deleted
     #dim item as %String = ""

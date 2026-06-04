@@ -474,7 +474,7 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             if (id.indexOf("local-branches") > -1) {
                 // parses the output of git branch --verbose --verbose
                 // only match branch names with supported characters (see webui.branchNamePattern)
-                var reMatchGitBranchOutput = new RegExp("^\*?\s*("+ webui.branchNamePattern.source +")\s+([^\s]+)\s+(\[.*\])?.*")
+                var reMatchGitBranchOutput = new RegExp("^\\*?\\s*("+ webui.branchNamePattern.source.substring(1,webui.branchNamePattern.source.length-1) +")\\s+([^\\s]+)\\s+(\\[.*\\])?.*")
                 var matches = reMatchGitBranchOutput.exec(ref);
                 if (!matches) {
                     $(cardDiv).remove();

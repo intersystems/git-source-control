@@ -20,6 +20,17 @@ Method OnPull() As %Status
         }
     }
 
+    // Create a work queue manager to use for importing items to improve performance
+    // Currently only used when not using decomposed productions
+    #dim queue as %SYSTEM.WorkMgr = ""
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    if ('settings.decomposeProductions) {
+        set queue = ##class(%SYSTEM.WorkMgr).%New()
+        if (queue = "") {
+            set sc = $$$ADDSC(sc, %objlasterror)
+        }
+    }
+
     set nFiles = 0
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
@@ -45,9 +56,19 @@ Method OnPull() As %Status
                 set ptdList(internalName) = ""
             } else {
                 set compilelist(internalName) = ""
-                set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+                // If a work queue has been created then use it
+                if (queue '= "") {
+                    set sc = $$$ADDSC(sc, queue.Queue("##class(SourceControl.Git.Utils).ImportItem", internalName, 1))
+                } else {
+                    set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+                }
             }
         }
+    }
+
+    // If a work queue was created then wait for all work to finish
+    if (queue '= "") {
+        set sc = $$$ADDSC(sc, queue.Sync())
     }
 
     #; First remove production items, then everything else

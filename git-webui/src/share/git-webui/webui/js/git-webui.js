@@ -472,9 +472,18 @@ webui.SideBarView = function(mainView, noEventHandlers) {
             }
             var cardDiv = $('<div class="card custom-card branch-card">').appendTo(accordionDiv)[0];
             if (id.indexOf("local-branches") > -1) {
+                // Remove any '^' prefix or '$' suffix from the branch name regex
+                // So that it can be inserted into the middle of another regex below
+                var branchNamePattern = webui.branchNamePattern.source
+                if (branchNamePattern.substring(0, 1) == "^") {
+                  branchNamePattern = branchNamePattern.substring(1, branchNamePattern.length)
+                }
+                if (branchNamePattern.substring(branchNamePattern.length-1, branchNamePattern.length) == "$") {
+                  branchNamePattern = branchNamePattern.substring(0, branchNamePattern.length-1)
+                }
                 // parses the output of git branch --verbose --verbose
                 // only match branch names with supported characters (see webui.branchNamePattern)
-                var reMatchGitBranchOutput = new RegExp("^\\*?\\s*("+ webui.branchNamePattern.source.substring(1,webui.branchNamePattern.source.length-1) +")\\s+([^\\s]+)\\s+(\\[.*\\])?.*")
+                var reMatchGitBranchOutput = new RegExp("^\\*?\\s*("+ branchNamePattern +")\\s+([^\\s]+)\\s+(\\[.*\\])?.*")
                 var matches = reMatchGitBranchOutput.exec(ref);
                 if (!matches) {
                     $(cardDiv).remove();

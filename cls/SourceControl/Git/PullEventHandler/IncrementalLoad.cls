@@ -116,7 +116,7 @@ Method OnPull() As %Status
     quit sc
 }
 
-Method RemoveItem(pInternalName, pExternalName) As %Status
+ClassMethod RemoveItem(pInternalName, pExternalName) As %Status
 {
     #Dim delSC As %Status
     set delSC = ..DeleteFile(pInternalName, pExternalName)
@@ -129,7 +129,7 @@ Method RemoveItem(pInternalName, pExternalName) As %Status
     quit delSC
 }
 
-Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
+ClassMethod DeleteFile(item As %String = "", externalName As %String = "") As %Status
 {
     #Dim sc As %Status = $$$OK
     #Dim err As %Exception.AbstractException

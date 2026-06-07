@@ -20,7 +20,7 @@ Method OnPull() As %Status
         }
     }
 
-    // Create a work queue manager to use for importing items to improve performance
+    // Create a work queue manager to use for importing and deleting items to improve performance
     // Currently only used when not using decomposed productions
     #dim queue as %SYSTEM.WorkMgr = ""
     set settings = ##class(SourceControl.Git.Settings).%New()
@@ -76,10 +76,21 @@ Method OnPull() As %Status
     for orderIndex = 1,2 {
         set item = $order(delList(orderIndex, ""), 1, tExternalName)
         while (item '= "") {
-            set delSC = ..RemoveItem(item, tExternalName)
+            // If a work queue has been created then use it
+            if (queue '= "") {
+                set delSC = queue.Queue("..RemoveItem", item, tExternalName)
+            } else {
+                set delSC = ..RemoveItem(item, tExternalName)
+            }
             set item = $order(delList(orderIndex, item), 1, tExternalName)
         }
     }
+
+    // If a work queue was created then wait for all work to finish
+    if (queue '= "") {
+        set sc = $$$ADDSC(sc, queue.Sync())
+    }
+
     if (nFiles = 0) {
         write !, "Nothing to Load."
         quit $$$OK

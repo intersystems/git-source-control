@@ -23,19 +23,18 @@ Method TestLoadUninstallsThenInstalls()
 Method TestLoadUsesConfiguredFlags()
 {
     set testModulePath = ##class(SourceControl.Git.PackageManagerContext).ForInternalName("git-source-control.zpm").Package.Root_"test/_resources/simplest-module"
-    kill initFlags
-    merge initFlags = @##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags")
-    kill flags set flags("DNoMapping") = 1
-    do ##class(SourceControl.Git.PullEventHandler.PackageManagerReload).ConfigureLoadFlags(.flags)
+    set initFlags = $get(@##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags"))
+    set flags = "-DNoMapping=1 -extra-pip-flags ""--timeout 30"""
+    do ##class(SourceControl.Git.PullEventHandler.PackageManagerReload).ConfigureLoadFlags(flags)
     set pullEventHandler = ##class(SourceControl.Git.PullEventHandler.PackageManagerReload).%New()
     set pullEventHandler.LocalRoot = testModulePath
     do $$$AssertStatusOK(pullEventHandler.OnPull())
     set history = ##class(%IPM.General.History).GetHistory(,,2)
     do $$$AssertTrue(history.%Next())
     do $$$AssertEquals(history.Action,"load")
-    do $$$AssertEquals(history.CommandString, "load "_testModulePath_" -DNoMapping=1")
+    do $$$AssertEquals(history.CommandString, "load "_testModulePath_" -DNoMapping=1 -extra-pip-flags ""--timeout 30""")
     zpm "uninstall simplest-module"
-    do ##class(SourceControl.Git.PullEventHandler.PackageManagerReload).ConfigureLoadFlags(.initFlags)
+    do ##class(SourceControl.Git.PullEventHandler.PackageManagerReload).ConfigureLoadFlags(initFlags)
 }
 
 }

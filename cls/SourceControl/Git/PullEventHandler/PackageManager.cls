@@ -9,11 +9,8 @@ Parameter DESCRIPTION = "Does zpm ""load <repo root>""";
 Method OnPull() As %Status
 {
     set command = "load "_..LocalRoot
-    set key = $order(@##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags",""))
-    while (key '= "") {
-        set command = command _ " -" _ $zstrip(key,"*W") _ "=" _ $zstrip(@##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags",key),"*W")
-        set key = $order(@##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags",key))
-    }
+    set additionalFlags = ..GetLoadFlags()
+    if (additionalFlags'="") set command = command _ " " _ additionalFlags
     quit $select(
         $$$comClassDefined("%IPM.Main"): ##class(%IPM.Main).Shell(command),
         1: ##class(%ZPM.PackageManager).Shell(command)
@@ -23,17 +20,16 @@ Method OnPull() As %Status
 /// Configures additional flags to be used with zpm "load" by Package Manager pull event handlers
 /// Example: to use `zpm "load -DNoMapping=1"` run the following:
 /// ```
-/// kill flags set flags("DNoMapping") = 1
-/// do ##class(SourceControl.Git.PullEventHandler.PackageManager).ConfigureLoadFlags(.flags)
+/// do ##class(SourceControl.Git.PullEventHandler.PackageManager).ConfigureLoadFlags("-DNoMapping=1")
 /// ```
-ClassMethod ConfigureLoadFlags(ByRef flags)
+ClassMethod ConfigureLoadFlags(flags = "")
 {
-    kill @##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags")
-    set key = $order(flags(""))
-    while (key '= "") {
-        set @##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags",key) = flags(key)
-        set key = $order(flags(key))
-    }
+    set @##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags") = flags
+}
+
+ClassMethod GetLoadFlags() As %String
+{
+    return $get(@##class(SourceControl.Git.Utils).#Storage@("settings","IPM","loadFlags"))
 }
 
 }

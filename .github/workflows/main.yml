@@ -32,7 +32,7 @@ jobs:
       # Note: test_reports value is duplicated in test_flags environment variable
       test_reports: test-reports
       test_flags: >-
-        -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/test-reports/junit.xml
+        -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -output-file /test-reports/junit.xml
         -DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager
         -DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator
         -DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml

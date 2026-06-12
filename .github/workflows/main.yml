@@ -32,7 +32,7 @@ jobs:
       # Note: test_reports value is duplicated in test_flags environment variable
       test_reports: test-reports
       test_flags: >-
-        -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -DUnitTest.JUnitOutput=/test-reports/junit.xml
+        -verbose -DUnitTest.ManagerClass=TestCoverage.Manager -output-file /test-reports/junit.xml
         -DUnitTest.FailuresAreFatal=1 -DUnitTest.Manager=TestCoverage.Manager
         -DUnitTest.UserParam.CoverageReportClass=TestCoverage.Report.Cobertura.ReportGenerator
         -DUnitTest.UserParam.CoverageReportFile=/source/coverage.xml
@@ -64,7 +64,7 @@ jobs:
 
       - name: Install IPM
         run: |
-          echo 's version="0.10.6" s r=##class(%Net.HttpRequest).%New(),r.Server="pm.community.intersystems.com",r.SSLConfiguration="ISC.FeatureTracker.SSL.Config" d r.Get("/packages/zpm/"_version_"/installer"),$system.OBJ.LoadStream(r.HttpResponse.Data,"c")' > install-ipm
+          echo 's version="latest" s r=##class(%Net.HttpRequest).%New(),r.Server="pm.community.intersystems.com",r.SSLConfiguration="ISC.FeatureTracker.SSL.Config" d r.Get("/packages/zpm/"_version_"/installer"),$system.OBJ.LoadStream(r.HttpResponse.Data,"c")' > install-ipm
           docker exec --interactive $instance iris session $instance -B < install-ipm
           echo "zpm \"enable -community\":1:1" > config-registry
           docker exec --interactive $instance iris session $instance -B < config-registry

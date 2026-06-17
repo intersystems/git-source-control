@@ -1,4 +1,4 @@
-Class SourceControl.Git.PullEventHandler.PackageManagerReload Extends SourceControl.Git.PullEventHandler
+Class SourceControl.Git.PullEventHandler.PackageManagerReload Extends SourceControl.Git.PullEventHandler.PackageManager
 {
 
 Parameter NAME = "Package Manager Reload";
@@ -20,11 +20,8 @@ Method OnPull() As %Status
         )
         $$$QuitOnError(sc)
     }
-    set command = "load "_..LocalRoot
-    quit $select(
-        $$$comClassDefined("%IPM.Main"): ##class(%IPM.Main).Shell(command),
-        1: ##class(%ZPM.PackageManager).Shell(command)
-    )
+    /// super class loads the IPM package
+    return ##super()
 }
 
 }

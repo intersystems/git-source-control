@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Change context menu now lists IPM packages from all Git-enabled namespaces, prefixed with the namespace name (#952)
 - Pull event handler option in settings page now displays user-friendly names for options (#908)
 - Validation that SSH key file path is not a directory when configuring Embedded Git (#943)
+- Customization of IPM load flags using `##class(SourceControl.Git.PullEventHandler.PackageManager).ConfigureLoadFlags(.flags)` (#974)
 
 ### Fixed
 - Changes to % routines mapped to the current namespace may now be added to source control and committed (#944)

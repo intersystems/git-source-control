@@ -335,7 +335,8 @@ ClassMethod GetModifiedItemsAfterSave(internalName As %String, Output modifiedIt
     } else {
 	    // If editing/adding/deleting from Studio, VS Code, or Interop Editor UI, mark all items for edit then find adds/deletes
 	    if source = "IDE" {
-		    // only compile f editing from IDE
+			// if editing from IDE, compile to populate the Ens_Config.Item tables, but do not trigger source control hooks.
+			new %SourceControl
 	    	$$$ThrowOnError($System.OBJ.Compile(productionName, "ck-d/multicompile=0"))
 	    }
         set productionConfig = ##class(Ens.Config.Production).%OpenId(productionName)

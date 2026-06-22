@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `ImportAll` imports items in parallel when `compileOnImport` and `decomposeProductions` are both disabled, reducing import time for large codebases (#970)
+- The Incremental Load pull event handler can import and delete items in parallel when `decomposeProductions` is disabled, reducing the time required for various operations (#973)
 - Import of decomposed production items now has a brief timeout in case another deploy is in progress (#949)
 - Option to view an individual file's history in the source control menu (#960)
 - Change context menu now lists IPM packages from all Git-enabled namespaces, prefixed with the namespace name (#952)

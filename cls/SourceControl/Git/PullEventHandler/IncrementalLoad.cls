@@ -20,6 +20,17 @@ Method OnPull() As %Status
         }
     }
 
+    // Create a work queue manager to use for importing and deleting items to improve performance
+    // Currently only used when not using decomposed productions
+    #dim queue as %SYSTEM.WorkMgr = ""
+    set settings = ##class(SourceControl.Git.Settings).%New()
+    if ('settings.decomposeProductions) {
+        set queue = ##class(%SYSTEM.WorkMgr).%New()
+        if (queue = "") {
+            set sc = $$$ADDSC(sc, %objlasterror)
+        }
+    }
+
     set nFiles = 0
     for i=1:1:$get(..ModifiedFiles){
         set internalName = ..ModifiedFiles(i).internalName
@@ -45,9 +56,19 @@ Method OnPull() As %Status
                 set ptdList(internalName) = ""
             } else {
                 set compilelist(internalName) = ""
-                set sc = $$$ADDSC(sc,##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+                // If a work queue has been created then use it
+                if (queue '= "") {
+                    set sc = $$$ADDSC(sc, queue.Queue("##class(SourceControl.Git.Utils).ImportItem", internalName, 1))
+                } else {
+                    set sc = $$$ADDSC(sc, ##class(SourceControl.Git.Utils).ImportItem(internalName, 1))
+                }
             }
         }
+    }
+
+    // If a work queue was created then wait for all work to finish
+    if (queue '= "") {
+        set sc = $$$ADDSC(sc, queue.Sync())
     }
 
     #; First remove production items, then everything else
@@ -55,10 +76,21 @@ Method OnPull() As %Status
     for orderIndex = 1,2 {
         set item = $order(delList(orderIndex, ""), 1, tExternalName)
         while (item '= "") {
-            set delSC = ..RemoveItem(item, tExternalName)
+            // If a work queue has been created then use it
+            if (queue '= "") {
+                set delSC = queue.Queue("..RemoveItem", item, tExternalName)
+            } else {
+                set delSC = ..RemoveItem(item, tExternalName)
+            }
             set item = $order(delList(orderIndex, item), 1, tExternalName)
         }
     }
+
+    // If a work queue was created then wait for all work to finish
+    if (queue '= "") {
+        set sc = $$$ADDSC(sc, queue.Sync())
+    }
+
     if (nFiles = 0) {
         write !, "Nothing to Load."
         quit $$$OK
@@ -95,7 +127,7 @@ Method OnPull() As %Status
     quit sc
 }
 
-Method RemoveItem(pInternalName, pExternalName) As %Status
+ClassMethod RemoveItem(pInternalName, pExternalName) As %Status
 {
     #Dim delSC As %Status
     set delSC = ..DeleteFile(pInternalName, pExternalName)
@@ -108,7 +140,7 @@ Method RemoveItem(pInternalName, pExternalName) As %Status
     quit delSC
 }
 
-Method DeleteFile(item As %String = "", externalName As %String = "") As %Status
+ClassMethod DeleteFile(item As %String = "", externalName As %String = "") As %Status
 {
     #Dim sc As %Status = $$$OK
     #Dim err As %Exception.AbstractException

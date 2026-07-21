@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configure prompt no longer quits out with an unhelpful error if existing boolean settings are null (#962)
 - Branch names are now constrained to a reasonable set of allowed characters, fixing an issue where branch names with special characters were hidden without explanation (#914)
 - PTD documents that are not decomposed production items may now be added to source control (#965)
+- Fixed a bug where interop deployment manager would in some cases fail because it tried to load unrelated items from the repo (#977)
 
 ## [2.16.0] - 2026-03-06
 

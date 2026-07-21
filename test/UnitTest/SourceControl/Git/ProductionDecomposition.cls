@@ -122,6 +122,26 @@ Method TestImportItemsWithError()
     do $$$AssertStatusOK(##class(SourceControl.Git.Utils).ImportItem("UnitTest.SampleProduction||Settings-a|Ens.Activity.Operation.Local.PTD"))
 }
 
+Method TestStrayUncommittedPTDDoesNotBreakSave()
+{
+    new %SourceControl
+    do $System.OBJ.Delete(..#ProductionName)
+    $$$ThrowOnError(##class(SourceControl.Git.Production).CreateProduction(..#ProductionName))
+    do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+
+    do $$$LogMessage("an unrelated non-class PTD left uncommitted in the queue")
+    do ##class(Ens.Util.ProjectTextDocument).Delete("UnitTest.Git.Demo.PTD")
+    $$$ThrowOnError(##class(Ens.Util.ProjectTextDocument).Create("plain text not loadable as a class","UnitTest.Git.Demo","stray PTD"))
+    $$$ThrowOnError(##class(SourceControl.Git.Utils).AddToSourceControl("UnitTest.Git.Demo.PTD"))
+    // intentionally not committed: it stays in the uncommitted queue that RefreshUncommitted walks
+    set strayFile = ##class(SourceControl.Git.Utils).FullExternalName("UnitTest.Git.Demo.PTD")
+    do $$$AssertTrue(##class(SourceControl.Git.Change).IsUncommitted(strayFile))
+
+    do $$$LogMessage("saving the decomposed production must succeed despite the stray PTD in the queue")
+    $$$ThrowOnError(%SourceControl.OnBeforeSave(..#ProductionName_".cls"))
+    do $$$AssertStatusOK(%SourceControl.OnAfterSave(..#ProductionName_".cls"))
+}
+
 /// PTD documents that do not represent decomposed production items may be added to source control as .PTD files
 Method TestNonHostPTD()
 {

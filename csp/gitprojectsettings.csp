@@ -213,7 +213,7 @@ body {
     }
 } catch err {
     do err.Log()
-    &html<<div class="error alert-danger">An error occurred and has been logged to the application error log.</div>>
+    &html<<div class="error alert-danger" style="white-space: pre-line;">An error occurred and has been logged to the application error log: #(..EscapeHTML(err.DisplayString()))#</div>>
 }
 </server>
 <div class = 'container'>

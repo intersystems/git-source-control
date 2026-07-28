@@ -461,12 +461,15 @@ Method OnAfterDelete(InternalName As %String) As %Status
 /// change in the class. The <var>Location</var> is the global reference to the class definition that was changed.
 Method OnAfterStorage(InternalName As %String, Location As %String = "") As %Status
 {
+    $$$SuspendErrorCount
     if (InternalName '= "") {
         write !,"Item '"_InternalName_"' changed during compile so exporting new version."
         set ..Modified(InternalName) = 1
         set sc = ..OnAfterSave(InternalName)
         if $$$ISERR(sc) {
             do $System.OBJ.DisplayError(sc)
+            do $System.Status.DecomposeStatus(sc, .errorlog)
+            $$$IncErrorNums(errorlog)
         }
     }
     return $$$OK

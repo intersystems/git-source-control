@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.17.1] - Unreleased
 
 ### Fixed
+- Fixed corruption of non-ASCII characters when importing lookup tables and other custom Studio documents (#990)
 - Fixed a bug where interop deployment manager would in some cases fail because it tried to load unrelated items from the repo (#977)
 - Fixed bugs causing compilation errors when first adding an IRIS Interoperability BPL or BR (#984)
 

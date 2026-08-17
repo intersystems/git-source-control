@@ -1503,6 +1503,8 @@ ClassMethod ImportItem(InternalName As %String, force As %Boolean = 0, verbose A
             do routineMgr.Code.Rewind()
             set source = ##class(%Stream.FileCharacter).%OpenId(filename,,.sc)
             if $$$ISOK(sc) {
+                // with no charset defined, ExportUDL uses UTF8 by default. explicitly match that on import.
+                set source.TranslateTable = $select($$$IsUnicode:"UTF8",1:"RAW")
                 do routineMgr.Code.CopyFrom(source)
                 set sc = routineMgr.%Save()
             }

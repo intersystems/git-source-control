@@ -2184,13 +2184,13 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
                 set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
             }
         } catch retryErr {
-            throw ..GitLaunchError(retryErr)
+            throw ..GitLaunchErrorFromNotOpen(retryErr)
         }
         // On Linux, the /SHELL retry absorbs a failed git launch into a shell exit
         // code (127 = command not found, 126 = found but not executable) instead of
         // throwing <NOTOPEN>, so the launch failure must be detected here instead.
         if '$$$isWINDOWS && ((returnCode = 127) || (returnCode = 126)) {
-            throw ..GitLaunchFailedError(returnCode)
+            throw ..GitLaunchErrorFromShellExit(returnCode)
         }
     }
 
@@ -2263,7 +2263,7 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
 /// exception. The message includes the underlying OS error (from
 /// $system.Process.OSError()) plus a hint targeted at the specific error code.
 /// Non-&lt;NOTOPEN&gt; errors are returned unchanged.
-ClassMethod GitLaunchError(e As %Exception.AbstractException) As %Exception.AbstractException
+ClassMethod GitLaunchErrorFromNotOpen(e As %Exception.AbstractException) As %Exception.AbstractException
 {
     if (e.Name '= "<NOTOPEN>") {
         quit e
@@ -2286,8 +2286,8 @@ ClassMethod GitLaunchError(e As %Exception.AbstractException) As %Exception.Abst
 /// Translates a failed git launch on Linux, where the /SHELL retry absorbs the
 /// failure into a shell exit code (127 = command not found, 126 = found but not
 /// executable) instead of throwing &lt;NOTOPEN&gt;, into the same actionable exception
-/// that GitLaunchError produces for the &lt;NOTOPEN&gt; case.
-ClassMethod GitLaunchFailedError(returnCode As %Integer) As %Exception.AbstractException
+/// that GitLaunchErrorFromNotOpen produces for the &lt;NOTOPEN&gt; case.
+ClassMethod GitLaunchErrorFromShellExit(returnCode As %Integer) As %Exception.AbstractException
 {
     set prefix = "git could not be launched (shell exit "_returnCode_")."_$c(13,10)
     if (returnCode = 127) {

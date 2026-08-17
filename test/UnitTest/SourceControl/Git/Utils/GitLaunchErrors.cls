@@ -1,8 +1,8 @@
-Class UnitTest.SourceControl.Git.Utils.GitLaunchError Extends UnitTest.SourceControl.Git.AbstractTest
+Class UnitTest.SourceControl.Git.Utils.GitLaunchErrors Extends UnitTest.SourceControl.Git.AbstractTest
 {
 
 /// Triggers a real <NOTOPEN> by launching a nonexistent executable, passes the caught
-/// exception through GitLaunchError, and verifies the message reports the actual OS
+/// exception through GitLaunchErrorFromNotOpen, and verifies the message reports the actual OS
 /// error (ENOENT) plus the "not found" hint, with no docs link.
 Method TestTranslatesNotOpenForMissingBinary()
 {
@@ -13,7 +13,7 @@ Method TestTranslatesNotOpenForMissingBinary()
     try {
         set rc = $zf(-100, baseArgs, "/nonexistent/path/to/git-binary-xyz", "--version")
     } catch e {
-        set translated = ##class(SourceControl.Git.Utils).GitLaunchError(e)
+        set translated = ##class(SourceControl.Git.Utils).GitLaunchErrorFromNotOpen(e)
     }
     do ##class(%File).Delete(outLog)
     do ##class(%File).Delete(errLog)
@@ -37,7 +37,7 @@ Method TestTranslatesNotOpenForMissingBinary()
 Method TestTranslatesNotOpenIsActionable()
 {
     set src = ##class(%Exception.General).%New("<NOTOPEN>", "", "", "")
-    set translated = ##class(SourceControl.Git.Utils).GitLaunchError(src)
+    set translated = ##class(SourceControl.Git.Utils).GitLaunchErrorFromNotOpen(src)
     set msg = translated.DisplayString()
     do $$$AssertEquals(translated.Name, "<NOTOPEN>", "translated exception keeps the <NOTOPEN> name")
     do $$$AssertTrue(msg [ "git could not be launched", "message explains git launch failed")
@@ -49,7 +49,7 @@ Method TestPassesThroughOtherErrors()
 {
     set src = ##class(%Exception.General).%New("<UNDEFINED>", "", "", "")
     set src.Name = "<UNDEFINED>"
-    set translated = ##class(SourceControl.Git.Utils).GitLaunchError(src)
+    set translated = ##class(SourceControl.Git.Utils).GitLaunchErrorFromNotOpen(src)
     do $$$AssertEquals(translated.Name, "<UNDEFINED>", "non-NOTOPEN error passes through unchanged")
 }
 

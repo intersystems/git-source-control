@@ -461,12 +461,15 @@ Method OnAfterDelete(InternalName As %String) As %Status
 /// change in the class. The <var>Location</var> is the global reference to the class definition that was changed.
 Method OnAfterStorage(InternalName As %String, Location As %String = "") As %Status
 {
+    $$$SuspendErrorCount
     if (InternalName '= "") {
         write !,"Item '"_InternalName_"' changed during compile so exporting new version."
         set ..Modified(InternalName) = 1
         set sc = ..OnAfterSave(InternalName)
         if $$$ISERR(sc) {
             do $System.OBJ.DisplayError(sc)
+            do $System.Status.DecomposeStatus(sc, .errorlog)
+            $$$IncErrorNums(errorlog)
         }
     }
     return $$$OK
@@ -597,9 +600,15 @@ Method CheckBusinessProcessesAndRules(InternalName As %String) As %Status
     //       so we have to add them like this
     if (##class(SourceControl.Git.Utils).Type(InternalName) = "cls") {
         set name = $piece(InternalName,".CLS",1)
-        set exists = ##class(%Dictionary.CompiledClass).%ExistsId(name)
-        if (exists && ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition"))) {
-            do ..AddToSourceControl(InternalName)
+        if '##class(%Dictionary.CompiledClass).%ExistsId(name) quit
+        if '$system.CLS.IsMthd(name, "%Extends") quit
+        try {
+            if ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition")) {
+                do ..AddToSourceControl(InternalName)
+            }
+        } catch err {
+            // even if compiled class exists, we can get CLASS DOES NOT EXIST - ignore these
+            if '(err.AsStatus() [ "CLASS DOES NOT EXIST") throw err
         }
     }
 }

@@ -2177,11 +2177,22 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
         set env("XDG_CONFIG_HOME") = ##class(%File).ManagerDirectory()
         set returnCode = $zf(-100,"/ENV=env... "_baseArgs,gitCommand,newArgs...)
     } catch e {
-        if $$$isWINDOWS {
-            set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
-        } else {
-            // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
-            set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
+        // /ENV injection failed (older IRIS); retry without it.
+        try {
+            if $$$isWINDOWS {
+                set returnCode = $zf(-100,baseArgs,gitCommand,newArgs...)
+            } else {
+                // If can't inject XDG_CONFIG_HOME (older IRIS version), need /SHELL on Linux to avoid permissions errors trying to use root's config
+                set returnCode = $zf(-100,"/SHELL "_baseArgs,gitCommand,newArgs...)
+            }
+        } catch retryErr {
+            throw ..GitLaunchErrorFromNotOpen(retryErr)
+        }
+        // On Linux, the /SHELL retry absorbs a failed git launch into a shell exit
+        // code (127 = command not found, 126 = found but not executable) instead of
+        // throwing <NOTOPEN>, so the launch failure must be detected here instead.
+        if '$$$isWINDOWS && ((returnCode = 127) || (returnCode = 126)) {
+            throw ..GitLaunchErrorFromShellExit(returnCode)
         }
     }
 
@@ -2248,6 +2259,58 @@ ClassMethod RunGitCommandWithInput(command As %String, inFile As %String = "", O
     }
     do ##class(SourceControl.Git.Log).Create(outStream,errStream,.newArgs,returnCode)
     quit returnCode
+}
+
+/// Translates a &lt;NOTOPEN&gt; error from a failed git launch into an actionable
+/// exception. The message includes the underlying OS error (from
+/// $system.Process.OSError()) plus a hint targeted at the specific error code.
+/// Non-&lt;NOTOPEN&gt; errors are returned unchanged.
+ClassMethod GitLaunchErrorFromNotOpen(e As %Exception.AbstractException) As %Exception.AbstractException
+{
+    if (e.Name '= "<NOTOPEN>") {
+        quit e
+    }
+    // Read the OS error immediately: it is a lingering value, but the failed launch
+    // that produced this <NOTOPEN> has just refreshed it to the real cause.
+    // On Windows, OSError() has a trailing newline; strip trailing control chars so
+    // it doesn't break the message onto an extra line.
+    set os = $zstrip($system.Process.OSError(), ">C")
+    set errno = $piece($piece(os, "<", 2), ">", 1)
+    set prefix = "git could not be launched"_$select(os '= "": " ("_os_")", 1: "")_"."_$c(13,10)
+    if (errno = 2) {
+        quit ##class(%Exception.General).%New("<NOTOPEN>", , , prefix_..GitNotFoundHint())
+    } elseif (errno = 13) {
+        quit ##class(%Exception.General).%New("<NOTOPEN>", , , prefix_..GitNotExecutableHint())
+    }
+    quit ##class(%Exception.General).%New("<NOTOPEN>", , , prefix_..GitLaunchGenericHint())
+}
+
+/// Translates a failed git launch on Linux, where the /SHELL retry absorbs the
+/// failure into a shell exit code (127 = command not found, 126 = found but not
+/// executable) instead of throwing &lt;NOTOPEN&gt;, into the same actionable exception
+/// that GitLaunchErrorFromNotOpen produces for the &lt;NOTOPEN&gt; case.
+ClassMethod GitLaunchErrorFromShellExit(returnCode As %Integer) As %Exception.AbstractException
+{
+    set prefix = "git could not be launched (shell exit "_returnCode_")."_$c(13,10)
+    if (returnCode = 127) {
+        quit ##class(%Exception.General).%New("<NOTOPEN>", , , prefix_..GitNotFoundHint())
+    }
+    quit ##class(%Exception.General).%New("<NOTOPEN>", , , prefix_..GitNotExecutableHint())
+}
+
+ClassMethod GitNotFoundHint() As %String [ CodeMode = expression ]
+{
+"git was not found. Make sure git is installed and on the IRIS user's PATH, or set an absolute path to the git executable on the Settings page."
+}
+
+ClassMethod GitNotExecutableHint() As %String [ CodeMode = expression ]
+{
+"git could not be executed. Check the permissions on the git executable"_$select($$$isWINDOWS: ", and ensure the IRIS user has the ""Replace a process level token"" privilege.", 1: ".")
+}
+
+ClassMethod GitLaunchGenericHint() As %String [ CodeMode = expression ]
+{
+"Check that git is installed, on the IRIS user's PATH (or set an absolute path on the Settings page), and that the IRIS user has permission to run it."
 }
 
 ClassMethod SyncIrisWithRepoThroughCommand(ByRef outStream) As %Status

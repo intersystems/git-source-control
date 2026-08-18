@@ -164,7 +164,15 @@ Method TestRowWithOrphanedTrailingSlotIsReadable()
     do ..Cleanup(filename)
 }
 
-/// GetUserProductionChanges must read the Embedded Git change table, not the product one
+/// GetUserProductionChanges must read the Embedded Git change table, not the product one.
+/// Note: This test documents the intent to query SourceControl_Git.Change directly, but cannot
+/// detect a regression in environments where both %Studio.SourceControl.Change and SourceControl_Git.Change
+/// map to the same physical globals (^Studio.SourceControl.ChangeD/I) — a deliberate design choice
+/// documented in the spec's "Storage and data" section to make the upgrade a no-op. The old and new queries
+/// return identical results in such environments. The test only genuinely guards the regression once
+/// %Studio.SourceControl.Change is fully removed from an instance (2026.3 target), at which point the old
+/// query would SQL-error. Until then, this test has practical value as documentation of query correctness and
+/// intent rather than as a live regression detector.
 Method TestGetUserProductionChanges()
 {
     set filename = ..TempFile()

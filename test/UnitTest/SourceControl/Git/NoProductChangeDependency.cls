@@ -14,6 +14,7 @@ Method TestNoReferenceToProductChangeClass()
     while SQLCODE = 0 {
         $$$ThrowOnError(##class(%Compiler.UDL.TextServices).GetTextAsString($namespace, className, .source))
         do $$$AssertNotTrue(source [ "%Studio.SourceControl.Change", className_" must not reference %Studio.SourceControl.Change")
+        do $$$AssertNotTrue(source [ "%Studio_SourceControl.Change", className_" must not reference %Studio_SourceControl.Change")
         &sql(FETCH ClassCursor)
     }
     &sql(CLOSE ClassCursor)

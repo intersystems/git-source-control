@@ -67,8 +67,8 @@ Index ChangeList On (ItemFile, CommittedTime) [ Data = Action, Unique ];
 /// <li><var>FileList</var> - the name of the file to revert, or an array subscripted by filenames (e.g. <code>FileList("C:\Perforce\custom_ccrs\us\ISCX\TESTSYS\cls\User\Test.xml")=""</code>)</li>
 /// <li><var>Display</var> - boolean flag controlling whether to display the results to standard output (defaults to '1')</li>
 /// <li><var>Revert</var> - boolean flag controlling whether to revert a checkout which would delete the change from the change history table (defaults to '0')</li>
-/// <li><var>ActiveCommit</var> - used for historical tracking purposes for the %Studio_SourceControl.Change table</li>
-/// <li><var>CommitCCR</var> - used for historical tracking purposes for the %Studio_SourceControl.Change table</li>
+/// <li><var>ActiveCommit</var> - used for historical tracking purposes when Committed changes are kept for historical reference</li>
+/// <li><var>CommitCCR</var> - used for historical tracking purposes when Committed changes are kept for historical reference</li>
 /// </ul>
 ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 1, CommitCCR) As %Status
 {

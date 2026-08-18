@@ -134,6 +134,17 @@ Method TestSetUncommittedRejectsMissingFile()
     do $$$AssertTrue($$$ISERR(sc))
 }
 
+/// A nonexistent CSP item with Action = "delete" is accepted, unlike a nonexistent non-CSP file
+Method TestSetUncommittedAcceptsNonexistentCSPDelete()
+{
+    set filename = ##class(%File).NormalizeFilename(##class(%File).TempFilename("csp"))
+    do ##class(%File).Delete(filename)
+    set sc = ##class(SourceControl.Git.Change).SetUncommitted(
+        filename, "delete", "/csp/user/Test.Git.NonexistentCSP.csp", $username, "", 0, "", "")
+    do $$$AssertStatusOK(sc)
+    do ..Cleanup(filename)
+}
+
 /// A row carrying an extra trailing $list piece (the orphaned Bulk slot left behind by
 /// rows written before this class stopped inheriting from %Studio.SourceControl.Change)
 /// must still read back correctly.

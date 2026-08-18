@@ -164,4 +164,25 @@ Method TestRowWithOrphanedTrailingSlotIsReadable()
     do ..Cleanup(filename)
 }
 
+/// GetUserProductionChanges must read the Embedded Git change table, not the product one
+Method TestGetUserProductionChanges()
+{
+    set filename = ..TempFile()
+    set internalName = "TestGit.UnitTestProduction.Production||TestGit.UnitTestItem"
+    set user = $username
+    try {
+        &sql(INSERT INTO SourceControl_Git.Change (InternalName, ChangedBy, ItemFile, Action, Committed)
+             VALUES (:internalName, :user, :filename, 'edit', 0))
+        $$$ThrowSQLIfError(SQLCODE,.%msg)
+
+        do ##class(SourceControl.Git.Production).GetUserProductionChanges(
+            "TestGit.UnitTestProduction.Production", .items)
+        do $$$AssertTrue($data(items(internalName)))
+        do $$$AssertEquals($get(items(internalName)), "edit")
+    } catch ex {
+        do $$$AssertStatusOK(ex.AsStatus())
+    }
+    do ..Cleanup(filename)
+}
+
 }

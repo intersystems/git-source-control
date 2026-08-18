@@ -404,6 +404,8 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                     if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
                         $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
                     }
+                    // If this is a RecordMap, keep its generated data class under source control too.
+                    $$$ThrowOnError(##class(SourceControl.Git.Util.RecordMap).AddRelatedClasses(InternalName, 1))
                 }
             } else {
                 do ..CheckBusinessProcessesAndRules(InternalName)

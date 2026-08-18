@@ -1,14 +1,12 @@
 Include SourceControl.Git
 
-Class SourceControl.Git.Change Extends (%Persistent, %Studio.SourceControl.Change)
+Class SourceControl.Git.Change Extends %Persistent
 {
 
-/// Returns the name of the backup file for this Item in the file system
-/// Unused in this class, so override to avoid errors.
-Property BackupName As %String [ Calculated, SqlComputeCode = {s {*} = ""}, SqlComputed ];
-
-/// Returns the name of this Item in the file system
-Property ExternalName As %String [ Calculated, SqlComputeCode = {S {*} = "" }, SqlComputed ];
+/// Each namespace has its own change extent, and these globals are shared with the
+/// Studio SourceControl product's Change class where that class is installed, so the
+/// Extent Manager must not register them for this class.
+Parameter MANAGEDEXTENT As INTEGER [ Constraint = "0,1", Flags = ENUM ] = 0;
 
 /// Data global for this class, used by BuildNewIndexes(). Must match the Storage definition below.
 Parameter DataGlobal = "^Studio.SourceControl.ChangeD";
@@ -106,7 +104,7 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
 ClassMethod AddDeletedToUncommitted(Filename, InternalName) As %Status
 {
    
-    Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "", 0)
+    Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "")
 }
 
 /// Determine if an item is deleted, if it is not in a provided list of git files but is a known tracked item
@@ -171,7 +169,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     kill gitFiles
     
     // files from the uncommitted queue
-    set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
+    set sc=..ListUncommitted(.tFileList,IncludeRevert)
     if $$$ISERR(sc) quit sc
 
     // files from git status
@@ -223,7 +221,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
                              1:"add")
 
         if ((##class(%File).Exists(ExternalName)) && ('$ISVALIDNUM(InternalName)) && ('..IsUncommitted(ExternalName)) && ($data($$$TrackedItems(InternalName))))  {
-            set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "", 0)
+            set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "")
             if $$$ISERR(sc) continue
         }
     }
@@ -270,9 +268,8 @@ ClassMethod GetUncommitted(Filename As %String, ByRef Action As %String, ByRef I
     quit $$$OK
 }
 
-/// Adds a new item to the uncommitted queue, or updates it if it is already there.
-/// <var>EnforceSourcesPath</var> and <var>Bulk</var> are accepted for signature compatibility and ignored.
-ClassMethod SetUncommitted(Filename As %String, Action As %String, InternalName As %String, ChangedBy As %String, Source As %String, P4Issued As %Boolean, CCR As %String, Name As %String, EnforceSourcesPath As %Boolean = 1, Bulk As %Boolean) As %Status
+/// Adds a new item to the uncommitted queue, or updates it if it is already there
+ClassMethod SetUncommitted(Filename As %String, Action As %String, InternalName As %String, ChangedBy As %String, Source As %String, P4Issued As %Boolean, CCR As %String, Name As %String) As %Status
 {
     if '$data(Filename)#2 quit $$$ERROR($$$GeneralError,"'Filename' is a required field")
     set Filename = ##class(%File).NormalizeFilename(Filename)
@@ -295,9 +292,8 @@ ClassMethod SetUncommitted(Filename As %String, Action As %String, InternalName 
     quit obj.%Save()
 }
 
-/// Updates the details of an item already in the uncommitted queue.
-/// <var>Bulk</var> is accepted for signature compatibility and ignored.
-ClassMethod UpdateUncommitted(Filename As %String, Action As %String, InternalName As %String, ChangedBy As %String, Source As %String, Updated, P4Issued As %Boolean, CCR As %String, Name As %String, Bulk As %Boolean) As %Status
+/// Updates the details of an item already in the uncommitted queue
+ClassMethod UpdateUncommitted(Filename As %String, Action As %String, InternalName As %String, ChangedBy As %String, Source As %String, Updated, P4Issued As %Boolean, CCR As %String, Name As %String) As %Status
 {
     if '$data(Filename)#2 quit $$$ERROR($$$GeneralError,"'Filename' is a required field")
     set Filename = ##class(%File).NormalizeFilename(Filename)
@@ -327,8 +323,7 @@ ClassMethod UpdateUncommitted(Filename As %String, Action As %String, InternalNa
 
 /// Lists the items in the uncommitted queue, subscripted by filename with the action as the value.
 /// Items with an action of 'revert' are listed only if <var>IncludeRevert</var> is true.
-/// <var>RefreshUncommitted</var> is accepted for signature compatibility and ignored.
-ClassMethod ListUncommitted(ByRef UncommittedList = "", IncludeRevert As %Boolean = 0, RefreshUncommitted As %Boolean = 1) As %Status
+ClassMethod ListUncommitted(ByRef UncommittedList = "", IncludeRevert As %Boolean = 0) As %Status
 {
     do ..BuildNewIndexes()
     &sql(DECLARE UncommittedCursor CURSOR FOR

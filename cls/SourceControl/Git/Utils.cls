@@ -1842,7 +1842,7 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
                 set filenames($I(filenames)) = filename
                 $$$QuitOnError(..UpdateRoutineTSH(InternalName, $h))
                 if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", "", 0))
+                    $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "add", InternalName, $username, "", 1, "", ""))
                 }
             }
         }

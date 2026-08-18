@@ -1,3 +1,4 @@
 .vscode/
 .gitattributes
 *.code-workspace
+.env

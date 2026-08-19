@@ -814,7 +814,7 @@ ClassMethod CreateProduction(productionName As %String, superClasses As %String 
 /// for each of their current uncommitted changes associated with the given Production
 ClassMethod GetUserProductionChanges(productionName As %String, ByRef items)
 {
-	set sql = "SELECT InternalName, Action FROM %Studio_SourceControl.Change WHERE ChangedBy = ? AND Committed = 0 AND InternalName %STARTSWITH ?"
+	set sql = "SELECT InternalName, Action FROM SourceControl_Git.Change WHERE ChangedBy = ? AND Committed = 0 AND InternalName %STARTSWITH ?"
 	set rs = ..ExecDirectNoPriv(sql,$username,productionName_"||")
     throw:rs.%SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(rs.%SQLCODE,rs.%Message)
 	while rs.%Next() {

@@ -28,7 +28,11 @@ This spins up a single container:
 #### Important Notes
 
 - The repository is mounted at `/home/irisowner/dev/git-source-control/` inside the container.
-- If port 52774 is already in use, edit the port mapping in `docker-compose.yml`.
+- If port 52774 is already in use, create a `.env` file in the root directory setting `IRIS_WEB_PORT` to a free port.
+```bash
+echo IRIS_WEB_PORT=52775 > .env
+docker compose up -d --build
+```
 - If you have an InterSystems license key at `~/iris.key`, it will be mounted into the container automatically.
 
 #### Development

@@ -402,7 +402,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                     set forceExport = (InternalName'= "") && ($data(..Modified(InternalName)))
                     $$$ThrowOnError(##class(SourceControl.Git.Utils).ExportItem(InternalName,,forceExport))
                     if '##class(SourceControl.Git.Change).IsUncommitted(filename) {
-                        $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", "", 0))
+                        $$$ThrowOnError(##class(SourceControl.Git.Change).SetUncommitted(filename, "edit", InternalName, $username, "", 1, "", ""))
                     }
                 }
             } else {

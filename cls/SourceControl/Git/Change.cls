@@ -1,14 +1,55 @@
 Include SourceControl.Git
 
-Class SourceControl.Git.Change Extends (%Persistent, %Studio.SourceControl.Change)
+Class SourceControl.Git.Change Extends %Persistent
 {
 
-/// Returns the name of the backup file for this Item in the file system
-/// Unused in this class, so override to avoid errors.
-Property BackupName As %String [ Calculated, SqlComputeCode = {s {*} = ""}, SqlComputed ];
+/// Each namespace has its own change extent, and these globals are shared with the
+/// Studio SourceControl product's Change class where that class is installed, so the
+/// Extent Manager must not register them for this class.
+Parameter MANAGEDEXTENT As INTEGER [ Constraint = "0,1", Flags = ENUM ] = 0;
 
-/// Returns the name of this Item in the file system
-Property ExternalName As %String [ Calculated, SqlComputeCode = {S {*} = "" }, SqlComputed ];
+/// Data global for this class, used by BuildNewIndexes(). Must match the Storage definition below.
+Parameter DataGlobal = "^Studio.SourceControl.ChangeD";
+
+/// Index global for this class, used by BuildNewIndexes(). Must match the Storage definition below.
+Parameter IndexGlobal = "^Studio.SourceControl.ChangeI";
+
+/// Action for this change
+Property Action As %String(VALUELIST = ",add,edit,predelete,delete,revert") [ Required ];
+
+/// Flag indicating whether this change was committed through the source control tools.
+/// A committed change with ActivelyCommitted = 0 may have been reverted or committed outside of IRIS.
+Property ActivelyCommitted As %Boolean [ InitialExpression = 0 ];
+
+/// CCR associated with this change when it was created (optional)
+Property CCR As %String;
+
+/// User who made this change. For uncommitted changes, this is the user who has it checked out.
+Property ChangedBy As %String;
+
+/// Flag indicating whether this change has been committed
+Property Committed As %Boolean [ InitialExpression = 0, Required ];
+
+/// Time when this change was committed, in $zdt($H,3) format
+Property CommittedTime As %TimeStamp [ InitialExpression = {$zdt("0,0",3)} ];
+
+/// Name used within the instance to refer to this changed item
+Property InternalName As %String(MAXLEN = 200);
+
+/// Location where this item is stored on disk
+Property ItemFile As %String(MAXLEN = 500) [ Required ];
+
+/// Human readable name for this changed item. Defaults to InternalName if not set explicitly.
+Property Name As %String(MAXLEN = 200);
+
+/// Time at which the change was marked as issued to source control
+Property P4Issued As %TimeStamp;
+
+/// Utility by which this change was made
+Property Source As %String(VALUELIST = ",studio,terminal,trakcare,healthshare,tier2") [ InitialExpression = "studio" ];
+
+/// Last time this change was saved locally
+Property UpdatedTime As %TimeStamp [ InitialExpression = {$zdt($H,3)} ];
 
 Index CommittedMap On Committed [ Type = bitmap ];
 
@@ -26,8 +67,8 @@ Index ChangeList On (ItemFile, CommittedTime) [ Data = Action, Unique ];
 /// <li><var>FileList</var> - the name of the file to revert, or an array subscripted by filenames (e.g. <code>FileList("C:\Perforce\custom_ccrs\us\ISCX\TESTSYS\cls\User\Test.xml")=""</code>)</li>
 /// <li><var>Display</var> - boolean flag controlling whether to display the results to standard output (defaults to '1')</li>
 /// <li><var>Revert</var> - boolean flag controlling whether to revert a checkout which would delete the change from the change history table (defaults to '0')</li>
-/// <li><var>ActiveCommit</var> - used for historical tracking purposes for the %Studio_SourceControl.Change table</li>
-/// <li><var>CommitCCR</var> - used for historical tracking purposes for the %Studio_SourceControl.Change table</li>
+/// <li><var>ActiveCommit</var> - used for historical tracking purposes when Committed changes are kept for historical reference</li>
+/// <li><var>CommitCCR</var> - used for historical tracking purposes when Committed changes are kept for historical reference</li>
 /// </ul>
 ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 1, CommitCCR) As %Status
 {
@@ -63,7 +104,7 @@ ClassMethod RemoveUncommitted(FileList, Display = 1, Revert = 0, ActiveCommit = 
 ClassMethod AddDeletedToUncommitted(Filename, InternalName) As %Status
 {
    
-    Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "", 0)
+    Quit ..SetUncommitted(Filename, "delete", InternalName, $USERNAME, "", 1, "", "")
 }
 
 /// Determine if an item is deleted, if it is not in a provided list of git files but is a known tracked item
@@ -128,7 +169,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     kill gitFiles
     
     // files from the uncommitted queue
-    set sc=..ListUncommitted(.tFileList,IncludeRevert,0)
+    set sc=..ListUncommitted(.tFileList,IncludeRevert)
     if $$$ISERR(sc) quit sc
 
     // files from git status
@@ -180,7 +221,7 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
                              1:"add")
 
         if ((##class(%File).Exists(ExternalName)) && ('$ISVALIDNUM(InternalName)) && ('..IsUncommitted(ExternalName)) && ($data($$$TrackedItems(InternalName))))  {
-            set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "", 0)
+            set sc=..SetUncommitted(ExternalName, action, InternalName, $USERNAME, "", 1, "", "")
             if $$$ISERR(sc) continue
         }
     }
@@ -201,6 +242,130 @@ ClassMethod RefreshUncommitted(Display = 0, IncludeRevert = 0, Output gitFiles, 
     set ^IRIS.Temp.gitsourcecontrol("Refresh") = $zdatetime($ztimestamp,-2)
     merge ^IRIS.Temp.gitsourcecontrol("LastUncommitted") = gitFiles
     quit sc
+}
+
+/// Returns the uncommitted change object for <var>Filename</var>, or "" if it is not in the queue
+ClassMethod OpenUncommitted(Filename As %String) As SourceControl.Git.Change
+{
+    if '..IsUncommitted(Filename, .id) quit ""
+    quit ..%OpenId(id)
+}
+
+/// Retrieves the details of an item in the uncommitted queue
+ClassMethod GetUncommitted(Filename As %String, ByRef Action As %String, ByRef InternalName As %String, ByRef ChangedBy As %String, ByRef Source As %String, ByRef Updated As %TimeStamp, ByRef P4Issued As %TimeStamp, ByRef CCR As %String, ByRef Name As %String) As %Status
+{
+    if '$data(Filename) quit $$$ERROR($$$GeneralError,"'Filename' is a required field")
+    if '..IsUncommitted(Filename) quit $$$ERROR($$$GeneralError,"Item is not in the Uncommitted queue")
+    set obj = ..OpenUncommitted(Filename)
+    set Action = obj.Action
+    set ChangedBy = obj.ChangedBy
+    set InternalName = obj.InternalName
+    set Source = obj.Source
+    set Updated = obj.UpdatedTime
+    set P4Issued = obj.P4Issued
+    set CCR = obj.CCR
+    set Name = obj.Name
+    quit $$$OK
+}
+
+/// Adds a new item to the uncommitted queue, or updates it if it is already there
+ClassMethod SetUncommitted(Filename As %String, Action As %String, InternalName As %String, ChangedBy As %String, Source As %String, P4Issued As %Boolean, CCR As %String, Name As %String) As %Status
+{
+    if '$data(Filename)#2 quit $$$ERROR($$$GeneralError,"'Filename' is a required field")
+    set Filename = ##class(%File).NormalizeFilename(Filename)
+    set isCSP = ($extract($get(InternalName)) = "/")
+    if '(##class(%File).Exists(Filename) || (isCSP && ($get(Action) = "delete"))) {
+        quit $$$ERROR($$$GeneralError,"File does not exist - "_Filename)
+    }
+    if ..IsUncommitted(Filename) {
+        quit ..UpdateUncommitted(Filename, .Action, .InternalName, .ChangedBy, .Source, , .P4Issued, .CCR, .Name)
+    }
+    set obj = ..%New()
+    set obj.ItemFile = Filename
+    if $data(Action)#2 set obj.Action = $get(Action)
+    if $data(ChangedBy)#2 set obj.ChangedBy = $get(ChangedBy)
+    if $data(InternalName)#2 set obj.InternalName = $get(InternalName)
+    if $data(Source)#2 set obj.Source = $get(Source)
+    if $data(CCR)#2 set obj.CCR = $get(CCR)
+    if $data(Name)#2 set obj.Name = $get(Name)
+    if $get(P4Issued) set obj.P4Issued = $zdatetime($horolog, 3)
+    quit obj.%Save()
+}
+
+/// Updates the details of an item already in the uncommitted queue
+ClassMethod UpdateUncommitted(Filename As %String, Action As %String, InternalName As %String, ChangedBy As %String, Source As %String, Updated, P4Issued As %Boolean, CCR As %String, Name As %String) As %Status
+{
+    if '$data(Filename)#2 quit $$$ERROR($$$GeneralError,"'Filename' is a required field")
+    set Filename = ##class(%File).NormalizeFilename(Filename)
+    if '##class(%File).Exists(Filename) && ($get(Action) '= "revert") {
+        quit $$$ERROR($$$GeneralError,"File does not exist - "_Filename)
+    }
+    set obj = ..OpenUncommitted(Filename)
+    if '$isobject(obj) quit $$$ERROR($$$GeneralError,"'"_Filename_"' is not in an uncommitted change")
+    if $data(Action)#2 {
+        if Action '= obj.Action set obj.P4Issued = ""
+        set obj.Action = $get(Action)
+    }
+    if $data(ChangedBy)#2 {
+        if ChangedBy '= obj.ChangedBy {
+            quit $$$ERROR($$$GeneralError,"UpdateUncommitted() called on '"_Filename_"' by "_ChangedBy_", which is owned by "_obj.ChangedBy)
+        }
+        set obj.ChangedBy = $get(ChangedBy)
+        set obj.UpdatedTime = $zdatetime($horolog, 3)
+    }
+    if $data(InternalName)#2 set obj.InternalName = $get(InternalName)
+    if $data(Source)#2 set obj.Source = $get(Source)
+    if $data(CCR)#2 set obj.CCR = $get(CCR)
+    if $data(Name)#2 set obj.Name = $get(Name)
+    if $get(P4Issued) set obj.P4Issued = $zdatetime($horolog, 3)
+    quit obj.%Save()
+}
+
+/// Lists the items in the uncommitted queue, subscripted by filename with the action as the value.
+/// Items with an action of 'revert' are listed only if <var>IncludeRevert</var> is true.
+ClassMethod ListUncommitted(ByRef UncommittedList = "", IncludeRevert As %Boolean = 0) As %Status
+{
+    do ..BuildNewIndexes()
+    &sql(DECLARE UncommittedCursor CURSOR FOR
+         SELECT ItemFile, Action INTO :itemFile, :action
+         FROM SourceControl_Git.Change WHERE Committed = 0)
+    &sql(OPEN UncommittedCursor)
+        throw:SQLCODE<0 ##class(%Exception.SQL).CreateFromSQLCODE(SQLCODE, %msg)
+    &sql(FETCH UncommittedCursor)
+    while SQLCODE = 0 {
+        if IncludeRevert || (action '= "revert") {
+            set UncommittedList(itemFile) = action
+        }
+        &sql(FETCH UncommittedCursor)
+    }
+    &sql(CLOSE UncommittedCursor)
+    quit $$$OK
+}
+
+/// Builds any index defined in this class that has never been built in this namespace.
+/// Needed for instances holding change data that predates the addition of an index.
+/// The index list must be kept in sync with the Index definitions in this class.
+ClassMethod BuildNewIndexes()
+{
+    // nothing to do in a namespace with no change data
+    if $data(@..#DataGlobal) '= 11 quit
+    set indexList = ""
+    for indexName = "ChangeList", "CommittedMap" {
+        if $data(@..#IndexGlobal@(indexName))\2 = 0 {
+            set indexList = indexList_$listbuild(indexName)
+        }
+    }
+    if indexList = "" quit
+    write "Building "_..%ClassName(1)_" indexes in "_$namespace_": "_$listtostring(indexList, ", "),!!
+    $$$ThrowOnError(..%BuildIndices(indexList, 1, 1))
+}
+
+/// Defaults ChangedBy to the current user and Name to InternalName
+Method %OnAddToSaveSet(depth As %Integer = 3, insert As %Integer = 0, callcount As %Integer = 0) As %Status [ Private, ServerOnly = 1 ]
+{
+    if ..ChangedBy = "" set ..ChangedBy = $username
+    if ..Name = "" set ..Name = ..InternalName
+    quit $$$OK
 }
 
 Query InstanceUncommitted() As %Query(ROWSPEC = "InternalName:%String,User:%String,Namespace:%String")

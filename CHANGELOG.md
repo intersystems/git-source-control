@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- `SourceControl.Git.Change` no longer extends `%Studio.SourceControl.Change`, which is being removed from IRIS Product in 2026.3 and shipped only with CCR (#989). Existing change data is unaffected; no upgrade action is required.
+- `SourceControl.Git.Change:SetUncommitted` no longer accepts the `EnforceSourcesPath` and `Bulk` arguments, `UpdateUncommitted` no longer accepts `Bulk`, and `ListUncommitted` no longer accepts `RefreshUncommitted`. All were unused by Embedded Git.
+- Embedded Git's queries for uncommitted changes (`ListUncommitted`, `GetUserProductionChanges`) now target `SourceControl_Git.Change` directly instead of the shared `%Studio_SourceControl.Change` table. Today the two classes still share the same underlying storage globals, so this does not change what data is visible to any consumer; it removes Embedded Git's dependency on the product-owned table ahead of its removal (#989).
+
 ## [2.17.1] - 2026-08-18
 
 ### Fixed

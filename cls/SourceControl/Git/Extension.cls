@@ -64,10 +64,10 @@ Method UserAction(Type As %Integer, Name As %String, InternalName As %String, Se
         do ##class(SourceControl.Git.Change).GetUncommitted(filename,.tAction)
         do ..GetStatus(.InternalName, .isInSourceControl, .isEditable,.isCheckedOut,.userCheckedOut)
 
-        // Deal with Business Processes and Rules
-        // Note: Business Processes and Rules do not have a 'new document' User Action, and thus must be added like this
+        // certain portal UIs create and compile classes without going through the 'new document' user
+        // action hooks. we add them explicitly here instead.
         if (('isInSourceControl)) {
-            do ..CheckBusinessProcessesAndRules(InternalName)
+            do ..CheckClassesToAddExplicitly(InternalName)
         }
 
         if '$data(tAction) {
@@ -408,7 +408,7 @@ Method OnAfterSave(InternalName As %String, Object As %RegisteredObject = {$$$NU
                     $$$ThrowOnError(##class(SourceControl.Git.Util.RecordMap).AddRelatedClasses(InternalName, 1))
                 }
             } else {
-                do ..CheckBusinessProcessesAndRules(InternalName)
+                do ..CheckClassesToAddExplicitly(InternalName)
             }
         }
     } catch e {
@@ -595,17 +595,18 @@ Method CheckCommitterIdentity(Settings As SourceControl.Git.Settings, ByRef Acti
     return 0
 }
 
-/// Deal with Business Processes and Rules
-Method CheckBusinessProcessesAndRules(InternalName As %String) As %Status
+/// Add classes whose editors don't respect the 'new document' User Action, so we can't rely on the
+/// normal add-on-create flow for them.
+Method CheckClassesToAddExplicitly(InternalName As %String) As %Status
 {
-    // Note: Business Processes and Rules are not added through normal user action processes because of upstream hook issues,
-    //       so we have to add them like this
+    // Business Processes, Business Rules, and Record Maps handled here
     if (##class(SourceControl.Git.Utils).Type(InternalName) = "cls") {
         set name = $piece(InternalName,".CLS",1)
         if '##class(%Dictionary.CompiledClass).%ExistsId(name) quit
         if '$system.CLS.IsMthd(name, "%Extends") quit
         try {
-            if ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition")) {
+            if ($classmethod(name,"%Extends","Ens.BusinessProcess") || $classmethod(name,"%Extends","Ens.Rule.Definition")
+                    || $classmethod(name,"%Extends","EnsLib.RecordMap.RecordMap")) {
                 do ..AddToSourceControl(InternalName)
             }
         } catch err {

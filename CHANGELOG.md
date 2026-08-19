@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.18.0] - Unreleased
 
 ### Added
-- Adding a record map class will automatically add its associated data classes to source control (#955)
+- Record map classes and their generated data classes are now automatically added to source control (#955)
 
 ## [2.17.1] - 2026-08-18
 

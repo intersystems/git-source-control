@@ -156,6 +156,31 @@ Method TestNonRecordMapClassHasNoRelated()
 	do $$$AssertNotTrue(##class(SourceControl.Git.Utils).IsInSourceControl(plain_".CLS"), "a non-RecordMap class should not be added to source control")
 }
 
+/// A newly compiled RecordMap that isn't yet tracked (e.g. just generated via the RecordMap wizard,
+/// which never issues a "new document" add) should be picked up by CheckClassesToAddExplicitly, the
+/// same fallback that already exists for classes created by other portal UIs like the Business
+/// Process/Rule editors. This should also bring along the generated target class via the
+/// AddToSourceControl cascade.
+Method TestUntrackedRecordMapIsAddedOnCompile()
+{
+	set map = ..#FIXTUREPACKAGE_".CMap"
+	set target = ..#FIXTUREPACKAGE_".CRecord"
+	$$$ThrowOnError(..CreateRecordMap(map, target))
+
+	do $$$AssertNotTrue(##class(SourceControl.Git.Utils).IsInSourceControl(map_".CLS"), "RecordMap should not be tracked before the compile-time check")
+	do $$$AssertNotTrue(##class(SourceControl.Git.Utils).IsInSourceControl(target_".CLS"), "target should not be tracked before the compile-time check")
+
+	new %session, %request, %SourceControl
+	set %session = ##class(%CSP.Session).%New("dummysession")
+	set %request = ##class(%CSP.Request).%New()
+	set %request.Data("pageclass",1) = "EnsPortal.dummy"
+	do ##class(%Studio.SourceControl.Interface).SourceControlCreate()
+	do %SourceControl.CheckClassesToAddExplicitly(map_".CLS")
+
+	do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl(map_".CLS"), "RecordMap should be added to source control by the compile-time fallback check")
+	do $$$AssertTrue(##class(SourceControl.Git.Utils).IsInSourceControl(target_".CLS"), "target data class should be added automatically alongside the RecordMap")
+}
+
 /// Calling AddRelatedClasses more than once is idempotent: the generated data class is added and
 /// remains tracked, and a repeat call succeeds without error.
 Method TestAddRelatedClassesIsIdempotent()

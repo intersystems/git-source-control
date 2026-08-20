@@ -878,6 +878,13 @@ ClassMethod AddToSourceControl(InternalName As %String, refreshUncommitted As %B
             do ..PrintStreams(outStream, errStream)
 
         }
+
+        // If this is a RecordMap class, also add its generated data/target class(es), which the
+        // developer would otherwise have to remember to add manually. AddRelatedClasses refreshes
+        // the uncommitted list itself below, so skip the per-item refresh here.
+        if (type = "cls") {
+            set ec = $$$ADDSC(ec, ##class(SourceControl.Git.Util.RecordMap).AddRelatedClasses(item, 0))
+        }
     }
     if refreshUncommitted {
         do ##class(SourceControl.Git.Change).RefreshUncommitted(,,,1)

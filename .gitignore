@@ -1,3 +1,5 @@
 .vscode/
+ptd/
 .gitattributes
 *.code-workspace
+.claude/worktrees/

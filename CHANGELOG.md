@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Record map classes and their generated data classes are now automatically added to source control (#955)
 
+### Fixed
+- Import All no longer deletes items mapped in from an IPM package in another namespace, which could delete Embedded Git itself where it is mapped instance-wide; Export All and baseline export skip such items too, including when the owning package cannot be determined (#997)
+
 ## [2.17.1] - 2026-08-18
 
 ### Fixed

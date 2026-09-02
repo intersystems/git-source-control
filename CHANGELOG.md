@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Record map classes and their generated data classes are now automatically added to source control (#955)
 
+### Fixed
+- Import All no longer deletes items that are mapped in from another database, which could delete Embedded Git itself where it is mapped instance-wide (#997)
+
 ## [2.17.1] - 2026-08-18
 
 ### Fixed

@@ -1648,7 +1648,7 @@ ClassMethod ListItemsInFiles(ByRef itemList, ByRef err) As %Status
 ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As %Status
 {
     set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    set refPackage = refContext.Package
+    set refPackageName = refContext.HomePackageName
 
     write !, "==import start=="
 
@@ -1700,7 +1700,8 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
         continue:internalName=##class(SourceControl.Git.Settings.Document).#INTERNALNAME
 
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
-        continue:context.Package'=refPackage
+        continue:context.HomePackageUnknown
+        continue:context.HomePackageName'=refPackageName
         set doImport = force || ..IsRoutineOutdated(internalName)
         if '..IsInSourceControl(internalName) {
             set sc = ..AddToServerSideSourceControl(internalName)
@@ -1747,11 +1748,18 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
         quit:item=""
 
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
-        continue:context.Package'=refPackage
+        set ownerUnknown = context.HomePackageUnknown
+        continue:'ownerUnknown&&(context.HomePackageName'=refPackageName)
 
         set externalName = ..ExternalName(item)
         set fullExternalName = ..FullExternalName(item)
         if '##class(%File).Exists(fullExternalName) {
+            // an item whose owner cannot be established is left alone: it is mapped in from a namespace
+            // this process cannot see into, and deleting it here deletes it there as well (#997)
+            if ownerUnknown {
+                write !,fullExternalName," does not exist, but ",item," is mapped in from a namespace whose IPM packages cannot be read - not deleting it"
+                continue
+            }
             write !,fullExternalName," does not exist - deleting ",item
             set modification = ##class(SourceControl.Git.Modification).%New()
             set modification.changeType = "D"
@@ -1910,7 +1918,7 @@ ClassMethod ImportAll(force As %Boolean = 0, pullEventClass As %String) As %Stat
 ClassMethod ExportRoutines(force As %Boolean = 0) As %Status
 {
     set refContext = ##class(SourceControl.Git.PackageManagerContext).%Get()
-    set refPackage = refContext.Package
+    set refPackageName = refContext.HomePackageName
 
     #dim item as %String = ""
     #dim ec as %Status = $$$OK
@@ -1918,7 +1926,8 @@ ClassMethod ExportRoutines(force As %Boolean = 0) As %Status
         set item = $order(@..#Storage@("items",item))
         quit:item=""
         set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(item)
-        continue:context.Package'=refPackage
+        continue:context.HomePackageUnknown
+        continue:context.HomePackageName'=refPackageName
         set ec = ..ExportItem(item, 1, force)
         quit:'ec
     }
@@ -3289,7 +3298,11 @@ ClassMethod BaselineExport(pCommitMessage = "", pPushToRemote = "", pVerbose = 0
             }
             // exclude items in a non-default IPM package
             set context = ##class(SourceControl.Git.PackageManagerContext).ForInternalName(internalName)
-            if ($isobject(context.Package) && 'context.IsInDefaultPackage) {
+            if context.HomePackageUnknown {
+                write:pVerbose !?5, "skipping item mapped in from a namespace whose IPM packages cannot be read"
+                continue
+            }
+            if ((context.HomePackageName '= "") && 'context.IsInDefaultPackage) {
                 write:pVerbose !?5, "skipping item in non-default IPM package"
                 continue
             }

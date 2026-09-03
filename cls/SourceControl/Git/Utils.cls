@@ -1752,12 +1752,16 @@ ClassMethod ImportRoutines(force As %Boolean = 0, pullEventClass As %String) As 
         set externalName = ..ExternalName(item)
         set fullExternalName = ..FullExternalName(item)
         if '##class(%File).Exists(fullExternalName) {
-            write !,fullExternalName," does not exist - deleting ",item
-            set modification = ##class(SourceControl.Git.Modification).%New()
-            set modification.changeType = "D"
-            set modification.internalName = item
-            set modification.externalName = externalName
-            set files($increment(files)) = modification
+            if ##class(%Library.RoutineMgr).IsMapped(item) {
+                write !,fullExternalName," does not exist, but ",item," is mapped in from another database - not deleting it"
+            } else {
+                write !,fullExternalName," does not exist - deleting ",item
+                set modification = ##class(SourceControl.Git.Modification).%New()
+                set modification.changeType = "D"
+                set modification.internalName = item
+                set modification.externalName = externalName
+                set files($increment(files)) = modification
+            }
         }
     }
 

@@ -1,3 +1,5 @@
+Include (%occStatus, %occErrors)
+
 /// Base class for all event handlers for git pull commands.
 /// Subclasses may override to perform an incremental load/compile, take no action, do a zpm "load", etc.
 Class SourceControl.Git.PullEventHandler Extends %RegisteredObject
@@ -28,16 +30,17 @@ ClassMethod ForModifications(ByRef files, pullEventClass As %String) As %Status
     #Dim pullError As %Exception.AbstractException
     #Dim st As %Status = $$$OK
     try {
+        set handlerClass = $select(
+            $data(pullEventClass)#2: pullEventClass,
+            1: ##class(SourceControl.Git.Utils).PullEventClass())
+        set st = ..BootstrapPullEventHandler(handlerClass)
+        quit:$$$ISERR(st)
         set log = ##class(SourceControl.Git.DeploymentLog).%New()
         set log.HeadRevision = ##class(SourceControl.Git.Utils).GetCurrentRevision()
         set log.StartTimestamp = $zdatetime($ztimestamp,3)
         set st = log.%Save()
         quit:$$$ISERR(st)
-        set event = $classmethod(
-            $select(
-                $data(pullEventClass)#2: pullEventClass,
-                1: ##class(SourceControl.Git.Utils).PullEventClass())
-            ,"%New")
+        set event = $classmethod(handlerClass,"%New")
         set event.LocalRoot = ##class(SourceControl.Git.Utils).TempFolder()
         merge event.ModifiedFiles = files
         try {
@@ -54,6 +57,36 @@ ClassMethod ForModifications(ByRef files, pullEventClass As %String) As %Status
         set st = err.AsStatus()
     }
     quit st
+}
+
+/// Makes sure <var>class</var> is compiled and can be instantiated, loading it from the
+/// local repository if needed. 
+ClassMethod BootstrapPullEventHandler(class As %String) As %Status [ Private ]
+{
+    quit:$$$comClassDefined(class) $$$OK
+
+    set internalName = class_".cls"
+    if ##class(%Dictionary.ClassDefinition).%ExistsId(class) {
+        write !, "Compiling pull event handler ", class
+        set source = "compiled from the definition already in the database"
+        set sc = $system.OBJ.Compile(class, "ck")
+    } else {
+        // nothing has been imported yet, so the handler is compiled on its own here:
+        // a handler kept in the repository it loads must be able to compile by itself.
+        set filename = ##class(SourceControl.Git.Utils).FullExternalName(internalName)
+        if '##class(%File).Exists(filename) {
+            quit $$$ERROR($$$GeneralError, "Pull event class '"_class_"' is not compiled and no source file exists at "_filename)
+        }
+        write !, "Importing pull event handler ", class
+        set source = "imported from "_filename
+        set sc = ##class(SourceControl.Git.Utils).ImportItem(internalName, 1, 0, 1)
+    }
+    quit:$$$ISERR(sc) sc
+
+    if '$$$comClassDefined(class) {
+        quit $$$ERROR($$$GeneralError, "Pull event class '"_class_"' was "_source_" but is still not available")
+    }
+    quit $$$OK
 }
 
 /// <var>InternalName</var> may be a comma-delimited string or $ListBuild list

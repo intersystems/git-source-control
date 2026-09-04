@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Import All no longer deletes items that are mapped in from another database, which could delete Embedded Git itself where it is mapped instance-wide (#997)
+- A custom pull event handler stored in the repository is now loaded and compiled before it runs, so operations on a freshly built instance no longer fail with `<CLASS DOES NOT EXIST>` (#1000)
 
 ## [2.17.1] - 2026-08-18
 

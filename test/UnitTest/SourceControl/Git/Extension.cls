@@ -35,4 +35,14 @@ Method TestGeneratedFilesReadOnlyOption()
     $$$ThrowOnError(sc)
 }
 
+/// DeepSee Architect calls UserAction with ".CLS" as the internal name when no cube is selected
+Method TestUserActionEmptyClassName()
+{
+	set settings = ##class(SourceControl.Git.Settings).%New()
+    set settings.decomposeProductions = 1
+	do settings.%Save()
+    do ##class(SourceControl.Git.Extension).%New("").UserAction(1,3,".CLS")
+    do $$$AssertSuccess("UserAction did not throw exception with empty class name")
+}
+
 }

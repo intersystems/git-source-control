@@ -11,6 +11,16 @@ Property HeadRevision As %String;
 
 Property Status As %Status;
 
+Method StartLog(pRevision As %String, pTimestamp AS %TimeStamp = {$zdatetime($ztimestamp,3)}) {
+    set ..HeadRevision = pRevision
+    set ..StartTimestamp = pTimestamp
+}
+
+Method FinalizeLog(pStatus As %Status, pTimestamp AS %TimeStamp = {$zdatetime($ztimestamp,3)}) {
+    set ..Status = pStatus
+    set ..EndTimestamp = pTimestamp
+}
+
 Storage Default
 {
 <Data name="DeploymentLogDefaultData">

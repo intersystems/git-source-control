@@ -1861,10 +1861,13 @@ ClassMethod ExportItem(InternalName As %String, expand As %Boolean = 1, force As
     quit $$$OK
 }
 
-ClassMethod ItemIsProductionToDecompose(InternalName, Output productionName)
+ClassMethod ItemIsProductionToDecompose(InternalName, Output productionName) As %Boolean
 {
-    set settings = ##class(SourceControl.Git.Settings).%New()
 	set name = $piece(InternalName,".",1,*-1)
+    if (name = "") {
+        return 0
+    }
+    set settings = ##class(SourceControl.Git.Settings).%New()
     set decomposeProduction = settings.decomposeProductions && (..Type(InternalName) = "cls")
         && ##class(SourceControl.Git.Production).IsProductionClass(name, "FullExternalName")
     if decomposeProduction {
